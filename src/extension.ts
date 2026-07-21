@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { AuthStatusBar } from './statusBar/index.js';
-import { AssetsTreeDataProvider, AssetTreeItem, openAssetPreview } from './views/assets/index.js';
+import { AssetsTreeDataProvider, AssetTreeItem, openAssetPreview, openAssetsPanel } from './views/assets/index.js';
 import { DocsTreeDataProvider } from './views/docs/index.js';
 import { TasksTreeDataProvider, TaskTreeItem, cancelOperation, openTasksPanel } from './views/tasks/index.js';
 import { DatasetTreeDataProvider, DatasetTreeItem, createDatasetPanel, fetchCollection, getDatasetPageUrl } from './views/dataset/index.js';
@@ -76,6 +76,9 @@ export function activate(context: vscode.ExtensionContext) {
 				const msg = err instanceof Error ? err.message : String(err);
 				vscode.window.showErrorMessage(`Failed to load asset: ${msg}`);
 			}
+		}),
+		vscode.commands.registerCommand('earthengine.openAssetsPanel', () => {
+			openAssetsPanel(authService);
 		}),
 	);
 
