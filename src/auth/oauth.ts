@@ -122,9 +122,6 @@ export async function authenticateNotebookFlow(): Promise<{ credentials: EECrede
 		clientInfo = { client_id: CLIENT_ID, client_secret: CLIENT_SECRET };
 	}
 
-	// Extract project number from client_id (format: "PROJECT_NUMBER-xxx.apps.googleusercontent.com")
-	const project = clientInfo.client_id.split('-')[0] || '';
-
 	// Exchange code for refresh token
 	const tokenParams = new URLSearchParams({
 		code: authCode.trim(),
@@ -144,6 +141,19 @@ export async function authenticateNotebookFlow(): Promise<{ credentials: EECrede
 
 	// Get user email from the access token
 	const email = await fetchEmail(tokenData.access_token);
+
+	// Ask for the Cloud project ID (the human-readable name, not the number)
+	const project = await vscode.window.showInputBox({
+		title: 'Google Cloud Project',
+		prompt: 'Enter your Cloud project ID (e.g. ee-my-project or my-project-name)',
+		placeHolder: 'ee-my-project',
+		ignoreFocusOut: true,
+	});
+
+	if (!project) {
+		vscode.window.showWarningMessage('Sign in cancelled: a project ID is required.');
+		return undefined;
+	}
 
 	const credentials: EECredentials = {
 		client_id: clientInfo.client_id,

@@ -45,8 +45,12 @@
           "name": "Docs"
         },
         {
-          "id": "earthengine.tasks",
-          "name": "Tasks"
+          "id": "earthengine.tasks.export",
+          "name": "Export Tasks"
+        },
+        {
+          "id": "earthengine.tasks.import",
+          "name": "Import Tasks"
         },
         {
           "id": "earthengine.dataset",
@@ -104,6 +108,26 @@
         "icon": "$(open-preview)"
       },
       {
+        "command": "earthengine.refreshTasks",
+        "title": "Earth Engine: Refresh Tasks",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "earthengine.cancelTask",
+        "title": "Cancel Task",
+        "icon": "$(close)"
+      },
+      {
+        "command": "earthengine.openExportTasksPanel",
+        "title": "Earth Engine: Open Export Tasks",
+        "icon": "$(open-preview)"
+      },
+      {
+        "command": "earthengine.openImportTasksPanel",
+        "title": "Earth Engine: Open Import Tasks",
+        "icon": "$(open-preview)"
+      },
+      {
         "command": "earthengine.refreshDatasets",
         "title": "Earth Engine: Refresh Datasets",
         "icon": "$(refresh)"
@@ -147,6 +171,23 @@
           "group": "navigation"
         },
         {
+          "command": "earthengine.refreshTasks",
+          "when": "view == earthengine.tasks.export || view == earthengine.tasks.import",
+          "group": "navigation"
+        },
+        {
+          "command": "earthengine.openExportTasksPanel",
+          "when": "view == earthengine.tasks.export",
+          "group": "navigation"
+        },
+        {
+          "command": "earthengine.openImportTasksPanel",
+          "when": "view == earthengine.tasks.import",
+          "group": "navigation"
+        },
+          "group": "navigation"
+        },
+        {
           "command": "earthengine.searchDatasets",
           "when": "view == earthengine.dataset",
           "group": "navigation"
@@ -171,6 +212,11 @@
         {
           "command": "earthengine.openAssetPreview",
           "when": "viewItem =~ /^asset-(leaf|container)-(image|image_collection|table)$/",
+          "group": "inline"
+        },
+        {
+          "command": "earthengine.cancelTask",
+          "when": "viewItem == task-running",
           "group": "inline"
         },
         {

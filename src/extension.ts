@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import { AuthStatusBar } from './statusBar/index.js';
 import { AssetsTreeDataProvider, AssetTreeItem, openAssetPreview } from './views/assets/index.js';
 import { DocsTreeDataProvider } from './views/docs/index.js';
-import { TasksTreeDataProvider } from './views/tasks/index.js';
+import { TasksTreeDataProvider, TaskTreeItem, cancelOperation, openTasksPanel } from './views/tasks/index.js';
 import { DatasetTreeDataProvider, DatasetTreeItem, createDatasetPanel, fetchCollection, getDatasetPageUrl } from './views/dataset/index.js';
 import { ProfilesTreeDataProvider } from './views/profiles/index.js';
 import { AuthService, TokenStorage, Profile } from './auth/index.js';
@@ -79,8 +79,44 @@ export function activate(context: vscode.ExtensionContext) {
 		}),
 	);
 
-	// Other views
-	vscode.window.registerTreeDataProvider('earthengine.tasks', new TasksTreeDataProvider());
+	// Task views
+	const exportTasksProvider = new TasksTreeDataProvider(authService, 'export');
+	const importTasksProvider = new TasksTreeDataProvider(authService, 'import');
+
+	context.subscriptions.push(
+		vscode.window.createTreeView('earthengine.tasks.export', {
+			treeDataProvider: exportTasksProvider,
+		}),
+		vscode.window.createTreeView('earthengine.tasks.import', {
+			treeDataProvider: importTasksProvider,
+		}),
+		vscode.commands.registerCommand('earthengine.refreshTasks', () => {
+			exportTasksProvider.refresh();
+			importTasksProvider.refresh();
+		}),
+		vscode.commands.registerCommand('earthengine.cancelTask', async (item: TaskTreeItem) => {
+			const token = await authService.getToken();
+			if (!token) { return; }
+			try {
+				await cancelOperation(item.operation.name, token);
+				vscode.window.showInformationMessage('Task cancellation requested.');
+				exportTasksProvider.refresh();
+				importTasksProvider.refresh();
+			} catch (err) {
+				const msg = err instanceof Error ? err.message : String(err);
+				vscode.window.showErrorMessage(`Failed to cancel task: ${msg}`);
+			}
+		}),
+		vscode.commands.registerCommand('earthengine.loadMoreTasks', (provider: TasksTreeDataProvider) => {
+			provider.loadNextPage();
+		}),
+		vscode.commands.registerCommand('earthengine.openExportTasksPanel', () => {
+			openTasksPanel(authService, 'export', context.extensionUri);
+		}),
+		vscode.commands.registerCommand('earthengine.openImportTasksPanel', () => {
+			openTasksPanel(authService, 'import', context.extensionUri);
+		}),
+	);
 
 	// Dataset view
 	const datasetProvider = new DatasetTreeDataProvider();
