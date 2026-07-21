@@ -185,8 +185,6 @@
           "when": "view == earthengine.tasks.import",
           "group": "navigation"
         },
-          "group": "navigation"
-        },
         {
           "command": "earthengine.searchDatasets",
           "when": "view == earthengine.dataset",
