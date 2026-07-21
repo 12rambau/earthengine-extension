@@ -12,6 +12,15 @@
   "activationEvents": [],
   "main": "./dist/extension.js",
   "contributes": {
+    "icons": {
+      "earthengine-icon": {
+        "description": "Earth Engine Icon",
+        "default": {
+          "fontPath": "resources/fonts/earthengine-icons.woff",
+          "fontCharacter": "\\F101"
+        }
+      }
+    },
     "viewsContainers": {
       "activitybar": [
         {
@@ -33,6 +42,14 @@
       {
         "command": "earthengine.helloWorld",
         "title": "Hello World"
+      },
+      {
+        "command": "earthengine.showAuthStatus",
+        "title": "Earth Engine: Show Authentication Status"
+      },
+      {
+        "command": "earthengine.signIn",
+        "title": "Earth Engine: Sign In"
       }
     ]
   },
