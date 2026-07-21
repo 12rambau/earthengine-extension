@@ -12,6 +12,23 @@
   "activationEvents": [],
   "main": "./dist/extension.js",
   "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "earthengine",
+          "title": "Earth Engine",
+          "icon": "resources/earthengine.svg"
+        }
+      ]
+    },
+    "views": {
+      "earthengine": [
+        {
+          "id": "earthengine.explorer",
+          "name": "Earth Engine"
+        }
+      ]
+    },
     "commands": [
       {
         "command": "earthengine.helloWorld",
