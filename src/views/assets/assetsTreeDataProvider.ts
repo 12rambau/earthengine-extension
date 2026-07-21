@@ -27,7 +27,13 @@ export class AssetTreeItem extends vscode.TreeItem {
 		this.iconPath = TYPE_ICONS[asset.type] || new vscode.ThemeIcon('file');
 		this.description = asset.type.toLowerCase().replace('_', ' ');
 		this.tooltip = asset.name;
-		this.contextValue = `asset-${asset.type.toLowerCase()}`;
+
+		// Context values for menu visibility
+		if (isContainer) {
+			this.contextValue = `asset-container-${asset.type.toLowerCase()}`;
+		} else {
+			this.contextValue = `asset-leaf-${asset.type.toLowerCase()}`;
+		}
 	}
 
 	static placeholder(label: string, icon: vscode.ThemeIcon, command?: vscode.Command): AssetTreeItem {
@@ -131,6 +137,12 @@ export class AssetsTreeDataProvider implements vscode.TreeDataProvider<AssetTree
 	refresh() {
 		this.childrenCache.clear();
 		this.loadingState.clear();
+		this._onDidChangeTreeData.fire();
+	}
+
+	refreshFolder(assetName: string) {
+		this.childrenCache.delete(assetName);
+		this.loadingState.delete(assetName);
 		this._onDidChangeTreeData.fire();
 	}
 }

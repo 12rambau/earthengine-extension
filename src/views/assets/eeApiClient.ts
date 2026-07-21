@@ -7,10 +7,34 @@ export interface EEAsset {
 	type: string;
 	id?: string;
 	title?: string;
+	updateTime?: string;
+	startTime?: string;
+	endTime?: string;
+	sizeBytes?: string;
+	featureCount?: string;
+	properties?: Record<string, unknown>;
+	bands?: EEBand[];
+	geometry?: unknown;
+}
+
+export interface EEBand {
+	id: string;
+	dataType?: { precision?: string; range?: { min?: number; max?: number } };
+	grid?: {
+		dimensions?: { width?: number; height?: number };
+		affineTransform?: { scaleX?: number; scaleY?: number };
+		crsCode?: string;
+	};
+	pyramidingPolicy?: string;
 }
 
 export interface ListAssetsResponse {
 	assets?: EEAsset[];
+	nextPageToken?: string;
+}
+
+export interface ListFeaturesResponse {
+	features?: { type: string; geometry?: unknown; properties?: Record<string, unknown> }[];
 	nextPageToken?: string;
 }
 
@@ -46,6 +70,23 @@ export async function listAllAssets(
 	} while (pageToken);
 
 	return all;
+}
+
+export async function getAsset(name: string, accessToken: string): Promise<EEAsset> {
+	const url = `${EE_API_BASE}/${name}`;
+	const response = await getRequest(url, accessToken);
+	return JSON.parse(response) as EEAsset;
+}
+
+export async function listFeatures(
+	asset: string,
+	accessToken: string,
+	pageSize = 1,
+): Promise<ListFeaturesResponse> {
+	const params = new URLSearchParams({ pageSize: String(pageSize) });
+	const url = `${EE_API_BASE}/${asset}:listFeatures?${params.toString()}`;
+	const response = await getRequest(url, accessToken);
+	return JSON.parse(response) as ListFeaturesResponse;
 }
 
 function getRequest(url: string, accessToken: string): Promise<string> {

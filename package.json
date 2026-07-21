@@ -94,6 +94,16 @@
         "icon": "$(refresh)"
       },
       {
+        "command": "earthengine.refreshAssetFolder",
+        "title": "Refresh Folder",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "earthengine.openAssetPreview",
+        "title": "Open Preview",
+        "icon": "$(open-preview)"
+      },
+      {
         "command": "earthengine.refreshDatasets",
         "title": "Earth Engine: Refresh Datasets",
         "icon": "$(refresh)"
@@ -151,6 +161,16 @@
         {
           "command": "earthengine.removeProfile",
           "when": "viewItem == profile-active || viewItem == profile-inactive",
+          "group": "inline"
+        },
+        {
+          "command": "earthengine.refreshAssetFolder",
+          "when": "viewItem =~ /^asset-container-/",
+          "group": "inline"
+        },
+        {
+          "command": "earthengine.openAssetPreview",
+          "when": "viewItem =~ /^asset-(leaf|container)-(image|image_collection|table)$/",
           "group": "inline"
         },
         {

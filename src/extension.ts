@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { AuthStatusBar } from './statusBar/index.js';
-import { AssetsTreeDataProvider } from './views/assets/index.js';
+import { AssetsTreeDataProvider, AssetTreeItem, openAssetPreview } from './views/assets/index.js';
 import { DocsTreeDataProvider } from './views/docs/index.js';
 import { TasksTreeDataProvider } from './views/tasks/index.js';
 import { DatasetTreeDataProvider, DatasetTreeItem, createDatasetPanel, fetchCollection, getDatasetPageUrl } from './views/dataset/index.js';
@@ -61,6 +61,22 @@ export function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(assetsTreeView);
 	context.subscriptions.push(
 		vscode.commands.registerCommand('earthengine.refreshAssets', () => assetsProvider.refresh()),
+		vscode.commands.registerCommand('earthengine.refreshAssetFolder', (item: AssetTreeItem) => {
+			assetsProvider.refreshFolder(item.asset.name);
+		}),
+		vscode.commands.registerCommand('earthengine.openAssetPreview', async (item: AssetTreeItem) => {
+			const token = await authService.getToken();
+			if (!token) {
+				vscode.window.showErrorMessage('Not authenticated.');
+				return;
+			}
+			try {
+				await openAssetPreview(item.asset.name, token);
+			} catch (err) {
+				const msg = err instanceof Error ? err.message : String(err);
+				vscode.window.showErrorMessage(`Failed to load asset: ${msg}`);
+			}
+		}),
 	);
 
 	// Other views
