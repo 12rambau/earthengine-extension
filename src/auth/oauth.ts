@@ -1,10 +1,22 @@
+/**
+ * @module oauth
+ * OAuth2 authentication flow for Google Earth Engine.
+ *
+ * Implements the notebook-style PKCE auth flow: generate an auth URL,
+ * open the browser, exchange the authorization code for a refresh token,
+ * and persist credentials to disk. Uses the same client ID/secret as the
+ * official `earthengine-api` Python library.
+ */
+
 import * as vscode from 'vscode';
-import * as https from 'https';
 import * as crypto from 'crypto';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
-import { URL, URLSearchParams } from 'url';
+import { URLSearchParams } from 'url';
+import { postForm, postJson, getRequest } from '../shared/httpClient.js';
+
+// ── OAuth Constants ──────────────────────────────────────────────────
 
 // Same credentials as earthengine-api (python/ee/oauth.py)
 const CLIENT_ID = '517222506229-vsmmajv00ul0bs7p89v5m89qs8eb9359.apps.googleusercontent.com';
@@ -19,6 +31,9 @@ const FETCH_URL = AUTH_PAGE_URL + '/fetch';
 const TOKEN_URI = 'https://oauth2.googleapis.com/token';
 const REDIRECT_URI = 'urn:ietf:wg:oauth:2.0:oob';
 
+// ── Interfaces ───────────────────────────────────────────────────────
+
+/** Persisted OAuth2 credentials for an Earth Engine session. */
 export interface EECredentials {
 	client_id: string;
 	client_secret: string;
@@ -27,23 +42,21 @@ export interface EECredentials {
 	project?: string;
 }
 
-/**
- * Default credentials path (same as earthengine CLI)
- */
+// ── Credential Paths ─────────────────────────────────────────────────
+
+/** Returns the default credentials path (~/.config/earthengine/credentials). */
 export function getDefaultCredentialsPath(): string {
 	return path.join(os.homedir(), '.config', 'earthengine', 'credentials');
 }
 
-/**
- * Profile-specific credentials path
- */
+/** Returns the profile-specific credentials path under ~/.config/earthengine/profiles/. */
 export function getProfileCredentialsPath(profileName: string): string {
 	return path.join(os.homedir(), '.config', 'earthengine', 'profiles', profileName, 'credentials');
 }
 
-/**
- * Read credentials from a file
- */
+// ── Credential I/O ──────────────────────────────────────────────────
+
+/** Reads and parses a JSON credentials file; returns `undefined` on failure. */
 export function readCredentials(credPath: string): EECredentials | undefined {
 	try {
 		const content = fs.readFileSync(credPath, 'utf-8');
@@ -53,22 +66,23 @@ export function readCredentials(credPath: string): EECredentials | undefined {
 	}
 }
 
-/**
- * Write credentials to a file (with restricted permissions)
- */
+/** Writes credentials to disk with restricted file permissions (0o600). */
 export function writeCredentials(credPath: string, creds: EECredentials): void {
 	const dir = path.dirname(credPath);
 	fs.mkdirSync(dir, { recursive: true, mode: 0o700 });
 	fs.writeFileSync(credPath, JSON.stringify(creds, null, 2), { mode: 0o600 });
 }
 
+// ── Notebook Auth Flow ───────────────────────────────────────────────
+
 /**
- * Notebook-mode authentication flow:
- * 1. Generate auth URL
- * 2. Open in browser
- * 3. User pastes the code
- * 4. Exchange for refresh token
- * 5. Save credentials file
+ * Interactive notebook-style PKCE authentication flow.
+ *
+ * 1. Generate PKCE nonces and build the auth URL.
+ * 2. Open the browser for the user to sign in.
+ * 3. User pastes the authorization code.
+ * 4. Exchange the code for a refresh token.
+ * 5. Return credentials, email, and project.
  */
 export async function authenticateNotebookFlow(): Promise<{ credentials: EECredentials; email: string; project: string } | undefined> {
 	// Generate PKCE nonces
@@ -166,9 +180,9 @@ export async function authenticateNotebookFlow(): Promise<{ credentials: EECrede
 	return { credentials, email, project };
 }
 
-/**
- * Refresh an access token from a credentials file
- */
+// ── Token Refresh ────────────────────────────────────────────────────
+
+/** Exchanges a refresh token for a short-lived access token. */
 export async function getAccessToken(creds: EECredentials): Promise<string> {
 	const params = new URLSearchParams({
 		client_id: creds.client_id || CLIENT_ID,
@@ -182,6 +196,9 @@ export async function getAccessToken(creds: EECredentials): Promise<string> {
 	return data.access_token;
 }
 
+// ── Helpers ──────────────────────────────────────────────────────────
+
+/** Fetches the user's email via the Google userinfo endpoint. */
 async function fetchEmail(accessToken: string): Promise<string> {
 	try {
 		const response = await getRequest('https://www.googleapis.com/oauth2/v3/userinfo', accessToken);
@@ -192,6 +209,7 @@ async function fetchEmail(accessToken: string): Promise<string> {
 	}
 }
 
+/** Generates random PKCE nonces and their SHA-256 challenges. */
 function generateNonces(...keys: string[]): Record<string, string> {
 	const table: Record<string, string> = {};
 	for (const key of keys) {
@@ -205,80 +223,7 @@ function generateNonces(...keys: string[]): Record<string, string> {
 	return table;
 }
 
+/** Encodes a buffer as an unpadded base64url string. */
 function base64url(buf: Buffer): string {
 	return buf.toString('base64url').replace(/=+$/, '');
-}
-
-function postForm(url: string, body: string): Promise<string> {
-	return new Promise((resolve, reject) => {
-		const parsed = new URL(url);
-		const req = https.request({
-			hostname: parsed.hostname,
-			path: parsed.pathname + parsed.search,
-			method: 'POST',
-			headers: {
-				'Content-Type': 'application/x-www-form-urlencoded',
-				'Content-Length': Buffer.byteLength(body),
-			},
-		}, (res) => {
-			const chunks: Buffer[] = [];
-			res.on('data', (chunk: Buffer) => chunks.push(chunk));
-			res.on('end', () => {
-				const result = Buffer.concat(chunks).toString('utf-8');
-				if (res.statusCode && res.statusCode >= 400) {
-					reject(new Error(`HTTP ${res.statusCode}: ${result}`));
-				} else {
-					resolve(result);
-				}
-			});
-		});
-		req.on('error', reject);
-		req.write(body);
-		req.end();
-	});
-}
-
-function postJson(url: string, body: string): Promise<string> {
-	return new Promise((resolve, reject) => {
-		const parsed = new URL(url);
-		const req = https.request({
-			hostname: parsed.hostname,
-			path: parsed.pathname + parsed.search,
-			method: 'POST',
-			headers: {
-				'Content-Type': 'application/json; charset=UTF-8',
-				'Content-Length': Buffer.byteLength(body),
-			},
-		}, (res) => {
-			const chunks: Buffer[] = [];
-			res.on('data', (chunk: Buffer) => chunks.push(chunk));
-			res.on('end', () => {
-				const result = Buffer.concat(chunks).toString('utf-8');
-				if (res.statusCode && res.statusCode >= 400) {
-					reject(new Error(`HTTP ${res.statusCode}: ${result}`));
-				} else {
-					resolve(result);
-				}
-			});
-		});
-		req.on('error', reject);
-		req.write(body);
-		req.end();
-	});
-}
-
-function getRequest(url: string, accessToken: string): Promise<string> {
-	return new Promise((resolve, reject) => {
-		const parsed = new URL(url);
-		https.get({
-			hostname: parsed.hostname,
-			path: parsed.pathname,
-			headers: { 'Authorization': `Bearer ${accessToken}` },
-		}, (res) => {
-			const chunks: Buffer[] = [];
-			res.on('data', (chunk: Buffer) => chunks.push(chunk));
-			res.on('end', () => resolve(Buffer.concat(chunks).toString('utf-8')));
-			res.on('error', reject);
-		}).on('error', reject);
-	});
 }

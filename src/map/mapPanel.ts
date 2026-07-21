@@ -1,56 +1,70 @@
+/**
+ * @module mapPanel
+ * Leaflet-based map WebView panel for the Earth Engine extension.
+ *
+ * Renders a full-screen Leaflet map with dark/light/satellite base
+ * layers, a layer control panel, and a status bar. Receives tile layer,
+ * GeoJSON, and viewport commands from Python scripts via the bridge server.
+ */
+
 import * as vscode from 'vscode';
+import { EditorPanel } from '../shared/baseComponents.js';
 import { MapBridgeServer, MapCommand } from './mapBridgeServer.js';
 
-let activePanel: vscode.WebviewPanel | undefined;
-let bridgeServer: MapBridgeServer | undefined;
+// ── MapPanel ────────────────────────────────────────────────────────
 
-export async function openMapPanel(): Promise<void> {
-	if (activePanel) {
-		activePanel.reveal();
-		return;
+/** Editor panel hosting a Leaflet map that visualises Earth Engine layers. */
+export class MapPanel extends EditorPanel {
+	private bridgeServer: MapBridgeServer;
+	private commandDisposable: vscode.Disposable | undefined;
+
+	constructor() {
+		super();
+		this.bridgeServer = new MapBridgeServer();
 	}
 
-	// Start bridge server
-	if (!bridgeServer) {
-		bridgeServer = new MapBridgeServer();
-		await bridgeServer.start();
+	/** Starts the bridge server, creates the WebView, and wires up commands. */
+	async open(): Promise<void> {
+		await this.bridgeServer.start();
+
+		const panel = this.createPanel(
+			'earthengine.map',
+			'Earth Engine Map',
+			vscode.ViewColumn.Beside,
+			{ enableScripts: true, retainContextWhenHidden: true },
+		);
+
+		if (this.commandDisposable) { return; } // Already wired
+
+		panel.webview.html = MapPanel.getHtml();
+
+		this.commandDisposable = this.bridgeServer.onCommand((cmd: MapCommand) => {
+			if (this.panel) {
+				this.panel.webview.postMessage(cmd);
+			}
+		});
 	}
 
-	activePanel = vscode.window.createWebviewPanel(
-		'earthengine.map',
-		'Earth Engine Map',
-		vscode.ViewColumn.Beside,
-		{ enableScripts: true, retainContextWhenHidden: true },
-	);
-
-	activePanel.webview.html = getMapHtml();
-
-	// Forward commands from Python → WebView
-	const commandDisposable = bridgeServer.onCommand((cmd: MapCommand) => {
-		if (activePanel) {
-			activePanel.webview.postMessage(cmd);
-		}
-	});
-
-	activePanel.onDidDispose(() => {
-		activePanel = undefined;
-		commandDisposable.dispose();
-	});
-}
-
-export function disposeMapPanel() {
-	if (bridgeServer) {
-		bridgeServer.stop();
-		bridgeServer = undefined;
+	protected override onDidDispose(): void {
+		this.commandDisposable?.dispose();
+		this.commandDisposable = undefined;
 	}
-	if (activePanel) {
-		activePanel.dispose();
-		activePanel = undefined;
-	}
-}
 
-function getMapHtml(): string {
-	return `<!DOCTYPE html>
+	override dispose(): void {
+		this.bridgeServer.stop();
+		super.dispose();
+	}
+
+	/** Registers the `earthengine.openMap` command. */
+	register(context: vscode.ExtensionContext): void {
+		context.subscriptions.push(
+			vscode.commands.registerCommand('earthengine.openMap', () => this.open()),
+			this,
+		);
+	}
+
+	private static getHtml(): string {
+		return `<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -261,4 +275,5 @@ window.addEventListener('message', e => {
 updateLayerControl();
 </script>
 </body></html>`;
+	}
 }

@@ -1,1 +1,1 @@
-export { openMapPanel, disposeMapPanel } from './mapPanel.js';
+export { MapPanel } from './mapPanel.js';

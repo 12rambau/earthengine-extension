@@ -1,1 +1,0 @@
-export { AuthStatusBar } from './authStatusBar';
