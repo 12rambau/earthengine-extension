@@ -128,6 +128,11 @@
         "icon": "$(new-file)"
       },
       {
+        "command": "earthengine.openMap",
+        "title": "Earth Engine: Open Map",
+        "icon": "$(globe)"
+      },
+      {
         "command": "earthengine.openExportTasksPanel",
         "title": "Earth Engine: Open Export Tasks",
         "icon": "$(open-preview)"
@@ -162,6 +167,11 @@
       "view/title": [
         {
           "command": "earthengine.signIn",
+          "when": "view == earthengine.profiles",
+          "group": "navigation"
+        },
+        {
+          "command": "earthengine.openMap",
           "when": "view == earthengine.profiles",
           "group": "navigation"
         },

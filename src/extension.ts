@@ -7,6 +7,7 @@ import { DatasetTreeDataProvider, DatasetTreeItem, createDatasetPanel, fetchColl
 import { ProfilesTreeDataProvider } from './views/profiles/index.js';
 import { AuthService, TokenStorage, Profile } from './auth/index.js';
 import { getDocUrl } from './views/docs/apiDocsParser.js';
+import { openMapPanel, disposeMapPanel } from './map/index.js';
 
 export function activate(context: vscode.ExtensionContext) {
 	// Auth setup
@@ -52,7 +53,23 @@ export function activate(context: vscode.ExtensionContext) {
 		}),
 		vscode.commands.registerCommand('earthengine.newScript', async (item: { profile: Profile }) => {
 			const project = item.profile.project;
-			const content = `import ee\n\n# prior to execute this code make sure you are authenticated\nee.Initialize(project="${project}")\n\n# TODO: remove\n# check server connection\nprint(ee.Number(1).getInfo())\n`;
+			const content = [
+				'import ee',
+				'from earthengine_vscode_map import Map',
+				'',
+				'# prior to execute this code make sure you are authenticated',
+				`ee.Initialize(project="${project}")`,
+				'',
+				'# TODO: remove',
+				'# check server connection',
+				'print(ee.Number(1).getInfo())',
+				'',
+				'# Example: add a layer to the VS Code map',
+				'# image = ee.Image("COPERNICUS/S2_SR_HARMONIZED/20200101T100319_20200101T100321_T32TQM")',
+				'# Map.addLayer(image, {"bands": ["B4", "B3", "B2"], "min": 0, "max": 3000}, "RGB")',
+				'# Map.centerObject(image, zoom=10)',
+				'',
+			].join('\n');
 			const doc = await vscode.workspace.openTextDocument({ content, language: 'python' });
 			vscode.window.showTextDocument(doc);
 		}),
@@ -180,6 +197,13 @@ export function activate(context: vscode.ExtensionContext) {
 			}
 		}),
 	);
+
+	// Map panel
+	context.subscriptions.push(
+		vscode.commands.registerCommand('earthengine.openMap', () => openMapPanel()),
+	);
 }
 
-export function deactivate() {}
+export function deactivate() {
+	disposeMapPanel();
+}
