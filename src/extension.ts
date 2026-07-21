@@ -52,8 +52,18 @@ export function activate(context: vscode.ExtensionContext) {
 		}),
 	);
 
+	// Assets view
+	const assetsProvider = new AssetsTreeDataProvider(authService);
+	const assetsTreeView = vscode.window.createTreeView('earthengine.assets', {
+		treeDataProvider: assetsProvider,
+		showCollapseAll: true,
+	});
+	context.subscriptions.push(assetsTreeView);
+	context.subscriptions.push(
+		vscode.commands.registerCommand('earthengine.refreshAssets', () => assetsProvider.refresh()),
+	);
+
 	// Other views
-	vscode.window.registerTreeDataProvider('earthengine.assets', new AssetsTreeDataProvider());
 	vscode.window.registerTreeDataProvider('earthengine.tasks', new TasksTreeDataProvider());
 
 	// Dataset view

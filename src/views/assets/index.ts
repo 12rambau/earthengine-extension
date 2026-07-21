@@ -1,1 +1,1 @@
-export { AssetsTreeDataProvider } from './assetsTreeDataProvider';
+export { AssetsTreeDataProvider, AssetTreeItem } from './assetsTreeDataProvider.js';

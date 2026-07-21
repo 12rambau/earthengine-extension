@@ -89,6 +89,11 @@
         "icon": "$(search)"
       },
       {
+        "command": "earthengine.refreshAssets",
+        "title": "Earth Engine: Refresh Assets",
+        "icon": "$(refresh)"
+      },
+      {
         "command": "earthengine.refreshDatasets",
         "title": "Earth Engine: Refresh Datasets",
         "icon": "$(refresh)"
@@ -114,6 +119,11 @@
         {
           "command": "earthengine.signIn",
           "when": "view == earthengine.profiles",
+          "group": "navigation"
+        },
+        {
+          "command": "earthengine.refreshAssets",
+          "when": "view == earthengine.assets",
           "group": "navigation"
         },
         {
