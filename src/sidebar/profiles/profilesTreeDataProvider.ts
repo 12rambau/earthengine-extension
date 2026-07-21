@@ -17,22 +17,16 @@ export class ProfilesTreeItem extends vscode.TreeItem {
 		public readonly profile: Profile,
 		public readonly isActive: boolean,
 	) {
-		super(profile.email, vscode.TreeItemCollapsibleState.None);
+		super(profile.project, vscode.TreeItemCollapsibleState.None);
 
-		this.description = profile.project;
+		this.description = profile.email;
 		this.iconPath = new vscode.ThemeIcon(
 			isActive ? 'circle-filled' : 'circle-outline',
 			isActive ? new vscode.ThemeColor('testing.iconPassed') : new vscode.ThemeColor('testing.iconFailed'),
 		);
 		this.contextValue = isActive ? 'profile-active' : 'profile-inactive';
 
-		if (isActive) {
-			const tooltip = new vscode.MarkdownString('', true);
-			tooltip.appendMarkdown(`**${profile.email}**\n\n`);
-			tooltip.appendMarkdown(`Project: \`${profile.project}\`\n\n`);
-			tooltip.appendMarkdown('$(check) Active');
-			this.tooltip = tooltip;
-		} else {
+		if (!isActive) {
 			this.command = {
 				command: 'earthengine.activateProfile',
 				title: 'Activate Profile',

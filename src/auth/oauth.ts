@@ -14,7 +14,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
 import { URLSearchParams } from 'url';
-import { postForm, postJson, getRequest } from '../shared/httpClient.js';
+import { postForm, postJson, getRequest, fetchJson } from '../shared/httpClient.js';
 
 // ── OAuth Constants ──────────────────────────────────────────────────
 
@@ -25,6 +25,8 @@ const SCOPES = [
 	'https://www.googleapis.com/auth/earthengine',
 	'https://www.googleapis.com/auth/cloud-platform',
 	'https://www.googleapis.com/auth/devstorage.full_control',
+	'openid',
+	'email',
 ];
 const AUTH_PAGE_URL = 'https://code.earthengine.google.com/client-auth';
 const FETCH_URL = AUTH_PAGE_URL + '/fetch';
@@ -198,15 +200,24 @@ export async function getAccessToken(creds: EECredentials): Promise<string> {
 
 // ── Helpers ──────────────────────────────────────────────────────────
 
-/** Fetches the user's email via the Google userinfo endpoint. */
+/** Fetches the user's email from the access token. Tries userinfo first, falls back to tokeninfo. */
 async function fetchEmail(accessToken: string): Promise<string> {
+	// Try userinfo endpoint (requires openid/email scope)
 	try {
 		const response = await getRequest('https://www.googleapis.com/oauth2/v3/userinfo', accessToken);
 		const data = JSON.parse(response);
-		return data.email || 'unknown';
-	} catch {
-		return 'unknown';
-	}
+		if (data.email) { return data.email; }
+	} catch { /* fall through */ }
+
+	// Fallback: tokeninfo endpoint (works with any valid token, no auth needed)
+	try {
+		const data = await fetchJson<{ email?: string }>(
+			`https://www.googleapis.com/oauth2/v3/tokeninfo?access_token=${accessToken}`
+		);
+		if (data.email) { return data.email; }
+	} catch { /* fall through */ }
+
+	return 'unknown';
 }
 
 /** Generates random PKCE nonces and their SHA-256 challenges. */
