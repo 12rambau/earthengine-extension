@@ -130,7 +130,7 @@
       {
         "command": "earthengine.openMap",
         "title": "Earth Engine: Open Map",
-        "icon": "$(globe)"
+        "icon": "$(map)"
       },
       {
         "command": "earthengine.openExportTasksPanel",
