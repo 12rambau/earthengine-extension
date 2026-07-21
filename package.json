@@ -33,6 +33,10 @@
     "views": {
       "earthengine": [
         {
+          "id": "earthengine.profiles",
+          "name": "Profiles"
+        },
+        {
           "id": "earthengine.assets",
           "name": "Assets"
         },
@@ -52,16 +56,26 @@
     },
     "commands": [
       {
-        "command": "earthengine.helloWorld",
-        "title": "Hello World"
-      },
-      {
         "command": "earthengine.showAuthStatus",
         "title": "Earth Engine: Show Authentication Status"
       },
       {
         "command": "earthengine.signIn",
-        "title": "Earth Engine: Sign In"
+        "title": "Earth Engine: Sign In",
+        "icon": "$(sign-in)"
+      },
+      {
+        "command": "earthengine.signOut",
+        "title": "Earth Engine: Sign Out"
+      },
+      {
+        "command": "earthengine.activateProfile",
+        "title": "Earth Engine: Activate Profile"
+      },
+      {
+        "command": "earthengine.removeProfile",
+        "title": "Remove Profile",
+        "icon": "$(trash)"
       },
       {
         "command": "earthengine.refreshDocs",
@@ -77,6 +91,11 @@
     "menus": {
       "view/title": [
         {
+          "command": "earthengine.signIn",
+          "when": "view == earthengine.profiles",
+          "group": "navigation"
+        },
+        {
           "command": "earthengine.searchDocs",
           "when": "view == earthengine.docs",
           "group": "navigation"
@@ -85,6 +104,13 @@
           "command": "earthengine.refreshDocs",
           "when": "view == earthengine.docs",
           "group": "navigation"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "earthengine.removeProfile",
+          "when": "viewItem == profile-inactive",
+          "group": "inline"
         }
       ]
     }
