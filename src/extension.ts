@@ -3,7 +3,7 @@ import { AuthStatusBar } from './statusBar/index.js';
 import { AssetsTreeDataProvider } from './views/assets/index.js';
 import { DocsTreeDataProvider } from './views/docs/index.js';
 import { TasksTreeDataProvider } from './views/tasks/index.js';
-import { DatasetTreeDataProvider } from './views/dataset/index.js';
+import { DatasetTreeDataProvider, DatasetTreeItem, createDatasetPanel, fetchCollection, getDatasetPageUrl } from './views/dataset/index.js';
 import { ProfilesTreeDataProvider } from './views/profiles/index.js';
 import { AuthService, TokenStorage, Profile } from './auth/index.js';
 import { getDocUrl } from './views/docs/apiDocsParser.js';
@@ -55,7 +55,34 @@ export function activate(context: vscode.ExtensionContext) {
 	// Other views
 	vscode.window.registerTreeDataProvider('earthengine.assets', new AssetsTreeDataProvider());
 	vscode.window.registerTreeDataProvider('earthengine.tasks', new TasksTreeDataProvider());
-	vscode.window.registerTreeDataProvider('earthengine.dataset', new DatasetTreeDataProvider());
+
+	// Dataset view
+	const datasetProvider = new DatasetTreeDataProvider();
+	const datasetTreeView = vscode.window.createTreeView('earthengine.dataset', {
+		treeDataProvider: datasetProvider,
+		showCollapseAll: true,
+	});
+	context.subscriptions.push(datasetTreeView);
+
+	context.subscriptions.push(
+		vscode.commands.registerCommand('earthengine.refreshDatasets', () => datasetProvider.refresh()),
+		vscode.commands.registerCommand('earthengine.searchDatasets', () => datasetProvider.searchDatasets()),
+		vscode.commands.registerCommand('earthengine.openDatasetInBrowser', (item: DatasetTreeItem) => {
+			if (item.datasetId) {
+				vscode.env.openExternal(vscode.Uri.parse(getDatasetPageUrl(item.datasetId)));
+			}
+		}),
+		vscode.commands.registerCommand('earthengine.openDatasetPanel', async (hrefOrItem: string | DatasetTreeItem) => {
+			const href = typeof hrefOrItem === 'string' ? hrefOrItem : hrefOrItem.stacHref;
+			if (!href) { return; }
+			try {
+				const collection = await fetchCollection(href);
+				createDatasetPanel(collection, context.extensionUri);
+			} catch {
+				vscode.window.showErrorMessage('Failed to load dataset details.');
+			}
+		}),
+	);
 
 	// Docs view
 	const docsProvider = new DocsTreeDataProvider();

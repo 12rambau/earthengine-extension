@@ -86,6 +86,26 @@
         "command": "earthengine.searchDocs",
         "title": "Earth Engine: Search API Docs",
         "icon": "$(search)"
+      },
+      {
+        "command": "earthengine.refreshDatasets",
+        "title": "Earth Engine: Refresh Datasets",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "earthengine.searchDatasets",
+        "title": "Earth Engine: Search Datasets",
+        "icon": "$(search)"
+      },
+      {
+        "command": "earthengine.openDatasetInBrowser",
+        "title": "Open in Browser",
+        "icon": "$(link-external)"
+      },
+      {
+        "command": "earthengine.openDatasetPanel",
+        "title": "Open Details",
+        "icon": "$(open-preview)"
       }
     ],
     "menus": {
@@ -104,12 +124,32 @@
           "command": "earthengine.refreshDocs",
           "when": "view == earthengine.docs",
           "group": "navigation"
+        },
+        {
+          "command": "earthengine.searchDatasets",
+          "when": "view == earthengine.dataset",
+          "group": "navigation"
+        },
+        {
+          "command": "earthengine.refreshDatasets",
+          "when": "view == earthengine.dataset",
+          "group": "navigation"
         }
       ],
       "view/item/context": [
         {
           "command": "earthengine.removeProfile",
           "when": "viewItem == profile-inactive",
+          "group": "inline"
+        },
+        {
+          "command": "earthengine.openDatasetPanel",
+          "when": "viewItem == dataset-item",
+          "group": "inline"
+        },
+        {
+          "command": "earthengine.openDatasetInBrowser",
+          "when": "viewItem == dataset-item",
           "group": "inline"
         }
       ]
