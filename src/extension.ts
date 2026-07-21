@@ -50,6 +50,12 @@ export function activate(context: vscode.ExtensionContext) {
 					.then(choice => { if (choice === 'Sign in') { authService.signIn(); } });
 			}
 		}),
+		vscode.commands.registerCommand('earthengine.newScript', async (item: { profile: Profile }) => {
+			const project = item.profile.project;
+			const content = `import ee\n\n# prior to execute this code make sure you are authenticated\nee.Initialize(project="${project}")\n\n# TODO: remove\n# check server connection\nprint(ee.Number(1).getInfo())\n`;
+			const doc = await vscode.workspace.openTextDocument({ content, language: 'python' });
+			vscode.window.showTextDocument(doc);
+		}),
 	);
 
 	// Assets view

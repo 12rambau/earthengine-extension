@@ -123,6 +123,11 @@
         "icon": "$(close)"
       },
       {
+        "command": "earthengine.newScript",
+        "title": "New Python Script",
+        "icon": "$(new-file)"
+      },
+      {
         "command": "earthengine.openExportTasksPanel",
         "title": "Earth Engine: Open Export Tasks",
         "icon": "$(open-preview)"
@@ -209,6 +214,11 @@
       "view/item/context": [
         {
           "command": "earthengine.removeProfile",
+          "when": "viewItem == profile-active || viewItem == profile-inactive",
+          "group": "inline"
+        },
+        {
+          "command": "earthengine.newScript",
           "when": "viewItem == profile-active || viewItem == profile-inactive",
           "group": "inline"
         },
