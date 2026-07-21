@@ -1,5 +1,4 @@
 import * as vscode from 'vscode';
-import { AuthStatusBar } from './statusBar/index.js';
 import { AssetsTreeDataProvider, AssetTreeItem, openAssetPreview, openAssetsPanel } from './views/assets/index.js';
 import { DocsTreeDataProvider } from './views/docs/index.js';
 import { TasksTreeDataProvider, TaskTreeItem, cancelOperation, openTasksPanel } from './views/tasks/index.js';
@@ -13,13 +12,6 @@ export function activate(context: vscode.ExtensionContext) {
 	// Auth setup
 	const tokenStorage = new TokenStorage(context.globalState);
 	const authService = new AuthService(tokenStorage);
-
-	// Status bar
-	const authStatusBar = new AuthStatusBar();
-	authService.onDidChangeAuth((profile) => {
-		authStatusBar.setAuthenticated(!!profile);
-	});
-	context.subscriptions.push(authStatusBar);
 
 	// Profiles view
 	const profilesProvider = new ProfilesTreeDataProvider(authService);
