@@ -33,8 +33,20 @@
     "views": {
       "earthengine": [
         {
-          "id": "earthengine.explorer",
-          "name": "Earth Engine"
+          "id": "earthengine.assets",
+          "name": "Assets"
+        },
+        {
+          "id": "earthengine.docs",
+          "name": "Docs"
+        },
+        {
+          "id": "earthengine.tasks",
+          "name": "Tasks"
+        },
+        {
+          "id": "earthengine.dataset",
+          "name": "Dataset"
         }
       ]
     },
