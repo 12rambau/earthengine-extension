@@ -1,0 +1,15 @@
+{
+	"name": "earthengine Extension Dev",
+	"image": "mcr.microsoft.com/devcontainers/typescript-node:22",
+	"features": {
+		"ghcr.io/devcontainers/features/desktop-lite:1": {}
+	},
+	"postCreateCommand": "npm install",
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"dbaeumer.vscode-eslint"
+			]
+		}
+	}
+}
