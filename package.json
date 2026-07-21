@@ -62,8 +62,32 @@
       {
         "command": "earthengine.signIn",
         "title": "Earth Engine: Sign In"
+      },
+      {
+        "command": "earthengine.refreshDocs",
+        "title": "Earth Engine: Refresh API Docs",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "earthengine.searchDocs",
+        "title": "Earth Engine: Search API Docs",
+        "icon": "$(search)"
       }
-    ]
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "earthengine.searchDocs",
+          "when": "view == earthengine.docs",
+          "group": "navigation"
+        },
+        {
+          "command": "earthengine.refreshDocs",
+          "when": "view == earthengine.docs",
+          "group": "navigation"
+        }
+      ]
+    }
   },
   "scripts": {
     "vscode:prepublish": "npm run package",
