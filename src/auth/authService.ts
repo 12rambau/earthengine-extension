@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { authenticateWithBrowser, refreshAccessToken, AuthTokens } from './oauth.js';
+import { authenticateNotebookFlow, getAccessToken } from './oauth.js';
 import { TokenStorage, Profile } from './tokenStorage.js';
 
 export class AuthService {
@@ -7,9 +7,11 @@ export class AuthService {
 	readonly onDidChangeAuth = this._onDidChangeAuth.event;
 
 	private activeProfile: Profile | undefined;
-	private activeTokens: AuthTokens | undefined;
 
-	constructor(private readonly storage: TokenStorage) {}
+	constructor(private readonly storage: TokenStorage) {
+		// Restore last active profile
+		this.activeProfile = storage.getActiveProfile();
+	}
 
 	get currentProfile(): Profile | undefined {
 		return this.activeProfile;
@@ -21,32 +23,17 @@ export class AuthService {
 
 	async signIn(): Promise<void> {
 		try {
-			const { tokens, userInfo } = await authenticateWithBrowser();
-
-			const project = await vscode.window.showInputBox({
-				title: 'Google Cloud Project',
-				prompt: 'Enter your GCP project ID (registered for Earth Engine)',
-				placeHolder: 'my-ee-project',
-				ignoreFocusOut: true,
-			});
-
-			if (!project) {
-				vscode.window.showWarningMessage('Sign in cancelled: a project ID is required.');
-				return;
+			const result = await authenticateNotebookFlow();
+			if (!result) {
+				return; // User cancelled
 			}
 
-			const profile: Profile = {
-				email: userInfo.email,
-				name: userInfo.name,
-				project,
-			};
-
-			await this.storage.saveProfile(profile, tokens);
+			const { credentials, email, project } = result;
+			const profile = await this.storage.saveProfile(email, project, credentials);
 			this.activeProfile = profile;
-			this.activeTokens = tokens;
 			this._onDidChangeAuth.fire(profile);
 
-			vscode.window.showInformationMessage(`Signed in as ${profile.email} (project: ${profile.project})`);
+			vscode.window.showInformationMessage(`Signed in as ${email} (project: ${project})`);
 		} catch (err: unknown) {
 			const message = err instanceof Error ? err.message : String(err);
 			vscode.window.showErrorMessage(`Authentication failed: ${message}`);
@@ -54,52 +41,44 @@ export class AuthService {
 	}
 
 	async activateProfile(profile: Profile): Promise<void> {
-		const tokens = await this.storage.getTokens(profile.email);
-		if (!tokens) {
-			vscode.window.showErrorMessage('No stored credentials for this profile. Please sign in again.');
+		const creds = this.storage.getCredentials(profile);
+		if (!creds) {
+			vscode.window.showErrorMessage('Credentials file not found for this profile. Please sign in again.');
 			return;
 		}
 
-		// Refresh token if expired
-		if (Date.now() >= tokens.expires_at) {
-			try {
-				const refreshed = await refreshAccessToken(tokens.refresh_token);
-				await this.storage.updateTokens(profile.email, refreshed);
-				this.activeTokens = refreshed;
-			} catch {
-				vscode.window.showErrorMessage('Token refresh failed. Please sign in again.');
-				return;
-			}
-		} else {
-			this.activeTokens = tokens;
+		// Verify the token still works
+		try {
+			await getAccessToken(creds);
+		} catch {
+			vscode.window.showErrorMessage('Token refresh failed. Please sign in again.');
+			return;
 		}
 
 		this.activeProfile = profile;
+		await this.storage.setActiveProfile(profile);
 		this._onDidChangeAuth.fire(profile);
 		vscode.window.showInformationMessage(`Switched to ${profile.email} (project: ${profile.project})`);
 	}
 
-	async getAccessToken(): Promise<string | undefined> {
-		if (!this.activeTokens || !this.activeProfile) {
+	async getToken(): Promise<string | undefined> {
+		if (!this.activeProfile) {
 			return undefined;
 		}
-
-		if (Date.now() >= this.activeTokens.expires_at) {
-			try {
-				this.activeTokens = await refreshAccessToken(this.activeTokens.refresh_token);
-				await this.storage.updateTokens(this.activeProfile.email, this.activeTokens);
-			} catch {
-				this.signOut();
-				return undefined;
-			}
+		const creds = this.storage.getCredentials(this.activeProfile);
+		if (!creds) {
+			return undefined;
 		}
-
-		return this.activeTokens.access_token;
+		try {
+			return await getAccessToken(creds);
+		} catch {
+			this.signOut();
+			return undefined;
+		}
 	}
 
 	signOut(): void {
 		this.activeProfile = undefined;
-		this.activeTokens = undefined;
 		this._onDidChangeAuth.fire(undefined);
 	}
 

@@ -61,12 +61,13 @@
       },
       {
         "command": "earthengine.signIn",
-        "title": "Earth Engine: Sign In",
-        "icon": "$(sign-in)"
+        "title": "Earth Engine: Add Profile",
+        "icon": "$(add)"
       },
       {
         "command": "earthengine.signOut",
-        "title": "Earth Engine: Sign Out"
+        "title": "Sign Out",
+        "icon": "$(sign-out)"
       },
       {
         "command": "earthengine.activateProfile",
@@ -139,7 +140,7 @@
       "view/item/context": [
         {
           "command": "earthengine.removeProfile",
-          "when": "viewItem == profile-inactive",
+          "when": "viewItem == profile-active || viewItem == profile-inactive",
           "group": "inline"
         },
         {

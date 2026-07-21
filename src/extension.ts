@@ -10,7 +10,7 @@ import { getDocUrl } from './views/docs/apiDocsParser.js';
 
 export function activate(context: vscode.ExtensionContext) {
 	// Auth setup
-	const tokenStorage = new TokenStorage(context.secrets, context.globalState);
+	const tokenStorage = new TokenStorage(context.globalState);
 	const authService = new AuthService(tokenStorage);
 
 	// Status bar
