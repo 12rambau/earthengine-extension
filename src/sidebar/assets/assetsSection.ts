@@ -25,9 +25,18 @@ export class AssetsSection extends SidebarSection {
   }
 
   register(context: vscode.ExtensionContext): void {
-    this.createTreeView('earthengine.assets', this.provider, { showCollapseAll: true });
+    const treeView = this.createTreeView('earthengine.assets', this.provider, {
+      showCollapseAll: true,
+    });
 
     this.registerCommand('earthengine.refreshAssets', () => this.provider.refresh());
+
+    this.registerCommand('earthengine.searchAssets', async () => {
+      const item = await this.provider.searchAssets();
+      if (item) {
+        treeView.reveal(item, { select: true, focus: true, expand: true });
+      }
+    });
 
     this.registerCommand('earthengine.refreshAssetFolder', (item: AssetTreeItem) => {
       this.provider.refreshFolder(item.asset.name);
