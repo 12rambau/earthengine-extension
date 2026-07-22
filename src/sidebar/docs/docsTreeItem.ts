@@ -26,29 +26,31 @@ export class DocsTreeItem extends vscode.TreeItem {
 	) {
 		super(label, collapsibleState);
 
-		if (collapsibleState === vscode.TreeItemCollapsibleState.None && apiDescription) {
+		if (apiDescription) {
 			const tooltip = new vscode.MarkdownString('', true);
 			tooltip.isTrusted = true;
 
-			tooltip.appendMarkdown(`### ${fullName}\n\n`);
-			tooltip.appendMarkdown(`${apiDescription}\n\n`);
-
 			if (usage) {
-				tooltip.appendMarkdown(`**Usage:** \`${usage}\`\n\n`);
+				const returnSuffix = returns ? ` → ${returns}` : '';
+				tooltip.appendMarkdown(`\`\`\`javascript\n${usage}${returnSuffix}\n\`\`\`\n`);
+			} else {
+				const returnSuffix = returns ? ` → \`${returns}\`` : '';
+				tooltip.appendMarkdown(`**${fullName}**${returnSuffix}\n\n`);
 			}
-			if (returns) {
-				tooltip.appendMarkdown(`**Returns:** \`${returns}\`\n\n`);
-			}
+
+			tooltip.appendMarkdown(`---\n\n${apiDescription}\n\n`);
+
 			if (args && args.length > 0) {
-				tooltip.appendMarkdown('**Arguments:**\n\n');
-				tooltip.appendMarkdown('| Name | Type | Details |\n|---|---|---|\n');
+				tooltip.appendMarkdown('**Arguments**\n\n');
+				tooltip.appendMarkdown('| Argument | Type | Details |\n|---|---|---|\n');
 				for (const arg of args) {
-					tooltip.appendMarkdown(`| ${arg.name} | \`${arg.type}\` | ${arg.details} |\n`);
+					tooltip.appendMarkdown(`| \`${arg.name}\` | \`${arg.type}\` | ${arg.details} |\n`);
 				}
 				tooltip.appendMarkdown('\n');
 			}
+
 			if (docUrl) {
-				tooltip.appendMarkdown(`---\n\n[Open documentation](${docUrl})\n`);
+				tooltip.appendMarkdown(`---\n\n[Open in docs ↗](${docUrl})\n`);
 			}
 
 			this.tooltip = tooltip;
@@ -60,6 +62,12 @@ export class DocsTreeItem extends vscode.TreeItem {
 				title: 'Open Documentation',
 				arguments: [vscode.Uri.parse(docUrl)],
 			};
+		}
+
+		if (collapsibleState === vscode.TreeItemCollapsibleState.None) {
+			this.iconPath = new vscode.ThemeIcon('symbol-method', new vscode.ThemeColor('icon.foreground'));
+		} else {
+			this.iconPath = new vscode.ThemeIcon('symbol-class', new vscode.ThemeColor('icon.foreground'));
 		}
 	}
 }
