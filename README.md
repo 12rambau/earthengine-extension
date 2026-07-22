@@ -6,11 +6,7 @@
 
 **Google Earth Engine directly inside your editor.**
 
-[![Version](https://img.shields.io/visual-studio-marketplace/v/earthengine.earthengine?style=flat-square&label=VS%20Marketplace&color=007ACC)](https://marketplace.visualstudio.com/items?itemName=earthengine.earthengine)
-[![Installs](https://img.shields.io/visual-studio-marketplace/i/earthengine.earthengine?style=flat-square&color=brightgreen)](https://marketplace.visualstudio.com/items?itemName=earthengine.earthengine)
-[![Rating](https://img.shields.io/visual-studio-marketplace/r/earthengine.earthengine?style=flat-square&color=yellow)](https://marketplace.visualstudio.com/items?itemName=earthengine.earthengine)
-![GitHub License](https://img.shields.io/github/license/12rambau/earthengine-extension?style=flat-square)
-
+[![License](https://img.shields.io/github/license/12rambau/earthengine-extension?style=flat-square)](https://github.com/12rambau/earthengine-extension/blob/main/LICENSE)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![VS Code](https://img.shields.io/badge/VS%20Code-1.125+-007ACC?style=flat-square&logo=visualstudiocode&logoColor=white)](https://code.visualstudio.com/)
 [![Node.js](https://img.shields.io/badge/Node.js-22-339933?style=flat-square&logo=nodedotjs&logoColor=white)](https://nodejs.org/)
