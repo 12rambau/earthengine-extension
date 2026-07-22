@@ -6,4 +6,13 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 
 ## [Unreleased]
 
-- Initial release
+## [0.1.0] — 2026-07-22
+
+### Added
+
+- OAuth2 & service account authentication with multi-profile support
+- Asset browser with lazy loading, preview panel, asset manager, and folder creation
+- Export & Import task monitor with auto-refresh and cancel
+- STAC dataset catalog (Google / Publishers / Community)
+- `ee.*` API docs tree with search and rich tooltips
+- Interactive Leaflet map panel with Python bridge (`earthengine_vscode_map.py`)

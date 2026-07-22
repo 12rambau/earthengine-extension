@@ -1,8 +1,9 @@
 {
   "name": "earthengine",
-  "displayName": "earthengine",
-  "description": "earthengine code editor functionalities brought to VScode",
-  "version": "0.0.1",
+  "displayName": "Earth Engine",
+  "description": "Google Earth Engine Code Editor functionalities brought to VS Code",
+  "version": "0.1.0",
+  "publisher": "12rambau",
   "engines": {
     "vscode": "^1.125.0"
   },

@@ -205,15 +205,7 @@ git clone https://github.com/your-org/earthengine-vscode
 
 ## Release Notes
 
-### 0.0.1
-
-- Initial release
-- OAuth2 & service account authentication with multi-profile support
-- Asset browser with lazy loading, preview panel, and asset manager
-- Export & Import task monitor with auto-refresh and cancel
-- STAC dataset catalog (Google / Publishers / Community)
-- `ee.*` API docs tree with search and rich tooltips
-- Interactive Leaflet map panel with Python bridge
+See [CHANGELOG.md](CHANGELOG.md) for the full history.
 
 ---
 
