@@ -38,7 +38,10 @@ export class AssetTreeItem extends vscode.TreeItem {
 		);
 
 		this.iconPath = TYPE_ICONS[asset.type] || new vscode.ThemeIcon('file');
-		this.tooltip = asset.name;
+
+		const tooltip = new vscode.MarkdownString('', true);
+		tooltip.appendMarkdown(`**${asset.type.toLowerCase().replace('_', ' ')}** — ${asset.name}`);
+		this.tooltip = tooltip;
 
 		// Context values for menu visibility
 		if (isContainer) {
