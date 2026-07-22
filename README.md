@@ -15,6 +15,7 @@
 [![VS Code](https://img.shields.io/badge/VS%20Code-1.125+-007ACC?style=flat-square&logo=visualstudiocode&logoColor=white)](https://code.visualstudio.com/)
 [![Node.js](https://img.shields.io/badge/Node.js-22-339933?style=flat-square&logo=nodedotjs&logoColor=white)](https://nodejs.org/)
 [![Earth Engine](https://img.shields.io/badge/Google%20Earth%20Engine-REST%20API%20v1-4285F4?style=flat-square&logo=google&logoColor=white)](https://developers.google.com/earth-engine)
+[![Conventional Commits](https://img.shields.io/badge/Conventional%20Commits-1.0.0-FE5196?style=flat-square&logo=conventionalcommits&logoColor=white)](https://conventionalcommits.org)
 
 </div>
 
