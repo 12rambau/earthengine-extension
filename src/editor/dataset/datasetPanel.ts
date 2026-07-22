@@ -2,12 +2,13 @@
  * @module datasetPanel
  * Read-only WebView panel showing STAC dataset details.
  *
- * Renders a preview image, metadata grid (availability, type, provider),
- * EE snippet, keyword tags, description, and band table for a given
- * STAC collection.
+ * Renders a preview image, a metadata grid (availability, type, provider) with
+ * keyword tags, a full-width EE snippet with a copy button, and a tabbed panel
+ * holding the markdown description and band table for a STAC collection.
  */
 
 import * as vscode from 'vscode';
+import { marked } from 'marked';
 import { StacCollection } from '../../sidebar/dataset/stacClient.js';
 
 // ── Public API ──────────────────────────────────────────────────────
@@ -21,16 +22,25 @@ export function createDatasetPanel(
     'earthengine.datasetDetail',
     collection.title || collection.id,
     vscode.ViewColumn.One,
-    { enableScripts: false },
+    { enableScripts: true },
   );
 
-  panel.webview.html = buildHtml(collection);
+  panel.webview.html = buildHtml(collection, panel.webview);
+
+  // The webview posts the snippet text back so we can write it to the clipboard.
+  panel.webview.onDidReceiveMessage((msg) => {
+    if (msg?.type === 'copy' && typeof msg.text === 'string') {
+      vscode.env.clipboard.writeText(msg.text);
+      vscode.window.showInformationMessage('Snippet copied to clipboard.');
+    }
+  });
+
   return panel;
 }
 
 // ── HTML Builder ────────────────────────────────────────────────────
 
-function buildHtml(c: StacCollection): string {
+function buildHtml(c: StacCollection, webview: vscode.Webview): string {
   const temporal = c.extent?.temporal?.interval?.[0];
   const startDate = temporal?.[0] || 'N/A';
   const endDate = temporal?.[1] || 'Ongoing';
@@ -55,10 +65,9 @@ function buildHtml(c: StacCollection): string {
         ? `ee.Image("${c.id}")`
         : `"${c.id}"`;
 
-  const bandsHtml =
+  const bandsTable =
     bands.length > 0
       ? `
-		<h2>Bands</h2>
 		<table>
 			<thead>
 				<tr>
@@ -90,8 +99,10 @@ function buildHtml(c: StacCollection): string {
     keywords.length > 0
       ? `
 		<div class="tags">
-			<strong>Tags:</strong>
-			${keywords.map((k) => `<span class="tag">${escapeHtml(k)}</span>`).join(' ')}
+			<strong>Tags</strong>
+			<div class="pills">
+				${keywords.map((k) => `<span class="tag">${escapeHtml(k)}</span>`).join('')}
+			</div>
 		</div>
 	`
       : '';
@@ -100,13 +111,47 @@ function buildHtml(c: StacCollection): string {
     .map((p) => (p.url ? `<a href="${p.url}">${escapeHtml(p.name)}</a>` : escapeHtml(p.name)))
     .join(', ');
 
-  // Sanitize description: it may contain markdown-style formatting
-  const description = escapeHtml(c.description || '').replace(/\n/g, '<br>');
+  // Rendered by marked. Inline scripts/handlers in the output are inert thanks
+  // to the strict CSP below (script-src is nonce-only).
+  const description = marked.parse(c.description || '', { async: false });
+
+  // Build the tab set from whichever sections actually have content.
+  const tabs = [
+    { id: 'description', label: 'Description', content: `<div class="md">${description}</div>` },
+    { id: 'bands', label: 'Bands', content: bandsTable },
+  ].filter((t) => t.content.trim());
+
+  const tabButtons = tabs
+    .map(
+      (t, i) =>
+        `<button class="tab${i === 0 ? ' active' : ''}" data-tab="${t.id}">${t.label}</button>`,
+    )
+    .join('');
+
+  const tabPanels = tabs
+    .map(
+      (t, i) =>
+        `<div class="tab-panel${i === 0 ? ' active' : ''}" id="panel-${t.id}">${t.content}</div>`,
+    )
+    .join('');
+
+  const tabsHtml = tabs.length
+    ? `<div class="tabs" role="tablist">${tabButtons}</div><div class="tab-panels">${tabPanels}</div>`
+    : '';
+
+  const nonce = getNonce();
+  const csp = [
+    `default-src 'none'`,
+    `img-src ${webview.cspSource} https: data:`,
+    `style-src 'unsafe-inline'`,
+    `script-src 'nonce-${nonce}'`,
+  ].join('; ');
 
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta http-equiv="Content-Security-Policy" content="${csp}">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
 	body {
@@ -119,17 +164,30 @@ function buildHtml(c: StacCollection): string {
 	h1 { font-size: 1.5em; margin-bottom: 4px; }
 	h2 { font-size: 1.15em; margin-top: 24px; border-bottom: 1px solid var(--vscode-panel-border); padding-bottom: 4px; }
 	.meta { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 16px 0; }
-	.meta-item strong { display: block; font-size: 0.85em; opacity: 0.7; margin-bottom: 2px; }
-	.snippet { background: var(--vscode-textCodeBlock-background); padding: 8px 12px; border-radius: 4px; font-family: var(--vscode-editor-font-family, monospace); font-size: 0.9em; margin: 12px 0; }
-	.tags { margin: 12px 0; }
-	.tag { display: inline-block; background: var(--vscode-badge-background); color: var(--vscode-badge-foreground); padding: 2px 8px; border-radius: 12px; font-size: 0.8em; margin: 2px; }
+	.meta-item strong, .tags strong { display: block; font-size: 0.85em; opacity: 0.7; margin-bottom: 4px; }
+	.snippet { display: flex; align-items: center; gap: 8px; background: var(--vscode-textCodeBlock-background); padding: 8px 12px; border-radius: 4px; overflow-x: auto; margin: 16px 0; }
+	.snippet code { flex: 1; min-width: 0; background: none; padding: 0; font-family: var(--vscode-editor-font-family, monospace); font-size: 0.9em; white-space: nowrap; }
+	.copy-btn { flex: none; cursor: pointer; background: var(--vscode-button-secondaryBackground); color: var(--vscode-button-secondaryForeground); border: none; border-radius: 3px; padding: 3px 10px; font-size: 0.8em; font-family: var(--vscode-font-family, sans-serif); }
+	.copy-btn:hover { background: var(--vscode-button-secondaryHoverBackground); }
+	.pills { display: flex; flex-wrap: wrap; gap: 4px; }
+	.tag { display: inline-block; background: var(--vscode-badge-background); color: var(--vscode-badge-foreground); padding: 2px 8px; border-radius: 12px; font-size: 0.8em; }
 	table { width: 100%; border-collapse: collapse; margin: 8px 0; font-size: 0.9em; }
 	th { text-align: left; background: var(--vscode-list-hoverBackground); padding: 6px 10px; }
 	td { padding: 6px 10px; border-bottom: 1px solid var(--vscode-panel-border); }
 	code { background: var(--vscode-textCodeBlock-background); padding: 1px 4px; border-radius: 3px; }
+	pre { background: var(--vscode-textCodeBlock-background); padding: 10px 12px; border-radius: 4px; overflow-x: auto; }
+	pre code { background: none; padding: 0; }
 	a { color: var(--vscode-textLink-foreground); }
 	.header { display: flex; gap: 20px; }
 	.header-text { flex: 1; }
+	.tags { margin: 12px 0; }
+	.tabs { display: flex; gap: 4px; flex-wrap: wrap; border-bottom: 1px solid var(--vscode-panel-border); margin-top: 24px; }
+	.tab { background: none; border: none; border-bottom: 2px solid transparent; color: var(--vscode-foreground); opacity: 0.65; cursor: pointer; padding: 8px 14px; font-size: 0.95em; font-family: inherit; }
+	.tab:hover { opacity: 1; }
+	.tab.active { opacity: 1; border-bottom-color: var(--vscode-focusBorder); font-weight: 600; }
+	.tab-panel { display: none; padding-top: 16px; }
+	.tab-panel.active { display: block; }
+	.md > :first-child { margin-top: 0; }
 </style>
 </head>
 <body>
@@ -144,7 +202,7 @@ function buildHtml(c: StacCollection): string {
 				</div>
 				<div class="meta-item">
 					<strong>Type</strong>
-					${escapeHtml(geeType)}
+					<code>${escapeHtml(geeType)}</code>
 				</div>
 				<div class="meta-item">
 					<strong>Provider</strong>
@@ -155,18 +213,44 @@ function buildHtml(c: StacCollection): string {
 					<a href="${catalogUrl}">Open in browser</a>
 				</div>
 			</div>
-			<div class="snippet">${escapeHtml(snippet)}</div>
 			${tagsHtml}
 		</div>
 	</div>
 
-	<h2>Description</h2>
-	<div>${description}</div>
+	<div class="snippet">
+		<code id="snippet-code">${escapeHtml(snippet)}</code>
+		<button id="copy-btn" class="copy-btn" title="Copy to clipboard">Copy</button>
+	</div>
 
-	${bandsHtml}
+	${tabsHtml}
+
+	<script nonce="${nonce}">
+		const vscode = acquireVsCodeApi();
+		const btn = document.getElementById('copy-btn');
+		btn.addEventListener('click', () => {
+			const text = document.getElementById('snippet-code').textContent;
+			vscode.postMessage({ type: 'copy', text });
+			const prev = btn.textContent;
+			btn.textContent = 'Copied!';
+			setTimeout(() => { btn.textContent = prev; }, 1200);
+		});
+
+		const tabButtons = document.querySelectorAll('.tab');
+		tabButtons.forEach((tab) => {
+			tab.addEventListener('click', () => {
+				const id = tab.getAttribute('data-tab');
+				tabButtons.forEach((t) => t.classList.toggle('active', t === tab));
+				document.querySelectorAll('.tab-panel').forEach((p) => {
+					p.classList.toggle('active', p.id === 'panel-' + id);
+				});
+			});
+		});
+	</script>
 </body>
 </html>`;
 }
+
+// ── Helpers ─────────────────────────────────────────────────────────
 
 function escapeHtml(str: string): string {
   return str
@@ -174,4 +258,13 @@ function escapeHtml(str: string): string {
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;');
+}
+
+function getNonce(): string {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  let nonce = '';
+  for (let i = 0; i < 32; i++) {
+    nonce += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return nonce;
 }
