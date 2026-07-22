@@ -9,20 +9,29 @@
 
 import * as vscode from 'vscode';
 import { AuthService } from '../../auth/index.js';
-import { listOperationsPage, Operation, getTaskState, getElapsedTime, isExportTask, isImportTask } from './tasksApiClient.js';
+import { listOperationsPage, Operation, getTaskState, getElapsedTime, getPhaseLabel, formatRuntimeLine, isExportTask, isImportTask } from './tasksApiClient.js';
 
 type TaskFilter = 'export' | 'import';
 
 // ── Constants ───────────────────────────────────────────────────────
 
-const STATE_ICONS: Record<string, vscode.ThemeIcon> = {
-	'PENDING': new vscode.ThemeIcon('clock'),
-	'RUNNING': new vscode.ThemeIcon('loading~spin'),
-	'CANCELLING': new vscode.ThemeIcon('loading~spin'),
-	'SUCCEEDED': new vscode.ThemeIcon('check', new vscode.ThemeColor('testing.iconPassed')),
-	'FAILED': new vscode.ThemeIcon('error', new vscode.ThemeColor('errorForeground')),
-	'CANCELLED': new vscode.ThemeIcon('circle-slash', new vscode.ThemeColor('disabledForeground')),
+const STATE_COLORS: Partial<Record<string, vscode.ThemeColor>> = {
+	'PENDING':    new vscode.ThemeColor('testing.iconQueued'),
+	'RUNNING':    new vscode.ThemeColor('progressBar.background'),
+	'CANCELLING': new vscode.ThemeColor('disabledForeground'),
+	'SUCCEEDED':  new vscode.ThemeColor('testing.iconPassed'),
+	'FAILED':     new vscode.ThemeColor('errorForeground'),
+	'CANCELLED':  new vscode.ThemeColor('disabledForeground'),
 };
+
+function getTypeIconId(op: Operation): string {
+	const type = (op.metadata?.type || '').toUpperCase();
+	if (type.startsWith('INGEST') || type.startsWith('IMPORT')) { return 'cloud-upload'; }
+	if (type === 'EXPORT_IMAGE' || type === 'EXPORT_VIDEO')     { return 'file-media'; }
+	if (type === 'EXPORT_TABLE' || type === 'EXPORT_FEATURES')  { return 'table'; }
+	if (type.startsWith('EXPORT'))                             { return 'cloud-download'; }
+	return 'symbol-misc';
+}
 
 // ── TaskTreeItem ────────────────────────────────────────────────────
 
@@ -30,25 +39,59 @@ const STATE_ICONS: Record<string, vscode.ThemeIcon> = {
 export class TaskTreeItem extends vscode.TreeItem {
 	constructor(public readonly operation: Operation) {
 		const desc = operation.metadata?.description || operation.name.split('/').pop() || 'Unknown';
-		super(desc, vscode.TreeItemCollapsibleState.None);
+		const label = desc.length > 70 ? `${desc.slice(0, 70)}…` : desc;
+		super(label, vscode.TreeItemCollapsibleState.None);
+		this.id = operation.name;
 
 		const state = getTaskState(operation);
 		const elapsed = getElapsedTime(operation);
 
-		this.iconPath = STATE_ICONS[state] || new vscode.ThemeIcon('question');
+		// Icon: shape from task type, color from state; spinner for active tasks
+		const color = STATE_COLORS[state];
+		if (state === 'RUNNING' || state === 'CANCELLING') {
+			this.iconPath = color
+				? new vscode.ThemeIcon('loading~spin', color)
+				: new vscode.ThemeIcon('loading~spin');
+		} else {
+			const iconId = getTypeIconId(operation);
+			this.iconPath = color
+				? new vscode.ThemeIcon(iconId, color)
+				: new vscode.ThemeIcon(iconId);
+		}
+
 		this.description = elapsed;
 
+		// ── Tooltip ──────────────────────────────────────────────────────
+		const meta = operation.metadata;
+		const operationId = operation.name.split('/').pop() ?? operation.name;
+		const truncatedDesc = desc.length > 80 ? `${desc.slice(0, 80)}…` : desc;
+
 		const tooltip = new vscode.MarkdownString('', true);
-		tooltip.appendMarkdown(`**${desc}**\n\n`);
-		tooltip.appendMarkdown(`State: \`${state}\`\n\n`);
-		if (operation.metadata?.type) {
-			tooltip.appendMarkdown(`Type: \`${operation.metadata.type}\`\n\n`);
+		tooltip.supportThemeIcons = true;
+		tooltip.appendMarkdown(`**${truncatedDesc}**\n\n`);
+
+		if (isImportTask(operation) && meta?.destinationUris?.[0]) {
+			tooltip.appendMarkdown(`**Asset name:** \`${meta.destinationUris[0]}\`  \n`);
 		}
-		if (elapsed) {
-			tooltip.appendMarkdown(`Duration: ${elapsed}\n\n`);
+		tooltip.appendMarkdown(`**ID:** \`${operationId}\`  \n`);
+		tooltip.appendMarkdown(`**Phase:** **${getPhaseLabel(state)}**  \n`);
+
+		const runtime = formatRuntimeLine(operation);
+		if (runtime) {
+			tooltip.appendMarkdown(`**Runtime:** ${runtime}  \n`);
+		}
+		if (meta?.attempt !== undefined) {
+			tooltip.appendMarkdown(`**Execution status:** Attempt #${meta.attempt}  \n`);
+		}
+		if (isExportTask(operation) && meta?.priority !== undefined) {
+			const suffix = meta.priority === 100 ? ' (default)' : '';
+			tooltip.appendMarkdown(`**Priority:** ${meta.priority}${suffix}  \n`);
+		}
+		if (meta?.batchEecuUsageSeconds !== undefined) {
+			tooltip.appendMarkdown(`**Batch compute usage:** ${meta.batchEecuUsageSeconds.toFixed(4)} EECU-seconds  \n`);
 		}
 		if (operation.error?.message) {
-			tooltip.appendMarkdown(`Error: ${operation.error.message}\n\n`);
+			tooltip.appendMarkdown(`**Error:** ${operation.error.message}  \n`);
 		}
 		this.tooltip = tooltip;
 
@@ -85,6 +128,10 @@ export class TasksTreeDataProvider implements vscode.TreeDataProvider<TaskTreeIt
 
 	getTreeItem(element: TaskTreeItem): vscode.TreeItem {
 		return element;
+	}
+
+	getParent(_element: TaskTreeItem): undefined {
+		return undefined;
 	}
 
 	async getChildren(): Promise<TaskTreeItem[]> {
@@ -210,6 +257,12 @@ export class TasksTreeDataProvider implements vscode.TreeDataProvider<TaskTreeIt
 		} catch {
 			// Silently ignore soft refresh errors
 		}
+	}
+
+	/** Returns the currently loaded operations filtered for this tree's type. */
+	getFilteredOperations(): Operation[] {
+		const filterFn = this.filter === 'export' ? isExportTask : isImportTask;
+		return this.loadedTasks.filter(filterFn);
 	}
 
 	dispose() {

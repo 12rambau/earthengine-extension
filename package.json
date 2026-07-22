@@ -133,6 +133,11 @@
         "icon": "$(refresh)"
       },
       {
+        "command": "earthengine.searchTasks",
+        "title": "Earth Engine: Search Tasks",
+        "icon": "$(search)"
+      },
+      {
         "command": "earthengine.cancelTask",
         "title": "Cancel Task",
         "icon": "$(close)"
@@ -223,6 +228,11 @@
         {
           "command": "earthengine.refreshDocs",
           "when": "view == earthengine.docs",
+          "group": "navigation"
+        },
+        {
+          "command": "earthengine.searchTasks",
+          "when": "view == earthengine.tasks.export || view == earthengine.tasks.import",
           "group": "navigation"
         },
         {
