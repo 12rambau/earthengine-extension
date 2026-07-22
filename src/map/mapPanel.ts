@@ -15,56 +15,58 @@ import { MapBridgeServer, MapCommand } from './mapBridgeServer.js';
 
 /** Editor panel hosting a Leaflet map that visualises Earth Engine layers. */
 export class MapPanel extends EditorPanel {
-	private bridgeServer: MapBridgeServer;
-	private commandDisposable: vscode.Disposable | undefined;
+  private bridgeServer: MapBridgeServer;
+  private commandDisposable: vscode.Disposable | undefined;
 
-	constructor() {
-		super();
-		this.bridgeServer = new MapBridgeServer();
-	}
+  constructor() {
+    super();
+    this.bridgeServer = new MapBridgeServer();
+  }
 
-	/** Starts the bridge server, creates the WebView, and wires up commands. */
-	async open(): Promise<void> {
-		await this.bridgeServer.start();
+  /** Starts the bridge server, creates the WebView, and wires up commands. */
+  async open(): Promise<void> {
+    await this.bridgeServer.start();
 
-		const panel = this.createPanel(
-			'earthengine.map',
-			'Earth Engine Map',
-			vscode.ViewColumn.Beside,
-			{ enableScripts: true, retainContextWhenHidden: true },
-		);
+    const panel = this.createPanel(
+      'earthengine.map',
+      'Earth Engine Map',
+      vscode.ViewColumn.Beside,
+      { enableScripts: true, retainContextWhenHidden: true },
+    );
 
-		if (this.commandDisposable) { return; } // Already wired
+    if (this.commandDisposable) {
+      return;
+    } // Already wired
 
-		panel.webview.html = MapPanel.getHtml();
+    panel.webview.html = MapPanel.getHtml();
 
-		this.commandDisposable = this.bridgeServer.onCommand((cmd: MapCommand) => {
-			if (this.panel) {
-				this.panel.webview.postMessage(cmd);
-			}
-		});
-	}
+    this.commandDisposable = this.bridgeServer.onCommand((cmd: MapCommand) => {
+      if (this.panel) {
+        this.panel.webview.postMessage(cmd);
+      }
+    });
+  }
 
-	protected override onDidDispose(): void {
-		this.commandDisposable?.dispose();
-		this.commandDisposable = undefined;
-	}
+  protected override onDidDispose(): void {
+    this.commandDisposable?.dispose();
+    this.commandDisposable = undefined;
+  }
 
-	override dispose(): void {
-		this.bridgeServer.stop();
-		super.dispose();
-	}
+  override dispose(): void {
+    this.bridgeServer.stop();
+    super.dispose();
+  }
 
-	/** Registers the `earthengine.openMap` command. */
-	register(context: vscode.ExtensionContext): void {
-		context.subscriptions.push(
-			vscode.commands.registerCommand('earthengine.openMap', () => this.open()),
-			this,
-		);
-	}
+  /** Registers the `earthengine.openMap` command. */
+  register(context: vscode.ExtensionContext): void {
+    context.subscriptions.push(
+      vscode.commands.registerCommand('earthengine.openMap', () => this.open()),
+      this,
+    );
+  }
 
-	private static getHtml(): string {
-		return `<!DOCTYPE html>
+  private static getHtml(): string {
+    return `<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -275,5 +277,5 @@ window.addEventListener('message', e => {
 updateLayerControl();
 </script>
 </body></html>`;
-	}
+  }
 }

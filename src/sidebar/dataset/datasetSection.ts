@@ -17,49 +17,56 @@ import { createDatasetPanel } from '../../editor/dataset/index.js';
 
 /** Sidebar section for browsing the Earth Engine public dataset catalog. */
 export class DatasetSection extends SidebarSection {
-	private provider: DatasetTreeDataProvider;
+  private provider: DatasetTreeDataProvider;
 
-	constructor() {
-		super();
-		this.provider = new DatasetTreeDataProvider();
-	}
+  constructor() {
+    super();
+    this.provider = new DatasetTreeDataProvider();
+  }
 
-	register(context: vscode.ExtensionContext): void {
-		const treeView = this.createTreeView('earthengine.dataset', this.provider, { showCollapseAll: true });
+  register(context: vscode.ExtensionContext): void {
+    const treeView = this.createTreeView('earthengine.dataset', this.provider, {
+      showCollapseAll: true,
+    });
 
-		this.registerCommand('earthengine.refreshDatasets', () => this.provider.refresh());
+    this.registerCommand('earthengine.refreshDatasets', () => this.provider.refresh());
 
-		this.registerCommand('earthengine.searchDatasets', async () => {
-			const item = await this.provider.searchDatasets();
-			if (item) {
-				treeView.reveal(item, { select: true, focus: true, expand: true });
-			}
-		});
+    this.registerCommand('earthengine.searchDatasets', async () => {
+      const item = await this.provider.searchDatasets();
+      if (item) {
+        treeView.reveal(item, { select: true, focus: true, expand: true });
+      }
+    });
 
-		this.registerCommand('earthengine.openDatasetInBrowser', (item: DatasetTreeItem) => {
-			if (item.datasetId) {
-				vscode.env.openExternal(vscode.Uri.parse(getDatasetPageUrl(item.datasetId)));
-			}
-		});
+    this.registerCommand('earthengine.openDatasetInBrowser', (item: DatasetTreeItem) => {
+      if (item.datasetId) {
+        vscode.env.openExternal(vscode.Uri.parse(getDatasetPageUrl(item.datasetId)));
+      }
+    });
 
-		this.registerCommand('earthengine.openDatasetPanel', async (hrefOrItem: string | DatasetTreeItem) => {
-			const href = typeof hrefOrItem === 'string' ? hrefOrItem : hrefOrItem.stacHref;
-			if (!href) { return; }
-			try {
-				const collection = await fetchCollection(href);
-				createDatasetPanel(collection, context.extensionUri);
-			} catch {
-				vscode.window.showErrorMessage('Failed to load dataset details.');
-			}
-		});
+    this.registerCommand(
+      'earthengine.openDatasetPanel',
+      async (hrefOrItem: string | DatasetTreeItem) => {
+        const href = typeof hrefOrItem === 'string' ? hrefOrItem : hrefOrItem.stacHref;
+        if (!href) {
+          return;
+        }
+        try {
+          const collection = await fetchCollection(href);
+          createDatasetPanel(collection, context.extensionUri);
+        } catch {
+          vscode.window.showErrorMessage('Failed to load dataset details.');
+        }
+      },
+    );
 
-		this.registerCommand('earthengine.copyDatasetId', (item: DatasetTreeItem) => {
-			if (item.datasetId) {
-				vscode.env.clipboard.writeText(item.datasetId);
-				vscode.window.showInformationMessage(`Copied: ${item.datasetId}`);
-			}
-		});
+    this.registerCommand('earthengine.copyDatasetId', (item: DatasetTreeItem) => {
+      if (item.datasetId) {
+        vscode.env.clipboard.writeText(item.datasetId);
+        vscode.window.showInformationMessage(`Copied: ${item.datasetId}`);
+      }
+    });
 
-		context.subscriptions.push(this);
-	}
+    context.subscriptions.push(this);
+  }
 }

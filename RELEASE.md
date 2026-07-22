@@ -85,9 +85,9 @@ Ensure `dist/extension.js` and `resources/` are **not** ignored.
 
 ## Versioning policy
 
-| Change type | Version bump |
-|---|---|
-| Bug fix | patch |
-| New sidebar section or command | minor |
-| Breaking change to settings or activation | major |
-| Dependency security update | patch |
+| Change type                               | Version bump |
+| ----------------------------------------- | ------------ |
+| Bug fix                                   | patch        |
+| New sidebar section or command            | minor        |
+| Breaking change to settings or activation | major        |
+| Dependency security update                | patch        |

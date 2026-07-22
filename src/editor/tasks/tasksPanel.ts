@@ -7,7 +7,13 @@
  */
 
 import * as vscode from 'vscode';
-import { listOperationsPage, Operation, getTaskState, getElapsedTime, cancelOperation } from '../../sidebar/tasks/tasksApiClient.js';
+import {
+  listOperationsPage,
+  Operation,
+  getTaskState,
+  getElapsedTime,
+  cancelOperation,
+} from '../../sidebar/tasks/tasksApiClient.js';
 import { AuthService } from '../../auth/index.js';
 
 type TaskFilter = 'export' | 'import';
@@ -16,117 +22,134 @@ type TaskFilter = 'export' | 'import';
 
 /** Opens a WebView panel listing tasks of the given filter type. */
 export async function openTasksPanel(
-	authService: AuthService,
-	filter: TaskFilter,
-	extensionUri: vscode.Uri,
+  authService: AuthService,
+  filter: TaskFilter,
+  extensionUri: vscode.Uri,
 ): Promise<void> {
-	const token = await authService.getToken();
-	if (!token) {
-		vscode.window.showErrorMessage('Not authenticated.');
-		return;
-	}
+  const token = await authService.getToken();
+  if (!token) {
+    vscode.window.showErrorMessage('Not authenticated.');
+    return;
+  }
 
-	const profile = authService.currentProfile!;
-	const panel = vscode.window.createWebviewPanel(
-		`earthengine.tasks.${filter}Panel`,
-		`${filter === 'export' ? 'Export' : 'Import'} Tasks`,
-		vscode.ViewColumn.One,
-		{ enableScripts: true, retainContextWhenHidden: true },
-	);
+  const profile = authService.currentProfile!;
+  const panel = vscode.window.createWebviewPanel(
+    `earthengine.tasks.${filter}Panel`,
+    `${filter === 'export' ? 'Export' : 'Import'} Tasks`,
+    vscode.ViewColumn.One,
+    { enableScripts: true, retainContextWhenHidden: true },
+  );
 
-	// Load initial data
-	let allOps: Operation[] = [];
-	let nextPageToken: string | undefined;
-	let resolvedProject = profile.project;
+  // Load initial data
+  let allOps: Operation[] = [];
+  let nextPageToken: string | undefined;
+  let resolvedProject = profile.project;
 
-	async function loadPage(): Promise<void> {
-		const t = await authService.getToken();
-		if (!t) { return; }
-		const result = await listOperationsPage(resolvedProject, t, 50, nextPageToken);
-		resolvedProject = result.project;
-		allOps.push(...result.operations);
-		nextPageToken = result.nextPageToken;
-	}
+  async function loadPage(): Promise<void> {
+    const t = await authService.getToken();
+    if (!t) {
+      return;
+    }
+    const result = await listOperationsPage(resolvedProject, t, 50, nextPageToken);
+    resolvedProject = result.project;
+    allOps.push(...result.operations);
+    nextPageToken = result.nextPageToken;
+  }
 
-	try {
-		await loadPage();
-	} catch (err) {
-		const msg = err instanceof Error ? err.message : String(err);
-		vscode.window.showErrorMessage(`Failed to load tasks: ${msg}`);
-		return;
-	}
+  try {
+    await loadPage();
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    vscode.window.showErrorMessage(`Failed to load tasks: ${msg}`);
+    return;
+  }
 
-	const filterFn = filter === 'export'
-		? (op: Operation) => { const t = (op.metadata?.type || '').toUpperCase(); return t.startsWith('EXPORT') || t === ''; }
-		: (op: Operation) => { const t = (op.metadata?.type || '').toUpperCase(); return t.startsWith('INGEST') || t.startsWith('IMPORT'); };
+  const filterFn =
+    filter === 'export'
+      ? (op: Operation) => {
+          const t = (op.metadata?.type || '').toUpperCase();
+          return t.startsWith('EXPORT') || t === '';
+        }
+      : (op: Operation) => {
+          const t = (op.metadata?.type || '').toUpperCase();
+          return t.startsWith('INGEST') || t.startsWith('IMPORT');
+        };
 
-	function sendData() {
-		const filtered = allOps.filter(filterFn).map(op => ({
-			name: op.name,
-			description: op.metadata?.description || op.name.split('/').pop() || '',
-			state: getTaskState(op),
-			type: op.metadata?.type || '',
-			createTime: op.metadata?.createTime || '',
-			startTime: op.metadata?.startTime || '',
-			endTime: op.metadata?.endTime || '',
-			updateTime: op.metadata?.updateTime || '',
-			elapsed: getElapsedTime(op),
-			progress: op.metadata?.progress,
-			error: op.error?.message || '',
-		}));
-		panel.webview.postMessage({ type: 'data', tasks: filtered, hasMore: !!nextPageToken });
-	}
+  function sendData() {
+    const filtered = allOps.filter(filterFn).map((op) => ({
+      name: op.name,
+      description: op.metadata?.description || op.name.split('/').pop() || '',
+      state: getTaskState(op),
+      type: op.metadata?.type || '',
+      createTime: op.metadata?.createTime || '',
+      startTime: op.metadata?.startTime || '',
+      endTime: op.metadata?.endTime || '',
+      updateTime: op.metadata?.updateTime || '',
+      elapsed: getElapsedTime(op),
+      progress: op.metadata?.progress,
+      error: op.error?.message || '',
+    }));
+    panel.webview.postMessage({ type: 'data', tasks: filtered, hasMore: !!nextPageToken });
+  }
 
-	panel.webview.onDidReceiveMessage(async (msg) => {
-		if (msg.type === 'loadMore') {
-			try {
-				await loadPage();
-				sendData();
-			} catch { /* ignore */ }
-		} else if (msg.type === 'cancel') {
-			try {
-				const t = await authService.getToken();
-				if (t) {
-					await cancelOperation(msg.name, t);
-					panel.webview.postMessage({ type: 'cancelled', name: msg.name });
-				}
-			} catch (err) {
-				const m = err instanceof Error ? err.message : String(err);
-				panel.webview.postMessage({ type: 'error', message: m });
-			}
-		} else if (msg.type === 'refresh') {
-			allOps = [];
-			nextPageToken = undefined;
-			try {
-				await loadPage();
-				sendData();
-			} catch { /* ignore */ }
-		}
-	});
+  panel.webview.onDidReceiveMessage(async (msg) => {
+    if (msg.type === 'loadMore') {
+      try {
+        await loadPage();
+        sendData();
+      } catch {
+        /* ignore */
+      }
+    } else if (msg.type === 'cancel') {
+      try {
+        const t = await authService.getToken();
+        if (t) {
+          await cancelOperation(msg.name, t);
+          panel.webview.postMessage({ type: 'cancelled', name: msg.name });
+        }
+      } catch (err) {
+        const m = err instanceof Error ? err.message : String(err);
+        panel.webview.postMessage({ type: 'error', message: m });
+      }
+    } else if (msg.type === 'refresh') {
+      allOps = [];
+      nextPageToken = undefined;
+      try {
+        await loadPage();
+        sendData();
+      } catch {
+        /* ignore */
+      }
+    }
+  });
 
-	panel.webview.html = getHtml(filter);
-	sendData();
+  panel.webview.html = getHtml(filter);
+  sendData();
 
-	// Auto-refresh every 15s
-	const interval = setInterval(async () => {
-		if (panel.visible) {
-			const t = await authService.getToken();
-			if (!t) { return; }
-			try {
-				const result = await listOperationsPage(resolvedProject, t, allOps.length || 50);
-				allOps = result.operations;
-				nextPageToken = result.nextPageToken;
-				sendData();
-			} catch { /* ignore */ }
-		}
-	}, 15_000);
+  // Auto-refresh every 15s
+  const interval = setInterval(async () => {
+    if (panel.visible) {
+      const t = await authService.getToken();
+      if (!t) {
+        return;
+      }
+      try {
+        const result = await listOperationsPage(resolvedProject, t, allOps.length || 50);
+        allOps = result.operations;
+        nextPageToken = result.nextPageToken;
+        sendData();
+      } catch {
+        /* ignore */
+      }
+    }
+  }, 15_000);
 
-	panel.onDidDispose(() => clearInterval(interval));
+  panel.onDidDispose(() => clearInterval(interval));
 }
 
 function getHtml(filter: TaskFilter): string {
-	const title = filter === 'export' ? 'Export Tasks' : 'Import Tasks';
-	return `<!DOCTYPE html>
+  const title = filter === 'export' ? 'Export Tasks' : 'Import Tasks';
+  return `<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">

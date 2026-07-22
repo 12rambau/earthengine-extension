@@ -25,35 +25,35 @@ import * as vscode from 'vscode';
  * Subclasses implement `register()` to wire everything up.
  */
 export abstract class SidebarSection implements vscode.Disposable {
-	/** Accumulated disposables — cleaned up on `dispose()`. */
-	protected disposables: vscode.Disposable[] = [];
+  /** Accumulated disposables — cleaned up on `dispose()`. */
+  protected disposables: vscode.Disposable[] = [];
 
-	/** Called once during activation to register views and commands. */
-	abstract register(context: vscode.ExtensionContext): void;
+  /** Called once during activation to register views and commands. */
+  abstract register(context: vscode.ExtensionContext): void;
 
-	/** Shorthand to register a command and track it for disposal. */
-	protected registerCommand(id: string, handler: (...args: any[]) => any): void {
-		this.disposables.push(vscode.commands.registerCommand(id, handler));
-	}
+  /** Shorthand to register a command and track it for disposal. */
+  protected registerCommand(id: string, handler: (...args: any[]) => any): void {
+    this.disposables.push(vscode.commands.registerCommand(id, handler));
+  }
 
-	/** Create and register a tree view, optionally with collapse-all support. */
-	protected createTreeView<T extends vscode.TreeItem>(
-		viewId: string,
-		provider: vscode.TreeDataProvider<T>,
-		options: { showCollapseAll?: boolean } = {},
-	): vscode.TreeView<T> {
-		const treeView = vscode.window.createTreeView(viewId, {
-			treeDataProvider: provider,
-			showCollapseAll: options.showCollapseAll,
-		});
-		this.disposables.push(treeView);
-		return treeView;
-	}
+  /** Create and register a tree view, optionally with collapse-all support. */
+  protected createTreeView<T extends vscode.TreeItem>(
+    viewId: string,
+    provider: vscode.TreeDataProvider<T>,
+    options: { showCollapseAll?: boolean } = {},
+  ): vscode.TreeView<T> {
+    const treeView = vscode.window.createTreeView(viewId, {
+      treeDataProvider: provider,
+      showCollapseAll: options.showCollapseAll,
+    });
+    this.disposables.push(treeView);
+    return treeView;
+  }
 
-	/** Release all registered disposables. */
-	dispose(): void {
-		this.disposables.forEach(d => d.dispose());
-	}
+  /** Release all registered disposables. */
+  dispose(): void {
+    this.disposables.forEach((d) => d.dispose());
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -68,54 +68,57 @@ export abstract class SidebarSection implements vscode.Disposable {
  * override `onDidDispose()` to clean up when the user closes the panel.
  */
 export abstract class EditorPanel implements vscode.Disposable {
-	/** The active WebView panel, or `undefined` if closed. */
-	protected panel: vscode.WebviewPanel | undefined;
+  /** The active WebView panel, or `undefined` if closed. */
+  protected panel: vscode.WebviewPanel | undefined;
 
-	/** Accumulated disposables — cleaned up on `dispose()`. */
-	protected disposables: vscode.Disposable[] = [];
+  /** Accumulated disposables — cleaned up on `dispose()`. */
+  protected disposables: vscode.Disposable[] = [];
 
-	/**
-	 * Create a new WebView panel, or reveal the existing one.
-	 * Automatically tracks the panel lifecycle.
-	 */
-	protected createPanel(
-		viewType: string,
-		title: string,
-		column: vscode.ViewColumn = vscode.ViewColumn.One,
-		options: vscode.WebviewOptions & vscode.WebviewPanelOptions = { enableScripts: true, retainContextWhenHidden: true },
-	): vscode.WebviewPanel {
-		if (this.panel) {
-			this.panel.reveal();
-			return this.panel;
-		}
+  /**
+   * Create a new WebView panel, or reveal the existing one.
+   * Automatically tracks the panel lifecycle.
+   */
+  protected createPanel(
+    viewType: string,
+    title: string,
+    column: vscode.ViewColumn = vscode.ViewColumn.One,
+    options: vscode.WebviewOptions & vscode.WebviewPanelOptions = {
+      enableScripts: true,
+      retainContextWhenHidden: true,
+    },
+  ): vscode.WebviewPanel {
+    if (this.panel) {
+      this.panel.reveal();
+      return this.panel;
+    }
 
-		this.panel = vscode.window.createWebviewPanel(viewType, title, column, options);
-		this.panel.onDidDispose(() => {
-			this.panel = undefined;
-			this.onDidDispose();
-		});
+    this.panel = vscode.window.createWebviewPanel(viewType, title, column, options);
+    this.panel.onDidDispose(() => {
+      this.panel = undefined;
+      this.onDidDispose();
+    });
 
-		return this.panel;
-	}
+    return this.panel;
+  }
 
-	/** Override in subclasses to perform cleanup when the panel is closed. */
-	protected onDidDispose(): void {
-		// no-op by default
-	}
+  /** Override in subclasses to perform cleanup when the panel is closed. */
+  protected onDidDispose(): void {
+    // no-op by default
+  }
 
-	/** Whether the panel is currently visible. */
-	get isVisible(): boolean {
-		return this.panel?.visible ?? false;
-	}
+  /** Whether the panel is currently visible. */
+  get isVisible(): boolean {
+    return this.panel?.visible ?? false;
+  }
 
-	/** Bring the panel to the foreground. */
-	reveal(): void {
-		this.panel?.reveal();
-	}
+  /** Bring the panel to the foreground. */
+  reveal(): void {
+    this.panel?.reveal();
+  }
 
-	/** Dispose the panel and all tracked resources. */
-	dispose(): void {
-		this.panel?.dispose();
-		this.disposables.forEach(d => d.dispose());
-	}
+  /** Dispose the panel and all tracked resources. */
+  dispose(): void {
+    this.panel?.dispose();
+    this.disposables.forEach((d) => d.dispose());
+  }
 }

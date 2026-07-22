@@ -29,33 +29,32 @@ const sections: vscode.Disposable[] = [];
  * Sets up the auth service, registers all sidebar sections and the map panel.
  */
 export function activate(context: vscode.ExtensionContext) {
+  // ── Core services ──────────────────────────────────────────────────────
+  const tokenStorage = new TokenStorage(context.globalState);
+  const authService = new AuthService(tokenStorage);
 
-	// ── Core services ──────────────────────────────────────────────────────
-	const tokenStorage = new TokenStorage(context.globalState);
-	const authService = new AuthService(tokenStorage);
+  // ── Sidebar sections ───────────────────────────────────────────────────
+  // Each section is self-contained: it owns its tree view, commands, and cleanup.
+  const profiles = new ProfilesSection(authService);
+  const assets = new AssetsSection(authService);
+  const tasks = new TasksSection(authService);
+  const dataset = new DatasetSection();
+  const docs = new DocsSection();
 
-	// ── Sidebar sections ───────────────────────────────────────────────────
-	// Each section is self-contained: it owns its tree view, commands, and cleanup.
-	const profiles = new ProfilesSection(authService);
-	const assets = new AssetsSection(authService);
-	const tasks = new TasksSection(authService);
-	const dataset = new DatasetSection();
-	const docs = new DocsSection();
+  profiles.register(context);
+  assets.register(context);
+  tasks.register(context);
+  dataset.register(context);
+  docs.register(context);
 
-	profiles.register(context);
-	assets.register(context);
-	tasks.register(context);
-	dataset.register(context);
-	docs.register(context);
+  sections.push(profiles, assets, tasks, dataset, docs);
 
-	sections.push(profiles, assets, tasks, dataset, docs);
-
-	// ── Map panel ──────────────────────────────────────────────────────────
-	// Leaflet-based interactive map that receives layers from Python scripts
-	// through a local HTTP bridge server.
-	const mapPanel = new MapPanel();
-	mapPanel.register(context);
-	sections.push(mapPanel);
+  // ── Map panel ──────────────────────────────────────────────────────────
+  // Leaflet-based interactive map that receives layers from Python scripts
+  // through a local HTTP bridge server.
+  const mapPanel = new MapPanel();
+  mapPanel.register(context);
+  sections.push(mapPanel);
 }
 
 /**
@@ -63,6 +62,6 @@ export function activate(context: vscode.ExtensionContext) {
  * Disposes all sections and stops background services.
  */
 export function deactivate() {
-	sections.forEach(s => s.dispose());
-	sections.length = 0;
+  sections.forEach((s) => s.dispose());
+  sections.length = 0;
 }

@@ -18,125 +18,137 @@ const CONTAINER_TYPES = new Set(['FOLDER', 'IMAGE_COLLECTION']);
 
 /** Opens the Asset Manager WebView panel for the active profile's project. */
 export async function openAssetsPanel(authService: AuthService): Promise<void> {
-	const token = await authService.getToken();
-	if (!token) {
-		vscode.window.showErrorMessage('Not authenticated.');
-		return;
-	}
+  const token = await authService.getToken();
+  if (!token) {
+    vscode.window.showErrorMessage('Not authenticated.');
+    return;
+  }
 
-	const profile = authService.currentProfile!;
-	const panel = vscode.window.createWebviewPanel(
-		'earthengine.assetsPanel',
-		'Asset Manager',
-		vscode.ViewColumn.One,
-		{ enableScripts: true, retainContextWhenHidden: true },
-	);
+  const profile = authService.currentProfile!;
+  const panel = vscode.window.createWebviewPanel(
+    'earthengine.assetsPanel',
+    'Asset Manager',
+    vscode.ViewColumn.One,
+    { enableScripts: true, retainContextWhenHidden: true },
+  );
 
-	const rootPath = `projects/${profile.project}`;
+  const rootPath = `projects/${profile.project}`;
 
-	async function loadPage(parent: string, pageSize: number, pageToken?: string) {
-		const t = await authService.getToken();
-		if (!t) { throw new Error('Not authenticated'); }
-		const response = await listAssets(parent, t, pageSize, pageToken);
-		return { assets: response.assets || [], nextPageToken: response.nextPageToken };
-	}
+  async function loadPage(parent: string, pageSize: number, pageToken?: string) {
+    const t = await authService.getToken();
+    if (!t) {
+      throw new Error('Not authenticated');
+    }
+    const response = await listAssets(parent, t, pageSize, pageToken);
+    return { assets: response.assets || [], nextPageToken: response.nextPageToken };
+  }
 
-	// Page token history for back navigation
-	let pageTokenHistory: (string | undefined)[] = [undefined];
-	let currentPageIndex = 0;
-	let currentParentPath = rootPath;
-	let currentPageSize = 50;
+  // Page token history for back navigation
+  let pageTokenHistory: (string | undefined)[] = [undefined];
+  let currentPageIndex = 0;
+  let currentParentPath = rootPath;
+  let currentPageSize = 50;
 
-	function sendPage(assets: EEAsset[], parent: string, pageIndex: number, hasNext: boolean, hasPrev: boolean) {
-		const items = assets.map(a => ({
-			name: a.name,
-			shortName: a.name.split('/').pop() || a.name,
-			type: a.type,
-			isContainer: CONTAINER_TYPES.has(a.type),
-			assetId: a.name,
-		}));
-		panel.webview.postMessage({
-			type: 'data',
-			assets: items,
-			parent,
-			root: rootPath,
-			pageIndex,
-			hasNext,
-			hasPrev,
-			pageSize: currentPageSize,
-		});
-	}
+  function sendPage(
+    assets: EEAsset[],
+    parent: string,
+    pageIndex: number,
+    hasNext: boolean,
+    hasPrev: boolean,
+  ) {
+    const items = assets.map((a) => ({
+      name: a.name,
+      shortName: a.name.split('/').pop() || a.name,
+      type: a.type,
+      isContainer: CONTAINER_TYPES.has(a.type),
+      assetId: a.name,
+    }));
+    panel.webview.postMessage({
+      type: 'data',
+      assets: items,
+      parent,
+      root: rootPath,
+      pageIndex,
+      hasNext,
+      hasPrev,
+      pageSize: currentPageSize,
+    });
+  }
 
-	async function navigateTo(parent: string, pageSize: number) {
-		currentParentPath = parent;
-		currentPageSize = pageSize;
-		pageTokenHistory = [undefined];
-		currentPageIndex = 0;
-		const { assets, nextPageToken } = await loadPage(parent, pageSize);
-		if (nextPageToken) {
-			pageTokenHistory.push(nextPageToken);
-		}
-		sendPage(assets, parent, 0, !!nextPageToken, false);
-	}
+  async function navigateTo(parent: string, pageSize: number) {
+    currentParentPath = parent;
+    currentPageSize = pageSize;
+    pageTokenHistory = [undefined];
+    currentPageIndex = 0;
+    const { assets, nextPageToken } = await loadPage(parent, pageSize);
+    if (nextPageToken) {
+      pageTokenHistory.push(nextPageToken);
+    }
+    sendPage(assets, parent, 0, !!nextPageToken, false);
+  }
 
-	async function goToPage(direction: 'next' | 'prev', pageSize: number) {
-		currentPageSize = pageSize;
-		if (direction === 'next') {
-			const token = pageTokenHistory[currentPageIndex + 1];
-			if (!token) { return; }
-			currentPageIndex++;
-			const { assets, nextPageToken } = await loadPage(currentParentPath, pageSize, token);
-			if (nextPageToken && pageTokenHistory.length <= currentPageIndex + 1) {
-				pageTokenHistory.push(nextPageToken);
-			}
-			sendPage(assets, currentParentPath, currentPageIndex, !!nextPageToken, true);
-		} else {
-			if (currentPageIndex <= 0) { return; }
-			currentPageIndex--;
-			const token = pageTokenHistory[currentPageIndex];
-			const { assets, nextPageToken } = await loadPage(currentParentPath, pageSize, token);
-			if (nextPageToken && pageTokenHistory.length <= currentPageIndex + 1) {
-				pageTokenHistory[currentPageIndex + 1] = nextPageToken;
-			}
-			sendPage(assets, currentParentPath, currentPageIndex, true, currentPageIndex > 0);
-		}
-	}
+  async function goToPage(direction: 'next' | 'prev', pageSize: number) {
+    currentPageSize = pageSize;
+    if (direction === 'next') {
+      const token = pageTokenHistory[currentPageIndex + 1];
+      if (!token) {
+        return;
+      }
+      currentPageIndex++;
+      const { assets, nextPageToken } = await loadPage(currentParentPath, pageSize, token);
+      if (nextPageToken && pageTokenHistory.length <= currentPageIndex + 1) {
+        pageTokenHistory.push(nextPageToken);
+      }
+      sendPage(assets, currentParentPath, currentPageIndex, !!nextPageToken, true);
+    } else {
+      if (currentPageIndex <= 0) {
+        return;
+      }
+      currentPageIndex--;
+      const token = pageTokenHistory[currentPageIndex];
+      const { assets, nextPageToken } = await loadPage(currentParentPath, pageSize, token);
+      if (nextPageToken && pageTokenHistory.length <= currentPageIndex + 1) {
+        pageTokenHistory[currentPageIndex + 1] = nextPageToken;
+      }
+      sendPage(assets, currentParentPath, currentPageIndex, true, currentPageIndex > 0);
+    }
+  }
 
-	// Initial load
-	try {
-		panel.webview.html = getHtml(profile.project);
-		await navigateTo(rootPath, currentPageSize);
-	} catch (err) {
-		const msg = err instanceof Error ? err.message : String(err);
-		vscode.window.showErrorMessage(`Failed to load assets: ${msg}`);
-		return;
-	}
+  // Initial load
+  try {
+    panel.webview.html = getHtml(profile.project);
+    await navigateTo(rootPath, currentPageSize);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    vscode.window.showErrorMessage(`Failed to load assets: ${msg}`);
+    return;
+  }
 
-	panel.webview.onDidReceiveMessage(async (msg) => {
-		try {
-			if (msg.type === 'navigate') {
-				await navigateTo(msg.path, msg.pageSize || currentPageSize);
-			} else if (msg.type === 'nextPage') {
-				await goToPage('next', msg.pageSize || currentPageSize);
-			} else if (msg.type === 'prevPage') {
-				await goToPage('prev', msg.pageSize || currentPageSize);
-			} else if (msg.type === 'changePageSize') {
-				await navigateTo(currentParentPath, msg.pageSize);
-			} else if (msg.type === 'preview') {
-				const t = await authService.getToken();
-				if (t) {
-					await openAssetPreview(msg.name, t);
-				}
-			}
-		} catch (err) {
-			const m = err instanceof Error ? err.message : String(err);
-			panel.webview.postMessage({ type: 'error', message: m });
-		}
-	});
+  panel.webview.onDidReceiveMessage(async (msg) => {
+    try {
+      if (msg.type === 'navigate') {
+        await navigateTo(msg.path, msg.pageSize || currentPageSize);
+      } else if (msg.type === 'nextPage') {
+        await goToPage('next', msg.pageSize || currentPageSize);
+      } else if (msg.type === 'prevPage') {
+        await goToPage('prev', msg.pageSize || currentPageSize);
+      } else if (msg.type === 'changePageSize') {
+        await navigateTo(currentParentPath, msg.pageSize);
+      } else if (msg.type === 'preview') {
+        const t = await authService.getToken();
+        if (t) {
+          await openAssetPreview(msg.name, t);
+        }
+      }
+    } catch (err) {
+      const m = err instanceof Error ? err.message : String(err);
+      panel.webview.postMessage({ type: 'error', message: m });
+    }
+  });
 }
 
 function getHtml(project: string): string {
-	return `<!DOCTYPE html>
+  return `<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">

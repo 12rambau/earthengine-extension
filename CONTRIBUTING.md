@@ -48,13 +48,13 @@ Do **not** add free-floating command registrations in `extension.ts` — create 
 
 ## Scripts
 
-| Command | Description |
-|---|---|
-| `npm run compile` | Full build (type-check + lint + esbuild) |
+| Command               | Description                                 |
+| --------------------- | ------------------------------------------- |
+| `npm run compile`     | Full build (type-check + lint + esbuild)    |
 | `npm run check-types` | TypeScript type-check only (`tsc --noEmit`) |
-| `npm run lint` | ESLint on `src/` |
-| `npm run test` | Run the test suite |
-| `npm run package` | Production build (used before publishing) |
+| `npm run lint`        | ESLint on `src/`                            |
+| `npm run test`        | Run the test suite                          |
+| `npm run package`     | Production build (used before publishing)   |
 
 Always run `npm run check-types` before opening a pull request.
 

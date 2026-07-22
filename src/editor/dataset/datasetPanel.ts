@@ -13,43 +13,51 @@ import { StacCollection } from '../../sidebar/dataset/stacClient.js';
 // ── Public API ──────────────────────────────────────────────────────
 
 /** Creates and displays a WebView panel for a single dataset collection. */
-export function createDatasetPanel(collection: StacCollection, extensionUri: vscode.Uri): vscode.WebviewPanel {
-	const panel = vscode.window.createWebviewPanel(
-		'earthengine.datasetDetail',
-		collection.title || collection.id,
-		vscode.ViewColumn.One,
-		{ enableScripts: false },
-	);
+export function createDatasetPanel(
+  collection: StacCollection,
+  extensionUri: vscode.Uri,
+): vscode.WebviewPanel {
+  const panel = vscode.window.createWebviewPanel(
+    'earthengine.datasetDetail',
+    collection.title || collection.id,
+    vscode.ViewColumn.One,
+    { enableScripts: false },
+  );
 
-	panel.webview.html = buildHtml(collection);
-	return panel;
+  panel.webview.html = buildHtml(collection);
+  return panel;
 }
 
 // ── HTML Builder ────────────────────────────────────────────────────
 
 function buildHtml(c: StacCollection): string {
-	const temporal = c.extent?.temporal?.interval?.[0];
-	const startDate = temporal?.[0] || 'N/A';
-	const endDate = temporal?.[1] || 'Ongoing';
+  const temporal = c.extent?.temporal?.interval?.[0];
+  const startDate = temporal?.[0] || 'N/A';
+  const endDate = temporal?.[1] || 'Ongoing';
 
-	const bands = c.summaries?.['eo:bands'] || [];
-	const keywords = c.keywords || [];
-	const providers = c.providers || [];
-	const geeType = c['gee:type'] || 'unknown';
+  const bands = c.summaries?.['eo:bands'] || [];
+  const keywords = c.keywords || [];
+  const providers = c.providers || [];
+  const geeType = c['gee:type'] || 'unknown';
 
-	const previewLink = c.links?.find(l => l.rel === 'preview');
-	const previewImg = previewLink ? `<img src="${previewLink.href}" alt="preview" style="max-width:280px; border-radius:4px; margin-bottom:16px;" />` : '';
+  const previewLink = c.links?.find((l) => l.rel === 'preview');
+  const previewImg = previewLink
+    ? `<img src="${previewLink.href}" alt="preview" style="max-width:280px; border-radius:4px; margin-bottom:16px;" />`
+    : '';
 
-	const datasetSlug = c.id.replace(/\//g, '_');
-	const catalogUrl = `https://developers.google.com/earth-engine/datasets/catalog/${datasetSlug}`;
+  const datasetSlug = c.id.replace(/\//g, '_');
+  const catalogUrl = `https://developers.google.com/earth-engine/datasets/catalog/${datasetSlug}`;
 
-	const snippet = geeType === 'image_collection'
-		? `ee.ImageCollection("${c.id}")`
-		: geeType === 'image'
-			? `ee.Image("${c.id}")`
-			: `"${c.id}"`;
+  const snippet =
+    geeType === 'image_collection'
+      ? `ee.ImageCollection("${c.id}")`
+      : geeType === 'image'
+        ? `ee.Image("${c.id}")`
+        : `"${c.id}"`;
 
-	const bandsHtml = bands.length > 0 ? `
+  const bandsHtml =
+    bands.length > 0
+      ? `
 		<h2>Bands</h2>
 		<table>
 			<thead>
@@ -61,33 +69,41 @@ function buildHtml(c: StacCollection): string {
 				</tr>
 			</thead>
 			<tbody>
-				${bands.map(b => `
+				${bands
+          .map(
+            (b) => `
 					<tr>
 						<td><code>${b.name}</code></td>
 						<td>${b.description || ''}</td>
 						<td>${b['gee:wavelength'] || ''}</td>
 						<td>${b.gsd ? b.gsd + 'm' : ''}</td>
 					</tr>
-				`).join('')}
+				`,
+          )
+          .join('')}
 			</tbody>
 		</table>
-	` : '';
+	`
+      : '';
 
-	const tagsHtml = keywords.length > 0 ? `
+  const tagsHtml =
+    keywords.length > 0
+      ? `
 		<div class="tags">
 			<strong>Tags:</strong>
-			${keywords.map(k => `<span class="tag">${escapeHtml(k)}</span>`).join(' ')}
+			${keywords.map((k) => `<span class="tag">${escapeHtml(k)}</span>`).join(' ')}
 		</div>
-	` : '';
+	`
+      : '';
 
-	const providersHtml = providers
-		.map(p => p.url ? `<a href="${p.url}">${escapeHtml(p.name)}</a>` : escapeHtml(p.name))
-		.join(', ');
+  const providersHtml = providers
+    .map((p) => (p.url ? `<a href="${p.url}">${escapeHtml(p.name)}</a>` : escapeHtml(p.name)))
+    .join(', ');
 
-	// Sanitize description: it may contain markdown-style formatting
-	const description = escapeHtml(c.description || '').replace(/\n/g, '<br>');
+  // Sanitize description: it may contain markdown-style formatting
+  const description = escapeHtml(c.description || '').replace(/\n/g, '<br>');
 
-	return `<!DOCTYPE html>
+  return `<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -153,9 +169,9 @@ function buildHtml(c: StacCollection): string {
 }
 
 function escapeHtml(str: string): string {
-	return str
-		.replace(/&/g, '&amp;')
-		.replace(/</g, '&lt;')
-		.replace(/>/g, '&gt;')
-		.replace(/"/g, '&quot;');
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
 }

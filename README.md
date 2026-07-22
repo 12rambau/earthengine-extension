@@ -139,26 +139,26 @@ Map.centerObject(geometry, zoom=8)
 
 ## Extension Commands
 
-| Command | Description |
-|---|---|
-| `Add Profile` | Sign in with a Google account via OAuth2 |
-| `Add Service Account` | Register a service account key file |
-| `Activate Profile` | Switch to a different Earth Engine profile |
-| `Open Asset Manager` | Open the full paginated asset table panel |
-| `Open Map View` | Open the interactive Leaflet map panel |
-| `New Folder` | Create a folder in your Earth Engine assets |
-| `Copy Asset ID` | Copy a full asset name to clipboard |
-| `Open Details` (dataset) | Open the STAC dataset detail panel |
+| Command                     | Description                                    |
+| --------------------------- | ---------------------------------------------- |
+| `Add Profile`               | Sign in with a Google account via OAuth2       |
+| `Add Service Account`       | Register a service account key file            |
+| `Activate Profile`          | Switch to a different Earth Engine profile     |
+| `Open Asset Manager`        | Open the full paginated asset table panel      |
+| `Open Map View`             | Open the interactive Leaflet map panel         |
+| `New Folder`                | Create a folder in your Earth Engine assets    |
+| `Copy Asset ID`             | Copy a full asset name to clipboard            |
+| `Open Details` (dataset)    | Open the STAC dataset detail panel             |
 | `Open in Browser` (dataset) | Open the dataset page on developers.google.com |
-| `Cancel Task` | Cancel a running export or import task |
+| `Cancel Task`               | Cancel a running export or import task         |
 
 ---
 
 ## Extension Settings
 
-| Setting | Default | Description |
-|---|---|---|
-| *(none yet)* | — | Settings will be added in a future release |
+| Setting      | Default | Description                                |
+| ------------ | ------- | ------------------------------------------ |
+| _(none yet)_ | —       | Settings will be added in a future release |
 
 ---
 
@@ -194,12 +194,12 @@ git clone https://github.com/your-org/earthengine-vscode
 
 ### Useful Commands
 
-| Command | Description |
-|---|---|
-| `npx tsc --noEmit` | Type-check without emitting |
-| `node esbuild.js` | Production build |
-| `npm run lint` | Run ESLint on `src/` |
-| `npm run package` | Bundle for publishing (`.vsix`) |
+| Command            | Description                     |
+| ------------------ | ------------------------------- |
+| `npx tsc --noEmit` | Type-check without emitting     |
+| `node esbuild.js`  | Production build                |
+| `npm run lint`     | Run ESLint on `src/`            |
+| `npm run package`  | Bundle for publishing (`.vsix`) |
 
 ---
 
