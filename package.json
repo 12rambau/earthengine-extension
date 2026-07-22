@@ -65,8 +65,13 @@
       },
       {
         "command": "earthengine.signIn",
-        "title": "Earth Engine: Add Profile",
-        "icon": "$(add)"
+        "title": "Add Profile",
+        "icon": "$(person-add)"
+      },
+      {
+        "command": "earthengine.addServiceAccount",
+        "title": "Add Service Account",
+        "icon": "$(file-add)"
       },
       {
         "command": "earthengine.signOut",
@@ -125,11 +130,11 @@
       {
         "command": "earthengine.newScript",
         "title": "New Python Script",
-        "icon": "$(new-file)"
+        "icon": "$(file-code)"
       },
       {
         "command": "earthengine.openMap",
-        "title": "Earth Engine: Open Map",
+        "title": "Open Map View",
         "icon": "$(map)"
       },
       {
@@ -167,6 +172,11 @@
       "view/title": [
         {
           "command": "earthengine.signIn",
+          "when": "view == earthengine.profiles",
+          "group": "navigation"
+        },
+        {
+          "command": "earthengine.addServiceAccount",
           "when": "view == earthengine.profiles",
           "group": "navigation"
         },

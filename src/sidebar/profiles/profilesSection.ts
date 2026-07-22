@@ -27,6 +27,8 @@ export class ProfilesSection extends SidebarSection {
 
 		this.registerCommand('earthengine.signIn', () => this.authService.signIn());
 
+		this.registerCommand('earthengine.addServiceAccount', () => this.authService.addServiceAccount());
+
 		this.registerCommand('earthengine.signOut', () => {
 			this.authService.signOut();
 			vscode.window.showInformationMessage('Signed out of Earth Engine.');

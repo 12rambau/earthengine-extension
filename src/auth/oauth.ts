@@ -35,13 +35,34 @@ const REDIRECT_URI = 'urn:ietf:wg:oauth:2.0:oob';
 
 // ── Interfaces ───────────────────────────────────────────────────────
 
-/** Persisted OAuth2 credentials for an Earth Engine session. */
+/** Persisted OAuth2 credentials for a standard (user) Earth Engine session. */
 export interface EECredentials {
+	type?: 'authorized_user';
 	client_id: string;
 	client_secret: string;
 	refresh_token: string;
 	scopes: string[];
 	project?: string;
+}
+
+/** Service account key file as downloaded from Google Cloud Console. */
+export interface ServiceAccountCredentials {
+	type: 'service_account';
+	project_id: string;
+	private_key_id: string;
+	private_key: string;
+	client_email: string;
+	client_id: string;
+	auth_uri?: string;
+	token_uri?: string;
+}
+
+/** Union of all supported credential types stored on disk. */
+export type StoredCredentials = EECredentials | ServiceAccountCredentials;
+
+/** Type guard: returns true if credentials belong to a service account. */
+export function isServiceAccount(creds: StoredCredentials): creds is ServiceAccountCredentials {
+	return (creds as ServiceAccountCredentials).type === 'service_account';
 }
 
 // ── Credential Paths ─────────────────────────────────────────────────
@@ -59,17 +80,17 @@ export function getProfileCredentialsPath(profileName: string): string {
 // ── Credential I/O ──────────────────────────────────────────────────
 
 /** Reads and parses a JSON credentials file; returns `undefined` on failure. */
-export function readCredentials(credPath: string): EECredentials | undefined {
+export function readCredentials(credPath: string): StoredCredentials | undefined {
 	try {
 		const content = fs.readFileSync(credPath, 'utf-8');
-		return JSON.parse(content) as EECredentials;
+		return JSON.parse(content) as StoredCredentials;
 	} catch {
 		return undefined;
 	}
 }
 
 /** Writes credentials to disk with restricted file permissions (0o600). */
-export function writeCredentials(credPath: string, creds: EECredentials): void {
+export function writeCredentials(credPath: string, creds: StoredCredentials): void {
 	const dir = path.dirname(credPath);
 	fs.mkdirSync(dir, { recursive: true, mode: 0o700 });
 	fs.writeFileSync(credPath, JSON.stringify(creds, null, 2), { mode: 0o600 });
@@ -184,8 +205,16 @@ export async function authenticateNotebookFlow(): Promise<{ credentials: EECrede
 
 // ── Token Refresh ────────────────────────────────────────────────────
 
-/** Exchanges a refresh token for a short-lived access token. */
-export async function getAccessToken(creds: EECredentials): Promise<string> {
+/**
+ * Obtains a short-lived access token from stored credentials.
+ * Handles both user (refresh token) and service account (JWT) flows.
+ */
+export async function getAccessToken(creds: StoredCredentials): Promise<string> {
+	if (isServiceAccount(creds)) {
+		return getServiceAccountToken(creds);
+	}
+
+	// User credentials — standard refresh token exchange
 	const params = new URLSearchParams({
 		client_id: creds.client_id || CLIENT_ID,
 		client_secret: creds.client_secret || CLIENT_SECRET,
@@ -196,6 +225,104 @@ export async function getAccessToken(creds: EECredentials): Promise<string> {
 	const response = await postForm(TOKEN_URI, params.toString());
 	const data = JSON.parse(response);
 	return data.access_token;
+}
+
+/**
+ * Generates a short-lived access token for a service account
+ * using the JWT Bearer flow (RFC 7523).
+ *
+ * Steps:
+ * 1. Build a JWT signed with the service account's private key (RS256)
+ * 2. Exchange the JWT for an access token at the OAuth2 token endpoint
+ */
+async function getServiceAccountToken(creds: ServiceAccountCredentials): Promise<string> {
+	const tokenUri = creds.token_uri || TOKEN_URI;
+	const now = Math.floor(Date.now() / 1000);
+
+	// Build JWT header + payload
+	const header = base64url(Buffer.from(JSON.stringify({ alg: 'RS256', typ: 'JWT' })));
+	const payload = base64url(Buffer.from(JSON.stringify({
+		iss: creds.client_email,
+		scope: SCOPES.filter(s => !['openid', 'email'].includes(s)).join(' '),
+		aud: tokenUri,
+		exp: now + 3600,
+		iat: now,
+	})));
+
+	// Sign with the private key (RS256)
+	const toSign = `${header}.${payload}`;
+	const sign = crypto.createSign('RSA-SHA256');
+	sign.update(toSign);
+	const signature = sign.sign(creds.private_key, 'base64url');
+	const jwt = `${toSign}.${signature}`;
+
+	// Exchange JWT for access token
+	const params = new URLSearchParams({
+		grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
+		assertion: jwt,
+	});
+
+	const response = await postForm(tokenUri, params.toString());
+	const data = JSON.parse(response);
+	return data.access_token;
+}
+
+/**
+ * Flow to import a service account key file.
+ * Opens a file picker (or InputBox for paste), validates the JSON,
+ * and returns the parsed credentials with email and project.
+ */
+export async function addServiceAccountFlow(): Promise<{ credentials: ServiceAccountCredentials; email: string; project: string } | undefined> {
+	// Let the user pick between file or paste
+	const method = await vscode.window.showQuickPick([
+		{ label: '$(folder-opened) Select JSON key file', value: 'file' },
+		{ label: '$(clippy) Paste JSON content', value: 'paste' },
+	], { placeHolder: 'How would you like to provide the service account key?' });
+
+	if (!method) { return undefined; }
+
+	let jsonContent: string;
+
+	if (method.value === 'file') {
+		const uris = await vscode.window.showOpenDialog({
+			canSelectFiles: true,
+			canSelectFolders: false,
+			canSelectMany: false,
+			filters: { 'JSON key files': ['json'] },
+			title: 'Select service account JSON key file',
+		});
+		if (!uris || uris.length === 0) { return undefined; }
+		jsonContent = fs.readFileSync(uris[0].fsPath, 'utf-8');
+	} else {
+		const pasted = await vscode.window.showInputBox({
+			title: 'Paste Service Account JSON',
+			prompt: 'Paste the full contents of your service account JSON key file',
+			placeHolder: '{"type": "service_account", ...}',
+			ignoreFocusOut: true,
+		});
+		if (!pasted) { return undefined; }
+		jsonContent = pasted;
+	}
+
+	// Parse and validate
+	let creds: ServiceAccountCredentials;
+	try {
+		creds = JSON.parse(jsonContent) as ServiceAccountCredentials;
+	} catch {
+		vscode.window.showErrorMessage('Invalid JSON — could not parse the service account key.');
+		return undefined;
+	}
+
+	if (creds.type !== 'service_account' || !creds.client_email || !creds.private_key || !creds.project_id) {
+		vscode.window.showErrorMessage('This does not look like a valid service account key file. Expected type="service_account" with client_email, private_key, and project_id.');
+		return undefined;
+	}
+
+	return {
+		credentials: creds,
+		email: creds.client_email,
+		project: creds.project_id,
+	};
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────

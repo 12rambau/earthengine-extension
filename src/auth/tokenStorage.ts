@@ -8,7 +8,7 @@
  */
 
 import * as vscode from 'vscode';
-import { EECredentials, readCredentials, writeCredentials, getProfileCredentialsPath } from './oauth.js';
+import { StoredCredentials, readCredentials, writeCredentials, getProfileCredentialsPath } from './oauth.js';
 
 // ── Interfaces ──────────────────────────────────────────────────────
 
@@ -34,13 +34,15 @@ export class TokenStorage {
 	constructor(private readonly globalState: vscode.Memento) {}
 
 	/** Saves (or updates) a profile and writes its credentials to disk. */
-	async saveProfile(email: string, project: string, creds: EECredentials): Promise<Profile> {
+	async saveProfile(email: string, project: string, creds: StoredCredentials): Promise<Profile> {
 		// Sanitise email+project into a safe directory name
 		const profileName = `${email}_${project}`.replace(/[^a-zA-Z0-9_.-]/g, '_');
 		const credPath = getProfileCredentialsPath(profileName);
 
-		// Save credentials with project
-		creds.project = project;
+		// Store project on user credentials; service accounts already have project_id baked in
+		if (!('type' in creds) || creds.type !== 'service_account') {
+			(creds as any).project = project;
+		}
 		writeCredentials(credPath, creds);
 
 		const profile: Profile = { email, project, credentialsPath: credPath };
@@ -74,7 +76,7 @@ export class TokenStorage {
 	}
 
 	/** Reads the on-disk credentials for a given profile. */
-	getCredentials(profile: Profile): EECredentials | undefined {
+	getCredentials(profile: Profile): StoredCredentials | undefined {
 		return readCredentials(profile.credentialsPath);
 	}
 

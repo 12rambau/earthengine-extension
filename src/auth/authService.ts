@@ -12,7 +12,7 @@
  */
 
 import * as vscode from 'vscode';
-import { authenticateNotebookFlow, getAccessToken } from './oauth.js';
+import { authenticateNotebookFlow, getAccessToken, addServiceAccountFlow } from './oauth.js';
 import { TokenStorage, Profile } from './tokenStorage.js';
 
 export class AuthService {
@@ -141,4 +141,25 @@ export class AuthService {
 			this.signOut();
 		}
 	}
-}
+	// ── Service Account ────────────────────────────────────────────────
+
+	/**
+	 * Import a service account key file and save it as a profile.
+	 * Opens a file picker or InputBox; validates and activates immediately.
+	 */
+	async addServiceAccount(): Promise<void> {
+		try {
+			const result = await addServiceAccountFlow();
+			if (!result) { return; }
+
+			const { credentials, email, project } = result;
+			const profile = await this.storage.saveProfile(email, project, credentials);
+			this.activeProfile = profile;
+			this._onDidChangeAuth.fire(profile);
+
+			vscode.window.showInformationMessage(`Service account added: ${email} (project: ${project})`);
+		} catch (err: unknown) {
+			const message = err instanceof Error ? err.message : String(err);
+			vscode.window.showErrorMessage(`Failed to add service account: ${message}`);
+		}
+	}}

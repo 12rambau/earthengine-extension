@@ -20,6 +20,7 @@ export class ProfilesTreeItem extends vscode.TreeItem {
 		super(profile.project, vscode.TreeItemCollapsibleState.None);
 
 		this.description = profile.email;
+
 		this.iconPath = new vscode.ThemeIcon(
 			isActive ? 'circle-filled' : 'circle-outline',
 			isActive ? new vscode.ThemeColor('testing.iconPassed') : new vscode.ThemeColor('testing.iconFailed'),
