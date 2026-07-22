@@ -39,6 +39,11 @@ export class AssetTreeItem extends vscode.TreeItem {
 
     this.iconPath = TYPE_ICONS[asset.type] || new vscode.ThemeIcon('file');
 
+    // Stable id (the unique asset path) so the tree can reveal this item.
+    if (asset.type !== 'PLACEHOLDER') {
+      this.id = asset.name;
+    }
+
     const tooltip = new vscode.MarkdownString('', true);
     tooltip.appendMarkdown(`**${asset.type.toLowerCase().replace('_', ' ')}** — ${asset.name}`);
     this.tooltip = tooltip;
@@ -77,6 +82,9 @@ export class AssetsTreeDataProvider implements vscode.TreeDataProvider<AssetTree
 
   private childrenCache = new Map<string, EEAsset[]>();
   private loadingState = new Set<string>();
+  // Reverse indexes used for search + reveal.
+  private parentMap = new Map<string, string>();
+  private assetByName = new Map<string, EEAsset>();
 
   constructor(private readonly authService: AuthService) {
     authService.onDidChangeAuth(() => this.refresh());
@@ -84,6 +92,20 @@ export class AssetsTreeDataProvider implements vscode.TreeDataProvider<AssetTree
 
   getTreeItem(element: AssetTreeItem): vscode.TreeItem {
     return element;
+  }
+
+  getParent(element: AssetTreeItem): AssetTreeItem | undefined {
+    const parentKey = this.parentMap.get(element.asset.name);
+    if (!parentKey) {
+      return undefined;
+    }
+    // Children of the project root are top-level items (no tree parent).
+    const profile = this.authService.currentProfile;
+    if (profile && parentKey === `projects/${profile.project}`) {
+      return undefined;
+    }
+    const parentAsset = this.assetByName.get(parentKey);
+    return parentAsset ? new AssetTreeItem(parentAsset, true) : undefined;
   }
 
   async getChildren(element?: AssetTreeItem): Promise<AssetTreeItem[]> {
@@ -138,6 +160,7 @@ export class AssetsTreeDataProvider implements vscode.TreeDataProvider<AssetTree
       } while (pageToken);
 
       this.childrenCache.set(parent, allAssets);
+      this.indexChildren(parent, allAssets);
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       // Store empty array with error indicator
@@ -148,6 +171,14 @@ export class AssetsTreeDataProvider implements vscode.TreeDataProvider<AssetTree
     } finally {
       this.loadingState.delete(parent);
       this._onDidChangeTreeData.fire();
+    }
+  }
+
+  /** Records the parent → children relationship so items can be found and revealed. */
+  private indexChildren(parent: string, assets: EEAsset[]): void {
+    for (const a of assets) {
+      this.parentMap.set(a.name, parent);
+      this.assetByName.set(a.name, a);
     }
   }
 
@@ -163,6 +194,8 @@ export class AssetsTreeDataProvider implements vscode.TreeDataProvider<AssetTree
   refresh() {
     this.childrenCache.clear();
     this.loadingState.clear();
+    this.parentMap.clear();
+    this.assetByName.clear();
     this._onDidChangeTreeData.fire();
   }
 
@@ -170,6 +203,58 @@ export class AssetsTreeDataProvider implements vscode.TreeDataProvider<AssetTree
   refreshFolder(assetName: string) {
     this.childrenCache.delete(assetName);
     this.loadingState.delete(assetName);
+    // Drop stale index entries for this folder's children.
+    for (const [name, parent] of this.parentMap) {
+      if (parent === assetName) {
+        this.parentMap.delete(name);
+        this.assetByName.delete(name);
+      }
+    }
     this._onDidChangeTreeData.fire();
+  }
+
+  /**
+   * Opens a QuickPick search across the assets already loaded into the tree,
+   * returning the selected item. Only cached (expanded) folders are searched —
+   * no additional network requests are made.
+   */
+  async searchAssets(): Promise<AssetTreeItem | undefined> {
+    if (!this.authService.isAuthenticated) {
+      vscode.window.showErrorMessage('Not authenticated.');
+      return undefined;
+    }
+
+    // Collect every asset that has already been loaded, de-duplicated by name.
+    const seen = new Set<string>();
+    const allAssets: EEAsset[] = [];
+    for (const assets of this.childrenCache.values()) {
+      for (const a of assets) {
+        if (a.type !== 'PLACEHOLDER' && !seen.has(a.name)) {
+          seen.add(a.name);
+          allAssets.push(a);
+        }
+      }
+    }
+
+    if (allAssets.length === 0) {
+      vscode.window.showInformationMessage(
+        'No assets loaded yet — expand the asset tree, then search.',
+      );
+      return undefined;
+    }
+
+    const picked = await vscode.window.showQuickPick(
+      allAssets.map((a) => ({
+        label: a.name.split('/').pop() || a.name,
+        description: a.name,
+        asset: a,
+      })),
+      { placeHolder: 'Search loaded assets...', matchOnDescription: true },
+    );
+
+    if (picked) {
+      return new AssetTreeItem(picked.asset, CONTAINER_TYPES.has(picked.asset.type));
+    }
+    return undefined;
   }
 }

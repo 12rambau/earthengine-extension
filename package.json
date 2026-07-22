@@ -109,6 +109,11 @@
         "icon": "$(refresh)"
       },
       {
+        "command": "earthengine.searchAssets",
+        "title": "Earth Engine: Search Assets",
+        "icon": "$(search)"
+      },
+      {
         "command": "earthengine.openAssetsPanel",
         "title": "Open Asset Manager",
         "icon": "$(open-preview)"
@@ -209,6 +214,11 @@
         {
           "command": "earthengine.openMap",
           "when": "view == earthengine.profiles",
+          "group": "navigation"
+        },
+        {
+          "command": "earthengine.searchAssets",
+          "when": "view == earthengine.assets",
           "group": "navigation"
         },
         {
