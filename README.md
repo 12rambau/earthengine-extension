@@ -1,7 +1,6 @@
 <div align="center">
 
-<!-- ICON PLACEHOLDER — replace with actual icon path once available -->
-<!-- <img src="resources/icon.png" alt="Earth Engine for VS Code" width="128" /> -->
+<img src="resources/icon.png" alt="Earth Engine for VS Code" width="128" />
 
 # Earth Engine for VS Code
 
@@ -10,7 +9,7 @@
 [![Version](https://img.shields.io/visual-studio-marketplace/v/earthengine.earthengine?style=flat-square&label=VS%20Marketplace&color=007ACC)](https://marketplace.visualstudio.com/items?itemName=earthengine.earthengine)
 [![Installs](https://img.shields.io/visual-studio-marketplace/i/earthengine.earthengine?style=flat-square&color=brightgreen)](https://marketplace.visualstudio.com/items?itemName=earthengine.earthengine)
 [![Rating](https://img.shields.io/visual-studio-marketplace/r/earthengine.earthengine?style=flat-square&color=yellow)](https://marketplace.visualstudio.com/items?itemName=earthengine.earthengine)
-[![License](https://img.shields.io/github/license/your-org/earthengine-vscode?style=flat-square)](LICENSE)
+![GitHub License](https://img.shields.io/github/license/12rambau/earthengine-extension?style=flat-square)
 
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![VS Code](https://img.shields.io/badge/VS%20Code-1.125+-007ACC?style=flat-square&logo=visualstudiocode&logoColor=white)](https://code.visualstudio.com/)
