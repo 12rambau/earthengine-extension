@@ -153,7 +153,7 @@ export class TasksTreeDataProvider implements vscode.TreeDataProvider<TaskTreeIt
 
 			const profile = this.authService.currentProfile!;
 			const project = this.resolvedProject || profile.project;
-			const result = await listOperationsPage(project, token, 10, this.nextPageToken);
+			const result = await listOperationsPage(project, token, 100, this.nextPageToken);
 
 			this.resolvedProject = result.project;
 			this.loadedTasks.push(...result.operations);
@@ -202,7 +202,7 @@ export class TasksTreeDataProvider implements vscode.TreeDataProvider<TaskTreeIt
 			if (!token) { return; }
 
 			const project = this.resolvedProject || this.authService.currentProfile!.project;
-			const result = await listOperationsPage(project, token, this.loadedTasks.length || 10);
+			const result = await listOperationsPage(project, token, this.loadedTasks.length || 100);
 
 			this.loadedTasks = result.operations;
 			this.nextPageToken = result.nextPageToken;

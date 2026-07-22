@@ -59,7 +59,7 @@ export interface PaginatedOperations {
 export async function listOperationsPage(
 	project: string,
 	accessToken: string,
-	pageSize = 10,
+	pageSize = 100,
 	pageToken?: string,
 ): Promise<PaginatedOperations> {
 	const projectsToTry = [project];
