@@ -9,7 +9,7 @@
 import * as vscode from 'vscode';
 import { SidebarSection } from '../../shared/baseComponents.js';
 import { DocsTreeDataProvider } from './docsTreeDataProvider.js';
-import { getDocUrl } from './apiDocsParser.js';
+
 
 // ── DocsSection ─────────────────────────────────────────────────────
 
@@ -23,7 +23,7 @@ export class DocsSection extends SidebarSection {
 	}
 
 	register(context: vscode.ExtensionContext): void {
-		this.createTreeView('earthengine.docs', this.provider, { showCollapseAll: true });
+		const treeView = this.createTreeView('earthengine.docs', this.provider, { showCollapseAll: true });
 
 		this.registerCommand('earthengine.refreshDocs', () => this.provider.refresh());
 
@@ -38,7 +38,10 @@ export class DocsSection extends SidebarSection {
 				matchOnDescription: true,
 			});
 			if (picked) {
-				vscode.env.openExternal(vscode.Uri.parse(getDocUrl(picked)));
+				const item = this.provider.getItemByName(picked);
+				if (item) {
+					treeView.reveal(item, { select: true, focus: true, expand: true });
+				}
 			}
 		});
 

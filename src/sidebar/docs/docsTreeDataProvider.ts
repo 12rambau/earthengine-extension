@@ -35,6 +35,7 @@ export class DocsTreeDataProvider implements vscode.TreeDataProvider<DocsTreeIte
 	private tree: TreeNode | undefined;
 	private loading = false;
 	private loaded = false;
+	private itemCache = new Map<string, DocsTreeItem>();
 
 	getTreeItem(element: DocsTreeItem): vscode.TreeItem {
 		return element;
@@ -79,48 +80,30 @@ export class DocsTreeDataProvider implements vscode.TreeDataProvider<DocsTreeIte
 		}
 
 		const items: DocsTreeItem[] = [];
-		for (const [key, child] of [...node.children.entries()].sort((a, b) => a[0].localeCompare(b[0]))) {
+		for (const [key] of [...node.children.entries()].sort((a, b) => a[0].localeCompare(b[0]))) {
 			const fullName = element ? `${element.fullName}.${key}` : `ee.${key}`;
-			const hasChildren = child.children.size > 0;
-			const isLeaf = !hasChildren && child.entry;
-
-			if (isLeaf && child.entry) {
-				items.push(new DocsTreeItem(
-					key,
-					child.entry.name,
-					vscode.TreeItemCollapsibleState.None,
-					undefined,
-					child.entry.description,
-					child.entry.usage,
-					child.entry.returns,
-					child.entry.args,
-					getDocUrl(child.entry.name),
-				));
-			} else {
-				const state = vscode.TreeItemCollapsibleState.Collapsed;
-				if (child.entry) {
-					items.push(new DocsTreeItem(
-						key,
-						fullName,
-						state,
-						undefined,
-						child.entry.description,
-						child.entry.usage,
-						child.entry.returns,
-						child.entry.args,
-						getDocUrl(child.entry.name),
-					));
-				} else {
-					items.push(new DocsTreeItem(
-						key,
-						fullName,
-						state,
-					));
-				}
+			const item = this.getOrCreateItem(fullName);
+			if (item) {
+				items.push(item);
 			}
 		}
 
 		return items;
+	}
+
+	/** Returns the parent item of a tree element, required for `TreeView.reveal()`. */
+	getParent(element: DocsTreeItem): DocsTreeItem | undefined {
+		const parts = element.fullName.split('.');
+		if (parts.length <= 2) {
+			return undefined;
+		}
+		const parentName = parts.slice(0, -1).join('.');
+		return this.getOrCreateItem(parentName);
+	}
+
+	/** Returns the tree item for a given full API name (e.g. "ee.Image.abs"), creating it if needed. */
+	getItemByName(name: string): DocsTreeItem | undefined {
+		return this.getOrCreateItem(name);
 	}
 
 	/** Clears the cached docs and reloads from the web. */
@@ -128,6 +111,7 @@ export class DocsTreeDataProvider implements vscode.TreeDataProvider<DocsTreeIte
 		clearDocsCache();
 		this.tree = undefined;
 		this.loaded = false;
+		this.itemCache.clear();
 		this._onDidChangeTreeData.fire();
 	}
 
@@ -170,6 +154,59 @@ export class DocsTreeDataProvider implements vscode.TreeDataProvider<DocsTreeIte
 		}
 
 		return root;
+	}
+
+	/** Returns a stable `DocsTreeItem` instance for a dotted full name, creating and caching it on first access. */
+	private getOrCreateItem(fullName: string): DocsTreeItem | undefined {
+		if (this.itemCache.has(fullName)) {
+			return this.itemCache.get(fullName)!;
+		}
+
+		const node = this.findNode(fullName);
+		if (!node) {
+			return undefined;
+		}
+
+		const parts = fullName.split('.');
+		const key = parts[parts.length - 1];
+		const hasChildren = node.children.size > 0;
+		const isLeaf = !hasChildren && node.entry;
+
+		let item: DocsTreeItem;
+		if (isLeaf && node.entry) {
+			item = new DocsTreeItem(
+				key,
+				node.entry.name,
+				vscode.TreeItemCollapsibleState.None,
+				undefined,
+				node.entry.description,
+				node.entry.usage,
+				node.entry.returns,
+				node.entry.args,
+				getDocUrl(node.entry.name),
+			);
+		} else if (node.entry) {
+			item = new DocsTreeItem(
+				key,
+				fullName,
+				vscode.TreeItemCollapsibleState.Collapsed,
+				undefined,
+				node.entry.description,
+				node.entry.usage,
+				node.entry.returns,
+				node.entry.args,
+				getDocUrl(node.entry.name),
+			);
+		} else {
+			item = new DocsTreeItem(
+				key,
+				fullName,
+				vscode.TreeItemCollapsibleState.Collapsed,
+			);
+		}
+
+		this.itemCache.set(fullName, item);
+		return item;
 	}
 
 	/** Walks the tree to find the node matching a dotted full name. */
