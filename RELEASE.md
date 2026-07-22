@@ -1,93 +1,66 @@
 # Release Process
 
-This document describes how to build, package, and publish the Earth Engine VS Code Extension to the VS Code Marketplace.
+This document describes how to release the Earth Engine VS Code Extension to the VS Code Marketplace.
+
+The release process is automated via [`release-it`](https://github.com/release-it/release-it) locally and a GitHub Actions pipeline triggered by a GitHub Release publication.
 
 ## Prerequisites
 
-- `vsce` (VS Code Extension CLI): `npm install -g @vscode/vsce`
-- A Personal Access Token (PAT) for the Azure DevOps publisher account with **Marketplace (publish)** scope
-- A `publisher` field set in `package.json`
+- A Personal Access Token (PAT) for Azure DevOps with **Marketplace (publish)** scope, stored as a GitHub secret named `VSCE_PAT`
+- All commits on `main` following the [Conventional Commits](https://conventionalcommits.org) spec (enforced by the `commit-msg` hook)
 
 ## Steps
 
-### 1. Prepare the release
-
-1. Decide the next version following [Semantic Versioning](https://semver.org/):
-   - **patch** (`0.0.x`) — bug fixes
-   - **minor** (`0.x.0`) — new features, backwards compatible
-   - **major** (`x.0.0`) — breaking changes
-
-2. Update `CHANGELOG.md`:
-   - Rename `## [Unreleased]` to `## [x.y.z] — YYYY-MM-DD`
-   - Add a new empty `## [Unreleased]` section at the top
-
-3. Bump the version in `package.json`:
-   ```bash
-   npm version patch   # or minor / major
-   ```
-   This also creates a git tag (`vx.y.z`).
-
-### 2. Build and verify
+### 1. Run `release-it`
 
 ```bash
-npm run compile       # type-check + lint + build
-npm run test          # run the test suite
+npm run release
 ```
 
-Verify the packaged output manually:
+This will:
 
-```bash
-vsce package
-# Produces earthengine-x.y.z.vsix
-```
+- Analyse conventional commits since the last tag to determine the version bump (patch / minor / major)
+- Prompt for confirmation
+- Update `CHANGELOG.md`
+- Bump `version` in `package.json`
+- Create a commit `chore(release): vx.y.z`
+- Create a git tag `vx.y.z`
+- Push the commit and tag to GitHub
 
-Install the `.vsix` locally to smoke-test before publishing:
+### 2. Create the GitHub Release
 
-```bash
-code --install-extension earthengine-x.y.z.vsix
-```
+1. Go to **GitHub → Releases → Draft a new release**
+2. Select the tag just pushed (e.g. `v0.2.0`)
+3. Click **Generate release notes** — PR titles are pulled automatically
+4. Check **Set as pre-release** if this is a beta
+5. Click **Publish release**
 
-### 3. Publish
+### 3. CI publishes automatically
 
-```bash
-vsce publish
-```
+Publishing the GitHub Release triggers the `.github/workflows/release.yml` pipeline which:
 
-Or publish a pre-built package:
+- Builds the `.vsix` (with `--pre-release` flag if the GitHub Release is marked as pre-release)
+- Publishes to the VS Code Marketplace using the `VSCE_PAT` secret
 
-```bash
-vsce publish --packagePath earthengine-x.y.z.vsix
-```
+No manual `vsce` command is needed.
 
-### 4. Tag and push
+---
 
-```bash
-git push origin main --tags
-```
+## Renewing the VSCE_PAT
 
-## Files included in the package
+The PAT expires after 1 year. To renew:
 
-`vsce` respects `.vscodeignore`. Ensure the following are excluded:
-
-```
-.devcontainer/
-.github/
-src/
-out/
-python/
-*.vsix
-tsconfig.json
-esbuild.js
-eslint.config.mjs
-```
-
-Ensure `dist/extension.js` and `resources/` are **not** ignored.
+1. Go to [dev.azure.com](https://dev.azure.com) → your account → **Personal access tokens**
+2. Create a new token: **Organization: All**, **Scope: Marketplace → Manage**
+3. Update the secret in **GitHub → Settings → Secrets → Actions → `VSCE_PAT`**
 
 ## Versioning policy
 
-| Change type                               | Version bump |
-| ----------------------------------------- | ------------ |
-| Bug fix                                   | patch        |
-| New sidebar section or command            | minor        |
-| Breaking change to settings or activation | major        |
-| Dependency security update                | patch        |
+`release-it` determines the bump automatically from conventional commit types. For reference:
+
+| Commit type                    | Version bump      |
+| ------------------------------ | ----------------- |
+| `fix:`                         | patch             |
+| `feat:`                        | minor             |
+| `feat!:` or `BREAKING CHANGE:` | major             |
+| `chore:`, `docs:`, `style:`    | none (no release) |

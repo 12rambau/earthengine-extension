@@ -1,0 +1,39 @@
+name: Release
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  publish:
+    name: Publish to VS Marketplace
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build VSIX
+        run: |
+          if [ "${{ github.event.release.prerelease }}" = "true" ]; then
+            npx @vscode/vsce package --pre-release
+          else
+            npx @vscode/vsce package
+          fi
+
+      - name: Publish to Marketplace
+        run: |
+          if [ "${{ github.event.release.prerelease }}" = "true" ]; then
+            npx @vscode/vsce publish --packagePath *.vsix --pre-release
+          else
+            npx @vscode/vsce publish --packagePath *.vsix
+          fi
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}

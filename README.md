@@ -23,9 +23,6 @@
 
 Bring the power of [Google Earth Engine](https://earthengine.google.com/) into VS Code. Browse your assets, monitor tasks, explore the STAC dataset catalog, search API docs, and visualize geospatial data on an interactive map — all without leaving your editor.
 
-<!-- SCREENSHOT PLACEHOLDER — replace with actual screenshot once available -->
-<!-- ![Extension Overview](docs/screenshot-overview.png) -->
-
 ---
 
 ## Features
@@ -51,9 +48,6 @@ Navigate your Earth Engine asset hierarchy directly in the sidebar.
 - Create subfolders inline via the **New Folder** button
 - Copy any asset ID to clipboard in one click
 
-<!-- SCREENSHOT PLACEHOLDER -->
-<!-- ![Asset Browser](docs/screenshot-assets.png) -->
-
 ---
 
 ### ✅ Task Monitor
@@ -65,9 +59,6 @@ Keep an eye on your export and import jobs without switching to the Code Editor.
 - Status icons: running, completed, failed, cancelled, pending
 - Cancel a running task directly from the sidebar or the full table panel
 - Full **Tasks Panel**: sortable by any column, paginated top & bottom
-
-<!-- SCREENSHOT PLACEHOLDER -->
-<!-- ![Task Monitor](docs/screenshot-tasks.png) -->
 
 ---
 
@@ -111,9 +102,6 @@ vis = {"min": 0, "max": 3000, "bands": ["B4", "B3", "B2"]}
 Map.addLayer(ee_image.getMapId(vis)["tile_fetcher"].url_format, vis, "Landsat")
 Map.centerObject(geometry, zoom=8)
 ```
-
-<!-- SCREENSHOT PLACEHOLDER -->
-<!-- ![Interactive Map](docs/screenshot-map.png) -->
 
 ---
 
