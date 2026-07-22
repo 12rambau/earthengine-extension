@@ -99,12 +99,12 @@
       },
       {
         "command": "earthengine.refreshAssets",
-        "title": "Earth Engine: Refresh Assets",
+        "title": "Refresh Assets",
         "icon": "$(refresh)"
       },
       {
         "command": "earthengine.openAssetsPanel",
-        "title": "Earth Engine: Open Asset Manager",
+        "title": "Open Asset Manager",
         "icon": "$(open-preview)"
       },
       {
