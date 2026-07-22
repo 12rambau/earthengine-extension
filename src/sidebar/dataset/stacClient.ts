@@ -84,6 +84,16 @@ export async function fetchCollectionType(href: string): Promise<string> {
 	return collection['gee:type'] || 'unknown';
 }
 
+/** Fetches type, description, and keywords from a STAC collection. */
+export async function fetchCollectionMetadata(href: string): Promise<{ type: string; description: string; keywords: string[] }> {
+	const collection = await fetchJson<{ 'gee:type'?: string; description?: string; keywords?: string[] }>(href);
+	return {
+		type: collection['gee:type'] || 'unknown',
+		description: collection.description || '',
+		keywords: collection.keywords || [],
+	};
+}
+
 /** Fetches the full STAC collection metadata for a dataset. */
 export async function fetchCollection(href: string): Promise<StacCollection> {
 	return fetchJson<StacCollection>(href);

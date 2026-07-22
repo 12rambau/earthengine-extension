@@ -48,6 +48,13 @@ export class DatasetSection extends SidebarSection {
 			}
 		});
 
+		this.registerCommand('earthengine.copyDatasetId', (item: DatasetTreeItem) => {
+			if (item.datasetId) {
+				vscode.env.clipboard.writeText(item.datasetId);
+				vscode.window.showInformationMessage(`Copied: ${item.datasetId}`);
+			}
+		});
+
 		context.subscriptions.push(this);
 	}
 }

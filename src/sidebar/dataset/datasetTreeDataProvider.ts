@@ -8,9 +8,10 @@
  */
 
 import * as vscode from 'vscode';
-import { fetchRootCatalog, fetchProviderCatalog, fetchCollectionType, getDatasetPageUrl } from './stacClient.js';
+import { fetchRootCatalog, fetchProviderCatalog, fetchCollectionMetadata, getDatasetPageUrl } from './stacClient.js';
 
 type NodeType = 'category' | 'provider' | 'dataset';
+type CollectionMetadata = { type: string; description: string; keywords: string[] };
 
 // ── Constants ───────────────────────────────────────────────────────
 
@@ -59,6 +60,8 @@ export class DatasetTreeItem extends vscode.TreeItem {
 		geeType?: string,
 		loading?: boolean,
 		public readonly externalUrl?: string,
+		description?: string,
+		keywords?: string[],
 	) {
 		super(label);
 
@@ -91,7 +94,17 @@ export class DatasetTreeItem extends vscode.TreeItem {
 				this.description = datasetId;
 			}
 			if (geeType) {
-				this.tooltip = `${datasetId || label} (${geeType})`;
+				const tooltip = new vscode.MarkdownString('', true);
+				tooltip.isTrusted = true;
+				tooltip.appendMarkdown(`**${geeType.replace(/_/g, ' ')}** — \`${datasetId || label}\`\n\n`);
+				if (description) {
+					const truncated = description.length > 200 ? description.slice(0, 200) + '…' : description;
+					tooltip.appendMarkdown(`${truncated}\n\n`);
+				}
+				if (keywords && keywords.length > 0) {
+					tooltip.appendMarkdown(keywords.map(k => `\`${k}\``).join(' ') + '\n');
+				}
+				this.tooltip = tooltip;
 			}
 		}
 	}
@@ -106,6 +119,7 @@ export class DatasetTreeDataProvider implements vscode.TreeDataProvider<DatasetT
 
 	private providers: { id: string; title: string; href: string }[] | undefined;
 	private typeCache = new Map<string, string>();
+	private metadataCache = new Map<string, CollectionMetadata>();
 	private loadingProviders = new Set<string>();
 	private providerChildren = new Map<string, { id: string; title: string; href: string }[]>();
 	private providerLoadingState = new Set<string>();
@@ -154,8 +168,8 @@ export class DatasetTreeDataProvider implements vscode.TreeDataProvider<DatasetT
 					const eeId = d.id.replace(/_/g, '/');
 					const parts = d.id.split('_');
 					const shortName = parts.length > 1 ? parts.slice(1).join('_') : d.id;
-					const cachedType = this.typeCache.get(d.href);
-					return new DatasetTreeItem(shortName, 'dataset', d.href, eeId, cachedType);
+					const meta = this.metadataCache.get(d.href);
+					return new DatasetTreeItem(shortName, 'dataset', d.href, eeId, meta?.type, undefined, undefined, meta?.description, meta?.keywords);
 				});
 			}
 
@@ -193,7 +207,7 @@ export class DatasetTreeDataProvider implements vscode.TreeDataProvider<DatasetT
 			this._onDidChangeTreeData.fire();
 
 			// Then resolve types in background
-			const uncached = datasets.filter(d => !this.typeCache.has(d.href));
+			const uncached = datasets.filter(d => !this.metadataCache.has(d.href));
 			if (uncached.length > 0 && !this.loadingProviders.has(providerHref)) {
 				this.loadingProviders.add(providerHref);
 				this.resolveTypesInBackground(uncached.map(d => d.href));
@@ -211,8 +225,8 @@ export class DatasetTreeDataProvider implements vscode.TreeDataProvider<DatasetT
 			const batch = hrefs.slice(i, i + batchSize);
 			const results = await Promise.allSettled(
 				batch.map(async href => {
-					const type = await fetchCollectionType(href);
-					this.typeCache.set(href, type);
+					const meta = await fetchCollectionMetadata(href);
+					this.metadataCache.set(href, meta);
 				})
 			);
 			// Refresh after each batch so icons update progressively
@@ -229,6 +243,7 @@ export class DatasetTreeDataProvider implements vscode.TreeDataProvider<DatasetT
 		this.providerLoadingState.clear();
 		this.loadingProviders.clear();
 		this.typeCache.clear();
+		this.metadataCache.clear();
 		this._onDidChangeTreeData.fire();
 	}
 

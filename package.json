@@ -173,6 +173,11 @@
         "icon": "$(link-external)"
       },
       {
+        "command": "earthengine.copyDatasetId",
+        "title": "Copy Dataset ID",
+        "icon": "$(copy)"
+      },
+      {
         "command": "earthengine.openDatasetPanel",
         "title": "Open Details",
         "icon": "$(open-preview)"
@@ -289,6 +294,11 @@
         },
         {
           "command": "earthengine.openDatasetInBrowser",
+          "when": "viewItem == dataset-item",
+          "group": "inline"
+        },
+        {
+          "command": "earthengine.copyDatasetId",
           "when": "viewItem == dataset-item",
           "group": "inline"
         }
