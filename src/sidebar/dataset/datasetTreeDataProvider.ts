@@ -8,7 +8,7 @@
  */
 
 import * as vscode from 'vscode';
-import { fetchRootCatalog, fetchProviderCatalog, fetchCollectionMetadata, getDatasetPageUrl } from './stacClient.js';
+import { fetchRootCatalog, fetchProviderCatalog, fetchCollectionMetadata } from './stacClient.js';
 
 type NodeType = 'category' | 'provider' | 'dataset';
 type CollectionMetadata = { type: string; description: string; keywords: string[] };
@@ -69,6 +69,7 @@ export class DatasetTreeItem extends vscode.TreeItem {
 			this.collapsibleState = vscode.TreeItemCollapsibleState.Collapsed;
 			this.iconPath = new vscode.ThemeIcon('folder-library');
 			this.contextValue = 'dataset-category';
+			this.id = `cat:${stacHref}`;
 		} else if (loading) {
 			this.collapsibleState = vscode.TreeItemCollapsibleState.None;
 			this.iconPath = new vscode.ThemeIcon('loading~spin');
@@ -77,6 +78,7 @@ export class DatasetTreeItem extends vscode.TreeItem {
 			this.collapsibleState = vscode.TreeItemCollapsibleState.Collapsed;
 			this.iconPath = new vscode.ThemeIcon('database');
 			this.contextValue = 'dataset-provider';
+			if (stacHref) { this.id = `prov:${stacHref}`; }
 			if (externalUrl) {
 				this.command = {
 					command: 'vscode.open',
@@ -90,6 +92,7 @@ export class DatasetTreeItem extends vscode.TreeItem {
 				? (TYPE_ICONS[geeType] || new vscode.ThemeIcon('file'))
 				: new vscode.ThemeIcon('loading~spin');
 			this.contextValue = 'dataset-item';
+			this.id = `ds:${stacHref}`;
 			if (datasetId) {
 				this.description = datasetId;
 			}
@@ -120,12 +123,27 @@ export class DatasetTreeDataProvider implements vscode.TreeDataProvider<DatasetT
 	private providers: { id: string; title: string; href: string }[] | undefined;
 	private typeCache = new Map<string, string>();
 	private metadataCache = new Map<string, CollectionMetadata>();
+	private leafParentMap = new Map<string, string>();
 	private loadingProviders = new Set<string>();
 	private providerChildren = new Map<string, { id: string; title: string; href: string }[]>();
 	private providerLoadingState = new Set<string>();
 
 	getTreeItem(element: DatasetTreeItem): vscode.TreeItem {
 		return element;
+	}
+
+	getParent(element: DatasetTreeItem): DatasetTreeItem | undefined {
+		if (element.nodeType === 'dataset') {
+			const providerHref = this.leafParentMap.get(element.stacHref);
+			if (!providerHref) { return undefined; }
+			const provider = this.providers?.find(p => p.href === providerHref);
+			if (!provider) { return undefined; }
+			return new DatasetTreeItem(provider.title, 'provider', provider.href);
+		}
+		if (element.nodeType === 'provider' && this.providers?.some(p => p.href === element.stacHref)) {
+			return new DatasetTreeItem('Google', 'category', 'google');
+		}
+		return undefined;
 	}
 
 	async getChildren(element?: DatasetTreeItem): Promise<DatasetTreeItem[]> {
@@ -202,6 +220,7 @@ export class DatasetTreeDataProvider implements vscode.TreeDataProvider<DatasetT
 		try {
 			const datasets = await fetchProviderCatalog(providerHref);
 			this.providerChildren.set(providerHref, datasets);
+			datasets.forEach(d => this.leafParentMap.set(d.href, providerHref));
 
 			// Fire refresh so the real items replace the spinner
 			this._onDidChangeTreeData.fire();
@@ -244,17 +263,18 @@ export class DatasetTreeDataProvider implements vscode.TreeDataProvider<DatasetT
 		this.loadingProviders.clear();
 		this.typeCache.clear();
 		this.metadataCache.clear();
+		this.leafParentMap.clear();
 		this._onDidChangeTreeData.fire();
 	}
 
-	/** Opens a QuickPick search across all datasets in the catalog. */
-	async searchDatasets(): Promise<void> {
+	/** Opens a QuickPick search across all datasets in the catalog, returning the selected item. */
+	async searchDatasets(): Promise<DatasetTreeItem | undefined> {
 		if (!this.providers) {
 			this.providers = await fetchRootCatalog();
 		}
 
 		// Collect all datasets across all providers
-		const allItems: { label: string; datasetId: string; href: string; provider: string }[] = [];
+		const allItems: { label: string; datasetId: string; href: string; provider: string; providerHref: string }[] = [];
 
 		await vscode.window.withProgress(
 			{ location: vscode.ProgressLocation.Notification, title: 'Loading dataset index...' },
@@ -268,6 +288,7 @@ export class DatasetTreeDataProvider implements vscode.TreeDataProvider<DatasetT
 								datasetId: d.id.replace(/_/g, '/'),
 								href: d.href,
 								provider: p.title,
+								providerHref: p.href,
 							}));
 						} catch {
 							return [];
@@ -279,6 +300,7 @@ export class DatasetTreeDataProvider implements vscode.TreeDataProvider<DatasetT
 				}
 			}
 		);
+		allItems.forEach(item => this.leafParentMap.set(item.href, item.providerHref));
 
 		const picked = await vscode.window.showQuickPick(
 			allItems.map(item => ({
@@ -290,20 +312,16 @@ export class DatasetTreeDataProvider implements vscode.TreeDataProvider<DatasetT
 		);
 
 		if (picked) {
-			const url = getDatasetPageUrl(picked.item.datasetId);
-			const choice = await vscode.window.showQuickPick(
-				[
-					{ label: '$(link-external) Open in browser', action: 'browser' },
-					{ label: '$(open-preview) Open in VS Code', action: 'panel' },
-				],
-				{ placeHolder: picked.item.label }
+			const dId = picked.item.datasetId.replace(/\//g, '_');
+			const parts = dId.split('_');
+			const shortName = parts.length > 1 ? parts.slice(1).join('_') : dId;
+			const meta = this.metadataCache.get(picked.item.href);
+			return new DatasetTreeItem(
+				shortName, 'dataset', picked.item.href, picked.item.datasetId,
+				meta?.type, undefined, undefined, meta?.description, meta?.keywords,
 			);
-			if (choice?.action === 'browser') {
-				vscode.env.openExternal(vscode.Uri.parse(url));
-			} else if (choice?.action === 'panel') {
-				vscode.commands.executeCommand('earthengine.openDatasetPanel', picked.item.href);
-			}
 		}
+		return undefined;
 	}
 }
 

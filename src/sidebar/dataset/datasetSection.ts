@@ -25,11 +25,16 @@ export class DatasetSection extends SidebarSection {
 	}
 
 	register(context: vscode.ExtensionContext): void {
-		this.createTreeView('earthengine.dataset', this.provider, { showCollapseAll: true });
+		const treeView = this.createTreeView('earthengine.dataset', this.provider, { showCollapseAll: true });
 
 		this.registerCommand('earthengine.refreshDatasets', () => this.provider.refresh());
 
-		this.registerCommand('earthengine.searchDatasets', () => this.provider.searchDatasets());
+		this.registerCommand('earthengine.searchDatasets', async () => {
+			const item = await this.provider.searchDatasets();
+			if (item) {
+				treeView.reveal(item, { select: true, focus: true, expand: true });
+			}
+		});
 
 		this.registerCommand('earthengine.openDatasetInBrowser', (item: DatasetTreeItem) => {
 			if (item.datasetId) {
