@@ -51,6 +51,11 @@ export class AssetsSection extends SidebarSection {
 			openAssetsPanel(this.authService);
 		});
 
+		this.registerCommand('earthengine.copyAssetId', (item: AssetTreeItem) => {
+			vscode.env.clipboard.writeText(item.asset.name);
+			vscode.window.showInformationMessage(`Copied: ${item.asset.name}`);
+		});
+
 		this.registerCommand('earthengine.createFolder', async (item?: AssetTreeItem) => {
 			const token = await this.authService.getToken();
 			if (!token) {

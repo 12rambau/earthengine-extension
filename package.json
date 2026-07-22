@@ -123,6 +123,11 @@
         "icon": "$(open-preview)"
       },
       {
+        "command": "earthengine.copyAssetId",
+        "title": "Copy Asset ID",
+        "icon": "$(copy)"
+      },
+      {
         "command": "earthengine.refreshTasks",
         "title": "Earth Engine: Refresh Tasks",
         "icon": "$(refresh)"
@@ -265,6 +270,11 @@
         {
           "command": "earthengine.openAssetPreview",
           "when": "viewItem =~ /^asset-(leaf|container)-(image|image_collection|table)$/",
+          "group": "inline"
+        },
+        {
+          "command": "earthengine.copyAssetId",
+          "when": "viewItem =~ /^asset-/",
           "group": "inline"
         },
         {
