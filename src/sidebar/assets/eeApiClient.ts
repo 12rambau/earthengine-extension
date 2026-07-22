@@ -6,7 +6,7 @@
  * (images, tables, image collections, folders) and their features.
  */
 
-import { getRequest } from '../../shared/httpClient.js';
+import { getRequest, httpRequest } from '../../shared/httpClient.js';
 
 // ── Constants ───────────────────────────────────────────────────────
 
@@ -109,4 +109,37 @@ export async function listFeatures(
 	const url = `${EE_API_BASE}/${asset}:listFeatures?${params.toString()}`;
 	const response = await getRequest(url, accessToken);
 	return JSON.parse(response) as ListFeaturesResponse;
+}
+
+/**
+ * Creates a new folder asset under the given parent path.
+ * @param parent The parent path (e.g. "projects/my-project/assets/my-folder")
+ * @param folderName The name for the new folder
+ * @param accessToken OAuth2 access token
+ */
+export async function createFolder(
+	parent: string,
+	folderName: string,
+	accessToken: string,
+): Promise<EEAsset> {
+	// The EE API expects: POST /v1/projects/{project}/assets?assetId={relative-path}
+	// Extract the project root (projects/{id}) and compute the relative assetId
+	const parts = parent.split('/');
+	const projectRoot = parts.slice(0, 2).join('/'); // "projects/{project}"
+
+	let assetId: string;
+	if (parts.length > 2 && parts[2] === 'assets') {
+		// Parent is "projects/{project}/assets/some/path"
+		const relativePath = parts.slice(3).join('/');
+		assetId = relativePath ? `${relativePath}/${folderName}` : folderName;
+	} else {
+		// Parent is just "projects/{project}"
+		assetId = folderName;
+	}
+
+	const params = new URLSearchParams({ assetId });
+	const url = `${EE_API_BASE}/${projectRoot}/assets?${params.toString()}`;
+	const body = JSON.stringify({ type: 'FOLDER' });
+	const response = await httpRequest(url, 'POST', accessToken, body);
+	return JSON.parse(response) as EEAsset;
 }

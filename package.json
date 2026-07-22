@@ -108,6 +108,11 @@
         "icon": "$(open-preview)"
       },
       {
+        "command": "earthengine.createFolder",
+        "title": "New Folder",
+        "icon": "$(new-folder)"
+      },
+      {
         "command": "earthengine.refreshAssetFolder",
         "title": "Refresh Folder",
         "icon": "$(refresh)"
@@ -196,6 +201,11 @@
           "group": "navigation"
         },
         {
+          "command": "earthengine.createFolder",
+          "when": "view == earthengine.assets",
+          "group": "navigation"
+        },
+        {
           "command": "earthengine.searchDocs",
           "when": "view == earthengine.docs",
           "group": "navigation"
@@ -245,6 +255,11 @@
         {
           "command": "earthengine.refreshAssetFolder",
           "when": "viewItem =~ /^asset-container-/",
+          "group": "inline"
+        },
+        {
+          "command": "earthengine.createFolder",
+          "when": "viewItem == asset-container-folder",
           "group": "inline"
         },
         {
