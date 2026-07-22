@@ -1,3 +1,7 @@
+# Changelog
+
+## 0.2.0 (2026-07-22)
+
 # Change Log
 
 All notable changes to the "earthengine" extension will be documented in this file.
