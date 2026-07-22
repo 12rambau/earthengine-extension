@@ -6,12 +6,14 @@
 
 **Google Earth Engine directly inside your editor.**
 
-[![License](https://img.shields.io/github/license/12rambau/earthengine-extension?style=flat-square)](https://github.com/12rambau/earthengine-extension/blob/main/LICENSE)
+[![License](https://img.shields.io/github/license/12rambau/earthengine-extension?style=flat-square&logo=apache&logoColor=white)](https://github.com/12rambau/earthengine-extension/blob/main/LICENSE)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![VS Code](https://img.shields.io/badge/VS%20Code-1.125+-007ACC?style=flat-square&logo=visualstudiocode&logoColor=white)](https://code.visualstudio.com/)
 [![Node.js](https://img.shields.io/badge/Node.js-22-339933?style=flat-square&logo=nodedotjs&logoColor=white)](https://nodejs.org/)
-[![Earth Engine](https://img.shields.io/badge/Google%20Earth%20Engine-REST%20API%20v1-4285F4?style=flat-square&logo=google&logoColor=white)](https://developers.google.com/earth-engine)
+[![Earth Engine](https://img.shields.io/badge/Earth%20Engine-REST%20API%20v1-4285F4?style=flat-square&logo=googleearthengine&logoColor=white)](https://developers.google.com/earth-engine)
 [![Conventional Commits](https://img.shields.io/badge/Conventional%20Commits-1.0.0-FE5196?style=flat-square&logo=conventionalcommits&logoColor=white)](https://conventionalcommits.org)
+[![code style: prettier](https://img.shields.io/badge/code%20style-prettier-F7B93E?style=flat-square&logo=prettier&logoColor=white)](https://prettier.io)
+[![ESLint](https://img.shields.io/badge/linter-ESLint-4B32C3?style=flat-square&logo=eslint&logoColor=white)](https://eslint.org)
 
 </div>
 
