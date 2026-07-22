@@ -19,7 +19,9 @@ export class ProfilesTreeItem extends vscode.TreeItem {
 	) {
 		super(profile.project, vscode.TreeItemCollapsibleState.None);
 
-		this.description = profile.email;
+		const tooltip = new vscode.MarkdownString('', true);
+		tooltip.appendMarkdown(`**${profile.project}** — ${profile.email}`);
+		this.tooltip = tooltip;
 
 		this.iconPath = new vscode.ThemeIcon(
 			isActive ? 'circle-filled' : 'circle-outline',
