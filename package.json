@@ -341,6 +341,7 @@
     "@commitlint/cli": "^21.2.1",
     "@commitlint/config-conventional": "^21.2.0",
     "@release-it/conventional-changelog": "^11.0.1",
+    "@types/marked": "^4.3.2",
     "@types/mocha": "^10.0.10",
     "@types/node": "24.x",
     "@types/vscode": "^1.125.0",
@@ -359,5 +360,8 @@
   "overrides": {
     "diff": "^8.0.4",
     "serialize-javascript": "^7.0.6"
+  },
+  "dependencies": {
+    "marked": "^4.3.0"
   }
 }
