@@ -236,7 +236,9 @@ export class DatasetTreeDataProvider implements vscode.TreeDataProvider<DatasetT
   /** Applies the folder-opened icon when this node is currently expanded. */
   private applyExpandedIcon(item: DatasetTreeItem): DatasetTreeItem {
     if (this.expandedNodes.has(item.id ?? item.stacHref)) {
-      item.iconPath = new vscode.ThemeIcon('folder-opened');
+      item.iconPath = new vscode.ThemeIcon(
+        item.nodeType === 'category' ? 'root-folder-opened' : 'folder-opened',
+      );
     }
     return item;
   }
@@ -246,7 +248,9 @@ export class DatasetTreeDataProvider implements vscode.TreeDataProvider<DatasetT
     const key = item.id ?? item.stacHref;
     if (expanded) {
       this.expandedNodes.add(key);
-      item.iconPath = new vscode.ThemeIcon('folder-opened');
+      item.iconPath = new vscode.ThemeIcon(
+        item.nodeType === 'category' ? 'root-folder-opened' : 'folder-opened',
+      );
     } else {
       this.expandedNodes.delete(key);
       item.iconPath =
