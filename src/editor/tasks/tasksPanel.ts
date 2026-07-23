@@ -78,6 +78,7 @@ export async function openTasksPanel(
   function sendData() {
     const filtered = allOps.filter(filterFn).map((op) => ({
       name: op.name,
+      id: op.name.split('/').pop() || '',
       description: op.metadata?.description || op.name.split('/').pop() || '',
       state: getTaskState(op),
       type: op.metadata?.type || '',
@@ -87,6 +88,9 @@ export async function openTasksPanel(
       updateTime: op.metadata?.updateTime || '',
       elapsed: getElapsedTime(op),
       progress: op.metadata?.progress,
+      attempt: op.metadata?.attempt ?? null,
+      priority: op.metadata?.priority ?? null,
+      computeUsage: op.metadata?.batchEecuUsageSeconds ?? null,
       error: op.error?.message || '',
     }));
     panel.webview.postMessage({ type: 'data', tasks: filtered, hasMore: !!nextPageToken });
@@ -155,38 +159,52 @@ function getHtml(filter: TaskFilter): string {
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
+*, *::before, *::after { box-sizing: border-box; }
+html, body {
+	height: 100%; margin: 0;
+}
 body {
 	font-family: var(--vscode-font-family, sans-serif);
 	color: var(--vscode-foreground);
 	background: var(--vscode-editor-background);
-	padding: 16px; margin: 0;
+	padding: 12px 16px 8px;
+	display: flex; flex-direction: column; overflow: hidden;
 }
-h1 { font-size: 1.3em; margin: 0 0 12px 0; display: flex; align-items: center; gap: 8px; }
+h1 { font-size: 1.3em; margin: 0 0 8px 0; display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.topbar {
+	display: flex; align-items: center; gap: 8px; margin-bottom: 6px; flex-shrink: 0;
+}
+.table-wrap {
+	flex: 1 1 0; overflow-y: auto; min-height: 120px;
+	border: 1px solid var(--vscode-panel-border); border-radius: 3px;
+}
 .toolbar {
 	display: flex; align-items: center; justify-content: space-between;
-	margin-bottom: 8px; gap: 8px; flex-wrap: wrap;
+	padding-top: 6px; gap: 8px; flex-wrap: wrap; flex-shrink: 0;
 }
-.toolbar select, .toolbar button {
+button, select {
 	background: var(--vscode-button-secondaryBackground);
 	color: var(--vscode-button-secondaryForeground);
 	border: 1px solid var(--vscode-input-border);
 	padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 0.85em;
 }
-.toolbar button:hover { background: var(--vscode-button-secondaryHoverBackground); }
-.toolbar .btn-primary {
+button:hover { background: var(--vscode-button-secondaryHoverBackground); }
+button:disabled { opacity: 0.4; cursor: default; }
+.btn-primary {
 	background: var(--vscode-button-background);
-	color: var(--vscode-button-foreground);
+	color: var(--vscode-button-foreground); border-color: transparent;
 }
-.toolbar .btn-primary:hover { background: var(--vscode-button-hoverBackground); }
+.btn-primary:hover { background: var(--vscode-button-hoverBackground); }
 .page-info { font-size: 0.85em; opacity: 0.7; }
 table { width: 100%; border-collapse: collapse; font-size: 0.85em; }
-th {
+thead th {
+	position: sticky; top: 0; z-index: 1;
 	text-align: left; padding: 6px 8px; cursor: pointer; user-select: none;
-	background: var(--vscode-list-hoverBackground);
+	background: var(--vscode-editor-background);
 	border-bottom: 2px solid var(--vscode-panel-border);
 	white-space: nowrap;
 }
-th:hover { background: var(--vscode-list-activeSelectionBackground); }
+thead th:hover { background: var(--vscode-list-hoverBackground); }
 th .sort-arrow { opacity: 0.5; margin-left: 4px; }
 th.sorted .sort-arrow { opacity: 1; }
 td { padding: 5px 8px; border-bottom: 1px solid var(--vscode-panel-border); }
@@ -206,46 +224,39 @@ tr:hover { background: var(--vscode-list-hoverBackground); }
 .cancel-btn:hover { background: var(--vscode-inputValidation-errorBackground); }
 .error-text { color: var(--vscode-errorForeground); }
 .elapsed { opacity: 0.7; }
+.id-cell { font-family: var(--vscode-editor-font-family, monospace); font-size: 0.78em; max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.compute { opacity: 0.85; white-space: nowrap; }
 </style>
 </head>
 <body>
 <h1>${title}</h1>
-<div class="toolbar" id="toolbar-top">
-	<div>
-		<button onclick="refresh()" class="btn-primary">⟳ Refresh</button>
-		<button onclick="loadMore()" id="loadMoreBtn" style="display:none">Load more</button>
-	</div>
-	<div style="display:flex;align-items:center;gap:8px;">
-		<span class="page-info" id="pageInfoTop"></span>
-		<button onclick="prevPage()" id="prevTop">◀ Prev</button>
-		<button onclick="nextPage()" id="nextTop">Next ▶</button>
-		<label>Per page: <select id="pageSizeTop" onchange="changePageSize(this.value)">
-			<option value="10">10</option>
-			<option value="25" selected>25</option>
-			<option value="50">50</option>
-			<option value="100">100</option>
-			<option value="500">500</option>
-		</select></label>
-	</div>
+<div class="topbar">
+	<button onclick="refresh()" class="btn-primary">⟳ Refresh</button>
+	<button onclick="loadMore()" id="loadMoreBtn" style="display:none">Load more</button>
 </div>
+<div class="table-wrap">
 <table>
 <thead><tr>
-	<th onclick="sortBy('description')">Description <span class="sort-arrow">▲</span></th>
 	<th onclick="sortBy('state')">Status <span class="sort-arrow">▲</span></th>
-	<th onclick="sortBy('type')">Type <span class="sort-arrow">▲</span></th>
+	<th onclick="sortBy('description')">Name <span class="sort-arrow">▲</span></th>
+	<th onclick="sortBy('id')">ID <span class="sort-arrow">▲</span></th>
 	<th onclick="sortBy('createTime')">Created <span class="sort-arrow">▲</span></th>
+	<th onclick="sortBy('startTime')">Start <span class="sort-arrow">▲</span></th>
 	<th onclick="sortBy('elapsed')">Duration <span class="sort-arrow">▲</span></th>
+	<th onclick="sortBy('attempt')">Attempts <span class="sort-arrow">▲</span></th>
+	<th onclick="sortBy('priority')">Priority <span class="sort-arrow">▲</span></th>
+	<th onclick="sortBy('computeUsage')">Compute Usage <span class="sort-arrow">▲</span></th>
 	<th>Actions</th>
 </tr></thead>
 <tbody id="tbody"></tbody>
 </table>
-<div class="toolbar" id="toolbar-bottom" style="margin-top:8px;">
-	<div></div>
+</div>
+<div class="toolbar" id="toolbar-bottom">
+	<span class="page-info" id="pageInfo"></span>
 	<div style="display:flex;align-items:center;gap:8px;">
-		<span class="page-info" id="pageInfoBottom"></span>
-		<button onclick="prevPage()" id="prevBottom">◀ Prev</button>
-		<button onclick="nextPage()" id="nextBottom">Next ▶</button>
-		<label>Per page: <select id="pageSizeBottom" onchange="changePageSize(this.value)">
+		<button onclick="prevPage()" id="prevBtn">◀ Prev</button>
+		<button onclick="nextPage()" id="nextBtn">Next ▶</button>
+		<label>Per page: <select id="pageSize" onchange="changePageSize(this.value)">
 			<option value="10">10</option>
 			<option value="25" selected>25</option>
 			<option value="50">50</option>
@@ -295,33 +306,37 @@ function render() {
 			? '<button class="cancel-btn" onclick="cancelTask(\\''+t.name+'\\')">✕ Cancel</button>'
 			: '';
 		const errorTd = t.error ? '<br><span class="error-text">' + esc(t.error) + '</span>' : '';
+		const computeStr = t.computeUsage != null ? t.computeUsage.toFixed(1) + '\u202fEECU\u00b7s' : '';
 		return '<tr>'
-			+ '<td>' + esc(t.description) + errorTd + '</td>'
 			+ '<td><span class="status">' + statusHtml(t.state) + ' ' + t.state + '</span></td>'
-			+ '<td>' + esc(t.type) + '</td>'
+			+ '<td>' + esc(t.description) + errorTd + '</td>'
+			+ '<td class="id-cell" title="' + esc(t.id) + '">' + esc(t.id) + '</td>'
 			+ '<td>' + formatTime(t.createTime) + '</td>'
+			+ '<td>' + formatTime(t.startTime) + '</td>'
 			+ '<td class="elapsed">' + t.elapsed + '</td>'
+			+ '<td style="text-align:center">' + (t.attempt != null ? t.attempt : '') + '</td>'
+			+ '<td style="text-align:center">' + (t.priority != null ? t.priority : '') + '</td>'
+			+ '<td class="compute">' + computeStr + '</td>'
 			+ '<td>' + cancelBtn + '</td>'
 			+ '</tr>';
 	}).join('');
 
 	// Update page info
 	const info = sorted.length + ' tasks — page ' + (currentPage+1) + '/' + totalPages;
-	document.getElementById('pageInfoTop').textContent = info;
-	document.getElementById('pageInfoBottom').textContent = info;
+	document.getElementById('pageInfo').textContent = info;
 
-	document.getElementById('prevTop').disabled = currentPage === 0;
-	document.getElementById('prevBottom').disabled = currentPage === 0;
-	document.getElementById('nextTop').disabled = currentPage >= totalPages - 1 && !hasMore;
-	document.getElementById('nextBottom').disabled = currentPage >= totalPages - 1 && !hasMore;
+	document.getElementById('prevBtn').disabled = currentPage === 0;
+	document.getElementById('nextBtn').disabled = currentPage >= totalPages - 1 && !hasMore;
 	document.getElementById('loadMoreBtn').style.display = hasMore ? '' : 'none';
 
 	// Update sort arrows
 	document.querySelectorAll('th').forEach(th => {
 		th.classList.remove('sorted');
-		th.querySelector('.sort-arrow').textContent = '▲';
+		const arrow = th.querySelector('.sort-arrow');
+		if (arrow) arrow.textContent = '▲';
 	});
-	const idx = ['description','state','type','createTime','elapsed'].indexOf(sortCol);
+	const cols = ['state','description','id','createTime','startTime','elapsed','attempt','priority','computeUsage'];
+	const idx = cols.indexOf(sortCol);
 	if (idx >= 0) {
 		const th = document.querySelectorAll('th')[idx];
 		th.classList.add('sorted');
@@ -344,8 +359,6 @@ function prevPage() { if (currentPage > 0) { currentPage--; render(); } }
 function changePageSize(v) {
 	pageSize = parseInt(v);
 	currentPage = 0;
-	document.getElementById('pageSizeTop').value = v;
-	document.getElementById('pageSizeBottom').value = v;
 	render();
 }
 function cancelTask(name) { vscode.postMessage({ type: 'cancel', name }); }
