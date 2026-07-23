@@ -139,6 +139,21 @@
         "icon": "$(copy)"
       },
       {
+        "command": "earthengine.deleteAsset",
+        "title": "Earth Engine: Delete Asset",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "earthengine.moveAsset",
+        "title": "Earth Engine: Move Asset",
+        "icon": "$(move)"
+      },
+      {
+        "command": "earthengine.copyAsset",
+        "title": "Earth Engine: Copy Asset",
+        "icon": "$(files)"
+      },
+      {
         "command": "earthengine.refreshTasks",
         "title": "Earth Engine: Refresh Tasks",
         "icon": "$(refresh)"
@@ -307,6 +322,21 @@
           "command": "earthengine.copyAssetId",
           "when": "viewItem =~ /^asset-/",
           "group": "inline"
+        },
+        {
+          "command": "earthengine.copyAsset",
+          "when": "viewItem =~ /^asset-/",
+          "group": "1_modification@1"
+        },
+        {
+          "command": "earthengine.moveAsset",
+          "when": "viewItem =~ /^asset-/",
+          "group": "1_modification@2"
+        },
+        {
+          "command": "earthengine.deleteAsset",
+          "when": "viewItem =~ /^asset-/",
+          "group": "1_modification@3"
         },
         {
           "command": "earthengine.cancelTask",

@@ -109,6 +109,51 @@ export async function listFeatures(
 }
 
 /**
+ * Deletes an asset by name.
+ * Container assets (folders, image collections) must be empty.
+ * @param name The full asset path (e.g. "projects/my-project/assets/my-image")
+ * @param accessToken OAuth2 access token
+ */
+export async function deleteAsset(name: string, accessToken: string): Promise<void> {
+  const url = `${EE_API_BASE}/${name}`;
+  await httpRequest(url, 'DELETE', accessToken);
+}
+
+/**
+ * Moves (renames) an asset to a new location.
+ * @param sourceName The full path of the asset to move
+ * @param destinationName The full destination path
+ * @param accessToken OAuth2 access token
+ */
+export async function moveAsset(
+  sourceName: string,
+  destinationName: string,
+  accessToken: string,
+): Promise<EEAsset> {
+  const url = `${EE_API_BASE}/${sourceName}:move`;
+  const body = JSON.stringify({ destinationName });
+  const response = await httpRequest(url, 'POST', accessToken, body);
+  return JSON.parse(response) as EEAsset;
+}
+
+/**
+ * Copies an asset to a new location.
+ * @param sourceName The full path of the asset to copy
+ * @param destinationName The full destination path
+ * @param accessToken OAuth2 access token
+ */
+export async function copyAsset(
+  sourceName: string,
+  destinationName: string,
+  accessToken: string,
+): Promise<EEAsset> {
+  const url = `${EE_API_BASE}/${sourceName}:copy`;
+  const body = JSON.stringify({ destinationName });
+  const response = await httpRequest(url, 'POST', accessToken, body);
+  return JSON.parse(response) as EEAsset;
+}
+
+/**
  * Creates a new folder asset under the given parent path.
  * @param parent The parent path (e.g. "projects/my-project/assets/my-folder")
  * @param folderName The name for the new folder

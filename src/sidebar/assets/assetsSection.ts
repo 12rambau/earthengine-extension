@@ -10,7 +10,7 @@ import * as vscode from 'vscode';
 import { SidebarSection } from '../../shared/baseComponents.js';
 import { AuthService } from '../../auth/index.js';
 import { AssetsTreeDataProvider, AssetTreeItem } from './assetsTreeDataProvider.js';
-import { createFolder } from './eeApiClient.js';
+import { copyAsset, createFolder, deleteAsset, moveAsset } from './eeApiClient.js';
 import { openAssetPreview, openAssetsPanel } from '../../editor/assets/index.js';
 
 // ── AssetsSection ───────────────────────────────────────────────────
@@ -57,7 +57,7 @@ export class AssetsSection extends SidebarSection {
     });
 
     this.registerCommand('earthengine.openAssetsPanel', () => {
-      openAssetsPanel(this.authService);
+      openAssetsPanel(this.authService, context);
     });
 
     this.registerCommand('earthengine.copyAssetId', (item: AssetTreeItem) => {
@@ -115,6 +115,148 @@ export class AssetsSection extends SidebarSection {
       }
     });
 
+    this.registerCommand(
+      'earthengine.deleteAsset',
+      async (arg?: AssetTreeItem | string): Promise<boolean> => {
+        const token = await this.authService.getToken();
+        if (!token) {
+          vscode.window.showErrorMessage('Not authenticated.');
+          return false;
+        }
+        const name = await this.resolveAssetName(arg, 'Asset to delete');
+        if (!name) {
+          return false;
+        }
+        const confirm = await vscode.window.showWarningMessage(
+          `Delete asset "${name}"?`,
+          { modal: true, detail: 'This action cannot be undone.' },
+          'Delete',
+        );
+        if (confirm !== 'Delete') {
+          return false;
+        }
+        try {
+          await deleteAsset(name, token);
+          vscode.window.showInformationMessage(`Asset "${name}" deleted.`);
+          this.provider.refresh();
+          return true;
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err);
+          vscode.window.showErrorMessage(`Failed to delete asset: ${msg}`);
+          return false;
+        }
+      },
+    );
+
+    this.registerCommand(
+      'earthengine.moveAsset',
+      async (arg?: AssetTreeItem | string): Promise<boolean> => {
+        const token = await this.authService.getToken();
+        if (!token) {
+          vscode.window.showErrorMessage('Not authenticated.');
+          return false;
+        }
+        const source = await this.resolveAssetName(arg, 'Asset to move');
+        if (!source) {
+          return false;
+        }
+        const destination = await this.promptDestination('Move', source);
+        if (!destination) {
+          return false;
+        }
+        try {
+          await moveAsset(source, destination, token);
+          vscode.window.showInformationMessage(`Asset moved to "${destination}".`);
+          this.provider.refresh();
+          return true;
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err);
+          vscode.window.showErrorMessage(`Failed to move asset: ${msg}`);
+          return false;
+        }
+      },
+    );
+
+    this.registerCommand(
+      'earthengine.copyAsset',
+      async (arg?: AssetTreeItem | string): Promise<boolean> => {
+        const token = await this.authService.getToken();
+        if (!token) {
+          vscode.window.showErrorMessage('Not authenticated.');
+          return false;
+        }
+        const source = await this.resolveAssetName(arg, 'Asset to copy');
+        if (!source) {
+          return false;
+        }
+        const destination = await this.promptDestination('Copy', source);
+        if (!destination) {
+          return false;
+        }
+        try {
+          await copyAsset(source, destination, token);
+          vscode.window.showInformationMessage(`Asset copied to "${destination}".`);
+          this.provider.refresh();
+          return true;
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err);
+          vscode.window.showErrorMessage(`Failed to copy asset: ${msg}`);
+          return false;
+        }
+      },
+    );
+
     context.subscriptions.push(this);
+  }
+
+  /** Expands a bare or relative path into a full "projects/…/assets/…" path. */
+  private normalizeAssetPath(path: string): string {
+    const trimmed = path.trim().replace(/^\/+|\/+$/g, '');
+    if (trimmed.startsWith('projects/')) {
+      return trimmed;
+    }
+    const profile = this.authService.currentProfile!;
+    return `projects/${profile.project}/assets/${trimmed}`;
+  }
+
+  /**
+   * Resolves the target asset name from a tree item, a raw path string
+   * (sent by the Asset Manager panel), or an input box (command palette).
+   */
+  private async resolveAssetName(
+    arg: AssetTreeItem | string | undefined,
+    prompt: string,
+  ): Promise<string | undefined> {
+    if (typeof arg === 'string') {
+      return this.normalizeAssetPath(arg);
+    }
+    if (arg?.asset?.name) {
+      return arg.asset.name;
+    }
+    const input = await vscode.window.showInputBox({
+      prompt,
+      placeHolder: 'path/to/asset or projects/my-project/assets/path',
+      validateInput: (value) => (value.trim() ? null : 'Asset path is required'),
+    });
+    return input ? this.normalizeAssetPath(input) : undefined;
+  }
+
+  /** Prompts for a destination path, pre-filled with the source path. */
+  private async promptDestination(verb: string, source: string): Promise<string | undefined> {
+    const input = await vscode.window.showInputBox({
+      prompt: `${verb} "${source}" to`,
+      value: source,
+      valueSelection: [source.lastIndexOf('/') + 1, source.length],
+      validateInput: (value) => {
+        if (!value.trim()) {
+          return 'Destination path is required';
+        }
+        if (this.normalizeAssetPath(value) === source) {
+          return 'Destination must differ from the source';
+        }
+        return null;
+      },
+    });
+    return input ? this.normalizeAssetPath(input) : undefined;
   }
 }
