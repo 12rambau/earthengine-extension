@@ -160,7 +160,7 @@ export async function openTasksPanel(
 
 function getHtml(filter: TaskFilter, savedPrefs: TaskPrefs): string {
   const title = filter === 'export' ? 'Export Tasks' : 'Import Tasks';
-  const initJson = JSON.stringify(savedPrefs);
+  const initJson = JSON.stringify(savedPrefs).replace(/</g, '\\u003c');
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
