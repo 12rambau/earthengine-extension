@@ -28,7 +28,7 @@ export async function openAssetPreview(assetName: string, accessToken: string): 
       openImagePreview(asset, accessToken);
       break;
     case 'IMAGE_COLLECTION':
-      openImageCollectionPreview(asset);
+      await openImageCollectionPreview(asset, accessToken);
       break;
     case 'TABLE':
       await openFeatureCollectionPreview(asset, accessToken);
