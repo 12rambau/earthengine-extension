@@ -402,6 +402,7 @@
     "serialize-javascript": "^7.0.6"
   },
   "dependencies": {
+    "conventional-commits-filter": "^6.0.1",
     "marked": "^4.3.0"
   }
 }
