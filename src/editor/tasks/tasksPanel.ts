@@ -100,18 +100,11 @@ export async function openTasksPanel(
       computeUsage: op.metadata?.batchEecuUsageSeconds ?? null,
       error: op.error?.message || '',
     }));
-    panel.webview.postMessage({ type: 'data', tasks: filtered, hasMore: !!nextPageToken });
+    panel.webview.postMessage({ type: 'data', tasks: filtered });
   }
 
   panel.webview.onDidReceiveMessage(async (msg) => {
-    if (msg.type === 'loadMore') {
-      try {
-        await loadPage();
-        sendData();
-      } catch {
-        /* ignore */
-      }
-    } else if (msg.type === 'cancel') {
+    if (msg.type === 'cancel') {
       try {
         const t = await authService.getToken();
         if (t) {
@@ -265,7 +258,6 @@ tr:hover { background: var(--vscode-list-hoverBackground); }
 <div class="topbar">
 	<div class="topbar-left">
 		<button onclick="refresh()" class="btn-primary">⟳ Refresh</button>
-		<button onclick="loadMore()" id="loadMoreBtn" style="display:none">Load more</button>
 	</div>
 	<div class="col-picker-wrap">
 		<button onclick="togglePicker(event)" id="colBtn">Columns ▾</button>
@@ -314,9 +306,7 @@ let visibleCols = new Set(saved.visibleCols || ALL_COLS.map(c => c.key));
 ALL_COLS.filter(c => c.required).forEach(c => visibleCols.add(c.key)); // always enforce required
 let pageSize = saved.pageSize || 25;
 
-let tasks = [];
-let hasMore = false;
-let currentPage = 0;
+let tasks = [];let currentPage = 0;
 let sortCol = 'createTime';
 let sortDir = -1; // -1 = desc
 
@@ -444,8 +434,7 @@ function render() {
 	const info = sorted.length + ' tasks \u2014 page ' + (currentPage+1) + '/' + totalPages;
 	document.getElementById('pageInfo').textContent = info;
 	document.getElementById('prevBtn').disabled = currentPage === 0;
-	document.getElementById('nextBtn').disabled = currentPage >= totalPages - 1 && !hasMore;
-	document.getElementById('loadMoreBtn').style.display = hasMore ? '' : 'none';
+	document.getElementById('nextBtn').disabled = currentPage >= totalPages - 1;
 	updateSortArrows();
 }
 
@@ -457,7 +446,6 @@ function sortBy(col) {
 function nextPage() {
 	const totalPages = Math.ceil(tasks.length / pageSize);
 	if (currentPage < totalPages - 1) { currentPage++; render(); }
-	else if (hasMore) { loadMore(); }
 }
 function prevPage() { if (currentPage > 0) { currentPage--; render(); } }
 function changePageSize(v) {
@@ -467,14 +455,12 @@ function changePageSize(v) {
 	render();
 }
 function cancelTask(name) { vscode.postMessage({ type: 'cancel', name }); }
-function loadMore() { vscode.postMessage({ type: 'loadMore' }); }
 function refresh() { vscode.postMessage({ type: 'refresh' }); }
 
 window.addEventListener('message', e => {
 	const msg = e.data;
 	if (msg.type === 'data') {
 		tasks = msg.tasks;
-		hasMore = msg.hasMore;
 		render();
 	} else if (msg.type === 'cancelled') {
 		const t = tasks.find(t => t.name === msg.name);
