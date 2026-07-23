@@ -99,11 +99,11 @@ export class TasksSection extends SidebarSection {
     });
 
     this.registerCommand('earthengine.openExportTasksPanel', () => {
-      openTasksPanel(this.authService, 'export', context.extensionUri);
+      openTasksPanel(this.authService, 'export', context);
     });
 
     this.registerCommand('earthengine.openImportTasksPanel', () => {
-      openTasksPanel(this.authService, 'import', context.extensionUri);
+      openTasksPanel(this.authService, 'import', context);
     });
 
     context.subscriptions.push(this);

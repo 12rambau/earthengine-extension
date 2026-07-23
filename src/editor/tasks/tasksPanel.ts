@@ -21,10 +21,17 @@ type TaskFilter = 'export' | 'import';
 // ── Public API ──────────────────────────────────────────────────────
 
 /** Opens a WebView panel listing tasks of the given filter type. */
+const PREFS_KEY = 'earthengine.tasks.prefs';
+
+interface TaskPrefs {
+  visibleCols?: string[];
+  pageSize?: number;
+}
+
 export async function openTasksPanel(
   authService: AuthService,
   filter: TaskFilter,
-  extensionUri: vscode.Uri,
+  context: vscode.ExtensionContext,
 ): Promise<void> {
   const token = await authService.getToken();
   if (!token) {
@@ -124,10 +131,14 @@ export async function openTasksPanel(
       } catch {
         /* ignore */
       }
+    } else if (msg.type === 'savePrefs') {
+      const prefs: TaskPrefs = { visibleCols: msg.visibleCols, pageSize: msg.pageSize };
+      await context.globalState.update(PREFS_KEY, prefs);
     }
   });
 
-  panel.webview.html = getHtml(filter);
+  const savedPrefs = context.globalState.get<TaskPrefs>(PREFS_KEY) ?? {};
+  panel.webview.html = getHtml(filter, savedPrefs);
   sendData();
 
   // Auto-refresh every 15s
@@ -151,8 +162,9 @@ export async function openTasksPanel(
   panel.onDidDispose(() => clearInterval(interval));
 }
 
-function getHtml(filter: TaskFilter): string {
+function getHtml(filter: TaskFilter, savedPrefs: TaskPrefs): string {
   const title = filter === 'export' ? 'Export Tasks' : 'Import Tasks';
+  const initJson = JSON.stringify(savedPrefs);
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -172,8 +184,10 @@ body {
 }
 h1 { font-size: 1.3em; margin: 0 0 8px 0; display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
 .topbar {
-	display: flex; align-items: center; gap: 8px; margin-bottom: 6px; flex-shrink: 0;
+	display: flex; align-items: center; justify-content: space-between;
+	gap: 8px; margin-bottom: 6px; flex-shrink: 0;
 }
+.topbar-left { display: flex; align-items: center; gap: 8px; }
 .table-wrap {
 	flex: 1 1 0; overflow-y: auto; min-height: 120px;
 	border: 1px solid var(--vscode-panel-border); border-radius: 3px;
@@ -196,6 +210,24 @@ button:disabled { opacity: 0.4; cursor: default; }
 }
 .btn-primary:hover { background: var(--vscode-button-hoverBackground); }
 .page-info { font-size: 0.85em; opacity: 0.7; }
+/* Column picker */
+.col-picker-wrap { position: relative; }
+.col-picker {
+	position: absolute; right: 0; top: calc(100% + 4px); z-index: 10;
+	background: var(--vscode-editorWidget-background, var(--vscode-editor-background));
+	border: 1px solid var(--vscode-widget-border, var(--vscode-panel-border));
+	border-radius: 4px; padding: 6px 4px; min-width: 160px;
+	box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+}
+.col-item {
+	display: flex; align-items: center; gap: 6px;
+	padding: 4px 8px; border-radius: 3px; cursor: pointer;
+	font-size: 0.85em; white-space: nowrap; user-select: none;
+}
+.col-item:hover { background: var(--vscode-list-hoverBackground); }
+.col-item input[type=checkbox] { cursor: pointer; margin: 0; }
+.col-item.required { opacity: 0.5; cursor: default; }
+/* Table */
 table { width: 100%; border-collapse: collapse; font-size: 0.85em; }
 thead th {
 	position: sticky; top: 0; z-index: 1;
@@ -231,23 +263,18 @@ tr:hover { background: var(--vscode-list-hoverBackground); }
 <body>
 <h1>${title}</h1>
 <div class="topbar">
-	<button onclick="refresh()" class="btn-primary">⟳ Refresh</button>
-	<button onclick="loadMore()" id="loadMoreBtn" style="display:none">Load more</button>
+	<div class="topbar-left">
+		<button onclick="refresh()" class="btn-primary">⟳ Refresh</button>
+		<button onclick="loadMore()" id="loadMoreBtn" style="display:none">Load more</button>
+	</div>
+	<div class="col-picker-wrap">
+		<button onclick="togglePicker(event)" id="colBtn">Columns ▾</button>
+		<div id="col-picker" class="col-picker" style="display:none"></div>
+	</div>
 </div>
 <div class="table-wrap">
 <table>
-<thead><tr>
-	<th onclick="sortBy('state')">Status <span class="sort-arrow">▲</span></th>
-	<th onclick="sortBy('description')">Name <span class="sort-arrow">▲</span></th>
-	<th onclick="sortBy('id')">ID <span class="sort-arrow">▲</span></th>
-	<th onclick="sortBy('createTime')">Created <span class="sort-arrow">▲</span></th>
-	<th onclick="sortBy('startTime')">Start <span class="sort-arrow">▲</span></th>
-	<th onclick="sortBy('elapsed')">Duration <span class="sort-arrow">▲</span></th>
-	<th onclick="sortBy('attempt')">Attempts <span class="sort-arrow">▲</span></th>
-	<th onclick="sortBy('priority')">Priority <span class="sort-arrow">▲</span></th>
-	<th onclick="sortBy('computeUsage')">Compute Usage <span class="sort-arrow">▲</span></th>
-	<th>Actions</th>
-</tr></thead>
+<thead id="thead"><tr></tr></thead>
 <tbody id="tbody"></tbody>
 </table>
 </div>
@@ -258,7 +285,7 @@ tr:hover { background: var(--vscode-list-hoverBackground); }
 		<button onclick="nextPage()" id="nextBtn">Next ▶</button>
 		<label>Per page: <select id="pageSize" onchange="changePageSize(this.value)">
 			<option value="10">10</option>
-			<option value="25" selected>25</option>
+			<option value="25">25</option>
 			<option value="50">50</option>
 			<option value="100">100</option>
 			<option value="500">500</option>
@@ -267,12 +294,101 @@ tr:hover { background: var(--vscode-list-hoverBackground); }
 </div>
 <script>
 const vscode = acquireVsCodeApi();
+
+const ALL_COLS = [
+	{ key: 'state',        label: 'Status',        required: true },
+	{ key: 'description',  label: 'Name',           required: true },
+	{ key: 'id',           label: 'ID' },
+	{ key: 'createTime',   label: 'Created' },
+	{ key: 'startTime',    label: 'Start' },
+	{ key: 'elapsed',      label: 'Duration' },
+	{ key: 'attempt',      label: 'Attempts' },
+	{ key: 'priority',     label: 'Priority' },
+	{ key: 'computeUsage', label: 'Compute Usage' },
+	{ key: 'actions',      label: 'Actions',        required: true },
+];
+
+// Restore persisted state (injected by extension host via globalState)
+const saved = ${initJson};
+let visibleCols = new Set(saved.visibleCols || ALL_COLS.map(c => c.key));
+ALL_COLS.filter(c => c.required).forEach(c => visibleCols.add(c.key)); // always enforce required
+let pageSize = saved.pageSize || 25;
+
 let tasks = [];
 let hasMore = false;
 let currentPage = 0;
-let pageSize = 25;
 let sortCol = 'createTime';
 let sortDir = -1; // -1 = desc
+
+// ── Persistence ─────────────────────────────────────────────────────
+
+function saveState() {
+	vscode.postMessage({ type: 'savePrefs', visibleCols: [...visibleCols], pageSize });
+}
+
+// ── Column picker ────────────────────────────────────────────────────
+
+function buildPicker() {
+	const picker = document.getElementById('col-picker');
+	picker.innerHTML = ALL_COLS.map(c => {
+		const checked = visibleCols.has(c.key) ? 'checked' : '';
+		const disabled = c.required ? 'disabled' : '';
+		const cls = c.required ? 'col-item required' : 'col-item';
+		return '<label class="' + cls + '">'
+			+ '<input type="checkbox" ' + checked + ' ' + disabled
+			+ (c.required ? '' : ' onchange="toggleCol(\\''+c.key+'\\')">') + '>'
+			+ esc(c.label) + '</label>';
+	}).join('');
+}
+
+function toggleCol(key) {
+	if (visibleCols.has(key)) { visibleCols.delete(key); }
+	else { visibleCols.add(key); }
+	saveState();
+	renderHeader();
+	render();
+}
+
+function togglePicker(e) {
+	e.stopPropagation();
+	const p = document.getElementById('col-picker');
+	p.style.display = p.style.display === 'none' ? '' : 'none';
+}
+
+document.addEventListener('click', () => {
+	document.getElementById('col-picker').style.display = 'none';
+});
+
+// ── Table header ─────────────────────────────────────────────────────
+
+function renderHeader() {
+	const tr = document.querySelector('#thead tr');
+	tr.innerHTML = ALL_COLS.filter(c => visibleCols.has(c.key)).map(c => {
+		if (c.key === 'actions') return '<th>Actions</th>';
+		return '<th onclick="sortBy(\\''+c.key+'\\')">'+esc(c.label)+' <span class="sort-arrow">\u25b2</span></th>';
+	}).join('');
+	updateSortArrows();
+}
+
+function updateSortArrows() {
+	document.querySelectorAll('thead th').forEach(th => {
+		th.classList.remove('sorted');
+		const arrow = th.querySelector('.sort-arrow');
+		if (arrow) arrow.textContent = '\u25b2';
+	});
+	const visCols = ALL_COLS.filter(c => visibleCols.has(c.key) && c.key !== 'actions');
+	const idx = visCols.findIndex(c => c.key === sortCol);
+	if (idx >= 0) {
+		const th = document.querySelectorAll('thead th')[idx];
+		if (th) {
+			th.classList.add('sorted');
+			const arrow = th.querySelector('.sort-arrow');
+			if (arrow) arrow.textContent = sortDir === 1 ? '\u25b2' : '\u25bc';
+		}
+	}
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────
 
 function statusHtml(state) {
 	if (state === 'RUNNING' || state === 'CANCELLING') return '<span class="spinner"></span>';
@@ -285,14 +401,17 @@ function statusHtml(state) {
 
 function formatTime(t) {
 	if (!t) return '';
-	const d = new Date(t);
-	return d.toLocaleString();
+	return new Date(t).toLocaleString();
 }
+
+function esc(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+// ── Render ────────────────────────────────────────────────────────────
 
 function render() {
 	const sorted = [...tasks].sort((a, b) => {
-		const va = a[sortCol] || '';
-		const vb = b[sortCol] || '';
+		const va = a[sortCol] ?? '';
+		const vb = b[sortCol] ?? '';
 		return va < vb ? -sortDir : va > vb ? sortDir : 0;
 	});
 	const totalPages = Math.max(1, Math.ceil(sorted.length / pageSize));
@@ -300,51 +419,36 @@ function render() {
 	const start = currentPage * pageSize;
 	const page = sorted.slice(start, start + pageSize);
 
+	const vis = key => visibleCols.has(key);
 	const tbody = document.getElementById('tbody');
 	tbody.innerHTML = page.map(t => {
 		const cancelBtn = (t.state === 'RUNNING' || t.state === 'PENDING')
-			? '<button class="cancel-btn" onclick="cancelTask(\\''+t.name+'\\')">✕ Cancel</button>'
+			? '<button class="cancel-btn" onclick="cancelTask(\\''+t.name+'\\'">\u2715 Cancel</button>'
 			: '';
-		const errorTd = t.error ? '<br><span class="error-text">' + esc(t.error) + '</span>' : '';
+		const errorSpan = t.error ? '<br><span class="error-text">' + esc(t.error) + '</span>' : '';
 		const computeStr = t.computeUsage != null ? t.computeUsage.toFixed(1) + '\u202fEECU\u00b7s' : '';
 		return '<tr>'
-			+ '<td><span class="status">' + statusHtml(t.state) + ' ' + t.state + '</span></td>'
-			+ '<td>' + esc(t.description) + errorTd + '</td>'
-			+ '<td class="id-cell" title="' + esc(t.id) + '">' + esc(t.id) + '</td>'
-			+ '<td>' + formatTime(t.createTime) + '</td>'
-			+ '<td>' + formatTime(t.startTime) + '</td>'
-			+ '<td class="elapsed">' + t.elapsed + '</td>'
-			+ '<td style="text-align:center">' + (t.attempt != null ? t.attempt : '') + '</td>'
-			+ '<td style="text-align:center">' + (t.priority != null ? t.priority : '') + '</td>'
-			+ '<td class="compute">' + computeStr + '</td>'
-			+ '<td>' + cancelBtn + '</td>'
+			+ (vis('state')        ? '<td><span class="status">'+statusHtml(t.state)+' '+t.state+'</span></td>' : '')
+			+ (vis('description')  ? '<td>'+esc(t.description)+errorSpan+'</td>' : '')
+			+ (vis('id')           ? '<td class="id-cell" title="'+esc(t.id)+'">'+esc(t.id)+'</td>' : '')
+			+ (vis('createTime')   ? '<td>'+formatTime(t.createTime)+'</td>' : '')
+			+ (vis('startTime')    ? '<td>'+formatTime(t.startTime)+'</td>' : '')
+			+ (vis('elapsed')      ? '<td class="elapsed">'+t.elapsed+'</td>' : '')
+			+ (vis('attempt')      ? '<td style="text-align:center">'+(t.attempt != null ? t.attempt : '')+'</td>' : '')
+			+ (vis('priority')     ? '<td style="text-align:center">'+(t.priority != null ? t.priority : '')+'</td>' : '')
+			+ (vis('computeUsage') ? '<td class="compute">'+computeStr+'</td>' : '')
+			+ (vis('actions')      ? '<td>'+cancelBtn+'</td>' : '')
 			+ '</tr>';
 	}).join('');
 
-	// Update page info
-	const info = sorted.length + ' tasks — page ' + (currentPage+1) + '/' + totalPages;
+	const info = sorted.length + ' tasks \u2014 page ' + (currentPage+1) + '/' + totalPages;
 	document.getElementById('pageInfo').textContent = info;
-
 	document.getElementById('prevBtn').disabled = currentPage === 0;
 	document.getElementById('nextBtn').disabled = currentPage >= totalPages - 1 && !hasMore;
 	document.getElementById('loadMoreBtn').style.display = hasMore ? '' : 'none';
-
-	// Update sort arrows
-	document.querySelectorAll('th').forEach(th => {
-		th.classList.remove('sorted');
-		const arrow = th.querySelector('.sort-arrow');
-		if (arrow) arrow.textContent = '▲';
-	});
-	const cols = ['state','description','id','createTime','startTime','elapsed','attempt','priority','computeUsage'];
-	const idx = cols.indexOf(sortCol);
-	if (idx >= 0) {
-		const th = document.querySelectorAll('th')[idx];
-		th.classList.add('sorted');
-		th.querySelector('.sort-arrow').textContent = sortDir === 1 ? '▲' : '▼';
-	}
+	updateSortArrows();
 }
 
-function esc(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 function sortBy(col) {
 	if (sortCol === col) { sortDir *= -1; }
 	else { sortCol = col; sortDir = col === 'createTime' ? -1 : 1; }
@@ -359,6 +463,7 @@ function prevPage() { if (currentPage > 0) { currentPage--; render(); } }
 function changePageSize(v) {
 	pageSize = parseInt(v);
 	currentPage = 0;
+	saveState();
 	render();
 }
 function cancelTask(name) { vscode.postMessage({ type: 'cancel', name }); }
@@ -379,6 +484,12 @@ window.addEventListener('message', e => {
 		alert(msg.message);
 	}
 });
+
+// ── Init ──────────────────────────────────────────────────────────────
+buildPicker();
+renderHeader();
+// Restore pageSize selector
+document.getElementById('pageSize').value = String(pageSize);
 </script>
 </body></html>`;
 }
