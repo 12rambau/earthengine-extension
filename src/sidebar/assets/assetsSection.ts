@@ -57,7 +57,7 @@ export class AssetsSection extends SidebarSection {
     });
 
     this.registerCommand('earthengine.openAssetsPanel', () => {
-      openAssetsPanel(this.authService);
+      openAssetsPanel(this.authService, context);
     });
 
     this.registerCommand('earthengine.copyAssetId', (item: AssetTreeItem) => {
