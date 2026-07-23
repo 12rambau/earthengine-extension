@@ -138,7 +138,24 @@ export async function openTasksPanel(
     }
   }, 15_000);
 
-  panel.onDidDispose(() => clearInterval(interval));
+  // Reload when the active profile changes
+  const authListener = authService.onDidChangeAuth((profile) => {
+    if (!profile) {
+      panel.dispose();
+      return;
+    }
+    resolvedProject = profile.project;
+    allOps = [];
+    panel.webview.postMessage({ type: 'loading' });
+    loadAndStream(false).catch(() => {
+      /* ignore */
+    });
+  });
+
+  panel.onDidDispose(() => {
+    clearInterval(interval);
+    authListener.dispose();
+  });
 }
 
 function getHtml(filter: TaskFilter, savedPrefs: TaskPrefs): string {
