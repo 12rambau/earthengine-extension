@@ -47,29 +47,8 @@ export async function openTasksPanel(
     { enableScripts: true, retainContextWhenHidden: true },
   );
 
-  // Load initial data
   let allOps: Operation[] = [];
-  let nextPageToken: string | undefined;
   let resolvedProject = profile.project;
-
-  async function loadPage(): Promise<void> {
-    const t = await authService.getToken();
-    if (!t) {
-      return;
-    }
-    const result = await listOperationsPage(resolvedProject, t, 50, nextPageToken);
-    resolvedProject = result.project;
-    allOps.push(...result.operations);
-    nextPageToken = result.nextPageToken;
-  }
-
-  try {
-    await loadPage();
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    vscode.window.showErrorMessage(`Failed to load tasks: ${msg}`);
-    return;
-  }
 
   const filterFn =
     filter === 'export'
@@ -82,7 +61,7 @@ export async function openTasksPanel(
           return t.startsWith('INGEST') || t.startsWith('IMPORT');
         };
 
-  function sendData() {
+  function sendData(loading = false, silent = false) {
     const filtered = allOps.filter(filterFn).map((op) => ({
       name: op.name,
       id: op.name.split('/').pop() || '',
@@ -100,7 +79,24 @@ export async function openTasksPanel(
       computeUsage: op.metadata?.batchEecuUsageSeconds ?? null,
       error: op.error?.message || '',
     }));
-    panel.webview.postMessage({ type: 'data', tasks: filtered });
+    panel.webview.postMessage({ type: 'data', tasks: filtered, loading, silent });
+  }
+
+  /** Streams all pages of operations, calling sendData after each page. */
+  async function loadAndStream(silent = false): Promise<void> {
+    const t = await authService.getToken();
+    if (!t) {
+      return;
+    }
+    allOps = [];
+    let pageToken: string | undefined;
+    do {
+      const result = await listOperationsPage(resolvedProject, t, 100, pageToken);
+      resolvedProject = result.project;
+      allOps.push(...result.operations);
+      pageToken = result.nextPageToken;
+      sendData(!!(pageToken && allOps.length < 1_000), silent);
+    } while (pageToken && allOps.length < 1_000);
   }
 
   panel.webview.onDidReceiveMessage(async (msg) => {
@@ -116,14 +112,9 @@ export async function openTasksPanel(
         panel.webview.postMessage({ type: 'error', message: m });
       }
     } else if (msg.type === 'refresh') {
-      allOps = [];
-      nextPageToken = undefined;
-      try {
-        await loadPage();
-        sendData();
-      } catch {
+      loadAndStream(true).catch(() => {
         /* ignore */
-      }
+      });
     } else if (msg.type === 'savePrefs') {
       const prefs: TaskPrefs = { visibleCols: msg.visibleCols, pageSize: msg.pageSize };
       await context.globalState.update(PREFS_KEY, prefs);
@@ -132,23 +123,18 @@ export async function openTasksPanel(
 
   const savedPrefs = context.globalState.get<TaskPrefs>(PREFS_KEY) ?? {};
   panel.webview.html = getHtml(filter, savedPrefs);
-  sendData();
 
-  // Auto-refresh every 15s
-  const interval = setInterval(async () => {
+  loadAndStream(false).catch((err) => {
+    const msg = err instanceof Error ? err.message : String(err);
+    vscode.window.showErrorMessage(`Failed to load tasks: ${msg}`);
+  });
+
+  // Auto-refresh every 15s (silent)
+  const interval = setInterval(() => {
     if (panel.visible) {
-      const t = await authService.getToken();
-      if (!t) {
-        return;
-      }
-      try {
-        const result = await listOperationsPage(resolvedProject, t, allOps.length || 50);
-        allOps = result.operations;
-        nextPageToken = result.nextPageToken;
-        sendData();
-      } catch {
+      loadAndStream(true).catch(() => {
         /* ignore */
-      }
+      });
     }
   }, 15_000);
 
@@ -185,9 +171,43 @@ h1 { font-size: 1.3em; margin: 0 0 8px 0; display: flex; align-items: center; ga
 	flex: 1 1 0; overflow-y: auto; min-height: 120px;
 	border: 1px solid var(--vscode-panel-border); border-radius: 3px;
 }
-.toolbar {
+.pagination {
 	display: flex; align-items: center; justify-content: space-between;
-	padding-top: 6px; gap: 8px; flex-wrap: wrap; flex-shrink: 0;
+	padding-top: 8px; gap: 8px; flex-wrap: wrap; flex-shrink: 0;
+}
+.pager { display: flex; align-items: center; gap: 2px; }
+.nav-btn {
+	background: transparent !important; border-color: transparent !important; font-weight: 500;
+}
+.nav-btn:not(:disabled):hover {
+	background: var(--vscode-list-hoverBackground) !important;
+	border-color: var(--vscode-input-border) !important;
+}
+.page-btn {
+	min-width: 28px; height: 28px; padding: 0 4px; border-radius: 50%;
+	background: transparent !important; border: 1px solid transparent !important;
+	font-size: 0.82em; display: inline-flex; align-items: center; justify-content: center;
+}
+.page-btn:hover {
+	background: var(--vscode-list-hoverBackground) !important;
+	border-color: var(--vscode-input-border) !important;
+}
+.page-btn.active {
+	background: var(--vscode-button-background) !important;
+	color: var(--vscode-button-foreground) !important;
+	border-color: transparent !important; font-weight: 600;
+}
+.page-ellipsis { padding: 0 4px; opacity: 0.5; font-size: 0.85em; user-select: none; }
+.per-page-select {
+	background: transparent !important; border: none !important; box-shadow: none;
+	opacity: 0.45; font-size: 0.8em; padding: 2px 2px !important; cursor: pointer;
+	color: var(--vscode-foreground) !important;
+}
+.per-page-select:hover, .per-page-select:focus { opacity: 1; outline: none; }
+.spinner-inline {
+	width: 9px; height: 9px; border: 1.5px solid currentColor; border-top-color: transparent;
+	border-radius: 50%; display: inline-block; animation: spin 0.8s linear infinite;
+	opacity: 0.6; vertical-align: middle; margin-left: 5px;
 }
 button, select {
 	background: var(--vscode-button-secondaryBackground);
@@ -274,19 +294,20 @@ tr:hover { background: var(--vscode-list-hoverBackground); }
 <tbody id="tbody"></tbody>
 </table>
 </div>
-<div class="toolbar" id="toolbar-bottom">
+<div class="pagination" id="toolbar-bottom">
 	<span class="page-info" id="pageInfo"></span>
-	<div style="display:flex;align-items:center;gap:8px;">
-		<button onclick="prevPage()" id="prevBtn">◀ Prev</button>
-		<button onclick="nextPage()" id="nextBtn">Next ▶</button>
-		<label>Per page: <select id="pageSize" onchange="changePageSize(this.value)">
-			<option value="10">10</option>
-			<option value="25">25</option>
-			<option value="50">50</option>
-			<option value="100">100</option>
-			<option value="500">500</option>
-		</select></label>
+	<div class="pager">
+		<button class="nav-btn" onclick="prevPage()" id="prevBtn">◀ Prev</button>
+		<span id="pageNums"></span>
+		<button class="nav-btn" onclick="nextPage()" id="nextBtn">Next ▶</button>
 	</div>
+	<select id="pageSize" class="per-page-select" onchange="changePageSize(this.value)" title="Items per page">
+		<option value="10">10</option>
+		<option value="25">25</option>
+		<option value="50">50</option>
+		<option value="100">100</option>
+		<option value="500">500</option>
+	</select>
 </div>
 <script>
 const vscode = acquireVsCodeApi();
@@ -310,7 +331,9 @@ let visibleCols = new Set(saved.visibleCols || ALL_COLS.map(c => c.key));
 ALL_COLS.filter(c => c.required).forEach(c => visibleCols.add(c.key)); // always enforce required
 let pageSize = saved.pageSize || 25;
 
-let tasks = [];let currentPage = 0;
+let tasks = [];
+let isLoading = true; // true until first data message arrives
+let currentPage = 0;
 let sortCol = 'createTime';
 let sortDir = -1; // -1 = desc
 
@@ -417,7 +440,7 @@ function render() {
 	const tbody = document.getElementById('tbody');
 	tbody.innerHTML = page.map(t => {
 		const cancelBtn = (t.state === 'RUNNING' || t.state === 'PENDING')
-			? '<button class="cancel-btn" onclick="cancelTask(\\''+t.name+'\\'">\u2715 Cancel</button>'
+			? '<button class="cancel-btn" onclick="cancelTask(\\'' + t.name + '\\')">✕ Cancel</button>'
 			: '';
 		const errorSpan = t.error ? '<br><span class="error-text">' + esc(t.error) + '</span>' : '';
 		const computeStr = t.computeUsage != null ? t.computeUsage.toFixed(1) + '\u202fEECU\u00b7s' : '';
@@ -435,12 +458,32 @@ function render() {
 			+ '</tr>';
 	}).join('');
 
-	const info = sorted.length + ' tasks \u2014 page ' + (currentPage+1) + '/' + totalPages;
-	document.getElementById('pageInfo').textContent = info;
+	const rangeStart = sorted.length > 0 ? start + 1 : 0;
+	const rangeEnd = Math.min(start + pageSize, sorted.length);
+	const countStr = sorted.length > 0 ? rangeStart + '\u2013' + rangeEnd + ' of ' + sorted.length + ' tasks' : '0 tasks';
+	document.getElementById('pageInfo').innerHTML = esc(countStr) + (isLoading ? ' <span class="spinner-inline"></span>' : '');
 	document.getElementById('prevBtn').disabled = currentPage === 0;
 	document.getElementById('nextBtn').disabled = currentPage >= totalPages - 1;
+	document.getElementById('pageNums').innerHTML = pagerHtml(currentPage, totalPages);
 	updateSortArrows();
 }
+
+function pagerHtml(cur, total) {
+	if (total <= 1) return '';
+	const shown = new Set([0, total - 1]);
+	for (let i = Math.max(0, cur - 1); i <= Math.min(total - 1, cur + 1); i++) shown.add(i);
+	const pages = [...shown].sort((a, b) => a - b);
+	const btns = [];
+	let prev = -1;
+	for (const p of pages) {
+		if (prev !== -1 && p > prev + 1) btns.push('<span class="page-ellipsis">\u2026</span>');
+		const cls = 'page-btn' + (p === cur ? ' active' : '');
+		btns.push('<button class="' + cls + '" onclick="goToPage(' + p + ')">' + (p + 1) + '</button>');
+		prev = p;
+	}
+	return btns.join('');
+}
+function goToPage(p) { currentPage = p; render(); }
 
 function sortBy(col) {
 	if (sortCol === col) { sortDir *= -1; }
@@ -480,8 +523,14 @@ window.addEventListener('message', e => {
 	const msg = e.data;
 	if (msg.type === 'data') {
 		tasks = msg.tasks;
+		isLoading = msg.loading;
 		setLoading(false);
-		render();
+		if (msg.silent && isLoading) {
+			// Silent refresh: accumulate without touching the UI
+			document.getElementById('pageInfo').innerHTML = '<span class="spinner-inline"></span>';
+		} else {
+			render();
+		}
 	} else if (msg.type === 'loading') {
 		setLoading(true);
 	} else if (msg.type === 'cancelled') {
@@ -496,8 +545,8 @@ window.addEventListener('message', e => {
 // ── Init ──────────────────────────────────────────────────────────────
 buildPicker();
 renderHeader();
-// Restore pageSize selector
 document.getElementById('pageSize').value = String(pageSize);
+render();
 </script>
 </body></html>`;
 }
