@@ -300,6 +300,8 @@ tr:hover { background: var(--vscode-list-hoverBackground); }
 .name-link:hover { text-decoration: underline; }
 .name-text { padding: 0; }
 .icon { margin-right: 6px; vertical-align: middle; }
+.icon-col { width: 24px; padding: 3px 4px; text-align: center; }
+.icon-col svg { display: block; margin: auto; }
 .id-cell { font-family: var(--vscode-editor-font-family, monospace); font-size: 0.78em; opacity: 0.75; }
 .actions-cell { white-space: nowrap; }
 /* Idle rows show one dot per available action; hovering the row reveals the
@@ -360,8 +362,7 @@ tr:hover .action-btns, tr:focus-within .action-btns { display: inline-flex; }
 <script>
 const vscode = acquireVsCodeApi();
 
-const ALL_COLS = [
-	{ key: 'shortName', label: 'Name',     required: true },
+const ALL_COLS = [    { key: 'icon',      label: '',         required: true },	{ key: 'shortName', label: 'Name',     required: true },
 	{ key: 'type',      label: 'Type' },
 	{ key: 'assetId',   label: 'Asset ID' },
 	{ key: 'actions',   label: 'Actions',  required: true },
@@ -382,10 +383,10 @@ let sortCol = 'shortName';
 let sortDir = 1;
 
 const TYPE_ICONS = {
-	FOLDER: '<svg class="icon" width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M14.5 3H7.71l-.85-.85L6.51 2H1.5l-.5.5v11l.5.5h13l.5-.5v-10L14.5 3zm-.51 8.49V13H2V3h4.29l.85.85.36.15H14v7.49z"/></svg>',
-	IMAGE_COLLECTION: '<svg class="icon" width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M1 4h14v1H1V4zm1-2h12v1H2V2zm1 4h10v8H3V6zm1 1v6h8V7H4z"/></svg>',
-	IMAGE: '<svg class="icon" width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M14 2H2v12h12V2zm-1 1v7.09l-2.5-2.5L7 11.09 5.5 9.59 3 12.09V3h10zM5 6a1 1 0 1 0 0-2 1 1 0 0 0 0 2z"/></svg>',
-	TABLE: '<svg class="icon" width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M14 1H2L1 2v12l1 1h12l1-1V2l-1-1zM2 2h5v4H2V2zm0 5h5v4H2V7zm0 5h5v2H2v-2zm12 2H8v-2h6v2zm0-3H8V7h6v4zm0-5H8V2h6v4z"/></svg>',
+	FOLDER:           '<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M2 4.5V6H5.58579C5.71839 6 5.84557 5.94732 5.93934 5.85355L7.29289 4.5L5.93934 3.14645C5.84557 3.05268 5.71839 3 5.58579 3H3.5C2.67157 3 2 3.67157 2 4.5ZM1 4.5C1 3.11929 2.11929 2 3.5 2H5.58579C5.98361 2 6.36514 2.15804 6.64645 2.43934L8.20711 4H12.5C13.8807 4 15 5.11929 15 6.5V11.5C15 12.8807 13.8807 14 12.5 14H3.5C2.11929 14 1 12.8807 1 11.5V4.5ZM2 7V11.5C2 12.3284 2.67157 13 3.5 13H12.5C13.3284 13 14 12.3284 14 11.5V6.5C14 5.67157 13.3284 5 12.5 5H8.20711L6.64645 6.56066C6.36514 6.84197 5.98361 7 5.58579 7H2Z"/></svg>',
+	IMAGE_COLLECTION: '<svg width="16" height="16" viewBox="0 0 16 16" fill="var(--vscode-charts-blue)"><path d="M8 8.99993C7.819 8.99993 7.643 8.95093 7.486 8.85793L2.486 5.85693C2.186 5.67793 2 5.34893 2 4.99993C2 4.65093 2.187 4.32093 2.486 4.14193L7.486 1.14293C7.789 0.95693 8.207 0.95493 8.517 1.14493L13.513 4.14293C13.813 4.32293 13.999 4.65093 13.999 4.99993C13.999 5.34893 13.812 5.67893 13.513 5.85793L8.513 8.85693C8.357 8.95093 8.181 8.99993 8 8.99993ZM8 1.99993L3 4.99993L8 7.99993L13 4.99993L8 1.99993Z"/><path d="M2.146 6.9873L8 10.5003L13.854 6.9873C13.946 7.1413 14 7.3173 14 7.5003C14 7.8493 13.814 8.1783 13.514 8.3583L8.514 11.3573C8.357 11.4513 8.181 11.5003 8 11.5003C7.819 11.5003 7.642 11.4513 7.486 11.3583L2.486 8.35731C2.187 8.17931 2 7.8503 2 7.5003C2 7.3163 2.054 7.1403 2.146 6.9873Z"/><path d="M2.146 9.4873L8 13.0003L13.854 9.4873C13.946 9.6413 14 9.8173 14 10.0003C14 10.3493 13.814 10.6783 13.514 10.8583L8.514 13.8573C8.357 13.9513 8.181 14.0003 8 14.0003C7.819 14.0003 7.642 13.9513 7.486 13.8583L2.486 10.8573C2.187 10.6793 2 10.3503 2 10.0003C2 9.8163 2.054 9.6403 2.146 9.4873Z"/></svg>',
+	IMAGE:            '<svg width="16" height="16" viewBox="0 0 16 16" fill="var(--vscode-charts-orange)"><path d="M6 1C4.89543 1 4 1.89543 4 3V6H5V3C5 2.44772 5.44772 2 6 2H9V4.5C9 5.32843 9.67157 6 10.5 6H13V13C13 13.5523 12.5523 14 12 14H10.9646C10.9141 14.3531 10.8109 14.6891 10.6632 15H12C13.1046 15 14 14.1046 14 13V5.41421C14 5.01639 13.842 4.63486 13.5607 4.35355L10.6464 1.43934C10.3651 1.15804 9.98361 1 9.58579 1H6ZM12.7929 5H10.5C10.2239 5 10 4.77614 10 4.5V2.20711L12.7929 5ZM1 9.5C1 8.11929 2.11929 7 3.5 7H7.5C8.88071 7 10 8.11929 10 9.5V13.5C10 14.0095 9.84756 14.4835 9.5858 14.8787L6.56066 11.8536C5.97487 11.2678 5.02513 11.2678 4.43934 11.8536L1.4142 14.8787C1.15244 14.4835 1 14.0095 1 13.5V9.5ZM8 9.75C8 9.33579 7.66421 9 7.25 9C6.83579 9 6.5 9.33579 6.5 9.75C6.5 10.1642 6.83579 10.5 7.25 10.5C7.66421 10.5 8 10.1642 8 9.75ZM2.12131 15.5858C2.51652 15.8476 2.99046 16 3.5 16H7.5C8.00954 16 8.48348 15.8476 8.87869 15.5858L5.85355 12.5607C5.65829 12.3654 5.34171 12.3654 5.14645 12.5607L2.12131 15.5858Z"/></svg>',
+	TABLE:            '<svg width="16" height="16" viewBox="0 0 16 16" fill="var(--vscode-charts-green)"><path d="M1 3.5C1 2.11929 2.11929 1 3.5 1H12.5C13.8807 1 15 2.11929 15 3.5V12.5C15 13.8807 13.8807 15 12.5 15H3.5C2.11929 15 1 13.8807 1 12.5V3.5ZM6 14H10V11L6 11V14ZM5 11H2V12.5C2 13.3284 2.67157 14 3.5 14H5V11ZM6 10L10 10V6L6 6V10ZM5 6H2V10H5V6ZM6 5L10 5V2H6V5ZM5 2H3.5C2.67157 2 2 2.67157 2 3.5V5H5V2ZM14 6H11V10H14V6ZM14 11H11V14H12.5C13.3284 14 14 13.3284 14 12.5V11ZM14 5V3.5C14 2.67157 13.3284 2 12.5 2H11V5H14Z"/></svg>',
 };
 
 const ACTION_ICONS = {
@@ -445,6 +446,7 @@ document.addEventListener('click', () => {
 function renderHeader() {
 	const tr = document.querySelector('#thead tr');
 	tr.innerHTML = ALL_COLS.filter(c => visibleCols.has(c.key)).map(c => {
+		if (c.key === 'icon') return '<th></th>';
 		if (c.key === 'actions') return '<th>Actions</th>';
 		return '<th onclick="sortBy(\\''+c.key+'\\')">'+esc(c.label)+' <span class="sort-arrow">▲</span></th>';
 	}).join('');
@@ -535,10 +537,11 @@ function render() {
 	const vis = key => visibleCols.has(key);
 	document.getElementById('tbody').innerHTML = page.map(a => {
 		const icon = TYPE_ICONS[a.type] || '';
-		const nameCell = a.isContainer
-			? '<button class="name-link" onclick="navigate(\\'' + esc(a.name) + '\\')">' + icon + esc(a.shortName) + '</button>'
-			: '<span class="name-text">' + icon + esc(a.shortName) + '</span>';
-		return '<tr>'
+			const nameCell = a.isContainer
+				? '<button class="name-link" onclick="navigate(\\'' + esc(a.name) + '\\')">' + esc(a.shortName) + '</button>'
+				: '<span class="name-text">' + esc(a.shortName) + '</span>';
+			return '<tr>'
+				+ (vis('icon')      ? '<td class="icon-col">' + icon + '</td>' : '')
 			+ (vis('shortName') ? '<td>' + nameCell + '</td>' : '')
 			+ (vis('type')      ? '<td>' + formatType(a.type) + '</td>' : '')
 			+ (vis('assetId')   ? '<td class="id-cell" title="' + esc(a.assetId) + '">' + esc(a.assetId) + '</td>' : '')
