@@ -112,8 +112,9 @@ export async function openTasksPanel(
         panel.webview.postMessage({ type: 'error', message: m });
       }
     } else if (msg.type === 'refresh') {
-      loadAndStream(true).catch(() => {
-        /* ignore */
+      loadAndStream(true).catch((err) => {
+        const m = err instanceof Error ? err.message : String(err);
+        panel.webview.postMessage({ type: 'error', message: m });
       });
     } else if (msg.type === 'savePrefs') {
       const prefs: TaskPrefs = { visibleCols: msg.visibleCols, pageSize: msg.pageSize };
@@ -133,7 +134,7 @@ export async function openTasksPanel(
   const interval = setInterval(() => {
     if (panel.visible) {
       loadAndStream(true).catch(() => {
-        /* ignore */
+        sendData(false, true);
       });
     }
   }, 15_000);
@@ -147,8 +148,9 @@ export async function openTasksPanel(
     resolvedProject = profile.project;
     allOps = [];
     panel.webview.postMessage({ type: 'loading' });
-    loadAndStream(false).catch(() => {
-      /* ignore */
+    loadAndStream(false).catch((err) => {
+      const m = err instanceof Error ? err.message : String(err);
+      panel.webview.postMessage({ type: 'error', message: m });
     });
   });
 
@@ -565,6 +567,7 @@ window.addEventListener('message', e => {
 		if (t) { t.state = 'CANCELLING'; }
 		render();
 	} else if (msg.type === 'error') {
+		setLoading(false);
 		alert(msg.message);
 	}
 });
