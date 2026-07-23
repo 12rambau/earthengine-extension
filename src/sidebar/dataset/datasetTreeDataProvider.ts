@@ -16,9 +16,9 @@ type CollectionMetadata = { type: string; description: string; keywords: string[
 // ── Constants ───────────────────────────────────────────────────────
 
 const TYPE_ICONS: Record<string, vscode.ThemeIcon> = {
-  image_collection: new vscode.ThemeIcon('layers'),
-  image: new vscode.ThemeIcon('file-media'),
-  table: new vscode.ThemeIcon('table'),
+  image_collection: new vscode.ThemeIcon('layers', new vscode.ThemeColor('charts.blue')),
+  image: new vscode.ThemeIcon('file-media', new vscode.ThemeColor('charts.orange')),
+  table: new vscode.ThemeIcon('table', new vscode.ThemeColor('charts.green')),
 };
 
 // ── Publisher / Community Catalogs ───────────────────────────────

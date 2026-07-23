@@ -14,9 +14,9 @@ import { listAssets, EEAsset } from './eeApiClient.js';
 
 const TYPE_ICONS: Record<string, vscode.ThemeIcon> = {
   FOLDER: new vscode.ThemeIcon('folder'),
-  IMAGE_COLLECTION: new vscode.ThemeIcon('layers'),
-  IMAGE: new vscode.ThemeIcon('file-media'),
-  TABLE: new vscode.ThemeIcon('table'),
+  IMAGE_COLLECTION: new vscode.ThemeIcon('layers', new vscode.ThemeColor('charts.blue')),
+  IMAGE: new vscode.ThemeIcon('file-media', new vscode.ThemeColor('charts.orange')),
+  TABLE: new vscode.ThemeIcon('table', new vscode.ThemeColor('charts.green')),
 };
 
 const CONTAINER_TYPES = new Set(['FOLDER', 'IMAGE_COLLECTION']);
