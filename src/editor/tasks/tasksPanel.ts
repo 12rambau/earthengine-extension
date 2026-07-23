@@ -241,6 +241,10 @@ tr:hover { background: var(--vscode-list-hoverBackground); }
 .dot.cancelled { background: var(--vscode-disabledForeground); }
 .dot.pending { background: var(--vscode-charts-yellow); }
 @keyframes spin { to { transform: rotate(360deg); } }
+.refresh-icon { display: inline-block; }
+.btn-primary.loading { opacity: 0.75; cursor: default; }
+.btn-primary.loading .refresh-icon { animation: spin 0.8s linear infinite; }
+.table-wrap.loading { opacity: 0.45; pointer-events: none; transition: opacity 0.15s; }
 .spinner { width: 10px; height: 10px; border: 2px solid var(--vscode-foreground); border-top-color: transparent; border-radius: 50%; display: inline-block; animation: spin 1s linear infinite; }
 .cancel-btn {
 	background: none; border: none; color: var(--vscode-errorForeground);
@@ -257,7 +261,7 @@ tr:hover { background: var(--vscode-list-hoverBackground); }
 <h1>${title}</h1>
 <div class="topbar">
 	<div class="topbar-left">
-		<button onclick="refresh()" class="btn-primary">⟳ Refresh</button>
+		<button id="refreshBtn" onclick="refresh()" class="btn-primary"><span class="refresh-icon">⟳</span> <span id="refreshLabel">Refresh</span></button>
 	</div>
 	<div class="col-picker-wrap">
 		<button onclick="togglePicker(event)" id="colBtn">Columns ▾</button>
@@ -454,14 +458,32 @@ function changePageSize(v) {
 	saveState();
 	render();
 }
+function setLoading(on) {
+	const btn = document.getElementById('refreshBtn');
+	const wrap = document.querySelector('.table-wrap');
+	if (on) {
+		btn.disabled = true;
+		btn.classList.add('loading');
+		document.getElementById('refreshLabel').textContent = 'Refreshing…';
+		wrap.classList.add('loading');
+	} else {
+		btn.disabled = false;
+		btn.classList.remove('loading');
+		document.getElementById('refreshLabel').textContent = 'Refresh';
+		wrap.classList.remove('loading');
+	}
+}
 function cancelTask(name) { vscode.postMessage({ type: 'cancel', name }); }
-function refresh() { vscode.postMessage({ type: 'refresh' }); }
+function refresh() { setLoading(true); vscode.postMessage({ type: 'refresh' }); }
 
 window.addEventListener('message', e => {
 	const msg = e.data;
 	if (msg.type === 'data') {
 		tasks = msg.tasks;
+		setLoading(false);
 		render();
+	} else if (msg.type === 'loading') {
+		setLoading(true);
 	} else if (msg.type === 'cancelled') {
 		const t = tasks.find(t => t.name === msg.name);
 		if (t) { t.state = 'CANCELLING'; }
