@@ -44,14 +44,15 @@ export class AssetsSection extends SidebarSection {
       this.provider.refreshFolder(item.asset.name);
     });
 
-    this.registerCommand('earthengine.openAssetPreview', async (item: AssetTreeItem) => {
+    this.registerCommand('earthengine.openAssetPreview', async (arg: AssetTreeItem | string) => {
       const token = await this.authService.getToken();
       if (!token) {
         vscode.window.showErrorMessage('Not authenticated.');
         return;
       }
+      const name = typeof arg === 'string' ? arg : arg.asset.name;
       try {
-        await openAssetPreview(item.asset.name, token);
+        await openAssetPreview(name, token);
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
         vscode.window.showErrorMessage(`Failed to load asset: ${msg}`);
