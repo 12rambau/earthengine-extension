@@ -397,6 +397,8 @@ function togglePicker(e) {
 	p.style.display = p.style.display === 'none' ? '' : 'none';
 }
 
+document.getElementById('col-picker').addEventListener('click', (e) => e.stopPropagation());
+
 document.addEventListener('click', () => {
 	document.getElementById('col-picker').style.display = 'none';
 });
