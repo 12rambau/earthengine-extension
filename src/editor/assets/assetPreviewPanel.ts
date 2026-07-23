@@ -25,7 +25,7 @@ export async function openAssetPreview(assetName: string, accessToken: string): 
 
   switch (asset.type) {
     case 'IMAGE':
-      openImagePreview(asset);
+      openImagePreview(asset, accessToken);
       break;
     case 'IMAGE_COLLECTION':
       openImageCollectionPreview(asset);
