@@ -4,9 +4,10 @@
  *
  * Displays a sortable, paginated table of Earth Engine assets with
  * breadcrumb navigation, folder drill-down, inline preview and
- * delete / move / copy actions. Unlike tasks, assets are not a
- * streaming resource: data is only fetched on navigation or when
- * the refresh button is pressed.
+ * delete / move / copy actions. Folder content is streamed page by
+ * page from the API (folders can hold thousands of images) and
+ * paginated client-side. Unlike tasks, assets are not a live
+ * resource: data is only fetched on navigation or explicit refresh.
  */
 
 import * as vscode from 'vscode';
@@ -15,6 +16,12 @@ import { AuthService } from '../../auth/index.js';
 import { openAssetPreview } from './assetPreviewPanel.js';
 
 const CONTAINER_TYPES = new Set(['FOLDER', 'IMAGE_COLLECTION']);
+
+/** Safety cap on the number of assets streamed for a single folder. */
+const MAX_ASSETS = 10_000;
+
+/** Number of assets fetched per API request while streaming. */
+const API_PAGE_SIZE = 200;
 
 const PREFS_KEY = 'earthengine.assets.prefs';
 
@@ -52,31 +59,14 @@ export async function openAssetsPanel(
   );
 
   let rootPath = `projects/${profile.project}`;
-
-  async function loadPage(parent: string, pageSize: number, pageToken?: string) {
-    const t = await authService.getToken();
-    if (!t) {
-      throw new Error('Not authenticated');
-    }
-    const response = await listAssets(parent, t, pageSize, pageToken);
-    return { assets: response.assets || [], nextPageToken: response.nextPageToken };
-  }
-
-  // Page token history for back navigation
-  let pageTokenHistory: (string | undefined)[] = [undefined];
-  let currentPageIndex = 0;
   let currentParentPath = rootPath;
+  let allAssets: EEAsset[] = [];
+  // Incremented on every navigation so a superseded stream stops sending
+  let generation = 0;
   const savedPrefs = context.globalState.get<AssetPrefs>(PREFS_KEY) ?? {};
-  let currentPageSize = savedPrefs.pageSize || 50;
 
-  function sendPage(
-    assets: EEAsset[],
-    parent: string,
-    pageIndex: number,
-    hasNext: boolean,
-    hasPrev: boolean,
-  ) {
-    const items = assets.map((a) => ({
+  function sendData(loading: boolean) {
+    const items = allAssets.map((a) => ({
       name: a.name,
       shortName: a.name.split('/').pop() || a.name,
       type: a.type,
@@ -86,66 +76,39 @@ export async function openAssetsPanel(
     panel.webview.postMessage({
       type: 'data',
       assets: items,
-      parent,
+      parent: currentParentPath,
       root: rootPath,
-      pageIndex,
-      hasNext,
-      hasPrev,
-      pageSize: currentPageSize,
+      loading,
     });
   }
 
-  async function navigateTo(parent: string, pageSize: number) {
+  /** Streams all pages of a folder's children, sending data after each page. */
+  async function loadAndStream(parent: string): Promise<void> {
+    const gen = ++generation;
     currentParentPath = parent;
-    currentPageSize = pageSize;
-    pageTokenHistory = [undefined];
-    currentPageIndex = 0;
-    const { assets, nextPageToken } = await loadPage(parent, pageSize);
-    if (nextPageToken) {
-      pageTokenHistory.push(nextPageToken);
-    }
-    sendPage(assets, parent, 0, !!nextPageToken, false);
-  }
-
-  async function goToPage(direction: 'next' | 'prev', pageSize: number) {
-    currentPageSize = pageSize;
-    if (direction === 'next') {
-      const token = pageTokenHistory[currentPageIndex + 1];
-      if (!token) {
-        return;
+    allAssets = [];
+    let pageToken: string | undefined;
+    do {
+      const t = await authService.getToken();
+      if (!t) {
+        throw new Error('Not authenticated');
       }
-      currentPageIndex++;
-      const { assets, nextPageToken } = await loadPage(currentParentPath, pageSize, token);
-      if (nextPageToken && pageTokenHistory.length <= currentPageIndex + 1) {
-        pageTokenHistory.push(nextPageToken);
+      const response = await listAssets(parent, t, API_PAGE_SIZE, pageToken);
+      if (gen !== generation) {
+        return; // superseded by a newer navigation
       }
-      sendPage(assets, currentParentPath, currentPageIndex, !!nextPageToken, true);
-    } else {
-      if (currentPageIndex <= 0) {
-        return;
-      }
-      currentPageIndex--;
-      const token = pageTokenHistory[currentPageIndex];
-      const { assets, nextPageToken } = await loadPage(currentParentPath, pageSize, token);
-      if (nextPageToken && pageTokenHistory.length <= currentPageIndex + 1) {
-        pageTokenHistory[currentPageIndex + 1] = nextPageToken;
-      }
-      sendPage(assets, currentParentPath, currentPageIndex, true, currentPageIndex > 0);
-    }
+      allAssets.push(...(response.assets || []));
+      pageToken = response.nextPageToken;
+      sendData(!!(pageToken && allAssets.length < MAX_ASSETS));
+    } while (pageToken && allAssets.length < MAX_ASSETS);
   }
 
   panel.webview.onDidReceiveMessage(async (msg) => {
     try {
       if (msg.type === 'navigate') {
-        await navigateTo(msg.path, msg.pageSize || currentPageSize);
+        await loadAndStream(msg.path);
       } else if (msg.type === 'refresh') {
-        await navigateTo(currentParentPath, msg.pageSize || currentPageSize);
-      } else if (msg.type === 'nextPage') {
-        await goToPage('next', msg.pageSize || currentPageSize);
-      } else if (msg.type === 'prevPage') {
-        await goToPage('prev', msg.pageSize || currentPageSize);
-      } else if (msg.type === 'changePageSize') {
-        await navigateTo(currentParentPath, msg.pageSize);
+        await loadAndStream(currentParentPath);
       } else if (msg.type === 'preview') {
         const t = await authService.getToken();
         if (t) {
@@ -156,7 +119,7 @@ export async function openAssetsPanel(
         if (command) {
           const done = await vscode.commands.executeCommand<boolean>(command, msg.name);
           if (done) {
-            await navigateTo(currentParentPath, currentPageSize);
+            await loadAndStream(currentParentPath);
           }
         }
       } else if (msg.type === 'savePrefs') {
@@ -177,20 +140,21 @@ export async function openAssetsPanel(
     }
     rootPath = `projects/${newProfile.project}`;
     panel.webview.postMessage({ type: 'loading' });
-    navigateTo(rootPath, currentPageSize).catch((err) => {
+    loadAndStream(rootPath).catch((err) => {
       const m = err instanceof Error ? err.message : String(err);
       panel.webview.postMessage({ type: 'error', message: m });
     });
   });
 
   panel.onDidDispose(() => {
+    generation++;
     authListener.dispose();
   });
 
   // Initial load
   panel.webview.html = getHtml(savedPrefs);
   try {
-    await navigateTo(rootPath, currentPageSize);
+    await loadAndStream(rootPath);
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     vscode.window.showErrorMessage(`Failed to load assets: ${msg}`);
@@ -248,7 +212,21 @@ h1 { font-size: 1.3em; margin: 0 0 8px 0; display: flex; align-items: center; ga
 	background: var(--vscode-list-hoverBackground) !important;
 	border-color: var(--vscode-input-border) !important;
 }
-.page-num { padding: 0 6px; opacity: 0.7; font-size: 0.85em; user-select: none; }
+.page-btn {
+	min-width: 28px; height: 28px; padding: 0 4px; border-radius: 50%;
+	background: transparent !important; border: 1px solid transparent !important;
+	font-size: 0.82em; display: inline-flex; align-items: center; justify-content: center;
+}
+.page-btn:hover {
+	background: var(--vscode-list-hoverBackground) !important;
+	border-color: var(--vscode-input-border) !important;
+}
+.page-btn.active {
+	background: var(--vscode-button-background) !important;
+	color: var(--vscode-button-foreground) !important;
+	border-color: transparent !important; font-weight: 600;
+}
+.page-ellipsis { padding: 0 4px; opacity: 0.5; font-size: 0.85em; user-select: none; }
 .per-page-select {
 	appearance: none; -webkit-appearance: none;
 	padding-right: 20px !important;
@@ -260,6 +238,11 @@ h1 { font-size: 1.3em; margin: 0 0 8px 0; display: flex; align-items: center; ga
 	cursor: pointer;
 }
 .per-page-select:hover { background-color: var(--vscode-button-secondaryHoverBackground) !important; }
+.spinner-inline {
+	width: 9px; height: 9px; border: 1.5px solid currentColor; border-top-color: transparent;
+	border-radius: 50%; display: inline-block; animation: spin 0.8s linear infinite;
+	opacity: 0.6; vertical-align: middle; margin-left: 5px;
+}
 button, select {
 	background: var(--vscode-button-secondaryBackground);
 	color: var(--vscode-button-secondaryForeground);
@@ -361,7 +344,7 @@ tr:hover { background: var(--vscode-list-hoverBackground); }
 	<span class="page-info" id="pageInfo"></span>
 	<div class="pager" style="margin-left:auto;flex-shrink:0;">
 		<button class="nav-btn" onclick="prevPage()" id="prevBtn">◀ Prev</button>
-		<span class="page-num" id="pageNum"></span>
+		<span id="pageNums"></span>
 		<button class="nav-btn" onclick="nextPage()" id="nextBtn">Next ▶</button>
 	</div>
 </div>
@@ -384,9 +367,8 @@ let pageSize = saved.pageSize || 50;
 let assets = [];
 let currentParent = '';
 let rootPath = '';
-let pageIndex = 0;
-let hasNext = false;
-let hasPrev = false;
+let isLoading = true; // true until the last streamed page arrives
+let currentPage = 0;
 let sortCol = 'shortName';
 let sortDir = 1;
 
@@ -532,9 +514,13 @@ function render() {
 		const vb = (b[sortCol] || '').toLowerCase();
 		return va < vb ? -sortDir : va > vb ? sortDir : 0;
 	});
+	const totalPages = Math.max(1, Math.ceil(sorted.length / pageSize));
+	if (currentPage >= totalPages) currentPage = totalPages - 1;
+	const start = currentPage * pageSize;
+	const page = sorted.slice(start, start + pageSize);
 
 	const vis = key => visibleCols.has(key);
-	document.getElementById('tbody').innerHTML = sorted.map(a => {
+	document.getElementById('tbody').innerHTML = page.map(a => {
 		const icon = TYPE_ICONS[a.type] || '';
 		const nameCell = a.isContainer
 			? '<button class="name-link" onclick="navigate(\\'' + esc(a.name) + '\\')">' + icon + esc(a.shortName) + '</button>'
@@ -547,20 +533,50 @@ function render() {
 			+ '</tr>';
 	}).join('');
 
-	const countStr = assets.length === 1 ? '1 item' : assets.length + ' items';
-	document.getElementById('pageInfo').textContent = countStr;
-	document.getElementById('pageNum').textContent = 'page ' + (pageIndex + 1);
-	document.getElementById('prevBtn').disabled = !hasPrev;
-	document.getElementById('nextBtn').disabled = !hasNext;
+	const rangeStart = sorted.length > 0 ? start + 1 : 0;
+	const rangeEnd = Math.min(start + pageSize, sorted.length);
+	const countStr = sorted.length > 0 ? rangeStart + '–' + rangeEnd + ' of ' + sorted.length + ' assets' : '0 assets';
+	document.getElementById('pageInfo').innerHTML = esc(countStr) + (isLoading ? ' <span class="spinner-inline"></span>' : '');
+	document.getElementById('prevBtn').disabled = currentPage === 0;
+	document.getElementById('nextBtn').disabled = currentPage >= totalPages - 1;
+	document.getElementById('pageNums').innerHTML = pagerHtml(currentPage, totalPages);
 	document.getElementById('upBtn').disabled = (currentParent === rootPath);
 	updateSortArrows();
 	renderBreadcrumb();
 }
 
+function pagerHtml(cur, total) {
+	if (total <= 1) return '';
+	const shown = new Set([0, total - 1]);
+	for (let i = Math.max(0, cur - 1); i <= Math.min(total - 1, cur + 1); i++) shown.add(i);
+	const pages = [...shown].sort((a, b) => a - b);
+	const btns = [];
+	let prev = -1;
+	for (const p of pages) {
+		if (prev !== -1 && p > prev + 1) btns.push('<span class="page-ellipsis">…</span>');
+		const cls = 'page-btn' + (p === cur ? ' active' : '');
+		btns.push('<button class="' + cls + '" onclick="goToPage(' + p + ')">' + (p + 1) + '</button>');
+		prev = p;
+	}
+	return btns.join('');
+}
+function goToPage(p) { currentPage = p; render(); }
+
 // ── Actions ───────────────────────────────────────────────────────────
 
 function sortBy(col) {
 	if (sortCol === col) { sortDir *= -1; } else { sortCol = col; sortDir = 1; }
+	render();
+}
+function nextPage() {
+	const totalPages = Math.ceil(assets.length / pageSize);
+	if (currentPage < totalPages - 1) { currentPage++; render(); }
+}
+function prevPage() { if (currentPage > 0) { currentPage--; render(); } }
+function changePageSize(v) {
+	pageSize = parseInt(v);
+	currentPage = 0;
+	saveState();
 	render();
 }
 function setLoading(on) {
@@ -578,16 +594,8 @@ function setLoading(on) {
 		wrap.classList.remove('loading');
 	}
 }
-function request(msg) { setLoading(true); vscode.postMessage(msg); }
-function navigate(path) { request({ type: 'navigate', path, pageSize }); }
-function refresh() { request({ type: 'refresh', pageSize }); }
-function nextPage() { request({ type: 'nextPage', pageSize }); }
-function prevPage() { request({ type: 'prevPage', pageSize }); }
-function changePageSize(v) {
-	pageSize = parseInt(v);
-	saveState();
-	request({ type: 'changePageSize', pageSize });
-}
+function navigate(path) { currentPage = 0; setLoading(true); vscode.postMessage({ type: 'navigate', path }); }
+function refresh() { setLoading(true); vscode.postMessage({ type: 'refresh' }); }
 function goUp() {
 	if (currentParent === rootPath) return;
 	// Go to parent: remove last path segment, or back to root when at depth 1
@@ -604,18 +612,13 @@ window.addEventListener('message', e => {
 		assets = msg.assets;
 		currentParent = msg.parent;
 		rootPath = msg.root;
-		pageIndex = msg.pageIndex;
-		hasNext = msg.hasNext;
-		hasPrev = msg.hasPrev;
-		if (msg.pageSize) {
-			pageSize = msg.pageSize;
-			document.getElementById('pageSize').value = String(pageSize);
-		}
+		isLoading = msg.loading;
 		setLoading(false);
 		render();
 	} else if (msg.type === 'loading') {
 		setLoading(true);
 	} else if (msg.type === 'error') {
+		isLoading = false;
 		setLoading(false);
 		alert(msg.message);
 	}
