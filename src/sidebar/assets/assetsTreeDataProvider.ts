@@ -19,7 +19,7 @@ const TYPE_ICONS: Record<string, vscode.ThemeIcon> = {
   TABLE: new vscode.ThemeIcon('table', new vscode.ThemeColor('charts.green')),
 };
 
-const CONTAINER_TYPES = new Set(['FOLDER', 'IMAGE_COLLECTION']);
+const CONTAINER_TYPES = new Set(['FOLDER']);
 
 // ── AssetTreeItem ───────────────────────────────────────────────────
 
