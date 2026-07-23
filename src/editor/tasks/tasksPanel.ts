@@ -199,11 +199,16 @@ h1 { font-size: 1.3em; margin: 0 0 8px 0; display: flex; align-items: center; ga
 }
 .page-ellipsis { padding: 0 4px; opacity: 0.5; font-size: 0.85em; user-select: none; }
 .per-page-select {
-	background: transparent !important; border: none !important; box-shadow: none;
-	opacity: 0.45; font-size: 0.8em; padding: 2px 2px !important; cursor: pointer;
-	color: var(--vscode-foreground) !important;
+	appearance: none; -webkit-appearance: none;
+	padding-right: 20px !important;
+	background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23999'/%3E%3C/svg%3E") !important;
+	background-repeat: no-repeat !important;
+	background-position: right 6px center !important;
+	background-color: var(--vscode-button-secondaryBackground) !important;
+	border: 1px solid var(--vscode-input-border) !important;
+	cursor: pointer;
 }
-.per-page-select:hover, .per-page-select:focus { opacity: 1; outline: none; }
+.per-page-select:hover { background-color: var(--vscode-button-secondaryHoverBackground) !important; }
 .spinner-inline {
 	width: 9px; height: 9px; border: 1.5px solid currentColor; border-top-color: transparent;
 	border-radius: 50%; display: inline-block; animation: spin 0.8s linear infinite;
@@ -283,9 +288,18 @@ tr:hover { background: var(--vscode-list-hoverBackground); }
 	<div class="topbar-left">
 		<button id="refreshBtn" onclick="refresh()" class="btn-primary"><span class="refresh-icon">⟳</span> <span id="refreshLabel">Refresh</span></button>
 	</div>
-	<div class="col-picker-wrap">
-		<button onclick="togglePicker(event)" id="colBtn">Columns ▾</button>
-		<div id="col-picker" class="col-picker" style="display:none"></div>
+	<div style="display:flex;align-items:center;gap:6px;">
+		<select id="pageSize" class="per-page-select" onchange="changePageSize(this.value)" title="Items per page">
+			<option value="10">10</option>
+			<option value="25">25</option>
+			<option value="50">50</option>
+			<option value="100">100</option>
+			<option value="500">500</option>
+		</select>
+		<div class="col-picker-wrap">
+			<button onclick="togglePicker(event)" id="colBtn">Columns ▾</button>
+			<div id="col-picker" class="col-picker" style="display:none"></div>
+		</div>
 	</div>
 </div>
 <div class="table-wrap">
@@ -296,18 +310,12 @@ tr:hover { background: var(--vscode-list-hoverBackground); }
 </div>
 <div class="pagination" id="toolbar-bottom">
 	<span class="page-info" id="pageInfo"></span>
-	<div class="pager">
+	<div class="pager" style="margin-left:auto;flex-shrink:0;">
 		<button class="nav-btn" onclick="prevPage()" id="prevBtn">◀ Prev</button>
 		<span id="pageNums"></span>
 		<button class="nav-btn" onclick="nextPage()" id="nextBtn">Next ▶</button>
 	</div>
-	<select id="pageSize" class="per-page-select" onchange="changePageSize(this.value)" title="Items per page">
-		<option value="10">10</option>
-		<option value="25">25</option>
-		<option value="50">50</option>
-		<option value="100">100</option>
-		<option value="500">500</option>
-	</select>
+</div>
 </div>
 <script>
 const vscode = acquireVsCodeApi();
