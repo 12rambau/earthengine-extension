@@ -13,6 +13,7 @@
  */
 
 import * as vscode from 'vscode';
+import { marked } from 'marked';
 import { EEAsset, EEBand } from '../../sidebar/assets/eeApiClient.js';
 import { httpRequest } from '../../shared/httpClient.js';
 import {
@@ -216,8 +217,8 @@ function buildImageHtml(asset: EEAsset, webview: vscode.Webview): string {
   const bandCount = bands.length;
 
   const description = asset.properties?.['description']
-    ? escapeHtml(String(asset.properties['description']))
-    : 'No description.';
+    ? String(asset.properties['description'])
+    : '';
 
   const bandsRowsHtml = bands
     .map((b, i) => {
@@ -301,7 +302,7 @@ ${imagePreviewStyle()}
     </nav>
 
     <section class="tab-panel active" id="tab-description">
-      <p class="description-text">${description}</p>
+      ${description ? `<div class="description-text">${marked(description)}</div>` : '<p class="description-text">No description.</p>'}
     </section>
 
     <section class="tab-panel" id="tab-bands">
@@ -393,12 +394,23 @@ ${imagePreviewStyle()}
 
 // ── Properties helper ───────────────────────────────────────────────
 
+/** Property keys excluded from the PROPERTIES tab (system + description). */
+const EXCLUDED_PROP_PREFIXES = ['system:'];
+const EXCLUDED_PROP_KEYS = new Set(['description']);
+
 function buildPropertiesRows(props?: Record<string, unknown>): string {
   if (!props || Object.keys(props).length === 0) {
     return '<tr><td colspan="2"><em>No properties</em></td></tr>';
   }
-  return Object.entries(props)
-    .sort(([a], [b]) => a.localeCompare(b))
+  const entries = Object.entries(props)
+    .filter(
+      ([k]) => !EXCLUDED_PROP_PREFIXES.some((p) => k.startsWith(p)) && !EXCLUDED_PROP_KEYS.has(k),
+    )
+    .sort(([a], [b]) => a.localeCompare(b));
+  if (entries.length === 0) {
+    return '<tr><td colspan="2"><em>No properties</em></td></tr>';
+  }
+  return entries
     .map(([k, v]) => `<tr><td>${escapeHtml(k)}</td><td>${escapeHtml(String(v ?? ''))}</td></tr>`)
     .join('');
 }
