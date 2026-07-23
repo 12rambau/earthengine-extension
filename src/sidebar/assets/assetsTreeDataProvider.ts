@@ -82,6 +82,7 @@ export class AssetsTreeDataProvider implements vscode.TreeDataProvider<AssetTree
 
   private childrenCache = new Map<string, EEAsset[]>();
   private loadingState = new Set<string>();
+  private expandedFolders = new Set<string>();
   // Reverse indexes used for search + reveal.
   private parentMap = new Map<string, string>();
   private assetByName = new Map<string, EEAsset>();
@@ -186,7 +187,11 @@ export class AssetsTreeDataProvider implements vscode.TreeDataProvider<AssetTree
   private mapAssets(assets: EEAsset[]): AssetTreeItem[] {
     return assets.map((a) => {
       const isContainer = CONTAINER_TYPES.has(a.type);
-      return new AssetTreeItem(a, isContainer);
+      const item = new AssetTreeItem(a, isContainer);
+      if (isContainer && this.expandedFolders.has(a.name)) {
+        item.iconPath = new vscode.ThemeIcon('folder-opened');
+      }
+      return item;
     });
   }
 
@@ -194,6 +199,7 @@ export class AssetsTreeDataProvider implements vscode.TreeDataProvider<AssetTree
   refresh() {
     this.childrenCache.clear();
     this.loadingState.clear();
+    this.expandedFolders.clear();
     this.parentMap.clear();
     this.assetByName.clear();
     this._onDidChangeTreeData.fire();
@@ -211,6 +217,21 @@ export class AssetsTreeDataProvider implements vscode.TreeDataProvider<AssetTree
       }
     }
     this._onDidChangeTreeData.fire();
+  }
+
+  /** Updates the folder icon when the user expands or collapses a folder. */
+  setExpanded(item: AssetTreeItem, expanded: boolean): void {
+    if (!item.isContainer) {
+      return;
+    }
+    if (expanded) {
+      this.expandedFolders.add(item.asset.name);
+      item.iconPath = new vscode.ThemeIcon('folder-opened');
+    } else {
+      this.expandedFolders.delete(item.asset.name);
+      item.iconPath = TYPE_ICONS[item.asset.type] || new vscode.ThemeIcon('folder');
+    }
+    this._onDidChangeTreeData.fire(item);
   }
 
   /**
