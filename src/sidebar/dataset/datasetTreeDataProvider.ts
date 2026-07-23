@@ -16,9 +16,9 @@ type CollectionMetadata = { type: string; description: string; keywords: string[
 // ── Constants ───────────────────────────────────────────────────────
 
 const TYPE_ICONS: Record<string, vscode.ThemeIcon> = {
-  image_collection: new vscode.ThemeIcon('layers'),
-  image: new vscode.ThemeIcon('file-media'),
-  table: new vscode.ThemeIcon('table'),
+  image_collection: new vscode.ThemeIcon('layers', new vscode.ThemeColor('charts.blue')),
+  image: new vscode.ThemeIcon('file-media', new vscode.ThemeColor('charts.orange')),
+  table: new vscode.ThemeIcon('table', new vscode.ThemeColor('charts.green')),
 };
 
 // ── Publisher / Community Catalogs ───────────────────────────────
@@ -65,7 +65,7 @@ export class DatasetTreeItem extends vscode.TreeItem {
 
     if (nodeType === 'category') {
       this.collapsibleState = vscode.TreeItemCollapsibleState.Collapsed;
-      this.iconPath = new vscode.ThemeIcon('folder-library');
+      this.iconPath = new vscode.ThemeIcon('root-folder');
       this.contextValue = 'dataset-category';
       this.id = `cat:${stacHref}`;
     } else if (loading) {
@@ -74,7 +74,7 @@ export class DatasetTreeItem extends vscode.TreeItem {
       this.contextValue = 'dataset-loading';
     } else if (nodeType === 'provider') {
       this.collapsibleState = vscode.TreeItemCollapsibleState.Collapsed;
-      this.iconPath = new vscode.ThemeIcon('database');
+      this.iconPath = new vscode.ThemeIcon('folder-library');
       this.contextValue = 'dataset-provider';
       if (stacHref) {
         this.id = `prov:${stacHref}`;
@@ -128,6 +128,7 @@ export class DatasetTreeDataProvider implements vscode.TreeDataProvider<DatasetT
   private loadingProviders = new Set<string>();
   private providerChildren = new Map<string, { id: string; title: string; href: string }[]>();
   private providerLoadingState = new Set<string>();
+  private expandedNodes = new Set<string>();
 
   getTreeItem(element: DatasetTreeItem): vscode.TreeItem {
     return element;
@@ -157,9 +158,9 @@ export class DatasetTreeDataProvider implements vscode.TreeDataProvider<DatasetT
   async getChildren(element?: DatasetTreeItem): Promise<DatasetTreeItem[]> {
     if (!element) {
       return [
-        new DatasetTreeItem('Google', 'category', 'google'),
-        new DatasetTreeItem('Publishers', 'category', 'publishers'),
-        new DatasetTreeItem('Community', 'category', 'community'),
+        this.applyExpandedIcon(new DatasetTreeItem('Google', 'category', 'google')),
+        this.applyExpandedIcon(new DatasetTreeItem('Publishers', 'category', 'publishers')),
+        this.applyExpandedIcon(new DatasetTreeItem('Community', 'category', 'community')),
       ];
     }
 
@@ -232,6 +233,34 @@ export class DatasetTreeDataProvider implements vscode.TreeDataProvider<DatasetT
     return [];
   }
 
+  /** Applies the folder-opened icon when this node is currently expanded. */
+  private applyExpandedIcon(item: DatasetTreeItem): DatasetTreeItem {
+    if (this.expandedNodes.has(item.id ?? item.stacHref)) {
+      item.iconPath = new vscode.ThemeIcon(
+        item.nodeType === 'category' ? 'root-folder-opened' : 'folder-opened',
+      );
+    }
+    return item;
+  }
+
+  /** Updates the icon when the user expands or collapses a container node. */
+  setExpanded(item: DatasetTreeItem, expanded: boolean): void {
+    const key = item.id ?? item.stacHref;
+    if (expanded) {
+      this.expandedNodes.add(key);
+      item.iconPath = new vscode.ThemeIcon(
+        item.nodeType === 'category' ? 'root-folder-opened' : 'folder-opened',
+      );
+    } else {
+      this.expandedNodes.delete(key);
+      item.iconPath =
+        item.nodeType === 'category'
+          ? new vscode.ThemeIcon('root-folder')
+          : new vscode.ThemeIcon('folder-library');
+    }
+    this._onDidChangeTreeData.fire(item);
+  }
+
   /** Fetches and caches the Google providers from the STAC root catalog. */
   private async getGoogleProviders(): Promise<DatasetTreeItem[]> {
     if (!this.providers) {
@@ -242,7 +271,9 @@ export class DatasetTreeDataProvider implements vscode.TreeDataProvider<DatasetT
         return [];
       }
     }
-    return this.providers.map((p) => new DatasetTreeItem(p.title, 'provider', p.href));
+    return this.providers.map((p) =>
+      this.applyExpandedIcon(new DatasetTreeItem(p.title, 'provider', p.href)),
+    );
   }
 
   /** Loads datasets for a provider in the background, then refreshes the tree. */

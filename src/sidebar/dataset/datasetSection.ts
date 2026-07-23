@@ -29,6 +29,9 @@ export class DatasetSection extends SidebarSection {
       showCollapseAll: true,
     });
 
+    treeView.onDidExpandElement((e) => this.provider.setExpanded(e.element, true));
+    treeView.onDidCollapseElement((e) => this.provider.setExpanded(e.element, false));
+
     this.registerCommand('earthengine.refreshDatasets', () => this.provider.refresh());
 
     this.registerCommand('earthengine.searchDatasets', async () => {

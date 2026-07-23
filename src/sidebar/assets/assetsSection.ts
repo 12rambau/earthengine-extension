@@ -29,6 +29,8 @@ export class AssetsSection extends SidebarSection {
       showCollapseAll: true,
     });
 
+    treeView.onDidExpandElement((e) => this.provider.setExpanded(e.element, true));
+    treeView.onDidCollapseElement((e) => this.provider.setExpanded(e.element, false));
     this.registerCommand('earthengine.refreshAssets', () => this.provider.refresh());
 
     this.registerCommand('earthengine.searchAssets', async () => {
