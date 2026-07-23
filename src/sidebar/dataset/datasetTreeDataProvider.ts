@@ -65,7 +65,7 @@ export class DatasetTreeItem extends vscode.TreeItem {
 
     if (nodeType === 'category') {
       this.collapsibleState = vscode.TreeItemCollapsibleState.Collapsed;
-      this.iconPath = new vscode.ThemeIcon('folder-root');
+      this.iconPath = new vscode.ThemeIcon('root-folder');
       this.contextValue = 'dataset-category';
       this.id = `cat:${stacHref}`;
     } else if (loading) {
@@ -251,7 +251,7 @@ export class DatasetTreeDataProvider implements vscode.TreeDataProvider<DatasetT
       this.expandedNodes.delete(key);
       item.iconPath =
         item.nodeType === 'category'
-          ? new vscode.ThemeIcon('folder-root')
+          ? new vscode.ThemeIcon('root-folder')
           : new vscode.ThemeIcon('folder-library');
     }
     this._onDidChangeTreeData.fire(item);
