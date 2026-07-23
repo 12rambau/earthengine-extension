@@ -302,10 +302,19 @@ tr:hover { background: var(--vscode-list-hoverBackground); }
 .icon { margin-right: 6px; vertical-align: middle; }
 .id-cell { font-family: var(--vscode-editor-font-family, monospace); font-size: 0.78em; opacity: 0.75; }
 .actions-cell { white-space: nowrap; }
+/* Idle rows show one dot per available action; hovering the row reveals the
+   buttons. Each dot has the exact same footprint as an action button so the
+   column width does not shift on hover. */
+.action-dots { display: inline-flex; align-items: center; height: 22px; opacity: 0.4; }
+.action-dot { padding: 2px 6px; display: inline-flex; align-items: center; }
+.action-btns { display: none; align-items: center; height: 22px; }
+tr:hover .action-dots, tr:focus-within .action-dots { display: none; }
+tr:hover .action-btns, tr:focus-within .action-btns { display: inline-flex; }
 .action-btn {
 	background: none !important; border: none !important; cursor: pointer;
 	padding: 2px 6px; border-radius: 3px;
 	color: var(--vscode-foreground); opacity: 0.7;
+	display: inline-flex; align-items: center;
 }
 .action-btn:hover { opacity: 1; background: var(--vscode-list-hoverBackground) !important; }
 .action-btn.danger { color: var(--vscode-errorForeground); }
@@ -384,6 +393,8 @@ const ACTION_ICONS = {
 	copy: '<svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M4 4l1-1h5.414L14 6.586V14l-1 1H5l-1-1V4zm9 3l-3-3H5v10h8V7z"/><path d="M3 1L2 2v10l1 1V2h6.414l-1-1H3z"/></svg>',
 	move: '<svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M9.3 3.3l4.2 4.2v1L9.3 12.7l-.7-.7 3.3-3.3H2v-1h9.9L8.6 4l.7-.7z"/></svg>',
 	del: '<svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M6 2h4v1h4v1h-1v10l-1 1H4l-1-1V4H2V3h4V2zm-2 2v10h8V4H4zm3 2h1v6H7V6zm2 0h1v6H9V6z"/></svg>',
+	// codicon circle-small-filled
+	dot: '<svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M8 6.25a1.75 1.75 0 1 1 0 3.5 1.75 1.75 0 0 1 0-3.5z"/></svg>',
 };
 
 function esc(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
@@ -504,7 +515,9 @@ function actionsHtml(a) {
 	btns.push('<button class="action-btn" title="Copy asset" onclick="assetAction(\\'copy\\',\\'' + esc(a.name) + '\\')">' + ACTION_ICONS.copy + '</button>');
 	btns.push('<button class="action-btn" title="Move asset" onclick="assetAction(\\'move\\',\\'' + esc(a.name) + '\\')">' + ACTION_ICONS.move + '</button>');
 	btns.push('<button class="action-btn danger" title="Delete asset" onclick="assetAction(\\'delete\\',\\'' + esc(a.name) + '\\')">' + ACTION_ICONS.del + '</button>');
-	return btns.join('');
+	const dots = ('<span class="action-dot">' + ACTION_ICONS.dot + '</span>').repeat(btns.length);
+	return '<span class="action-dots">' + dots + '</span>'
+		+ '<span class="action-btns">' + btns.join('') + '</span>';
 }
 
 function render() {
