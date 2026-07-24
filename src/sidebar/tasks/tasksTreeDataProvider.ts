@@ -130,6 +130,16 @@ const MAX_TASKS = 100;
 
 const TERMINAL_STATES = new Set(['SUCCEEDED', 'FAILED', 'CANCELLED']);
 
+/** All possible task states from the EE REST API. */
+export const TASK_STATES = [
+  'PENDING',
+  'RUNNING',
+  'CANCELLING',
+  'SUCCEEDED',
+  'FAILED',
+  'CANCELLED',
+] as const;
+
 /** Provides a fixed-size list of task tree items with incremental refresh. */
 export class TasksTreeDataProvider implements vscode.TreeDataProvider<TaskTreeItem> {
   private _onDidChangeTreeData = new vscode.EventEmitter<TaskTreeItem | undefined | void>();
@@ -140,12 +150,36 @@ export class TasksTreeDataProvider implements vscode.TreeDataProvider<TaskTreeIt
   private loading = false;
   private initialLoaded = false;
   private autoRefreshTimer: ReturnType<typeof setInterval> | undefined;
+  private statusFilter: Set<string> | undefined;
+  private lastPageToken: string | undefined;
 
   constructor(
     private readonly authService: AuthService,
     private readonly filter: TaskFilter,
   ) {
     authService.onDidChangeAuth(() => this.refresh());
+  }
+
+  // ── Status filter ───────────────────────────────────────────────────
+
+  /** Sets the status filter. Pass undefined or empty set to clear. */
+  setStatusFilter(states: Set<string> | undefined): void {
+    this.statusFilter = states && states.size > 0 ? states : undefined;
+    // Reload from scratch when filter changes
+    this.loadedTasks = [];
+    this.resolvedProject = undefined;
+    this.loading = false;
+    this.initialLoaded = false;
+    this.lastPageToken = undefined;
+    if (this.autoRefreshTimer) {
+      clearInterval(this.autoRefreshTimer);
+      this.autoRefreshTimer = undefined;
+    }
+    this._onDidChangeTreeData.fire();
+  }
+
+  getStatusFilter(): Set<string> | undefined {
+    return this.statusFilter;
   }
 
   getTreeItem(element: TaskTreeItem): vscode.TreeItem {
@@ -172,6 +206,11 @@ export class TasksTreeDataProvider implements vscode.TreeDataProvider<TaskTreeIt
       return [placeholder as unknown as TaskTreeItem];
     }
 
+    // Once we have any data, show it (even while still loading more pages)
+    if (this.loadedTasks.length > 0) {
+      return this.buildItems();
+    }
+
     if (this.loading) {
       const placeholder = new vscode.TreeItem('Loading tasks...');
       placeholder.iconPath = new vscode.ThemeIcon('loading~spin');
@@ -183,7 +222,11 @@ export class TasksTreeDataProvider implements vscode.TreeDataProvider<TaskTreeIt
 
   private buildItems(): TaskTreeItem[] {
     const filterFn = this.filter === 'export' ? isExportTask : isImportTask;
-    const filtered = this.loadedTasks.filter(filterFn).slice(0, MAX_TASKS);
+    let filtered = this.loadedTasks.filter(filterFn);
+    if (this.statusFilter) {
+      filtered = filtered.filter((op) => this.statusFilter!.has(getTaskState(op)));
+    }
+    filtered = filtered.slice(0, MAX_TASKS);
 
     if (filtered.length === 0) {
       const empty = new vscode.TreeItem(`No ${this.filter} tasks`);
@@ -193,31 +236,29 @@ export class TasksTreeDataProvider implements vscode.TreeDataProvider<TaskTreeIt
 
     const items: TaskTreeItem[] = filtered.map((op) => new TaskTreeItem(op));
 
-    // Show a hint to open the editor panel for more tasks
-    if (filtered.length >= MAX_TASKS) {
-      const more = new TaskTreeItem({
-        name: '__open_preview__',
-        metadata: { description: 'Open preview to see more…', state: '__MORE__' },
-      });
-      more.iconPath = new vscode.ThemeIcon('open-preview');
-      more.description = '';
-      more.command = {
-        command:
-          this.filter === 'export'
-            ? 'earthengine.openExportTasksPanel'
-            : 'earthengine.openImportTasksPanel',
-        title: 'Open Preview',
-      };
-      more.contextValue = 'task-open-preview';
-      items.push(more);
-    }
+    // Always show "Open preview to see more…" at the bottom
+    const more = new TaskTreeItem({
+      name: '__open_preview__',
+      metadata: { description: 'Open preview to see more…', state: '__MORE__' },
+    });
+    more.iconPath = new vscode.ThemeIcon('open-preview');
+    more.description = '';
+    more.command = {
+      command:
+        this.filter === 'export'
+          ? 'earthengine.openExportTasksPanel'
+          : 'earthengine.openImportTasksPanel',
+      title: 'Open Preview',
+    };
+    more.contextValue = 'task-open-preview';
+    items.push(more);
 
     return items;
   }
 
   // ── Data loading ────────────────────────────────────────────────────
 
-  /** Initial load: fetch the first page (100 tasks). */
+  /** Initial load: fetch first page immediately, then continue in background. */
   private async initialLoad(): Promise<void> {
     try {
       const token = await this.authService.getToken();
@@ -227,20 +268,75 @@ export class TasksTreeDataProvider implements vscode.TreeDataProvider<TaskTreeIt
 
       const profile = this.authService.currentProfile!;
       const project = this.resolvedProject || profile.project;
-      const result = await listOperationsPage(project, token, MAX_TASKS);
 
-      this.resolvedProject = result.project;
-      this.loadedTasks = result.operations;
+      // First page — show results immediately
+      const first = await listOperationsPage(project, token, 100);
+      this.resolvedProject = first.project;
+      this.loadedTasks = first.operations;
       this.initialLoaded = true;
-      this.manageAutoRefresh();
+      this.loading = false;
+      this._onDidChangeTreeData.fire();
+
+      // Continue loading in background if filter requires more matches
+      if (first.nextPageToken && this.needsMoreMatches()) {
+        this.loadMoreInBackground(token, first.nextPageToken);
+      } else {
+        this.lastPageToken = first.nextPageToken;
+        this.manageAutoRefresh();
+      }
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       vscode.window.showErrorMessage(`Failed to load ${this.filter} tasks: ${msg}`);
       this.initialLoaded = true;
-    } finally {
       this.loading = false;
       this._onDidChangeTreeData.fire();
     }
+  }
+
+  /** Returns true if we haven't filled MAX_TASKS matching items yet. */
+  private needsMoreMatches(): boolean {
+    if (!this.statusFilter) {
+      return false; // Without status filter, first 100 is enough
+    }
+    const filterFn = this.filter === 'export' ? isExportTask : isImportTask;
+    let matching = this.loadedTasks.filter(filterFn);
+    matching = matching.filter((op) => this.statusFilter!.has(getTaskState(op)));
+    return matching.length < MAX_TASKS;
+  }
+
+  /** Fetches additional pages in background, updating the tree after each. */
+  private async loadMoreInBackground(token: string, startToken: string): Promise<void> {
+    const filterFn = this.filter === 'export' ? isExportTask : isImportTask;
+    let pageToken: string | undefined = startToken;
+    const maxPages = 5; // Cap at 5 extra pages (500 more tasks scanned)
+    let pages = 0;
+
+    while (pageToken && pages < maxPages) {
+      try {
+        const result = await listOperationsPage(this.resolvedProject!, token, 100, pageToken);
+        this.resolvedProject = result.project;
+        this.loadedTasks.push(...result.operations);
+        pageToken = result.nextPageToken;
+        pages++;
+
+        // Update tree without spinner
+        this._onDidChangeTreeData.fire();
+
+        // Check if we have enough matches now
+        let matching = this.loadedTasks.filter(filterFn);
+        if (this.statusFilter) {
+          matching = matching.filter((op) => this.statusFilter!.has(getTaskState(op)));
+        }
+        if (matching.length >= MAX_TASKS) {
+          break;
+        }
+      } catch {
+        break;
+      }
+    }
+
+    this.lastPageToken = pageToken;
+    this.manageAutoRefresh();
   }
 
   /** Full refresh — clears everything and reloads. */
@@ -249,6 +345,7 @@ export class TasksTreeDataProvider implements vscode.TreeDataProvider<TaskTreeIt
     this.resolvedProject = undefined;
     this.loading = false;
     this.initialLoaded = false;
+    this.lastPageToken = undefined;
     if (this.autoRefreshTimer) {
       clearInterval(this.autoRefreshTimer);
       this.autoRefreshTimer = undefined;
@@ -257,8 +354,9 @@ export class TasksTreeDataProvider implements vscode.TreeDataProvider<TaskTreeIt
   }
 
   /**
-   * Incremental refresh: fetch new tasks one batch at a time until overlap,
-   * update non-terminal tasks, then prune to MAX_TASKS.
+   * Incremental refresh: fetch new tasks until overlap,
+   * update non-terminal tasks, prune those that no longer match the filter,
+   * and backfill from the API if we drop below MAX_TASKS.
    */
   private async incrementalRefresh(): Promise<void> {
     try {
@@ -314,15 +412,54 @@ export class TasksTreeDataProvider implements vscode.TreeDataProvider<TaskTreeIt
         }),
       );
 
-      // Prune to MAX_TASKS
-      if (this.loadedTasks.length > MAX_TASKS) {
-        this.loadedTasks.length = MAX_TASKS;
+      // If a status filter is active, prune tasks that no longer match
+      if (this.statusFilter) {
+        this.loadedTasks = this.loadedTasks.filter(
+          (op) =>
+            this.statusFilter!.has(getTaskState(op)) || !TERMINAL_STATES.has(getTaskState(op)),
+        );
+      }
+
+      // Backfill if we dropped below MAX_TASKS matching items
+      await this.backfillIfNeeded(token);
+
+      // Final prune
+      if (this.loadedTasks.length > MAX_TASKS * 2) {
+        this.loadedTasks.length = MAX_TASKS * 2;
       }
 
       this.manageAutoRefresh();
       this._onDidChangeTreeData.fire();
     } catch {
       // Silently ignore incremental refresh errors
+    }
+  }
+
+  /** Fetches additional pages if the visible list is below MAX_TASKS. */
+  private async backfillIfNeeded(token: string): Promise<void> {
+    const filterFn = this.filter === 'export' ? isExportTask : isImportTask;
+    let matching = this.loadedTasks.filter(filterFn);
+    if (this.statusFilter) {
+      matching = matching.filter((op) => this.statusFilter!.has(getTaskState(op)));
+    }
+
+    if (matching.length >= MAX_TASKS || !this.lastPageToken) {
+      return;
+    }
+
+    // Fetch more pages to try to fill the slots
+    let pageToken: string | undefined = this.lastPageToken;
+    while (matching.length < MAX_TASKS && pageToken) {
+      const result = await listOperationsPage(this.resolvedProject!, token, 100, pageToken);
+      this.resolvedProject = result.project;
+      this.loadedTasks.push(...result.operations);
+      pageToken = result.nextPageToken;
+      this.lastPageToken = pageToken;
+
+      matching = this.loadedTasks.filter(filterFn);
+      if (this.statusFilter) {
+        matching = matching.filter((op) => this.statusFilter!.has(getTaskState(op)));
+      }
     }
   }
 

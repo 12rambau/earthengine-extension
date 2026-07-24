@@ -178,6 +178,11 @@
         "icon": "$(refresh)"
       },
       {
+        "command": "earthengine.filterTasksByStatus",
+        "title": "Filter by Status",
+        "icon": "$(filter)"
+      },
+      {
         "command": "earthengine.searchTasks",
         "title": "Earth Engine: Search Tasks",
         "icon": "$(search)"
@@ -296,6 +301,11 @@
           "group": "navigation"
         },
         {
+          "command": "earthengine.filterTasksByStatus",
+          "when": "view == earthengine.tasks.export || view == earthengine.tasks.import",
+          "group": "navigation"
+        },
+        {
           "command": "earthengine.refreshTasks",
           "when": "view == earthengine.tasks.export || view == earthengine.tasks.import",
           "group": "navigation"
@@ -319,6 +329,11 @@
           "command": "earthengine.refreshDatasets",
           "when": "view == earthengine.dataset",
           "group": "navigation"
+        },
+        {
+          "command": "earthengine.filterTasksByStatus",
+          "when": "view == earthengine.panelTasks.export || view == earthengine.panelTasks.import",
+          "group": "navigation@0"
         },
         {
           "command": "earthengine.panelTasksRefresh",

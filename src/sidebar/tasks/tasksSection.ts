@@ -10,7 +10,7 @@
 import * as vscode from 'vscode';
 import { SidebarSection } from '../../shared/baseComponents.js';
 import { AuthService } from '../../auth/index.js';
-import { TasksTreeDataProvider, TaskTreeItem } from './tasksTreeDataProvider.js';
+import { TasksTreeDataProvider, TaskTreeItem, TASK_STATES } from './tasksTreeDataProvider.js';
 import { cancelOperation } from './tasksApiClient.js';
 import type { Operation } from './tasksApiClient.js';
 import { openTasksPanel } from '../../editor/tasks/index.js';
@@ -35,6 +35,32 @@ export class TasksSection extends SidebarSection {
     this.registerCommand('earthengine.refreshTasks', () => {
       this.exportProvider.refresh();
       this.importProvider.refresh();
+    });
+
+    // ── Bottom Panel: Export & Import task trees ──
+    const panelExportProvider = new TasksTreeDataProvider(this.authService, 'export');
+    const panelImportProvider = new TasksTreeDataProvider(this.authService, 'import');
+    this.createTreeView('earthengine.panelTasks.export', panelExportProvider);
+    this.createTreeView('earthengine.panelTasks.import', panelImportProvider);
+
+    this.registerCommand('earthengine.filterTasksByStatus', async () => {
+      const current = this.exportProvider.getStatusFilter();
+      const items = TASK_STATES.map((state) => ({
+        label: state,
+        picked: current ? current.has(state) : false,
+      }));
+      const picked = await vscode.window.showQuickPick(items, {
+        canPickMany: true,
+        placeHolder: 'Select statuses to show (leave empty to show all)',
+      });
+      if (picked === undefined) {
+        return; // cancelled
+      }
+      const states = new Set(picked.map((p) => p.label));
+      this.exportProvider.setStatusFilter(states);
+      this.importProvider.setStatusFilter(states);
+      panelExportProvider.setStatusFilter(states);
+      panelImportProvider.setStatusFilter(states);
     });
 
     this.registerCommand('earthengine.searchTasks', async () => {
@@ -101,12 +127,6 @@ export class TasksSection extends SidebarSection {
     this.registerCommand('earthengine.openImportTasksPanel', () => {
       openTasksPanel(this.authService, 'import', context);
     });
-
-    // ── Bottom Panel: Export & Import task trees ──
-    const panelExportProvider = new TasksTreeDataProvider(this.authService, 'export');
-    const panelImportProvider = new TasksTreeDataProvider(this.authService, 'import');
-    this.createTreeView('earthengine.panelTasks.export', panelExportProvider);
-    this.createTreeView('earthengine.panelTasks.import', panelImportProvider);
 
     this.registerCommand('earthengine.panelTasksRefresh', () => {
       panelExportProvider.refresh();
