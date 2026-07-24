@@ -65,15 +65,9 @@ export class DocsTreeItem extends vscode.TreeItem {
     }
 
     if (collapsibleState === vscode.TreeItemCollapsibleState.None) {
-      this.iconPath = new vscode.ThemeIcon(
-        'symbol-method',
-        new vscode.ThemeColor('icon.foreground'),
-      );
+      this.iconPath = new vscode.ThemeIcon('symbol-method');
     } else {
-      this.iconPath = new vscode.ThemeIcon(
-        'symbol-class',
-        new vscode.ThemeColor('icon.foreground'),
-      );
+      this.iconPath = new vscode.ThemeIcon('symbol-class');
     }
   }
 }
