@@ -5,6 +5,7 @@
  */
 
 export { AssetsSection } from './assetsSection.js';
-export { AssetsTreeDataProvider, AssetTreeItem } from './assetsTreeDataProvider.js';
+export { AssetsTreeDataProvider } from './assetsTreeDataProvider.js';
+export { AssetTreeItem } from './assetTreeItem.js';
 export { listAssets, getAsset, listFeatures } from './eeApiClient.js';
 export type { EEAsset, EEBand, ListAssetsResponse } from './eeApiClient.js';

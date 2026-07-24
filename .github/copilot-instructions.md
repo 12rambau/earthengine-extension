@@ -11,6 +11,7 @@ This is a VS Code extension for Google Earth Engine. Read `.github/ARCHITECTURE.
 ## Key rules
 
 - **OOP**: every sidebar panel is a `SidebarSection` subclass, every editor panel is an `EditorPanel` subclass. Do not add free-floating command registrations in `extension.ts` — create or extend a Section class.
+- **One class per file**: define each class in its own file, named (lowerCamelCase) after the class — so the filesystem alone reveals which components exist. A tree data provider and its tree item live in separate files (e.g. `tasksTreeDataProvider.ts` + `taskTreeItem.ts`), never two classes in one file. Constants/helpers that belong to a class (its icon map, tooltip builder) live in that class's file and are exported if the provider also needs them. The `index.ts` barrel re-exports each class from its own file.
 - **Shared code**: HTTP utilities go in `src/shared/httpClient.ts`, HTML/WebView utilities go in `src/shared/webviewUtils.ts`. Never duplicate these.
 - **Imports**: always use `.js` extensions in import paths.
 - **No emojis**: use VS Code ThemeIcon codicons in tree views, inline SVG in WebViews.

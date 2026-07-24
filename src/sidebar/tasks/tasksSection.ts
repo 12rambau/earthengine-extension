@@ -10,7 +10,8 @@
 import * as vscode from 'vscode';
 import { SidebarSection } from '../../shared/baseComponents.js';
 import { AuthService } from '../../auth/index.js';
-import { TasksTreeDataProvider, TaskTreeItem, TASK_STATES } from './tasksTreeDataProvider.js';
+import { TasksTreeDataProvider, TASK_STATES } from './tasksTreeDataProvider.js';
+import { TaskTreeItem } from './taskTreeItem.js';
 import { cancelOperation } from './tasksApiClient.js';
 import type { Operation } from './tasksApiClient.js';
 import { openTasksPanel } from '../../editor/tasks/index.js';

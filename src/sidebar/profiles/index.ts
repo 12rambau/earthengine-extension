@@ -4,4 +4,5 @@
  */
 
 export { ProfilesSection } from './profilesSection.js';
-export { ProfilesTreeDataProvider, ProfilesTreeItem } from './profilesTreeDataProvider.js';
+export { ProfilesTreeDataProvider } from './profilesTreeDataProvider.js';
+export { ProfilesTreeItem } from './profilesTreeItem.js';

@@ -1,6 +1,6 @@
 /**
  * @module assetsTreeDataProvider
- * Tree items and data provider for the Assets sidebar tree.
+ * Data provider for the Assets sidebar tree.
  *
  * Lazily loads asset children in the background, caches results,
  * and paginates through the Earth Engine REST API.
@@ -9,71 +9,12 @@
 import * as vscode from 'vscode';
 import { AuthService } from '../../auth/index.js';
 import { listAssets, EEAsset } from './eeApiClient.js';
+import { AssetTreeItem, TYPE_ICONS } from './assetTreeItem.js';
 
 // ==================================================================
 // CONSTANTS
 // ==================================================================
-const TYPE_ICONS: Record<string, vscode.ThemeIcon> = {
-  FOLDER: new vscode.ThemeIcon('folder'),
-  IMAGE_COLLECTION: new vscode.ThemeIcon('layers', new vscode.ThemeColor('charts.blue')),
-  IMAGE: new vscode.ThemeIcon('file-media', new vscode.ThemeColor('charts.orange')),
-  TABLE: new vscode.ThemeIcon('table', new vscode.ThemeColor('charts.green')),
-};
-
 const CONTAINER_TYPES = new Set(['FOLDER']);
-
-// ==================================================================
-// ASSETTREEITEM
-// ==================================================================
-/** Tree item representing a single Earth Engine asset (image, table, folder, etc.). */
-export class AssetTreeItem extends vscode.TreeItem {
-  constructor(
-    public readonly asset: EEAsset,
-    public readonly isContainer: boolean,
-  ) {
-    const shortName = asset.name.split('/').pop() || asset.name;
-    super(
-      shortName,
-      isContainer
-        ? vscode.TreeItemCollapsibleState.Collapsed
-        : vscode.TreeItemCollapsibleState.None,
-    );
-
-    this.iconPath = TYPE_ICONS[asset.type] || new vscode.ThemeIcon('file');
-
-    // Stable id (the unique asset path) so the tree can reveal this item.
-    if (asset.type !== 'PLACEHOLDER') {
-      this.id = asset.name;
-    }
-
-    const tooltip = new vscode.MarkdownString('', true);
-    tooltip.appendMarkdown(`**${asset.type.toLowerCase().replace('_', ' ')}** — ${asset.name}`);
-    this.tooltip = tooltip;
-
-    // Context values for menu visibility
-    if (isContainer) {
-      this.contextValue = `asset-container-${asset.type.toLowerCase()}`;
-    } else {
-      this.contextValue = `asset-leaf-${asset.type.toLowerCase()}`;
-    }
-  }
-
-  /** Creates a placeholder tree item (e.g. "Loading..."). */
-  static placeholder(
-    label: string,
-    icon: vscode.ThemeIcon,
-    command?: vscode.Command,
-  ): AssetTreeItem {
-    const dummy: EEAsset = { name: label, type: 'PLACEHOLDER' };
-    const item = new AssetTreeItem(dummy, false);
-    item.iconPath = icon;
-    item.description = undefined;
-    if (command) {
-      item.command = command;
-    }
-    return item;
-  }
-}
 
 // ==================================================================
 // ASSETSTREEDATAPROVIDER

@@ -5,6 +5,7 @@
  */
 
 export { TasksSection } from './tasksSection.js';
-export { TasksTreeDataProvider, TaskTreeItem } from './tasksTreeDataProvider.js';
+export { TasksTreeDataProvider } from './tasksTreeDataProvider.js';
+export { TaskTreeItem } from './taskTreeItem.js';
 export { cancelOperation, listOperationsPage } from './tasksApiClient.js';
 export type { Operation } from './tasksApiClient.js';
