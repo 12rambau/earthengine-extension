@@ -43,7 +43,17 @@ export class MapPanel extends EditorPanel {
       return;
     } // Already wired
 
-    panel.webview.html = renderTemplate(template, { style, script });
+    const cfg = vscode.workspace.getConfiguration('earthengine.map');
+    panel.webview.html = renderTemplate(template, {
+      style,
+      script,
+      initJson: JSON.stringify({
+        darkBasemap: cfg.get<string>('darkBasemap', 'CartoDB.DarkMatter'),
+        lightBasemap: cfg.get<string>('lightBasemap', 'CartoDB.Positron'),
+        satelliteBasemap: cfg.get<string>('satelliteBasemap', 'Esri.WorldImagery'),
+        planBasemap: cfg.get<string>('planBasemap', 'CartoDB.Voyager'),
+      }),
+    });
 
     this.commandDisposable = this.bridgeServer.onCommand((cmd: MapCommand) => {
       if (this.panel) {

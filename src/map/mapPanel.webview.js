@@ -1,47 +1,96 @@
 /**
  * @module mapPanel.webview
- * Browser-side script for the map panel. Initialises the Leaflet map and
- * applies tile-layer, GeoJSON and viewport commands forwarded from the
- * extension host.
+ * Browser-side script for the map panel. Initialises the Leaflet map,
+ * manages configurable base layers and satellite toggle, and applies tile-layer,
+ * GeoJSON and viewport commands forwarded from the extension host.
  */
+
+// ==================================================================
+// INIT DATA
+// ==================================================================
+
+const { darkBasemap, lightBasemap, satelliteBasemap, planBasemap } = JSON.parse(
+  document.getElementById('init-data').textContent,
+);
 
 const vscode = acquireVsCodeApi();
 
-// Init map
+// ==================================================================
+// MAP
+// ==================================================================
+
 const map = L.map('map', {
   center: [0, 0],
   zoom: 2,
   zoomControl: false,
 });
 
-// Base layers
-const osmDark = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-  attribution:
-    '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/">CARTO</a>',
-  maxZoom: 24,
-  subdomains: 'abcd',
-});
-const osmLight = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-  attribution: '&copy; OSM &copy; CARTO',
-  maxZoom: 24,
-  subdomains: 'abcd',
-});
-const satellite = L.tileLayer(
-  'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-  {
-    attribution: '&copy; Esri',
-    maxZoom: 24,
-  },
-);
+// ==================================================================
+// BASEMAP MANAGEMENT
+// ==================================================================
 
-// Detect theme
-const isDark =
-  document.body.style.backgroundColor === '' ||
-  getComputedStyle(document.body).backgroundColor.includes('30') ||
-  getComputedStyle(document.body).backgroundColor.includes('1e');
-(isDark ? osmDark : osmLight).addTo(map);
+let currentBasemap = null;
 
-// Status bar updates
+function isDarkTheme() {
+  return (
+    document.body.classList.contains('vscode-dark') ||
+    document.body.classList.contains('vscode-high-contrast')
+  );
+}
+
+function themeBasemapId() {
+  return isDarkTheme() ? darkBasemap : lightBasemap;
+}
+
+function setBasemap(id) {
+  if (currentBasemap) {
+    map.removeLayer(currentBasemap);
+  }
+  try {
+    currentBasemap = L.tileLayer.provider(id);
+    currentBasemap.addTo(map);
+  } catch (e) {
+    console.warn('Unknown basemap provider:', id);
+  }
+}
+
+setBasemap(themeBasemapId());
+
+// ==================================================================
+// MAP CONTROLS
+// ==================================================================
+
+let activeMode = 'theme'; // 'theme' | 'plan' | 'satellite'
+const satelliteBtn = document.getElementById('satellite-toggle');
+const planBtn = document.getElementById('plan-toggle');
+
+function activateMode(mode) {
+  if (activeMode === mode) {
+    activeMode = 'theme';
+    satelliteBtn.classList.remove('active');
+    planBtn.classList.remove('active');
+    setBasemap(themeBasemapId());
+  } else {
+    activeMode = mode;
+    satelliteBtn.classList.toggle('active', mode === 'satellite');
+    planBtn.classList.toggle('active', mode === 'plan');
+    setBasemap(mode === 'satellite' ? satelliteBasemap : planBasemap);
+  }
+}
+
+new MutationObserver(() => {
+  if (activeMode === 'theme') {
+    setBasemap(themeBasemapId());
+  }
+}).observe(document.body, { attributes: true, attributeFilter: ['class'] });
+
+satelliteBtn.addEventListener('click', () => activateMode('satellite'));
+planBtn.addEventListener('click', () => activateMode('plan'));
+
+// ==================================================================
+// STATUS BAR
+// ==================================================================
+
 map.on('mousemove', (e) => {
   document.getElementById('coords').textContent =
     e.latlng.lat.toFixed(4) + ', ' + e.latlng.lng.toFixed(4);
@@ -50,7 +99,10 @@ map.on('zoomend', () => {
   document.getElementById('zoom').textContent = 'Zoom: ' + map.getZoom();
 });
 
-// Handle messages from the extension (forwarded from Python)
+// ==================================================================
+// MESSAGE HANDLER
+// ==================================================================
+
 window.addEventListener('message', (e) => {
   const msg = e.data;
 

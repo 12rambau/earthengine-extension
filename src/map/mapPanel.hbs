@@ -4,13 +4,29 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/@fortawesome/fontawesome-free@6.7.2/css/all.min.css"
+    />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet-providers@2.0.0/leaflet-providers.js"></script>
+    <script id="init-data" type="application/json">
+      {{{initJson}}}
+    </script>
     <style>
       {{{style}}}
     </style>
   </head>
   <body>
     <div id="map"></div>
+    <div class="map-controls">
+      <button id="plan-toggle" class="map-btn" title="Toggle plan view">
+        <i class="fa-solid fa-map"></i>
+      </button>
+      <button id="satellite-toggle" class="map-btn" title="Toggle satellite view">
+        <i class="fa-solid fa-satellite"></i>
+      </button>
+    </div>
     <div class="status-bar">
       <span id="coords">0.000, 0.000</span>
       <span id="zoom">Zoom: 2</span>
