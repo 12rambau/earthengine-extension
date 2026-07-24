@@ -10,11 +10,26 @@
 import * as vscode from 'vscode';
 import { EditorPanel } from '../shared/baseComponents.js';
 import { MapBridgeServer, MapCommand } from './mapBridgeServer.js';
-import { ensureEe, getMapIdUrl } from '../shared/eeSession.js';
+import { computeValue, ensureEe, getMapIdUrl } from '../shared/eeSession.js';
 import { renderTemplate } from '../shared/index.js';
 import template from './mapPanel.hbs';
 import style from './mapPanel.css';
 import script from './mapPanel.webview.js';
+
+// ── Interfaces ────────────────────────────────────────────────────
+
+/** Metadata kept for each overlay layer for pixel inspection. */
+interface LayerRecord {
+  serialized: string;
+  name: string;
+}
+
+/** One layer's result from a pixel inspection. */
+interface InspectResult {
+  name: string;
+  values: Record<string, number | null>;
+  error?: string;
+}
 
 // ==================================================================
 // MAPPANEL
@@ -23,6 +38,10 @@ import script from './mapPanel.webview.js';
 export class MapPanel extends EditorPanel {
   private bridgeServer: MapBridgeServer;
   private commandDisposable: vscode.Disposable | undefined;
+  private messageDisposable: vscode.Disposable | undefined;
+  /** Overlay layers registered for pixel inspection, keyed by insertion order. */
+  private readonly layers = new Map<number, LayerRecord>();
+  private layerCount = 0;
 
   constructor() {
     super();
@@ -81,6 +100,14 @@ export class MapPanel extends EditorPanel {
 
       this.panel.webview.postMessage(cmd);
     });
+
+    // WebView → extension host messages (inspector clicks).
+    this.messageDisposable = panel.webview.onDidReceiveMessage(async (msg) => {
+      if (msg.type === 'inspect') {
+        const d = msg.data as { lat: number; lng: number; zoom: number };
+        await this.inspectPoint(d.lat, d.lng, d.zoom);
+      }
+    });
   }
 
   // ── Layer helpers ────────────────────────────────────────────────
@@ -93,24 +120,60 @@ export class MapPanel extends EditorPanel {
     shown: boolean;
     opacity: number;
   }): Promise<void> {
-    console.log(
-      '[Map:handleAddLayer] start, name:',
-      d.name,
-      'serialized len:',
-      d.serialized?.length,
-    );
+    // Store original expression for pixel inspection (before visualize()).
+    const layerIndex = this.layerCount++;
+    this.layers.set(layerIndex, { serialized: d.serialized, name: d.name });
+
     const ee = await ensureEe();
-    console.log('[Map:handleAddLayer] ensureEe done, deserializing...');
     const image = ee.Deserializer.fromJSON(d.serialized);
-    console.log('[Map:handleAddLayer] deserialized, calling getMapIdUrl...');
     const url = await getMapIdUrl(image, d.visParams ?? {});
-    console.log('[Map:handleAddLayer] tile URL received:', url?.slice(0, 80));
     if (this.panel) {
       this.panel.webview.postMessage({
         type: 'addTileLayer',
-        data: { url, name: d.name, shown: d.shown, opacity: d.opacity },
+        data: { url, name: d.name, shown: d.shown, opacity: d.opacity, layerIndex },
       });
     }
+  }
+
+  /** Reduces each registered layer to a single point and sends results to the WebView. */
+  private async inspectPoint(lat: number, lng: number, zoom: number): Promise<void> {
+    if (!this.panel) {
+      return;
+    }
+    const eeAny = (await ensureEe()) as any;
+    // Approximate ground resolution in metres at the click latitude.
+    const scale = Math.max(
+      1,
+      Math.round((40075016 * Math.cos((lat * Math.PI) / 180)) / (256 * 2 ** zoom)),
+    );
+    const point = eeAny.Geometry.Point([lng, lat]);
+    const results: InspectResult[] = [];
+
+    for (const [, record] of this.layers) {
+      try {
+        const image = eeAny.Image(eeAny.Deserializer.fromJSON(record.serialized));
+        const reduced = image.reduceRegion({
+          reducer: eeAny.Reducer.mean(),
+          geometry: point,
+          scale,
+          maxPixels: 1e9,
+          bestEffort: true,
+        });
+        const values = await computeValue<Record<string, number | null>>(reduced);
+        results.push({ name: record.name, values: values ?? {} });
+      } catch (err) {
+        results.push({
+          name: record.name,
+          values: {},
+          error: err instanceof Error ? err.message : String(err),
+        });
+      }
+    }
+
+    this.panel.webview.postMessage({
+      type: 'inspectResult',
+      data: { lat, lng, scale, results },
+    });
   }
 
   /**
@@ -180,6 +243,10 @@ export class MapPanel extends EditorPanel {
   protected override onDidDispose(): void {
     this.commandDisposable?.dispose();
     this.commandDisposable = undefined;
+    this.messageDisposable?.dispose();
+    this.messageDisposable = undefined;
+    this.layers.clear();
+    this.layerCount = 0;
   }
 
   override dispose(): void {

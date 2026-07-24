@@ -175,6 +175,27 @@ export async function getAssetInfo(name: string): Promise<unknown> {
   });
 }
 
+/**
+ * Evaluates an EE ComputedObject server-side and returns the JavaScript value.
+ *
+ * Bypasses `ee.data.computeValue` (which uses the xmlhttprequest transport
+ * known to fail in the extension host) by calling `/value:compute` directly
+ * via `httpClient`.
+ */
+export async function computeValue<T = unknown>(eeObject: unknown): Promise<T> {
+  const eeAny = (await ensureEe()) as any;
+  // encodeCloudApi = encodeCloudApiExpression + domain_object_serialize → plain JSON
+  const expression = eeAny.Serializer.encodeCloudApi(eeObject);
+  const { token, project } = await getEeContext();
+  const url = `https://earthengine.googleapis.com/v1/projects/${encodeURIComponent(project)}/value:compute`;
+  const raw = await httpRequest(url, 'POST', token, JSON.stringify({ expression }));
+  const parsed = JSON.parse(raw) as { result?: T; error?: { message?: string } };
+  if (parsed.error) {
+    throw new Error(parsed.error.message ?? JSON.stringify(parsed.error));
+  }
+  return parsed.result as T;
+}
+
 /** Promisified `ee.Image.getThumbURL()`. */
 export function getThumbUrl(
   image: {
