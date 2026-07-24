@@ -43,8 +43,8 @@ export async function openTasksPanel(
 
   const profile = authService.currentProfile!;
   const panel = vscode.window.createWebviewPanel(
-    `earthengine.tasks.${filter}Panel`,
-    `${filter === 'export' ? 'Export' : 'Import'} Tasks`,
+    'earthengine.tasks.panel',
+    'Tasks',
     vscode.ViewColumn.One,
     { enableScripts: true, retainContextWhenHidden: true },
   );
@@ -52,22 +52,11 @@ export async function openTasksPanel(
   let allOps: Operation[] = [];
   let resolvedProject = profile.project;
 
-  const filterFn =
-    filter === 'export'
-      ? (op: Operation) => {
-          const t = (op.metadata?.type || '').toUpperCase();
-          return t.startsWith('EXPORT') || t === '';
-        }
-      : (op: Operation) => {
-          const t = (op.metadata?.type || '').toUpperCase();
-          return t.startsWith('INGEST') || t.startsWith('IMPORT');
-        };
-
   // ── Terminal states that will never change ──
   const TERMINAL_STATES = new Set(['SUCCEEDED', 'FAILED', 'CANCELLED']);
 
   function sendData(loading = false, silent = false) {
-    const filtered = allOps.filter(filterFn).map((op) => ({
+    const mapped = allOps.map((op) => ({
       name: op.name,
       id: op.name.split('/').pop() || '',
       description: op.metadata?.description || op.name.split('/').pop() || '',
@@ -85,7 +74,7 @@ export async function openTasksPanel(
       destinationUris: op.metadata?.destinationUris || [],
       error: op.error?.message || '',
     }));
-    panel.webview.postMessage({ type: 'data', tasks: filtered, loading, silent });
+    panel.webview.postMessage({ type: 'data', tasks: mapped, loading, silent });
   }
 
   /** Streams all pages of operations, calling sendData after each page. */
@@ -245,8 +234,7 @@ export async function openTasksPanel(
 }
 
 function getHtml(filter: TaskFilter, savedPrefs: TaskPrefs): string {
-  const title = filter === 'export' ? 'Export Tasks' : 'Import Tasks';
-  const initJson = JSON.stringify(savedPrefs).replace(/</g, '\\u003c');
+  const initJson = JSON.stringify({ ...savedPrefs, filter }).replace(/</g, '\\u003c');
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -312,6 +300,26 @@ h1 { font-size: 1.3em; margin: 0 0 8px 0; display: flex; align-items: center; ga
 	cursor: pointer;
 }
 .per-page-select:hover { background-color: var(--vscode-button-secondaryHoverBackground) !important; }
+/* Sliding toggle */
+.toggle-switch {
+	display: inline-flex; border-radius: 4px; overflow: hidden;
+	border: 1px solid var(--vscode-input-border); position: relative;
+}
+.toggle-switch input { display: none; }
+.toggle-switch label {
+	padding: 4px 10px; font-size: 0.85em; cursor: pointer; position: relative; z-index: 1;
+	color: var(--vscode-button-secondaryForeground);
+	transition: color 0.15s;
+	user-select: none;
+}
+.toggle-switch .slider {
+	position: absolute; top: 0; bottom: 0; border-radius: 3px;
+	background: var(--vscode-button-background);
+	transition: left 0.2s, width 0.2s;
+}
+.toggle-switch input:checked + label {
+	color: var(--vscode-button-foreground);
+}
 .spinner-inline {
 	width: 9px; height: 9px; border: 1.5px solid currentColor; border-top-color: transparent;
 	border-radius: 50%; display: inline-block; animation: spin 0.8s linear infinite;
@@ -397,10 +405,17 @@ tr:hover .action-btns, tr:focus-within .action-btns { display: inline-flex; }
 </style>
 </head>
 <body>
-<h1>${title}</h1>
+<h1>Tasks</h1>
 <div class="topbar">
 	<div class="topbar-left">
 		<button id="refreshBtn" onclick="refresh()" class="btn-primary"><span class="refresh-icon">⟳</span> <span id="refreshLabel">Refresh</span></button>
+		<span class="toggle-switch" id="filterToggle">
+			<span class="slider" id="toggleSlider"></span>
+			<input type="radio" name="filter" id="filterExport" value="export" onclick="changeFilter('export')">
+			<label for="filterExport">Export</label>
+			<input type="radio" name="filter" id="filterImport" value="import" onclick="changeFilter('import')">
+			<label for="filterImport">Import</label>
+		</span>
 	</div>
 	<div style="display:flex;align-items:center;gap:6px;">
 		<select id="pageSize" class="per-page-select" onchange="changePageSize(this.value)" title="Items per page">
@@ -453,12 +468,39 @@ const saved = ${initJson};
 let visibleCols = new Set(saved.visibleCols || ALL_COLS.map(c => c.key));
 ALL_COLS.filter(c => c.required).forEach(c => visibleCols.add(c.key)); // always enforce required
 let pageSize = saved.pageSize || 25;
+let currentFilter = saved.filter || 'export';
 
+let allTasks = [];
 let tasks = [];
 let isLoading = true; // true until first data message arrives
 let currentPage = 0;
 let sortCol = 'createTime';
 let sortDir = -1; // -1 = desc
+
+// ── Filter ──────────────────────────────────────────────────────────
+
+function isExportTask(t) {
+	const type = (t.type || '').toUpperCase();
+	return type.startsWith('EXPORT') || type === '';
+}
+
+function isImportTask(t) {
+	const type = (t.type || '').toUpperCase();
+	return type.startsWith('INGEST') || type.startsWith('IMPORT');
+}
+
+function applyFilter() {
+	tasks = currentFilter === 'export' ? allTasks.filter(isExportTask) : allTasks.filter(isImportTask);
+}
+
+function changeFilter(f) {
+	currentFilter = f;
+	currentPage = 0;
+	applyFilter();
+	updateSlider();
+	saveState();
+	render();
+}
 
 // ── Persistence ─────────────────────────────────────────────────────
 
@@ -680,18 +722,16 @@ function refresh() { vscode.postMessage({ type: 'refresh' }); }
 window.addEventListener('message', e => {
 	const msg = e.data;
 	if (msg.type === 'data') {
-		tasks = msg.tasks;
+		allTasks = msg.tasks;
 		isLoading = msg.loading;
+		applyFilter();
 		if (msg.silent) {
-			// Incremental refresh: just update data and re-render, button only
 			setButtonLoading(false);
 			render();
 		} else if (!isLoading) {
-			// Final page of initial load
 			setLoading(false);
 			render();
 		} else {
-			// Intermediate page of initial streaming load
 			render();
 		}
 	} else if (msg.type === 'refreshStart') {
@@ -699,8 +739,9 @@ window.addEventListener('message', e => {
 	} else if (msg.type === 'loading') {
 		setLoading(true);
 	} else if (msg.type === 'cancelled') {
-		const t = tasks.find(t => t.name === msg.name);
+		const t = allTasks.find(t => t.name === msg.name);
 		if (t) { t.state = 'CANCELLING'; }
+		applyFilter();
 		render();
 	} else if (msg.type === 'error') {
 		setButtonLoading(false);
@@ -713,7 +754,18 @@ window.addEventListener('message', e => {
 buildPicker();
 renderHeader();
 document.getElementById('pageSize').value = String(pageSize);
+document.getElementById(currentFilter === 'export' ? 'filterExport' : 'filterImport').checked = true;
+updateSlider();
 render();
+
+function updateSlider() {
+	const toggle = document.getElementById('filterToggle');
+	const labels = toggle.querySelectorAll('label');
+	const activeLabel = currentFilter === 'export' ? labels[0] : labels[1];
+	const slider = document.getElementById('toggleSlider');
+	slider.style.left = activeLabel.offsetLeft + 'px';
+	slider.style.width = activeLabel.offsetWidth + 'px';
+}
 </script>
 </body></html>`;
 }

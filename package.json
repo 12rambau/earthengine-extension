@@ -27,6 +27,18 @@
         }
       }
     },
+    "configuration": {
+      "title": "Earth Engine",
+      "properties": {
+        "earthengine.tasks.maxItems": {
+          "type": "number",
+          "default": 100,
+          "minimum": 10,
+          "maximum": 1000,
+          "description": "Maximum number of tasks to display in the sidebar and panel tree views."
+        }
+      }
+    },
     "viewsContainers": {
       "activitybar": [
         {
@@ -34,9 +46,28 @@
           "title": "Earth Engine",
           "icon": "resources/earthengine.svg"
         }
+      ],
+      "panel": [
+        {
+          "id": "earthengine-panel",
+          "title": "Earth Engine",
+          "icon": "resources/earthengine.svg"
+        }
       ]
     },
     "views": {
+      "earthengine-panel": [
+        {
+          "id": "earthengine.panelTasks.export",
+          "name": "Export Tasks",
+          "icon": "$(cloud-download)"
+        },
+        {
+          "id": "earthengine.panelTasks.import",
+          "name": "Import Tasks",
+          "icon": "$(cloud-upload)"
+        }
+      ],
       "earthengine": [
         {
           "id": "earthengine.profiles",
@@ -159,6 +190,11 @@
         "icon": "$(refresh)"
       },
       {
+        "command": "earthengine.filterTasksByStatus",
+        "title": "Filter by Status",
+        "icon": "$(filter)"
+      },
+      {
         "command": "earthengine.searchTasks",
         "title": "Earth Engine: Search Tasks",
         "icon": "$(search)"
@@ -186,6 +222,16 @@
       {
         "command": "earthengine.openImportTasksPanel",
         "title": "Earth Engine: Open Import Tasks",
+        "icon": "$(open-preview)"
+      },
+      {
+        "command": "earthengine.panelTasksRefresh",
+        "title": "Refresh Tasks",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "earthengine.panelTasksOpenEditor",
+        "title": "Open in Editor",
         "icon": "$(open-preview)"
       },
       {
@@ -267,6 +313,11 @@
           "group": "navigation"
         },
         {
+          "command": "earthengine.filterTasksByStatus",
+          "when": "view == earthengine.tasks.export || view == earthengine.tasks.import",
+          "group": "navigation"
+        },
+        {
           "command": "earthengine.refreshTasks",
           "when": "view == earthengine.tasks.export || view == earthengine.tasks.import",
           "group": "navigation"
@@ -290,6 +341,21 @@
           "command": "earthengine.refreshDatasets",
           "when": "view == earthengine.dataset",
           "group": "navigation"
+        },
+        {
+          "command": "earthengine.filterTasksByStatus",
+          "when": "view == earthengine.panelTasks.export || view == earthengine.panelTasks.import",
+          "group": "navigation@0"
+        },
+        {
+          "command": "earthengine.panelTasksRefresh",
+          "when": "view == earthengine.panelTasks.export || view == earthengine.panelTasks.import",
+          "group": "navigation@1"
+        },
+        {
+          "command": "earthengine.panelTasksOpenEditor",
+          "when": "view == earthengine.panelTasks.export || view == earthengine.panelTasks.import",
+          "group": "navigation@2"
         }
       ],
       "view/item/context": [
