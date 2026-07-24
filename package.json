@@ -218,10 +218,6 @@
         "icon": "$(open-preview)"
       },
       {
-        "command": "earthengine.panelTasksLoadMore",
-        "title": "Load More Tasks"
-      },
-      {
         "command": "earthengine.refreshDatasets",
         "title": "Earth Engine: Refresh Datasets",
         "icon": "$(refresh)"

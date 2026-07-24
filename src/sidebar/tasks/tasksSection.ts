@@ -94,10 +94,6 @@ export class TasksSection extends SidebarSection {
       }
     });
 
-    this.registerCommand('earthengine.loadMoreTasks', (provider: TasksTreeDataProvider) => {
-      provider.loadNextPage();
-    });
-
     this.registerCommand('earthengine.openExportTasksPanel', () => {
       openTasksPanel(this.authService, 'export', context);
     });
@@ -119,10 +115,6 @@ export class TasksSection extends SidebarSection {
 
     this.registerCommand('earthengine.panelTasksOpenEditor', () => {
       openTasksPanel(this.authService, 'export', context);
-    });
-
-    this.registerCommand('earthengine.panelTasksLoadMore', (provider: TasksTreeDataProvider) => {
-      provider.loadNextPage();
     });
 
     context.subscriptions.push(this);
