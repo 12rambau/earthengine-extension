@@ -7,7 +7,6 @@
 import * as vscode from 'vscode';
 import { EEAsset, getAsset } from '../../sidebar/assets/eeApiClient.js';
 import {
-  escapeHtml,
   formatBytes,
   formatDate,
   renderPropertiesTable,
@@ -16,6 +15,8 @@ import {
 import { openImagePreview } from '../imagePreview/index.js';
 import { openImageCollectionPreview } from '../imageCollectionPreview/index.js';
 import { openFeatureCollectionPreview } from '../featureCollectionPreview/index.js';
+import { renderTemplate } from '../../shared/index.js';
+import template from './assetPreviewPanel.hbs';
 
 // ── Public API ──────────────────────────────────────────────────────
 
@@ -48,14 +49,12 @@ function openGenericPreview(asset: EEAsset): void {
     { enableScripts: false },
   );
 
-  panel.webview.html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><style>${webviewBaseStyle()}</style></head><body>
-		<h1>${escapeHtml(asset.id || asset.name)}</h1>
-		<span class="badge">${escapeHtml(asset.type)}</span>
-		<div class="meta">
-			<div class="meta-item"><strong>Last Updated</strong>${formatDate(asset.updateTime)}</div>
-			<div class="meta-item"><strong>Size</strong>${formatBytes(asset.sizeBytes)}</div>
-		</div>
-		<h2>Properties</h2>
-		${renderPropertiesTable(asset.properties)}
-	</body></html>`;
+  panel.webview.html = renderTemplate(template, {
+    baseStyle: webviewBaseStyle(),
+    title: asset.id || asset.name,
+    assetType: asset.type,
+    updated: formatDate(asset.updateTime),
+    size: formatBytes(asset.sizeBytes),
+    propertiesTable: renderPropertiesTable(asset.properties),
+  });
 }

@@ -1,0 +1,17 @@
+body {
+	font-family: var(--vscode-font-family, sans-serif);
+	color: var(--vscode-foreground);
+	background: var(--vscode-editor-background);
+	padding: 20px; line-height: 1.5;
+}
+h1 { font-size: 1.4em; margin-bottom: 4px; }
+h2 { font-size: 1.1em; margin-top: 20px; border-bottom: 1px solid var(--vscode-panel-border); padding-bottom: 4px; }
+.badge { display: inline-block; background: var(--vscode-badge-background); color: var(--vscode-badge-foreground); padding: 2px 8px; border-radius: 12px; font-size: 0.8em; margin-right: 4px; }
+.meta { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 12px 0; }
+.meta-item strong { display: block; font-size: 0.8em; opacity: 0.7; }
+table { width: 100%; border-collapse: collapse; font-size: 0.9em; margin: 8px 0; }
+th { text-align: left; background: var(--vscode-list-hoverBackground); padding: 5px 8px; }
+td { padding: 5px 8px; border-bottom: 1px solid var(--vscode-panel-border); }
+code { background: var(--vscode-textCodeBlock-background); padding: 1px 4px; border-radius: 3px; font-size: 0.9em; }
+.props-table td:first-child { font-weight: 600; width: 30%; }
+a { color: var(--vscode-textLink-foreground); }

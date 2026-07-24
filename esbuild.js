@@ -1,7 +1,27 @@
 const esbuild = require('esbuild');
+const fs = require('fs');
 
 const production = process.argv.includes('--production');
 const watch = process.argv.includes('--watch');
+
+/**
+ * WebView client scripts (`*.webview.js`) are inlined into panel HTML, so
+ * they are bundled as plain text instead of being parsed as modules.
+ * The `.js` loader cannot be overridden globally without breaking normal
+ * module resolution, hence this targeted plugin.
+ *
+ * @type {import('esbuild').Plugin}
+ */
+const webviewScriptTextPlugin = {
+  name: 'webview-script-text',
+
+  setup(build) {
+    build.onLoad({ filter: /\.webview\.js$/ }, async (args) => ({
+      contents: await fs.promises.readFile(args.path, 'utf8'),
+      loader: 'text',
+    }));
+  },
+};
 
 /**
  * @type {import('esbuild').Plugin}
@@ -34,8 +54,11 @@ async function main() {
     platform: 'node',
     outfile: 'dist/extension.js',
     external: ['vscode'],
+    // WebView templates and stylesheets are imported as plain strings
+    loader: { '.hbs': 'text', '.css': 'text' },
     logLevel: 'silent',
     plugins: [
+      webviewScriptTextPlugin,
       /* add to the end of plugins array */
       esbuildProblemMatcherPlugin,
     ],

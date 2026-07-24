@@ -2,6 +2,10 @@ import typescriptEslint from 'typescript-eslint';
 
 export default [
   {
+    // WebView client scripts are inlined into panel HTML as plain text
+    ignores: ['**/*.webview.js'],
+  },
+  {
     files: ['**/*.ts'],
   },
   {

@@ -469,6 +469,7 @@
   },
   "dependencies": {
     "conventional-commits-filter": "^6.0.1",
+    "handlebars": "^4.7.9",
     "marked": "^4.3.0"
   }
 }

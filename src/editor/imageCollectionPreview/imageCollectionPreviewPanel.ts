@@ -16,6 +16,12 @@ import { marked } from 'marked';
 import { EEAsset, EEBand, listAssets, getAsset } from '../../sidebar/assets/eeApiClient.js';
 import { httpRequest } from '../../shared/httpClient.js';
 import { escapeHtml, formatBytes, formatDate } from '../../shared/webviewUtils.js';
+import { renderTemplate } from '../../shared/index.js';
+import template from './imageCollectionPreviewPanel.hbs';
+import imagesTableTemplate from './imagesTable.hbs';
+import bandsTableTemplate from './bandsTable.hbs';
+import style from './imageCollectionPreviewPanel.css';
+import script from './imageCollectionPreviewPanel.webview.js';
 
 // ── Constants ───────────────────────────────────────────────────────
 
@@ -197,134 +203,30 @@ function buildHtml(asset: EEAsset, childImages: EEAsset[], bands: EEBand[]): str
   const bandsTableHtml = buildBandsTable(bands);
   const propsHtml = buildPropertiesRows(asset.properties);
 
-  return `<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src https: data:; style-src 'nonce-${nonce}'; script-src 'nonce-${nonce}';">
-<style nonce="${nonce}">
-${imageCollectionStyle()}
-</style>
-</head>
-<body>
-<header class="title-bar">
-  <h1>Asset details: ${escapeHtml(title)} (ImageCollection)</h1>
-</header>
-
-<div class="layout">
-  <!-- Left sidebar -->
-  <aside class="sidebar">
-    <div class="thumbnail-container">
-      <div class="thumbnail-placeholder" id="thumbnail">
-        <span class="thumb-loading"><span class="spinner"></span> Loading thumbnail...</span>
-      </div>
-    </div>
-
-    <div class="sidebar-info">
-      <div class="info-row">
-        <span class="info-label">ImageCollection ID</span>
-        <span class="info-value asset-id" title="${escapeHtml(assetId)}">${escapeHtml(assetId)}</span>
-      </div>
-      <div class="info-row">
-        <span class="info-label">Date</span>
-        <span class="info-value">Start date: ${startDate}<br>End date: ${endDate}</span>
-      </div>
-      <div class="info-row">
-        <span class="info-label">File Size</span>
-        <span class="info-value">${fileSize}</span>
-      </div>
-      <div class="info-row">
-        <span class="info-label">Number of Images</span>
-        <span class="info-value">${imageCount}</span>
-      </div>
-      <div class="info-row">
-        <span class="info-label">Last modified</span>
-        <span class="info-value">${lastModified}</span>
-      </div>
-    </div>
-  </aside>
-
-  <!-- Right content with tabs -->
-  <main class="content">
-    <nav class="tabs">
-      <button class="tab active" data-tab="description">DESCRIPTION</button>
-      <button class="tab" data-tab="images">IMAGES</button>
-      <button class="tab" data-tab="bands">BANDS</button>
-      <button class="tab" data-tab="properties">PROPERTIES</button>
-    </nav>
-
-    <section class="tab-panel active" id="tab-description">
-      ${description ? `<div class="description-text">${marked(description)}</div>` : '<p class="empty-state">No description.</p>'}
-    </section>
-
-    <section class="tab-panel" id="tab-images">
-      ${childImages.length > 0 ? `<p class="note">Limited to the first ${IMAGES_PAGE_SIZE} images.</p>` : ''}
-      ${imagesTableHtml}
-    </section>
-
-    <section class="tab-panel" id="tab-bands">
-      ${bands.length > 0 ? '<p class="note">Bands from the first image in the collection.</p>' : ''}
-      ${bandsTableHtml}
-    </section>
-
-    <section class="tab-panel" id="tab-properties">
-      ${propsHtml}
-    </section>
-  </main>
-</div>
-
-<script nonce="${nonce}">
-(function() {
-  const vscode = acquireVsCodeApi();
-
-  // Tab switching
-  document.querySelectorAll('.tab').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
-      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-      btn.classList.add('active');
-      document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
-    });
+  return renderTemplate(template, {
+    nonce,
+    style,
+    script,
+    title,
+    assetId,
+    startDate,
+    endDate,
+    fileSize,
+    imageCount: String(imageCount),
+    lastModified,
+    descriptionHtml: description
+      ? `<div class="description-text">${marked(description)}</div>`
+      : '<p class="empty-state">No description.</p>',
+    imagesNote:
+      childImages.length > 0
+        ? `<p class="note">Limited to the first ${IMAGES_PAGE_SIZE} images.</p>`
+        : '',
+    imagesTable: imagesTableHtml,
+    bandsNote:
+      bands.length > 0 ? '<p class="note">Bands from the first image in the collection.</p>' : '',
+    bandsTable: bandsTableHtml,
+    propsHtml,
   });
-
-  // Signal ready to load async data
-  vscode.postMessage({ type: 'ready' });
-
-  // Listen for messages from extension
-  window.addEventListener('message', event => {
-    const msg = event.data;
-    if (msg.type === 'thumbnail') {
-      const el = document.getElementById('thumbnail');
-      if (msg.url) {
-        el.innerHTML = '<img src="' + msg.url + '" alt="Thumbnail" />';
-      } else {
-        const errorMsg = msg.error || 'Thumbnail not available.';
-        el.innerHTML = '<span class="thumb-unavailable">' + errorMsg + '</span>';
-      }
-    } else if (msg.type === 'imageDeleted') {
-      const row = document.querySelector('tr[data-name="' + CSS.escape(msg.name) + '"]');
-      if (row) row.remove();
-    }
-  });
-
-  // Action button delegation (CSP-safe: no inline onclick)
-  document.addEventListener('click', function(e) {
-    const btn = e.target.closest('[data-action]');
-    if (!btn) return;
-    const action = btn.dataset.action;
-    const name = btn.dataset.name;
-    if (!name) return;
-    if (action === 'open') {
-      vscode.postMessage({ type: 'openImage', name: name });
-    } else if (action === 'delete') {
-      vscode.postMessage({ type: 'deleteImage', name: name });
-    }
-  });
-})();
-</script>
-</body>
-</html>`;
 }
 
 // ── Images table ────────────────────────────────────────────────────
@@ -361,22 +263,7 @@ function buildImagesTable(images: EEAsset[]): string {
     })
     .join('');
 
-  return `<div class="table-scroll">
-    <table class="images-table">
-      <thead>
-        <tr>
-          <th>Image ID</th>
-          <th>Last Modified</th>
-          <th>Size</th>
-          <th>Start Date</th>
-          <th>End Date</th>
-          <th>Band Count</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody>${rows}</tbody>
-    </table>
-  </div>`;
+  return renderTemplate(imagesTableTemplate, { rows });
 }
 
 // ── Bands table ─────────────────────────────────────────────────────
@@ -407,19 +294,7 @@ function buildBandsTable(bands: EEBand[]): string {
     })
     .join('');
 
-  return `<table class="bands-table">
-    <thead>
-      <tr>
-        <th>Index</th>
-        <th>Name</th>
-        <th>Type</th>
-        <th>Dimensions</th>
-        <th>CRS</th>
-        <th>Nominal Scale</th>
-      </tr>
-    </thead>
-    <tbody>${rows}</tbody>
-  </table>`;
+  return renderTemplate(bandsTableTemplate, { rows });
 }
 
 // ── Properties helper ───────────────────────────────────────────────
@@ -448,227 +323,6 @@ function buildPropertiesRows(props?: Record<string, unknown>): string {
     <thead><tr><th>Property</th><th>Value</th></tr></thead>
     <tbody>${rows}</tbody>
   </table>`;
-}
-
-// ── Styles ──────────────────────────────────────────────────────────
-
-function imageCollectionStyle(): string {
-  return `
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body {
-    font-family: var(--vscode-font-family, sans-serif);
-    color: var(--vscode-foreground);
-    background: var(--vscode-editor-background);
-    line-height: 1.5;
-  }
-  .title-bar {
-    padding: 12px 20px;
-    border-bottom: 1px solid var(--vscode-panel-border);
-  }
-  .title-bar h1 {
-    font-size: 1.2em;
-    font-weight: 500;
-  }
-  .layout {
-    display: flex;
-    height: calc(100vh - 52px);
-  }
-  .sidebar {
-    width: 280px;
-    min-width: 280px;
-    border-right: 1px solid var(--vscode-panel-border);
-    padding: 16px;
-    overflow-y: auto;
-  }
-  .thumbnail-container {
-    width: 100%;
-    aspect-ratio: 1;
-    background: var(--vscode-list-hoverBackground);
-    border-radius: 6px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-bottom: 16px;
-    overflow: hidden;
-  }
-  .thumbnail-container img {
-    max-width: 100%;
-    max-height: 100%;
-    object-fit: contain;
-  }
-  .thumb-loading, .thumb-unavailable {
-    font-size: 0.85em;
-    opacity: 0.6;
-    text-align: center;
-    padding: 12px;
-  }
-  .sidebar-info {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-  }
-  .info-row {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-  }
-  .info-label {
-    font-weight: 600;
-    font-size: 0.85em;
-  }
-  .info-value {
-    font-size: 0.85em;
-    opacity: 0.85;
-  }
-  .asset-id {
-    font-family: var(--vscode-editor-font-family, monospace);
-    font-size: 0.78em;
-    word-break: break-all;
-    background: var(--vscode-textCodeBlock-background);
-    padding: 4px 6px;
-    border-radius: 3px;
-  }
-  .content {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-  }
-  .tabs {
-    display: flex;
-    border-bottom: 1px solid var(--vscode-panel-border);
-    padding: 0 16px;
-  }
-  .tab {
-    background: none;
-    border: none;
-    color: var(--vscode-foreground);
-    padding: 10px 16px;
-    cursor: pointer;
-    font-size: 0.85em;
-    font-weight: 500;
-    opacity: 0.7;
-    border-bottom: 2px solid transparent;
-    transition: opacity 0.15s, border-color 0.15s;
-  }
-  .tab:hover { opacity: 1; }
-  .tab.active {
-    opacity: 1;
-    border-bottom-color: var(--vscode-focusBorder);
-  }
-  .tab-panel {
-    display: none;
-    padding: 16px;
-    overflow: auto;
-    flex: 1;
-  }
-  .tab-panel.active { display: block; }
-  .empty-state {
-    font-size: 0.9em;
-    opacity: 0.6;
-    font-style: italic;
-  }
-  .note {
-    font-size: 0.85em;
-    opacity: 0.6;
-    margin-bottom: 12px;
-  }
-  .description-text {
-    font-size: 0.9em;
-    line-height: 1.6;
-  }
-  .description-text h2 { font-size: 1.3em; margin: 16px 0 8px; }
-  .description-text h3 { font-size: 1.1em; margin: 12px 0 6px; }
-  .description-text p { margin: 8px 0; }
-  .description-text code {
-    background: var(--vscode-textCodeBlock-background);
-    padding: 1px 4px;
-    border-radius: 3px;
-    font-size: 0.9em;
-  }
-  .description-text pre {
-    background: var(--vscode-textCodeBlock-background);
-    padding: 10px 12px;
-    border-radius: 4px;
-    overflow-x: auto;
-    margin: 8px 0;
-  }
-  .description-text pre code {
-    background: none;
-    padding: 0;
-  }
-  .table-scroll {
-    overflow: auto;
-    max-height: 100%;
-  }
-  .images-table, .bands-table, .props-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 0.85em;
-  }
-  .images-table th, .bands-table th, .props-table th {
-    text-align: left;
-    background: var(--vscode-list-hoverBackground);
-    padding: 6px 10px;
-    font-weight: 600;
-    position: sticky;
-    top: 0;
-    white-space: nowrap;
-  }
-  .images-table td, .bands-table td, .props-table td {
-    padding: 6px 10px;
-    border-bottom: 1px solid var(--vscode-panel-border);
-    white-space: nowrap;
-  }
-  .images-table tbody tr:nth-child(even),
-  .bands-table tbody tr:nth-child(even) {
-    background: var(--vscode-list-hoverBackground);
-  }
-  .img-id {
-    max-width: 200px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-  .idx {
-    font-weight: 500;
-    opacity: 0.7;
-    width: 60px;
-  }
-  .props-table td:first-child {
-    font-weight: 500;
-    width: 30%;
-  }
-  .actions-cell { white-space: nowrap; text-align: right; }
-  .action-dots { display: inline-flex; align-items: center; height: 22px; opacity: 0.4; }
-  .action-dot { padding: 2px 6px; display: inline-flex; align-items: center; }
-  .action-btns { display: none; align-items: center; height: 22px; }
-  tr:hover .action-dots, tr:focus-within .action-dots { display: none; }
-  tr:hover .action-btns, tr:focus-within .action-btns { display: inline-flex; }
-  .action-btn {
-    background: none !important; border: none !important; cursor: pointer;
-    padding: 2px 6px; border-radius: 3px;
-    color: var(--vscode-foreground); opacity: 0.7;
-    display: inline-flex; align-items: center;
-  }
-  .action-btn:hover { opacity: 1; background: var(--vscode-list-hoverBackground) !important; }
-  .action-btn.danger { color: var(--vscode-errorForeground); }
-  .action-btn.danger:hover { background: var(--vscode-inputValidation-errorBackground) !important; }
-  .spinner {
-    display: inline-block;
-    width: 12px;
-    height: 12px;
-    border: 2px solid var(--vscode-foreground);
-    border-top-color: transparent;
-    border-radius: 50%;
-    animation: spin 0.8s linear infinite;
-    opacity: 0.5;
-    vertical-align: middle;
-    margin-right: 6px;
-  }
-  @keyframes spin {
-    to { transform: rotate(360deg); }
-  }
-  `;
 }
 
 // ── Nonce helper ────────────────────────────────────────────────────
