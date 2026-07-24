@@ -1,5 +1,5 @@
 ---
-applyTo: "**"
+applyTo: '**'
 ---
 
 # Earth Engine VS Code Extension — Copilot Instructions
@@ -18,6 +18,29 @@ This is a VS Code extension for Google Earth Engine. Read `.github/ARCHITECTURE.
 - **package.json**: be careful with JSON structure — orphan fragments are a recurring issue. Validate after edits.
 - **Lazy loading pattern**: tree views return spinner placeholders immediately, load in background, then fire `_onDidChangeTreeData`. See `assetsTreeDataProvider.ts` for the canonical example.
 - **Pagination**: server-side (API pageToken) for large collections, not client-side.
+
+## WebView panels: hbs + css + webview.js
+
+Every WebView panel is assembled from three sibling files, all bundled as plain strings by esbuild (`.hbs`/`.css` via the `text` loader, `.webview.js` via the `webview-script-text` plugin; type declarations in `src/templates.d.ts`):
+
+1. `{name}Panel.hbs` — Handlebars template, markup only. Inject the other two with `<style>{{{style}}}</style>` and `<script>{{{script}}}</script>` (add `nonce="{{nonce}}"` when the panel sets a CSP). Never hard-code CSS or JS in a template.
+2. `{name}Panel.css` — stylesheet, VS Code theme variables only (`var(--vscode-...)`).
+3. `{name}Panel.webview.js` — browser-side script (classic script, not a module). The `.webview.js` suffix is required — esbuild and eslint match on it.
+
+In the panel's `.ts`:
+
+```ts
+import { renderTemplate } from '../../shared/index.js';
+import template from './{name}Panel.hbs';
+import style from './{name}Panel.css';
+import script from './{name}Panel.webview.js';
+
+panel.webview.html = renderTemplate(template, { style, script /*, ...values */ });
+```
+
+- Handlebars escapes `{{value}}`; use `{{{value}}}` only for trusted HTML/CSS/JS/JSON fragments.
+- The `.webview.js` file must stay valid static JavaScript — no Handlebars placeholders inside it. To pass data from the extension host, render it into a JSON script tag in the template (`<script id="init-data" type="application/json">{{{initJson}}}</script>`) and read it with `JSON.parse(document.getElementById('init-data').textContent)`. See `assetsPanel` for the canonical example.
+- Formatting/linting runs via lint-staged on commit: prettier formats `.hbs` with the HTML parser and `embeddedLanguageFormatting: off` (embedded formatting would mangle `{{{...}}}` inside `<script>` tags — keep it off), and `.webview.js` files have their own eslint block in `eslint.config.mjs`.
 
 ## Testing changes
 
@@ -40,5 +63,6 @@ node esbuild.js    # build
 ## When adding a new editor panel
 
 1. Create `src/editor/{name}/{name}Panel.ts` (function or EditorPanel subclass)
-2. Export from `src/editor/{name}/index.ts`
-3. Import and call from the relevant SidebarSection
+2. Create the WebView files next to it: `{name}Panel.hbs`, `{name}Panel.css`, `{name}Panel.webview.js` (see "WebView panels" above)
+3. Export from `src/editor/{name}/index.ts`
+4. Import and call from the relevant SidebarSection
