@@ -13,6 +13,7 @@ import {
   getTaskState,
   getElapsedTime,
   cancelOperation,
+  getOperation,
 } from '../../sidebar/tasks/tasksApiClient.js';
 import { AuthService } from '../../auth/index.js';
 
@@ -61,6 +62,9 @@ export async function openTasksPanel(
           return t.startsWith('INGEST') || t.startsWith('IMPORT');
         };
 
+  // ── Terminal states that will never change ──
+  const TERMINAL_STATES = new Set(['SUCCEEDED', 'FAILED', 'CANCELLED']);
+
   function sendData(loading = false, silent = false) {
     const filtered = allOps.filter(filterFn).map((op) => ({
       name: op.name,
@@ -99,6 +103,73 @@ export async function openTasksPanel(
     } while (pageToken && allOps.length < 1_000);
   }
 
+  /**
+   * Incremental refresh: fetches new tasks in batches of 25 until overlap
+   * with existing data, then updates non-terminal tasks individually.
+   * Does NOT reload terminal tasks (SUCCEEDED, FAILED, CANCELLED).
+   */
+  async function refreshIncremental(): Promise<void> {
+    const t = await authService.getToken();
+    if (!t) {
+      return;
+    }
+
+    // If we have no existing data, fall back to full load
+    if (allOps.length === 0) {
+      await loadAndStream(true);
+      return;
+    }
+
+    const existingNames = new Set(allOps.map((op) => op.name));
+    const newOps: Operation[] = [];
+    let foundOverlap = false;
+    let pageToken: string | undefined;
+    let fetched = 0;
+
+    // Step 1: Fetch batches of 25 until we overlap with known tasks
+    do {
+      const result = await listOperationsPage(resolvedProject, t, 25, pageToken);
+      resolvedProject = result.project;
+
+      for (const op of result.operations) {
+        if (existingNames.has(op.name)) {
+          foundOverlap = true;
+          break;
+        }
+        newOps.push(op);
+      }
+
+      fetched += result.operations.length;
+      pageToken = result.nextPageToken;
+    } while (!foundOverlap && pageToken && fetched < 1_000);
+
+    // Step 2: Insert new tasks at the front
+    if (newOps.length > 0) {
+      allOps.unshift(...newOps);
+    }
+
+    // Step 3: Update non-terminal tasks (skip those just fetched as new)
+    const newNames = new Set(newOps.map((op) => op.name));
+    const nonTerminal = allOps.filter(
+      (op) => !TERMINAL_STATES.has(getTaskState(op)) && !newNames.has(op.name),
+    );
+
+    const updatePromises = nonTerminal.map(async (op) => {
+      try {
+        const updated = await getOperation(op.name, t!);
+        op.metadata = updated.metadata;
+        op.done = updated.done;
+        op.error = updated.error;
+      } catch {
+        // If individual fetch fails, keep stale data
+      }
+    });
+    await Promise.all(updatePromises);
+
+    // Step 4: Send refreshed data (no loading indicators)
+    sendData(false, true);
+  }
+
   panel.webview.onDidReceiveMessage(async (msg) => {
     if (msg.type === 'cancel') {
       try {
@@ -112,7 +183,8 @@ export async function openTasksPanel(
         panel.webview.postMessage({ type: 'error', message: m });
       }
     } else if (msg.type === 'refresh') {
-      loadAndStream(true).catch((err) => {
+      panel.webview.postMessage({ type: 'refreshStart' });
+      refreshIncremental().catch((err) => {
         const m = err instanceof Error ? err.message : String(err);
         panel.webview.postMessage({ type: 'error', message: m });
       });
@@ -130,10 +202,10 @@ export async function openTasksPanel(
     vscode.window.showErrorMessage(`Failed to load tasks: ${msg}`);
   });
 
-  // Auto-refresh every 15s (silent)
+  // Auto-refresh every 15s (incremental, silent — no button spinner)
   const interval = setInterval(() => {
     if (panel.visible) {
-      loadAndStream(true).catch(() => {
+      refreshIncremental().catch(() => {
         sendData(false, true);
       });
     }
@@ -490,7 +562,7 @@ function render() {
 	const rangeStart = sorted.length > 0 ? start + 1 : 0;
 	const rangeEnd = Math.min(start + pageSize, sorted.length);
 	const countStr = sorted.length > 0 ? rangeStart + '\u2013' + rangeEnd + ' of ' + sorted.length + ' tasks' : '0 tasks';
-	document.getElementById('pageInfo').innerHTML = esc(countStr) + (isLoading ? ' <span class="spinner-inline"></span>' : '');
+	document.getElementById('pageInfo').textContent = countStr;
 	document.getElementById('prevBtn').disabled = currentPage === 0;
 	document.getElementById('nextBtn').disabled = currentPage >= totalPages - 1;
 	document.getElementById('pageNums').innerHTML = pagerHtml(currentPage, totalPages);
@@ -530,36 +602,49 @@ function changePageSize(v) {
 	saveState();
 	render();
 }
-function setLoading(on) {
+function setButtonLoading(on) {
 	const btn = document.getElementById('refreshBtn');
-	const wrap = document.querySelector('.table-wrap');
 	if (on) {
 		btn.disabled = true;
 		btn.classList.add('loading');
 		document.getElementById('refreshLabel').textContent = 'Refreshing…';
-		wrap.classList.add('loading');
 	} else {
 		btn.disabled = false;
 		btn.classList.remove('loading');
 		document.getElementById('refreshLabel').textContent = 'Refresh';
+	}
+}
+function setLoading(on) {
+	setButtonLoading(on);
+	const wrap = document.querySelector('.table-wrap');
+	if (on) {
+		wrap.classList.add('loading');
+	} else {
 		wrap.classList.remove('loading');
 	}
 }
 function cancelTask(name) { vscode.postMessage({ type: 'cancel', name }); }
-function refresh() { setLoading(true); vscode.postMessage({ type: 'refresh' }); }
+function refresh() { vscode.postMessage({ type: 'refresh' }); }
 
 window.addEventListener('message', e => {
 	const msg = e.data;
 	if (msg.type === 'data') {
 		tasks = msg.tasks;
 		isLoading = msg.loading;
-		setLoading(false);
-		if (msg.silent && isLoading) {
-			// Silent refresh: accumulate without touching the UI
-			document.getElementById('pageInfo').innerHTML = '<span class="spinner-inline"></span>';
+		if (msg.silent) {
+			// Incremental refresh: just update data and re-render, button only
+			setButtonLoading(false);
+			render();
+		} else if (!isLoading) {
+			// Final page of initial load
+			setLoading(false);
+			render();
 		} else {
+			// Intermediate page of initial streaming load
 			render();
 		}
+	} else if (msg.type === 'refreshStart') {
+		setButtonLoading(true);
 	} else if (msg.type === 'loading') {
 		setLoading(true);
 	} else if (msg.type === 'cancelled') {
@@ -567,6 +652,7 @@ window.addEventListener('message', e => {
 		if (t) { t.state = 'CANCELLING'; }
 		render();
 	} else if (msg.type === 'error') {
+		setButtonLoading(false);
 		setLoading(false);
 		alert(msg.message);
 	}
