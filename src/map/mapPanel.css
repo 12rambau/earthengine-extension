@@ -156,7 +156,7 @@ body {
 .inspector-panel {
   position: absolute;
   top: 10px;
-  left: 298px;
+  left: 48px;
   z-index: 1000;
   width: 220px;
   background: var(--vscode-editor-background);
