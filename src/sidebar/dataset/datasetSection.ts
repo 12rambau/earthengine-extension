@@ -9,12 +9,14 @@
 
 import * as vscode from 'vscode';
 import { SidebarSection } from '../../shared/baseComponents.js';
-import { DatasetTreeDataProvider, DatasetTreeItem } from './datasetTreeDataProvider.js';
+import { DatasetTreeDataProvider } from './datasetTreeDataProvider.js';
+import { DatasetTreeItem } from './datasetTreeItem.js';
 import { fetchCollection, getDatasetPageUrl } from './stacClient.js';
 import { createDatasetPanel } from '../../editor/dataset/index.js';
 
-// ── DatasetSection ──────────────────────────────────────────────────
-
+// ==================================================================
+// DATASETSECTION
+// ==================================================================
 /** Sidebar section for browsing the Earth Engine public dataset catalog. */
 export class DatasetSection extends SidebarSection {
   private provider: DatasetTreeDataProvider;

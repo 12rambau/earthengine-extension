@@ -8,12 +8,14 @@
 
 import { getRequest, httpRequest } from '../../shared/httpClient.js';
 
-// ── Constants ───────────────────────────────────────────────────────
-
+// ==================================================================
+// CONSTANTS
+// ==================================================================
 const EE_API_BASE = 'https://earthengine.googleapis.com/v1';
 
-// ── Interfaces ──────────────────────────────────────────────────────
-
+// ==================================================================
+// INTERFACES
+// ==================================================================
 /** Metadata for an Earth Engine asset (image, table, folder, etc.). */
 export interface EEAsset {
   name: string;
@@ -54,8 +56,9 @@ export interface ListFeaturesResponse {
   nextPageToken?: string;
 }
 
-// ── API Functions ───────────────────────────────────────────────────
-
+// ==================================================================
+// API FUNCTIONS
+// ==================================================================
 /** Lists child assets of a parent path with pagination support. */
 export async function listAssets(
   parent: string,

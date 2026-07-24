@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; img-src https: data:; style-src 'nonce-{{nonce}}'; script-src 'nonce-{{nonce}}';"
+    />
+    <style nonce="{{nonce}}">
+      {{{style}}}
+    </style>
+  </head>
+  <body>
+    <header class="title-bar">
+      <h1>Asset details: {{title}} (Table)</h1>
+    </header>
+
+    <div class="layout">
+      <!-- Left sidebar -->
+      <aside class="sidebar">
+        <div class="thumbnail-container">
+          <div class="thumbnail-placeholder" id="thumbnail">
+            <span class="thumb-loading"><span class="spinner"></span> Loading thumbnail...</span>
+          </div>
+        </div>
+
+        <div class="sidebar-info">
+          <div class="info-row">
+            <span class="info-label">Table ID</span>
+            <span class="info-value asset-id" title="{{assetId}}">{{assetId}}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Date</span>
+            <span class="info-value">Start date: {{startDate}}<br />End date: {{endDate}}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">File Size</span>
+            <span class="info-value">{{fileSize}}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Number of Features</span>
+            <span class="info-value">{{featureCount}}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Last modified</span>
+            <span class="info-value">{{lastModified}}</span>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Right content with tabs -->
+      <main class="content">
+        <nav class="tabs">
+          <button class="tab active" data-tab="description">DESCRIPTION</button>
+          <button class="tab" data-tab="features">FEATURES</button>
+          <button class="tab" data-tab="columns">COLUMNS</button>
+          <button class="tab" data-tab="properties">PROPERTIES</button>
+        </nav>
+
+        <section class="tab-panel active" id="tab-description">{{{descriptionHtml}}}</section>
+
+        <section class="tab-panel" id="tab-features">{{{featuresTableHtml}}}</section>
+
+        <section class="tab-panel" id="tab-columns">{{{columnsTableHtml}}}</section>
+
+        <section class="tab-panel" id="tab-properties">{{{propsHtml}}}</section>
+      </main>
+    </div>
+
+    <script nonce="{{nonce}}">
+      {{{script}}}
+    </script>
+  </body>
+</html>

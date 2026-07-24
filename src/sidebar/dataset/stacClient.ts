@@ -8,12 +8,14 @@
 
 import { fetchJson } from '../../shared/httpClient.js';
 
-// ── Constants ───────────────────────────────────────────────────────
-
+// ==================================================================
+// CONSTANTS
+// ==================================================================
 const STAC_ROOT = 'https://earthengine-stac.storage.googleapis.com/catalog/catalog.json';
 
-// ── Interfaces ──────────────────────────────────────────────────────
-
+// ==================================================================
+// INTERFACES
+// ==================================================================
 /** A link entry in a STAC catalog or collection. */
 export interface StacLink {
   href: string;
@@ -60,8 +62,9 @@ export interface StacCollection {
   links: StacLink[];
 }
 
-// ── API Functions ───────────────────────────────────────────────────
-
+// ==================================================================
+// API FUNCTIONS
+// ==================================================================
 /** Fetches the top-level STAC catalog and returns child (provider) entries. */
 export async function fetchRootCatalog(): Promise<{ id: string; title: string; href: string }[]> {
   const catalog = await fetchJson<StacCatalog>(STAC_ROOT);

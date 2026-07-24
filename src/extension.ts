@@ -14,6 +14,7 @@
 
 import * as vscode from 'vscode';
 import { AuthService, TokenStorage } from './auth/index.js';
+import { configureEeSession } from './shared/eeSession.js';
 import { ProfilesSection } from './sidebar/profiles/index.js';
 import { AssetsSection } from './sidebar/assets/index.js';
 import { TasksSection } from './sidebar/tasks/index.js';
@@ -29,11 +30,19 @@ const sections: vscode.Disposable[] = [];
  * Sets up the auth service, registers all sidebar sections and the map panel.
  */
 export function activate(context: vscode.ExtensionContext) {
-  // ── Core services ──────────────────────────────────────────────────────
+  // ==================================================================
+  // CORE SERVICES
+  // ==================================================================
   const tokenStorage = new TokenStorage(context.globalState);
   const authService = new AuthService(tokenStorage);
 
-  // ── Sidebar sections ───────────────────────────────────────────────────
+  // Bridge the Earth Engine JS client to our auth service (token refresher +
+  // lazy per-project initialization). See shared/eeSession.
+  configureEeSession(authService);
+
+  // ==================================================================
+  // SIDEBAR SECTIONS
+  // ==================================================================
   // Each section is self-contained: it owns its tree view, commands, and cleanup.
   const profiles = new ProfilesSection(authService);
   const assets = new AssetsSection(authService);
@@ -49,7 +58,9 @@ export function activate(context: vscode.ExtensionContext) {
 
   sections.push(profiles, assets, tasks, dataset, docs);
 
-  // ── Map panel ──────────────────────────────────────────────────────────
+  // ==================================================================
+  // MAP PANEL
+  // ==================================================================
   // Leaflet-based interactive map that receives layers from Python scripts
   // through a local HTTP bridge server.
   const mapPanel = new MapPanel();

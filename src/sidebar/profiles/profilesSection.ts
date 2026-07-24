@@ -11,8 +11,9 @@ import { SidebarSection } from '../../shared/baseComponents.js';
 import { AuthService, Profile } from '../../auth/index.js';
 import { ProfilesTreeDataProvider } from './profilesTreeDataProvider.js';
 
-// ── ProfilesSection ─────────────────────────────────────────────────
-
+// ==================================================================
+// PROFILESSECTION
+// ==================================================================
 /** Sidebar section that displays and manages authentication profiles. */
 export class ProfilesSection extends SidebarSection {
   private provider: ProfilesTreeDataProvider;

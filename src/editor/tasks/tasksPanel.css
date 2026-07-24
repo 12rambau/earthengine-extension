@@ -1,0 +1,434 @@
+/* ==================================================================
+   RESET & BASE LAYOUT
+   ================================================================== */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+html,
+body {
+  height: 100%;
+  margin: 0;
+}
+body {
+  font-family: var(--vscode-font-family, sans-serif);
+  color: var(--vscode-foreground);
+  background: var(--vscode-editor-background);
+  padding: 12px 16px 8px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+h1 {
+  font-size: 1.3em;
+  margin: 0 0 8px 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+/* ==================================================================
+   TOOLBAR
+   ================================================================== */
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+  flex-shrink: 0;
+}
+.topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ==================================================================
+   TABLE CONTAINER
+   ================================================================== */
+.table-wrap {
+  flex: 1 1 0;
+  overflow-y: auto;
+  min-height: 120px;
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: 3px;
+}
+
+/* ==================================================================
+   PAGINATION
+   ================================================================== */
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 8px;
+  gap: 8px;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+}
+.pager {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.nav-btn {
+  background: transparent !important;
+  border-color: transparent !important;
+  font-weight: 500;
+}
+.nav-btn:not(:disabled):hover {
+  background: var(--vscode-list-hoverBackground) !important;
+  border-color: var(--vscode-input-border) !important;
+}
+.page-btn {
+  min-width: 28px;
+  height: 28px;
+  padding: 0 4px;
+  border-radius: 50%;
+  background: transparent !important;
+  border: 1px solid transparent !important;
+  font-size: 0.82em;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.page-btn:hover {
+  background: var(--vscode-list-hoverBackground) !important;
+  border-color: var(--vscode-input-border) !important;
+}
+.page-btn.active {
+  background: var(--vscode-button-background) !important;
+  color: var(--vscode-button-foreground) !important;
+  border-color: transparent !important;
+  font-weight: 600;
+}
+.page-ellipsis {
+  padding: 0 4px;
+  opacity: 0.5;
+  font-size: 0.85em;
+  user-select: none;
+}
+
+/* ==================================================================
+   PAGE-SIZE SELECT
+   ================================================================== */
+.per-page-select {
+  appearance: none;
+  -webkit-appearance: none;
+  padding-right: 20px !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23999'/%3E%3C/svg%3E") !important;
+  background-repeat: no-repeat !important;
+  background-position: right 6px center !important;
+  background-color: var(--vscode-button-secondaryBackground) !important;
+  border: 1px solid var(--vscode-input-border) !important;
+  cursor: pointer;
+}
+.per-page-select:hover {
+  background-color: var(--vscode-button-secondaryHoverBackground) !important;
+}
+
+/* ==================================================================
+   FILTER TOGGLE
+   ================================================================== */
+.toggle-switch {
+  display: inline-flex;
+  border-radius: 4px;
+  overflow: hidden;
+  border: 1px solid var(--vscode-input-border);
+  position: relative;
+}
+.toggle-switch input {
+  display: none;
+}
+.toggle-switch label {
+  padding: 4px 10px;
+  font-size: 0.85em;
+  cursor: pointer;
+  position: relative;
+  z-index: 1;
+  color: var(--vscode-button-secondaryForeground);
+  transition: color 0.15s;
+  user-select: none;
+}
+.toggle-switch .slider {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  border-radius: 3px;
+  background: var(--vscode-button-background);
+  transition:
+    left 0.2s,
+    width 0.2s;
+}
+.toggle-switch input:checked + label {
+  color: var(--vscode-button-foreground);
+}
+
+/* ==================================================================
+   INLINE SPINNER
+   ================================================================== */
+.spinner-inline {
+  width: 9px;
+  height: 9px;
+  border: 1.5px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  display: inline-block;
+  animation: spin 0.8s linear infinite;
+  opacity: 0.6;
+  vertical-align: middle;
+  margin-left: 5px;
+}
+
+/* ==================================================================
+   BUTTONS
+   ================================================================== */
+button,
+select {
+  background: var(--vscode-button-secondaryBackground);
+  color: var(--vscode-button-secondaryForeground);
+  border: 1px solid var(--vscode-input-border);
+  padding: 4px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.85em;
+}
+button:hover {
+  background: var(--vscode-button-secondaryHoverBackground);
+}
+button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.btn-primary {
+  background: var(--vscode-button-background);
+  color: var(--vscode-button-foreground);
+  border-color: transparent;
+}
+.btn-primary:hover {
+  background: var(--vscode-button-hoverBackground);
+}
+.page-info {
+  font-size: 0.85em;
+  opacity: 0.7;
+}
+
+/* ==================================================================
+   COLUMN PICKER
+   ================================================================== */
+.col-picker-wrap {
+  position: relative;
+}
+.col-picker {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 4px);
+  z-index: 10;
+  background: var(--vscode-editorWidget-background, var(--vscode-editor-background));
+  border: 1px solid var(--vscode-widget-border, var(--vscode-panel-border));
+  border-radius: 4px;
+  padding: 6px 4px;
+  min-width: 160px;
+  box-shadow: 0 4px 12px var(--vscode-widget-shadow);
+}
+.col-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 0.85em;
+  white-space: nowrap;
+  user-select: none;
+}
+.col-item:hover {
+  background: var(--vscode-list-hoverBackground);
+}
+.col-item input[type='checkbox'] {
+  cursor: pointer;
+  margin: 0;
+}
+.col-item.required {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* ==================================================================
+   TABLE
+   ================================================================== */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85em;
+}
+thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  text-align: left;
+  padding: 6px 8px;
+  cursor: pointer;
+  user-select: none;
+  background: var(--vscode-editor-background);
+  border-bottom: 2px solid var(--vscode-panel-border);
+  white-space: nowrap;
+}
+thead th:hover {
+  background: var(--vscode-list-hoverBackground);
+}
+th .sort-arrow {
+  opacity: 0.5;
+  margin-left: 4px;
+}
+th.sorted .sort-arrow {
+  opacity: 1;
+}
+td {
+  padding: 5px 8px;
+  border-bottom: 1px solid var(--vscode-panel-border);
+}
+tr:hover {
+  background: var(--vscode-list-hoverBackground);
+}
+.icon-col {
+  width: 24px;
+  padding: 3px 4px;
+  text-align: center;
+}
+.status {
+  white-space: nowrap;
+}
+
+/* ==================================================================
+   STATUS INDICATORS
+   ================================================================== */
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+.dot.succeeded {
+  background: var(--vscode-testing-iconPassed);
+}
+.dot.failed {
+  background: var(--vscode-testing-iconFailed);
+}
+.dot.cancelled {
+  background: var(--vscode-disabledForeground);
+}
+.dot.pending {
+  background: var(--vscode-charts-yellow);
+}
+
+/* ==================================================================
+   LOADING STATES
+   ================================================================== */
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.refresh-icon {
+  display: inline-block;
+}
+.btn-primary.loading {
+  opacity: 0.75;
+  cursor: default;
+}
+.btn-primary.loading .refresh-icon {
+  animation: spin 0.8s linear infinite;
+}
+.table-wrap.loading {
+  opacity: 0.45;
+  pointer-events: none;
+  transition: opacity 0.15s;
+}
+.spinner {
+  width: 10px;
+  height: 10px;
+  border: 2px solid var(--vscode-foreground);
+  border-top-color: transparent;
+  border-radius: 50%;
+  display: inline-block;
+  animation: spin 1s linear infinite;
+}
+
+/* ==================================================================
+   ROW ACTIONS
+   ================================================================== */
+.actions-cell {
+  white-space: nowrap;
+  text-align: right;
+}
+.action-dots {
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  opacity: 0.4;
+}
+.action-dot {
+  padding: 2px 6px;
+  display: inline-flex;
+  align-items: center;
+}
+.action-btns {
+  display: none;
+  align-items: center;
+  height: 22px;
+}
+tr:hover .action-dots,
+tr:focus-within .action-dots {
+  display: none;
+}
+tr:hover .action-btns,
+tr:focus-within .action-btns {
+  display: inline-flex;
+}
+.action-btn {
+  background: none !important;
+  border: none !important;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 3px;
+  color: var(--vscode-foreground);
+  opacity: 0.7;
+  display: inline-flex;
+  align-items: center;
+}
+.action-btn:hover {
+  opacity: 1;
+  background: var(--vscode-list-hoverBackground) !important;
+}
+.action-btn.danger {
+  color: var(--vscode-errorForeground);
+}
+.action-btn.danger:hover {
+  background: var(--vscode-inputValidation-errorBackground) !important;
+}
+
+/* ==================================================================
+   TABLE CELLS
+   ================================================================== */
+.error-text {
+  color: var(--vscode-errorForeground);
+}
+.elapsed {
+  opacity: 0.7;
+}
+.id-cell {
+  font-family: var(--vscode-editor-font-family, monospace);
+  font-size: 0.78em;
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.compute {
+  opacity: 0.85;
+  white-space: nowrap;
+}

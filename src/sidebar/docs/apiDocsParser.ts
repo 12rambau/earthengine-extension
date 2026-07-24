@@ -9,12 +9,14 @@
 
 import { fetchHtml } from '../../shared/httpClient.js';
 
-// ── Constants ───────────────────────────────────────────────────────
-
+// ==================================================================
+// CONSTANTS
+// ==================================================================
 const API_DOCS_URL = 'https://developers.google.com/earth-engine/api_docs';
 
-// ── Interfaces ──────────────────────────────────────────────────────
-
+// ==================================================================
+// INTERFACES
+// ==================================================================
 /** Parsed representation of a single API doc entry. */
 interface ApiEntry {
   name: string;
@@ -25,8 +27,9 @@ interface ApiEntry {
   args: { name: string; type: string; details: string }[];
 }
 
-// ── Cache ───────────────────────────────────────────────────────────
-
+// ==================================================================
+// CACHE
+// ==================================================================
 let cachedEntries: ApiEntry[] | undefined;
 
 /** Clears the in-memory docs cache so the next fetch re-downloads. */
@@ -34,8 +37,9 @@ export function clearDocsCache() {
   cachedEntries = undefined;
 }
 
-// ── Fetch & Parse ───────────────────────────────────────────────────
-
+// ==================================================================
+// FETCH & PARSE
+// ==================================================================
 /** Fetches and parses the API docs HTML, returning cached results on repeat calls. */
 export async function fetchApiDocs(): Promise<ApiEntry[]> {
   if (cachedEntries) {

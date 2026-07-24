@@ -16,13 +16,17 @@ import { authenticateNotebookFlow, getAccessToken, addServiceAccountFlow } from 
 import { TokenStorage, Profile } from './tokenStorage.js';
 
 export class AuthService {
-  // ── Events ─────────────────────────────────────────────────────────────
+  // ==================================================================
+  // EVENTS
+  // ==================================================================
 
   /** Fired when the active profile changes (sign in, switch, or sign out). */
   private _onDidChangeAuth = new vscode.EventEmitter<Profile | undefined>();
   readonly onDidChangeAuth = this._onDidChangeAuth.event;
 
-  // ── State ──────────────────────────────────────────────────────────────
+  // ==================================================================
+  // STATE
+  // ==================================================================
 
   /** The currently active profile, or undefined if signed out. */
   private activeProfile: Profile | undefined;
@@ -32,7 +36,9 @@ export class AuthService {
     this.activeProfile = storage.getActiveProfile();
   }
 
-  // ── Accessors ──────────────────────────────────────────────────────────
+  // ==================================================================
+  // ACCESSORS
+  // ==================================================================
 
   /** The currently active profile, if any. */
   get currentProfile(): Profile | undefined {
@@ -44,7 +50,9 @@ export class AuthService {
     return this.activeProfile !== undefined;
   }
 
-  // ── Sign in ────────────────────────────────────────────────────────────
+  // ==================================================================
+  // SIGN IN
+  // ==================================================================
 
   /**
    * Start the notebook-mode OAuth flow:
@@ -72,7 +80,9 @@ export class AuthService {
     }
   }
 
-  // ── Profile management ─────────────────────────────────────────────────
+  // ==================================================================
+  // PROFILE MANAGEMENT
+  // ==================================================================
 
   /**
    * Activate a previously saved profile.
@@ -103,7 +113,9 @@ export class AuthService {
     );
   }
 
-  // ── Token access ───────────────────────────────────────────────────────
+  // ==================================================================
+  // TOKEN ACCESS
+  // ==================================================================
 
   /**
    * Get a fresh access token for the active profile.
@@ -126,7 +138,9 @@ export class AuthService {
     }
   }
 
-  // ── Sign out ───────────────────────────────────────────────────────────
+  // ==================================================================
+  // SIGN OUT
+  // ==================================================================
 
   /** Clear the active profile without deleting stored credentials. */
   signOut(): void {
@@ -147,7 +161,9 @@ export class AuthService {
       this.signOut();
     }
   }
-  // ── Service Account ────────────────────────────────────────────────
+  // ==================================================================
+  // SERVICE ACCOUNT
+  // ==================================================================
 
   /**
    * Import a service account key file and save it as a profile.

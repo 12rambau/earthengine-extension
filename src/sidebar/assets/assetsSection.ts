@@ -9,12 +9,14 @@
 import * as vscode from 'vscode';
 import { SidebarSection } from '../../shared/baseComponents.js';
 import { AuthService } from '../../auth/index.js';
-import { AssetsTreeDataProvider, AssetTreeItem } from './assetsTreeDataProvider.js';
+import { AssetsTreeDataProvider } from './assetsTreeDataProvider.js';
+import { AssetTreeItem } from './assetTreeItem.js';
 import { copyAsset, createFolder, deleteAsset, moveAsset } from './eeApiClient.js';
 import { openAssetPreview, openAssetsPanel } from '../../editor/assets/index.js';
 
-// ── AssetsSection ───────────────────────────────────────────────────
-
+// ==================================================================
+// ASSETSSECTION
+// ==================================================================
 /** Sidebar section that displays the user's Earth Engine asset tree. */
 export class AssetsSection extends SidebarSection {
   private provider: AssetsTreeDataProvider;

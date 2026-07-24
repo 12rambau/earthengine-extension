@@ -468,7 +468,9 @@
     "serialize-javascript": "^7.0.6"
   },
   "dependencies": {
+    "@google/earthengine": "^1.7.36",
     "conventional-commits-filter": "^6.0.1",
+    "handlebars": "^4.7.9",
     "marked": "^4.3.0"
   }
 }

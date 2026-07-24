@@ -1,0 +1,90 @@
+/* ==================================================================
+   RESET & LAYOUT
+   ================================================================== */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+body {
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  font-family: var(--vscode-font-family, sans-serif);
+}
+#map {
+  width: 100%;
+  height: 100%;
+}
+
+/* ==================================================================
+   LAYER CONTROL
+   ================================================================== */
+.layer-control {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 1000;
+  background: var(--vscode-editor-background);
+  color: var(--vscode-foreground);
+  border-radius: 6px;
+  padding: 8px;
+  min-width: 180px;
+  box-shadow: 0 2px 8px var(--vscode-widget-shadow);
+  font-size: 12px;
+  max-height: 50vh;
+  overflow-y: auto;
+}
+.layer-control h3 {
+  font-size: 12px;
+  margin-bottom: 6px;
+  opacity: 0.7;
+}
+.layer-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 0;
+  cursor: pointer;
+}
+.layer-item input {
+  cursor: pointer;
+}
+.layer-item label {
+  cursor: pointer;
+  flex: 1;
+}
+.layer-item .remove-btn {
+  background: none;
+  border: none;
+  color: var(--vscode-errorForeground);
+  cursor: pointer;
+  font-size: 14px;
+  padding: 0 4px;
+  opacity: 0.6;
+}
+.layer-item .remove-btn:hover {
+  opacity: 1;
+}
+.layer-item .opacity-slider {
+  width: 60px;
+  height: 4px;
+  cursor: pointer;
+}
+
+/* ==================================================================
+   STATUS BAR
+   ================================================================== */
+.status-bar {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  background: var(--vscode-statusBar-background);
+  color: var(--vscode-statusBar-foreground);
+  padding: 2px 10px;
+  font-size: 11px;
+  display: flex;
+  justify-content: space-between;
+}

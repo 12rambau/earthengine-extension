@@ -16,8 +16,9 @@ import * as os from 'os';
 import { URLSearchParams } from 'url';
 import { postForm, postJson, getRequest, fetchJson } from '../shared/httpClient.js';
 
-// ── OAuth Constants ──────────────────────────────────────────────────
-
+// ==================================================================
+// OAUTH CONSTANTS
+// ==================================================================
 // Same credentials as earthengine-api (python/ee/oauth.py)
 const CLIENT_ID = '517222506229-vsmmajv00ul0bs7p89v5m89qs8eb9359.apps.googleusercontent.com';
 const CLIENT_SECRET = 'RUP0RZ6e0pPhDzsqIJ7KlNd1';
@@ -33,8 +34,9 @@ const FETCH_URL = AUTH_PAGE_URL + '/fetch';
 const TOKEN_URI = 'https://oauth2.googleapis.com/token';
 const REDIRECT_URI = 'urn:ietf:wg:oauth:2.0:oob';
 
-// ── Interfaces ───────────────────────────────────────────────────────
-
+// ==================================================================
+// INTERFACES
+// ==================================================================
 /** Persisted OAuth2 credentials for a standard (user) Earth Engine session. */
 export interface EECredentials {
   type?: 'authorized_user';
@@ -65,8 +67,9 @@ export function isServiceAccount(creds: StoredCredentials): creds is ServiceAcco
   return (creds as ServiceAccountCredentials).type === 'service_account';
 }
 
-// ── Credential Paths ─────────────────────────────────────────────────
-
+// ==================================================================
+// CREDENTIAL PATHS
+// ==================================================================
 /** Returns the default credentials path (~/.config/earthengine/credentials). */
 export function getDefaultCredentialsPath(): string {
   return path.join(os.homedir(), '.config', 'earthengine', 'credentials');
@@ -77,8 +80,9 @@ export function getProfileCredentialsPath(profileName: string): string {
   return path.join(os.homedir(), '.config', 'earthengine', 'profiles', profileName, 'credentials');
 }
 
-// ── Credential I/O ──────────────────────────────────────────────────
-
+// ==================================================================
+// CREDENTIAL I/O
+// ==================================================================
 /** Reads and parses a JSON credentials file; returns `undefined` on failure. */
 export function readCredentials(credPath: string): StoredCredentials | undefined {
   try {
@@ -96,8 +100,9 @@ export function writeCredentials(credPath: string, creds: StoredCredentials): vo
   fs.writeFileSync(credPath, JSON.stringify(creds, null, 2), { mode: 0o600 });
 }
 
-// ── Notebook Auth Flow ───────────────────────────────────────────────
-
+// ==================================================================
+// NOTEBOOK AUTH FLOW
+// ==================================================================
 /**
  * Interactive notebook-style PKCE authentication flow.
  *
@@ -206,8 +211,9 @@ export async function authenticateNotebookFlow(): Promise<
   return { credentials, email, project };
 }
 
-// ── Token Refresh ────────────────────────────────────────────────────
-
+// ==================================================================
+// TOKEN REFRESH
+// ==================================================================
 /**
  * Obtains a short-lived access token from stored credentials.
  * Handles both user (refresh token) and service account (JWT) flows.
@@ -350,8 +356,9 @@ export async function addServiceAccountFlow(): Promise<
   };
 }
 
-// ── Helpers ──────────────────────────────────────────────────────────
-
+// ==================================================================
+// HELPERS
+// ==================================================================
 /** Fetches the user's email from the access token. Tries userinfo first, falls back to tokeninfo. */
 async function fetchEmail(accessToken: string): Promise<string> {
   // Try userinfo endpoint (requires openid/email scope)

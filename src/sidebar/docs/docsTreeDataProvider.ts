@@ -11,8 +11,9 @@ import * as vscode from 'vscode';
 import { DocsTreeItem } from './docsTreeItem.js';
 import { fetchApiDocs, getDocUrl, clearDocsCache } from './apiDocsParser.js';
 
-// ── Internal Types ──────────────────────────────────────────────────
-
+// ==================================================================
+// INTERNAL TYPES
+// ==================================================================
 /** Recursive tree node used to organise API entries by dotted path. */
 interface TreeNode {
   children: Map<string, TreeNode>;
@@ -25,8 +26,9 @@ interface TreeNode {
   };
 }
 
-// ── DocsTreeDataProvider ───────────────────────────────────────────
-
+// ==================================================================
+// DOCSTREEDATAPROVIDER
+// ==================================================================
 /** Provides a hierarchical tree of all `ee.*` API methods and classes. */
 export class DocsTreeDataProvider implements vscode.TreeDataProvider<DocsTreeItem> {
   private _onDidChangeTreeData = new vscode.EventEmitter<DocsTreeItem | undefined | void>();

@@ -1,4 +1,31 @@
 /**
+ * @module webviewUtils
+ * HTML/WebView helpers shared across editor panels: Handlebars template
+ * rendering, HTML escaping, value formatting (bytes, dates, asset types), a
+ * properties-table renderer, the base stylesheet, and inline SVG icons.
+ */
+
+import Handlebars from 'handlebars';
+import baseStyle from './webviewBase.css';
+
+/** Compiled-template cache — templates are module-level string constants. */
+const compiledTemplates = new Map<string, Handlebars.TemplateDelegate>();
+
+/**
+ * Render a WebView Handlebars template. `{{key}}` values are
+ * HTML-escaped by Handlebars; trusted HTML/CSS/JSON fragments must use
+ * `{{{key}}}` (triple-stash) in the template.
+ */
+export function renderTemplate(template: string, values: Record<string, unknown>): string {
+  let render = compiledTemplates.get(template);
+  if (!render) {
+    render = Handlebars.compile(template);
+    compiledTemplates.set(template, render);
+  }
+  return render(values);
+}
+
+/**
  * Escape HTML special characters for safe rendering in WebViews.
  */
 export function escapeHtml(str: string): string {
@@ -68,27 +95,10 @@ export function renderPropertiesTable(props?: Record<string, unknown>): string {
 
 /**
  * Base CSS for WebView panels using VS Code theme variables.
+ * Sourced from `webviewBase.css` (bundled as text by esbuild).
  */
 export function webviewBaseStyle(): string {
-  return `
-	body {
-		font-family: var(--vscode-font-family, sans-serif);
-		color: var(--vscode-foreground);
-		background: var(--vscode-editor-background);
-		padding: 20px; line-height: 1.5;
-	}
-	h1 { font-size: 1.4em; margin-bottom: 4px; }
-	h2 { font-size: 1.1em; margin-top: 20px; border-bottom: 1px solid var(--vscode-panel-border); padding-bottom: 4px; }
-	.badge { display: inline-block; background: var(--vscode-badge-background); color: var(--vscode-badge-foreground); padding: 2px 8px; border-radius: 12px; font-size: 0.8em; margin-right: 4px; }
-	.meta { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 12px 0; }
-	.meta-item strong { display: block; font-size: 0.8em; opacity: 0.7; }
-	table { width: 100%; border-collapse: collapse; font-size: 0.9em; margin: 8px 0; }
-	th { text-align: left; background: var(--vscode-list-hoverBackground); padding: 5px 8px; }
-	td { padding: 5px 8px; border-bottom: 1px solid var(--vscode-panel-border); }
-	code { background: var(--vscode-textCodeBlock-background); padding: 1px 4px; border-radius: 3px; font-size: 0.9em; }
-	.props-table td:first-child { font-weight: 600; width: 30%; }
-	a { color: var(--vscode-textLink-foreground); }
-	`;
+  return baseStyle;
 }
 
 /**
