@@ -101,6 +101,13 @@ export async function cancelOperation(name: string, accessToken: string): Promis
   await httpRequest(url, 'POST', accessToken);
 }
 
+/** Fetches the current state of a single operation by its full name. */
+export async function getOperation(name: string, accessToken: string): Promise<Operation> {
+  const url = `${EE_API_BASE}/${name}`;
+  const response = await httpRequest(url, 'GET', accessToken);
+  return JSON.parse(response) as Operation;
+}
+
 // ── Task Helpers ────────────────────────────────────────────────────
 
 /** Returns `true` if the operation is an export-type task. */
