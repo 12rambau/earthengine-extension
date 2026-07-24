@@ -125,8 +125,10 @@ export class TaskTreeItem extends vscode.TreeItem {
 
 // ── TasksTreeDataProvider ──────────────────────────────────────────
 
-/** Maximum number of tasks to keep in the view. */
-const MAX_TASKS = 100;
+/** Reads the configured max items from the extension settings. */
+function getMaxTasks(): number {
+  return vscode.workspace.getConfiguration('earthengine.tasks').get<number>('maxItems', 100);
+}
 
 const TERMINAL_STATES = new Set(['SUCCEEDED', 'FAILED', 'CANCELLED']);
 
@@ -226,7 +228,7 @@ export class TasksTreeDataProvider implements vscode.TreeDataProvider<TaskTreeIt
     if (this.statusFilter) {
       filtered = filtered.filter((op) => this.statusFilter!.has(getTaskState(op)));
     }
-    filtered = filtered.slice(0, MAX_TASKS);
+    filtered = filtered.slice(0, getMaxTasks());
 
     if (filtered.length === 0) {
       const empty = new vscode.TreeItem(`No ${this.filter} tasks`);
@@ -293,7 +295,7 @@ export class TasksTreeDataProvider implements vscode.TreeDataProvider<TaskTreeIt
     }
   }
 
-  /** Returns true if we haven't filled MAX_TASKS matching items yet. */
+  /** Returns true if we haven't filled the max matching items yet. */
   private needsMoreMatches(): boolean {
     if (!this.statusFilter) {
       return false; // Without status filter, first 100 is enough
@@ -301,7 +303,7 @@ export class TasksTreeDataProvider implements vscode.TreeDataProvider<TaskTreeIt
     const filterFn = this.filter === 'export' ? isExportTask : isImportTask;
     let matching = this.loadedTasks.filter(filterFn);
     matching = matching.filter((op) => this.statusFilter!.has(getTaskState(op)));
-    return matching.length < MAX_TASKS;
+    return matching.length < getMaxTasks();
   }
 
   /** Fetches additional pages in background, updating the tree after each. */
@@ -327,7 +329,7 @@ export class TasksTreeDataProvider implements vscode.TreeDataProvider<TaskTreeIt
         if (this.statusFilter) {
           matching = matching.filter((op) => this.statusFilter!.has(getTaskState(op)));
         }
-        if (matching.length >= MAX_TASKS) {
+        if (matching.length >= getMaxTasks()) {
           break;
         }
       } catch {
@@ -356,7 +358,7 @@ export class TasksTreeDataProvider implements vscode.TreeDataProvider<TaskTreeIt
   /**
    * Incremental refresh: fetch new tasks until overlap,
    * update non-terminal tasks, prune those that no longer match the filter,
-   * and backfill from the API if we drop below MAX_TASKS.
+   * and backfill from the API if we drop below the configured max.
    */
   private async incrementalRefresh(): Promise<void> {
     try {
@@ -420,12 +422,12 @@ export class TasksTreeDataProvider implements vscode.TreeDataProvider<TaskTreeIt
         );
       }
 
-      // Backfill if we dropped below MAX_TASKS matching items
+      // Backfill if we dropped below getMaxTasks() matching items
       await this.backfillIfNeeded(token);
 
       // Final prune
-      if (this.loadedTasks.length > MAX_TASKS * 2) {
-        this.loadedTasks.length = MAX_TASKS * 2;
+      if (this.loadedTasks.length > getMaxTasks() * 2) {
+        this.loadedTasks.length = getMaxTasks() * 2;
       }
 
       this.manageAutoRefresh();
@@ -435,7 +437,7 @@ export class TasksTreeDataProvider implements vscode.TreeDataProvider<TaskTreeIt
     }
   }
 
-  /** Fetches additional pages if the visible list is below MAX_TASKS. */
+  /** Fetches additional pages if the visible list is below the configured max. */
   private async backfillIfNeeded(token: string): Promise<void> {
     const filterFn = this.filter === 'export' ? isExportTask : isImportTask;
     let matching = this.loadedTasks.filter(filterFn);
@@ -443,13 +445,13 @@ export class TasksTreeDataProvider implements vscode.TreeDataProvider<TaskTreeIt
       matching = matching.filter((op) => this.statusFilter!.has(getTaskState(op)));
     }
 
-    if (matching.length >= MAX_TASKS || !this.lastPageToken) {
+    if (matching.length >= getMaxTasks() || !this.lastPageToken) {
       return;
     }
 
     // Fetch more pages to try to fill the slots
     let pageToken: string | undefined = this.lastPageToken;
-    while (matching.length < MAX_TASKS && pageToken) {
+    while (matching.length < getMaxTasks() && pageToken) {
       const result = await listOperationsPage(this.resolvedProject!, token, 100, pageToken);
       this.resolvedProject = result.project;
       this.loadedTasks.push(...result.operations);

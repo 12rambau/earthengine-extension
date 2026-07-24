@@ -27,6 +27,18 @@
         }
       }
     },
+    "configuration": {
+      "title": "Earth Engine",
+      "properties": {
+        "earthengine.tasks.maxItems": {
+          "type": "number",
+          "default": 100,
+          "minimum": 10,
+          "maximum": 1000,
+          "description": "Maximum number of tasks to display in the sidebar and panel tree views."
+        }
+      }
+    },
     "viewsContainers": {
       "activitybar": [
         {
