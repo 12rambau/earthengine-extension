@@ -34,9 +34,28 @@
           "title": "Earth Engine",
           "icon": "resources/earthengine.svg"
         }
+      ],
+      "panel": [
+        {
+          "id": "earthengine-panel",
+          "title": "Earth Engine",
+          "icon": "resources/earthengine.svg"
+        }
       ]
     },
     "views": {
+      "earthengine-panel": [
+        {
+          "id": "earthengine.panelTasks.export",
+          "name": "Export Tasks",
+          "icon": "$(cloud-download)"
+        },
+        {
+          "id": "earthengine.panelTasks.import",
+          "name": "Import Tasks",
+          "icon": "$(cloud-upload)"
+        }
+      ],
       "earthengine": [
         {
           "id": "earthengine.profiles",
@@ -189,6 +208,20 @@
         "icon": "$(open-preview)"
       },
       {
+        "command": "earthengine.panelTasksRefresh",
+        "title": "Refresh Tasks",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "earthengine.panelTasksOpenEditor",
+        "title": "Open in Editor",
+        "icon": "$(open-preview)"
+      },
+      {
+        "command": "earthengine.panelTasksLoadMore",
+        "title": "Load More Tasks"
+      },
+      {
         "command": "earthengine.refreshDatasets",
         "title": "Earth Engine: Refresh Datasets",
         "icon": "$(refresh)"
@@ -290,6 +323,16 @@
           "command": "earthengine.refreshDatasets",
           "when": "view == earthengine.dataset",
           "group": "navigation"
+        },
+        {
+          "command": "earthengine.panelTasksRefresh",
+          "when": "view == earthengine.panelTasks.export || view == earthengine.panelTasks.import",
+          "group": "navigation@1"
+        },
+        {
+          "command": "earthengine.panelTasksOpenEditor",
+          "when": "view == earthengine.panelTasks.export || view == earthengine.panelTasks.import",
+          "group": "navigation@2"
         }
       ],
       "view/item/context": [

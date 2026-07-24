@@ -106,6 +106,25 @@ export class TasksSection extends SidebarSection {
       openTasksPanel(this.authService, 'import', context);
     });
 
+    // ── Bottom Panel: Export & Import task trees ──
+    const panelExportProvider = new TasksTreeDataProvider(this.authService, 'export');
+    const panelImportProvider = new TasksTreeDataProvider(this.authService, 'import');
+    this.createTreeView('earthengine.panelTasks.export', panelExportProvider);
+    this.createTreeView('earthengine.panelTasks.import', panelImportProvider);
+
+    this.registerCommand('earthengine.panelTasksRefresh', () => {
+      panelExportProvider.refresh();
+      panelImportProvider.refresh();
+    });
+
+    this.registerCommand('earthengine.panelTasksOpenEditor', () => {
+      openTasksPanel(this.authService, 'export', context);
+    });
+
+    this.registerCommand('earthengine.panelTasksLoadMore', (provider: TasksTreeDataProvider) => {
+      provider.loadNextPage();
+    });
+
     context.subscriptions.push(this);
   }
 
