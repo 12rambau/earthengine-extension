@@ -290,11 +290,21 @@ tr:hover { background: var(--vscode-list-hoverBackground); }
 .btn-primary.loading .refresh-icon { animation: spin 0.8s linear infinite; }
 .table-wrap.loading { opacity: 0.45; pointer-events: none; transition: opacity 0.15s; }
 .spinner { width: 10px; height: 10px; border: 2px solid var(--vscode-foreground); border-top-color: transparent; border-radius: 50%; display: inline-block; animation: spin 1s linear infinite; }
-.cancel-btn {
-	background: none; border: none; color: var(--vscode-errorForeground);
-	cursor: pointer; font-size: 0.85em; padding: 2px 6px; border-radius: 3px;
+.actions-cell { white-space: nowrap; text-align: right; }
+.action-dots { display: inline-flex; align-items: center; height: 22px; opacity: 0.4; }
+.action-dot { padding: 2px 6px; display: inline-flex; align-items: center; }
+.action-btns { display: none; align-items: center; height: 22px; }
+tr:hover .action-dots, tr:focus-within .action-dots { display: none; }
+tr:hover .action-btns, tr:focus-within .action-btns { display: inline-flex; }
+.action-btn {
+	background: none !important; border: none !important; cursor: pointer;
+	padding: 2px 6px; border-radius: 3px;
+	color: var(--vscode-foreground); opacity: 0.7;
+	display: inline-flex; align-items: center;
 }
-.cancel-btn:hover { background: var(--vscode-inputValidation-errorBackground); }
+.action-btn:hover { opacity: 1; background: var(--vscode-list-hoverBackground) !important; }
+.action-btn.danger { color: var(--vscode-errorForeground); }
+.action-btn.danger:hover { background: var(--vscode-inputValidation-errorBackground) !important; }
 .error-text { color: var(--vscode-errorForeground); }
 .elapsed { opacity: 0.7; }
 .id-cell { font-family: var(--vscode-editor-font-family, monospace); font-size: 0.78em; max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -452,6 +462,19 @@ function formatTime(t) {
 
 function esc(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
+const ACTION_ICONS = {
+	cancel: '<svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M8 1a7 7 0 1 0 0 14A7 7 0 0 0 8 1zm0 13A6 6 0 1 1 8 2a6 6 0 0 1 0 12zm3.15-8.85a.5.5 0 0 1 0 .7L8.71 8.29l2.44 2.44a.5.5 0 0 1-.7.7L8 9l-2.44 2.44a.5.5 0 0 1-.7-.7L7.29 8.29 4.85 5.85a.5.5 0 1 1 .7-.7L8 7.59l2.44-2.44a.5.5 0 0 1 .7 0z"/></svg>',
+	dot: '<svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M8 6.25a1.75 1.75 0 1 1 0 3.5 1.75 1.75 0 0 1 0-3.5z"/></svg>',
+};
+
+function actionsHtml(t) {
+	if (t.state !== 'RUNNING' && t.state !== 'PENDING') return '';
+	const btn = '<button class="action-btn danger" title="Cancel task" onclick="cancelTask(\\'' + t.name + '\\')">' + ACTION_ICONS.cancel + '</button>';
+	const dots = '<span class="action-dot">' + ACTION_ICONS.dot + '</span>';
+	return '<span class="action-dots">' + dots + '</span>'
+		+ '<span class="action-btns">' + btn + '</span>';
+}
+
 // ── Render ────────────────────────────────────────────────────────────
 
 function render() {
@@ -468,9 +491,6 @@ function render() {
 	const vis = key => visibleCols.has(key);
 	const tbody = document.getElementById('tbody');
 	tbody.innerHTML = page.map(t => {
-		const cancelBtn = (t.state === 'RUNNING' || t.state === 'PENDING')
-			? '<button class="cancel-btn" onclick="cancelTask(\\'' + t.name + '\\')">✕ Cancel</button>'
-			: '';
 		const errorSpan = t.error ? '<br><span class="error-text">' + esc(t.error) + '</span>' : '';
 		const computeStr = t.computeUsage != null ? t.computeUsage.toFixed(1) + '\u202fEECU\u00b7s' : '';
 		return '<tr>'
@@ -483,7 +503,7 @@ function render() {
 			+ (vis('attempt')      ? '<td style="text-align:center">'+(t.attempt != null ? t.attempt : '')+'</td>' : '')
 			+ (vis('priority')     ? '<td style="text-align:center">'+(t.priority != null ? t.priority : '')+'</td>' : '')
 			+ (vis('computeUsage') ? '<td class="compute">'+computeStr+'</td>' : '')
-			+ (vis('actions')      ? '<td>'+cancelBtn+'</td>' : '')
+			+ (vis('actions')      ? '<td class="actions-cell">' + actionsHtml(t) + '</td>' : '')
 			+ '</tr>';
 	}).join('');
 
