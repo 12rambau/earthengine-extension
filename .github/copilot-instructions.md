@@ -24,7 +24,7 @@ This is a VS Code extension for Google Earth Engine. Read `.github/ARCHITECTURE.
 Every WebView panel is assembled from three sibling files, all bundled as plain strings by esbuild (`.hbs`/`.css` via the `text` loader, `.webview.js` via the `webview-script-text` plugin; type declarations in `src/templates.d.ts`):
 
 1. `{name}Panel.hbs` — Handlebars template, markup only. Inject the other two with `<style>{{{style}}}</style>` and `<script>{{{script}}}</script>` (add `nonce="{{nonce}}"` when the panel sets a CSP). Never hard-code CSS or JS in a template.
-2. `{name}Panel.css` — stylesheet, VS Code theme variables only (`var(--vscode-...)`). Group rules by component behind three-line banner comments so related styles read as a block and stand out in the minimap:
+2. `{name}Panel.css` — stylesheet, VS Code theme variables only (`var(--vscode-...)`). Every color must be a theme token — no hardcoded hex/rgb literals, and no literal fallbacks (`var(--x, #hex)`); workbench tokens are always defined in a webview, so bare `var(--x)` is correct. Use `var(--vscode-widget-shadow)` for `box-shadow`. The one unavoidable exception is a color baked inside a `url("data:image/svg+xml,...")` — `var()` cannot reach into a data URI, so keep a theme-neutral gray there. Group rules by component behind three-line banner comments so related styles read as a block and stand out in the minimap:
 
    ```css
    /* ==================================================================

@@ -25,12 +25,12 @@ body {
   top: 10px;
   right: 10px;
   z-index: 1000;
-  background: var(--vscode-editor-background, #1e1e1e);
-  color: var(--vscode-foreground, #ccc);
+  background: var(--vscode-editor-background);
+  color: var(--vscode-foreground);
   border-radius: 6px;
   padding: 8px;
   min-width: 180px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 2px 8px var(--vscode-widget-shadow);
   font-size: 12px;
   max-height: 50vh;
   overflow-y: auto;
@@ -57,7 +57,7 @@ body {
 .layer-item .remove-btn {
   background: none;
   border: none;
-  color: var(--vscode-errorForeground, #f44);
+  color: var(--vscode-errorForeground);
   cursor: pointer;
   font-size: 14px;
   padding: 0 4px;
@@ -81,8 +81,8 @@ body {
   left: 0;
   right: 0;
   z-index: 1000;
-  background: var(--vscode-statusBar-background, #007acc);
-  color: var(--vscode-statusBar-foreground, #fff);
+  background: var(--vscode-statusBar-background);
+  color: var(--vscode-statusBar-foreground);
   padding: 2px 10px;
   font-size: 11px;
   display: flex;
