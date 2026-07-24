@@ -18,6 +18,18 @@ body {
 }
 
 /* ==================================================================
+   LEAFLET ATTRIBUTION
+   ================================================================== */
+.leaflet-control-attribution {
+  background: var(--vscode-editor-background) !important;
+  color: var(--vscode-foreground) !important;
+  opacity: 0.8;
+}
+.leaflet-control-attribution a {
+  color: var(--vscode-textLink-foreground) !important;
+}
+
+/* ==================================================================
    STATUS BAR
    ================================================================== */
 .status-bar {
