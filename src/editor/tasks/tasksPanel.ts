@@ -15,6 +15,7 @@ import {
   cancelOperation,
 } from '../../sidebar/tasks/tasksApiClient.js';
 import { AuthService } from '../../auth/index.js';
+import { openAssetPreview } from '../assets/assetPreviewPanel.js';
 
 type TaskFilter = 'export' | 'import';
 
@@ -77,6 +78,7 @@ export async function openTasksPanel(
       attempt: op.metadata?.attempt ?? null,
       priority: op.metadata?.priority ?? null,
       computeUsage: op.metadata?.batchEecuUsageSeconds ?? null,
+      destinationUris: op.metadata?.destinationUris || [],
       error: op.error?.message || '',
     }));
     panel.webview.postMessage({ type: 'data', tasks: filtered, loading, silent });
@@ -110,6 +112,16 @@ export async function openTasksPanel(
       } catch (err) {
         const m = err instanceof Error ? err.message : String(err);
         panel.webview.postMessage({ type: 'error', message: m });
+      }
+    } else if (msg.type === 'preview') {
+      try {
+        const t = await authService.getToken();
+        if (t && msg.assetName) {
+          await openAssetPreview(msg.assetName, t);
+        }
+      } catch (err) {
+        const m = err instanceof Error ? err.message : String(err);
+        vscode.window.showErrorMessage(`Failed to open preview: ${m}`);
       }
     } else if (msg.type === 'refresh') {
       loadAndStream(true).catch((err) => {
@@ -464,15 +476,31 @@ function esc(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').repl
 
 const ACTION_ICONS = {
 	cancel: '<svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M8 1a7 7 0 1 0 0 14A7 7 0 0 0 8 1zm0 13A6 6 0 1 1 8 2a6 6 0 0 1 0 12zm3.15-8.85a.5.5 0 0 1 0 .7L8.71 8.29l2.44 2.44a.5.5 0 0 1-.7.7L8 9l-2.44 2.44a.5.5 0 0 1-.7-.7L7.29 8.29 4.85 5.85a.5.5 0 1 1 .7-.7L8 7.59l2.44-2.44a.5.5 0 0 1 .7 0z"/></svg>',
+	preview: '<svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M13.5 1H4.5C3.122 1 2 2.122 2 3.5V6.276C2.319 6.162 2.653 6.089 3 6.05V3.499C3 2.672 3.673 1.999 4.5 1.999H8.5V13.385L9.557 14.442C9.714 14.591 9.831 14.786 9.907 14.999H13.5C14.878 14.999 16 13.877 16 12.499V3.5C16 2.122 14.878 1 13.5 1ZM15 12.5C15 13.327 14.327 14 13.5 14H9.5V2H13.5C14.327 2 15 2.673 15 3.5V12.5ZM6.29 12.59C6.74 12.01 7 11.28 7 10.5C7 8.57 5.43 7 3.5 7C1.57 7 0 8.57 0 10.5C0 12.43 1.57 14 3.5 14C4.28 14 5.01 13.74 5.59 13.29L8.15 15.85C8.24 15.95 8.37 16 8.5 16C8.63 16 8.76 15.95 8.85 15.85C9.05 15.66 9.05 15.34 8.85 15.15L6.29 12.59ZM5.5 12C5.36 12.19 5.19 12.36 5 12.5C4.59 12.81 4.06 13 3.5 13C2.12 13 1 11.88 1 10.5C1 9.12 2.12 8 3.5 8C4.88 8 6 9.12 6 10.5C6 11.06 5.81 11.59 5.5 12Z"/></svg>',
 	dot: '<svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M8 6.25a1.75 1.75 0 1 1 0 3.5 1.75 1.75 0 0 1 0-3.5z"/></svg>',
 };
 
+/** Extracts an EE asset name from a destinationUri. */
+function assetNameFromUri(uri) {
+	const m = uri.match(/\\/v1\\/(projects\\/[^/]+\\/assets\\/.+)/);
+	return m ? m[1] : null;
+}
+
 function actionsHtml(t) {
-	if (t.state !== 'RUNNING' && t.state !== 'PENDING') return '';
-	const btn = '<button class="action-btn danger" title="Cancel task" onclick="cancelTask(\\'' + t.name + '\\')">' + ACTION_ICONS.cancel + '</button>';
-	const dots = '<span class="action-dot">' + ACTION_ICONS.dot + '</span>';
+	const btns = [];
+	if (t.state === 'RUNNING' || t.state === 'PENDING') {
+		btns.push('<button class="action-btn danger" title="Cancel task" onclick="cancelTask(\\'' + t.name + '\\')">' + ACTION_ICONS.cancel + '</button>');
+	}
+	if (t.state === 'SUCCEEDED' && t.destinationUris && t.destinationUris.length > 0) {
+		const assetName = assetNameFromUri(t.destinationUris[0]);
+		if (assetName) {
+			btns.push('<button class="action-btn" title="Preview asset" onclick="previewAsset(\\'' + esc(assetName) + '\\')">' + ACTION_ICONS.preview + '</button>');
+		}
+	}
+	if (btns.length === 0) return '';
+	const dots = ('<span class="action-dot">' + ACTION_ICONS.dot + '</span>').repeat(btns.length);
 	return '<span class="action-dots">' + dots + '</span>'
-		+ '<span class="action-btns">' + btn + '</span>';
+		+ '<span class="action-btns">' + btns.join('') + '</span>';
 }
 
 // ── Render ────────────────────────────────────────────────────────────
@@ -566,6 +594,7 @@ function setLoading(on) {
 	}
 }
 function cancelTask(name) { vscode.postMessage({ type: 'cancel', name }); }
+function previewAsset(assetName) { vscode.postMessage({ type: 'preview', assetName }); }
 function refresh() { setLoading(true); vscode.postMessage({ type: 'refresh' }); }
 
 window.addEventListener('message', e => {
