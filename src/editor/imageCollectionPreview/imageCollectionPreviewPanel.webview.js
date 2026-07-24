@@ -27,17 +27,23 @@
       }
     } else if (msg.type === 'imageDeleted') {
       const row = document.querySelector('tr[data-name="' + CSS.escape(msg.name) + '"]');
-      if (row) row.remove();
+      if (row) {
+        row.remove();
+      }
     }
   });
 
   // Action button delegation (CSP-safe: no inline onclick)
   document.addEventListener('click', function (e) {
     const btn = e.target.closest('[data-action]');
-    if (!btn) return;
+    if (!btn) {
+      return;
+    }
     const action = btn.dataset.action;
     const name = btn.dataset.name;
-    if (!name) return;
+    if (!name) {
+      return;
+    }
     if (action === 'open') {
       vscode.postMessage({ type: 'openImage', name: name });
     } else if (action === 'delete') {

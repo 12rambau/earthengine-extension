@@ -109,8 +109,12 @@ function renderHeader() {
   const tr = document.querySelector('#thead tr');
   tr.innerHTML = ALL_COLS.filter((c) => visibleCols.has(c.key))
     .map((c) => {
-      if (c.key === 'icon') return '<th></th>';
-      if (c.key === 'actions') return '<th>Actions</th>';
+      if (c.key === 'icon') {
+        return '<th></th>';
+      }
+      if (c.key === 'actions') {
+        return '<th>Actions</th>';
+      }
       return (
         '<th onclick="sortBy(\'' +
         c.key +
@@ -127,7 +131,9 @@ function updateSortArrows() {
   document.querySelectorAll('thead th').forEach((th) => {
     th.classList.remove('sorted');
     const arrow = th.querySelector('.sort-arrow');
-    if (arrow) arrow.textContent = '▲';
+    if (arrow) {
+      arrow.textContent = '▲';
+    }
   });
   const visCols = ALL_COLS.filter((c) => visibleCols.has(c.key) && c.key !== 'actions');
   const idx = visCols.findIndex((c) => c.key === sortCol);
@@ -136,7 +142,9 @@ function updateSortArrows() {
     if (th) {
       th.classList.add('sorted');
       const arrow = th.querySelector('.sort-arrow');
-      if (arrow) arrow.textContent = sortDir === 1 ? '▲' : '▼';
+      if (arrow) {
+        arrow.textContent = sortDir === 1 ? '▲' : '▼';
+      }
     }
   }
 }
@@ -226,13 +234,17 @@ function actionsHtml(a) {
 
 function render() {
   const sorted = [...assets].sort((a, b) => {
-    if (a.isContainer !== b.isContainer) return a.isContainer ? -1 : 1;
+    if (a.isContainer !== b.isContainer) {
+      return a.isContainer ? -1 : 1;
+    }
     const va = (a[sortCol] || '').toLowerCase();
     const vb = (b[sortCol] || '').toLowerCase();
     return va < vb ? -sortDir : va > vb ? sortDir : 0;
   });
   const totalPages = Math.max(1, Math.ceil(sorted.length / pageSize));
-  if (currentPage >= totalPages) currentPage = totalPages - 1;
+  if (currentPage >= totalPages) {
+    currentPage = totalPages - 1;
+  }
   const start = currentPage * pageSize;
   const page = sorted.slice(start, start + pageSize);
 
@@ -278,14 +290,20 @@ function render() {
 }
 
 function pagerHtml(cur, total) {
-  if (total <= 1) return '';
+  if (total <= 1) {
+    return '';
+  }
   const shown = new Set([0, total - 1]);
-  for (let i = Math.max(0, cur - 1); i <= Math.min(total - 1, cur + 1); i++) shown.add(i);
+  for (let i = Math.max(0, cur - 1); i <= Math.min(total - 1, cur + 1); i++) {
+    shown.add(i);
+  }
   const pages = [...shown].sort((a, b) => a - b);
   const btns = [];
   let prev = -1;
   for (const p of pages) {
-    if (prev !== -1 && p > prev + 1) btns.push('<span class="page-ellipsis">…</span>');
+    if (prev !== -1 && p > prev + 1) {
+      btns.push('<span class="page-ellipsis">…</span>');
+    }
     const cls = 'page-btn' + (p === cur ? ' active' : '');
     btns.push('<button class="' + cls + '" onclick="goToPage(' + p + ')">' + (p + 1) + '</button>');
     prev = p;
@@ -352,7 +370,9 @@ function refresh() {
   vscode.postMessage({ type: 'refresh' });
 }
 function goUp() {
-  if (currentParent === rootPath) return;
+  if (currentParent === rootPath) {
+    return;
+  }
   // Go to parent: remove last path segment, or back to root when at depth 1
   const parts = currentParent.split('/');
   if (parts.length <= 4) {

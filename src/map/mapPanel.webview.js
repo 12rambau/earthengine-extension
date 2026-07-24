@@ -92,7 +92,9 @@ function esc(s) {
 
 function toggleLayer(key, visible) {
   const layer = overlayLayers[key];
-  if (!layer) return;
+  if (!layer) {
+    return;
+  }
   if (visible) {
     map.addLayer(layer.leafletLayer);
   } else {
@@ -102,13 +104,17 @@ function toggleLayer(key, visible) {
 
 function setOpacity(key, opacity) {
   const layer = overlayLayers[key];
-  if (!layer) return;
+  if (!layer) {
+    return;
+  }
   layer.leafletLayer.setOpacity(opacity);
 }
 
 function removeLayer(key) {
   const layer = overlayLayers[key];
-  if (!layer) return;
+  if (!layer) {
+    return;
+  }
   map.removeLayer(layer.leafletLayer);
   delete overlayLayers[key];
   updateLayerControl();

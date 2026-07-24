@@ -2,13 +2,8 @@ import typescriptEslint from 'typescript-eslint';
 
 export default [
   {
-    // WebView client scripts are inlined into panel HTML as plain text
-    ignores: ['**/*.webview.js'],
-  },
-  {
     files: ['**/*.ts'],
-  },
-  {
+
     plugins: {
       '@typescript-eslint': typescriptEslint.plugin,
     },
@@ -30,6 +25,23 @@ export default [
 
       curly: 'warn',
       eqeqeq: 'warn',
+      'no-throw-literal': 'warn',
+      semi: 'warn',
+    },
+  },
+  {
+    // WebView client scripts: classic browser scripts inlined into panel HTML
+    files: ['src/**/*.webview.js'],
+
+    languageOptions: {
+      ecmaVersion: 2022,
+      sourceType: 'script',
+    },
+
+    rules: {
+      curly: 'warn',
+      // `== null` / `!= null` intentionally cover both null and undefined
+      eqeqeq: ['warn', 'always', { null: 'ignore' }],
       'no-throw-literal': 'warn',
       semi: 'warn',
     },

@@ -115,8 +115,12 @@ function renderHeader() {
   const tr = document.querySelector('#thead tr');
   tr.innerHTML = ALL_COLS.filter((c) => visibleCols.has(c.key))
     .map((c) => {
-      if (c.key === 'icon') return '<th class="icon-col"></th>';
-      if (c.key === 'actions') return '<th>Actions</th>';
+      if (c.key === 'icon') {
+        return '<th class="icon-col"></th>';
+      }
+      if (c.key === 'actions') {
+        return '<th>Actions</th>';
+      }
       return (
         '<th onclick="sortBy(\'' +
         c.key +
@@ -133,7 +137,9 @@ function updateSortArrows() {
   document.querySelectorAll('thead th').forEach((th) => {
     th.classList.remove('sorted');
     const arrow = th.querySelector('.sort-arrow');
-    if (arrow) arrow.textContent = '▲';
+    if (arrow) {
+      arrow.textContent = '▲';
+    }
   });
   const visCols = ALL_COLS.filter(
     (c) => visibleCols.has(c.key) && c.key !== 'actions' && c.key !== 'icon',
@@ -144,7 +150,9 @@ function updateSortArrows() {
     if (th) {
       th.classList.add('sorted');
       const arrow = th.querySelector('.sort-arrow');
-      if (arrow) arrow.textContent = sortDir === 1 ? '▲' : '▼';
+      if (arrow) {
+        arrow.textContent = sortDir === 1 ? '▲' : '▼';
+      }
     }
   }
 }
@@ -152,16 +160,28 @@ function updateSortArrows() {
 // ── Helpers ───────────────────────────────────────────────────────────
 
 function statusHtml(state) {
-  if (state === 'RUNNING' || state === 'CANCELLING') return '<span class="spinner"></span>';
-  if (state === 'SUCCEEDED') return '<span class="dot succeeded"></span>';
-  if (state === 'FAILED') return '<span class="dot failed"></span>';
-  if (state === 'CANCELLED') return '<span class="dot cancelled"></span>';
-  if (state === 'PENDING') return '<span class="dot pending"></span>';
+  if (state === 'RUNNING' || state === 'CANCELLING') {
+    return '<span class="spinner"></span>';
+  }
+  if (state === 'SUCCEEDED') {
+    return '<span class="dot succeeded"></span>';
+  }
+  if (state === 'FAILED') {
+    return '<span class="dot failed"></span>';
+  }
+  if (state === 'CANCELLED') {
+    return '<span class="dot cancelled"></span>';
+  }
+  if (state === 'PENDING') {
+    return '<span class="dot pending"></span>';
+  }
   return '';
 }
 
 function formatTime(t) {
-  if (!t) return '';
+  if (!t) {
+    return '';
+  }
   return new Date(t).toLocaleString();
 }
 
@@ -206,7 +226,9 @@ function actionsHtml(t) {
       );
     }
   }
-  if (btns.length === 0) return '';
+  if (btns.length === 0) {
+    return '';
+  }
   const dots = ('<span class="action-dot">' + ACTION_ICONS.dot + '</span>').repeat(btns.length);
   return (
     '<span class="action-dots">' +
@@ -227,7 +249,9 @@ function render() {
     return va < vb ? -sortDir : va > vb ? sortDir : 0;
   });
   const totalPages = Math.max(1, Math.ceil(sorted.length / pageSize));
-  if (currentPage >= totalPages) currentPage = totalPages - 1;
+  if (currentPage >= totalPages) {
+    currentPage = totalPages - 1;
+  }
   const start = currentPage * pageSize;
   const page = sorted.slice(start, start + pageSize);
 
@@ -271,14 +295,20 @@ function render() {
 }
 
 function pagerHtml(cur, total) {
-  if (total <= 1) return '';
+  if (total <= 1) {
+    return '';
+  }
   const shown = new Set([0, total - 1]);
-  for (let i = Math.max(0, cur - 1); i <= Math.min(total - 1, cur + 1); i++) shown.add(i);
+  for (let i = Math.max(0, cur - 1); i <= Math.min(total - 1, cur + 1); i++) {
+    shown.add(i);
+  }
   const pages = [...shown].sort((a, b) => a - b);
   const btns = [];
   let prev = -1;
   for (const p of pages) {
-    if (prev !== -1 && p > prev + 1) btns.push('<span class="page-ellipsis">…</span>');
+    if (prev !== -1 && p > prev + 1) {
+      btns.push('<span class="page-ellipsis">…</span>');
+    }
     const cls = 'page-btn' + (p === cur ? ' active' : '');
     btns.push('<button class="' + cls + '" onclick="goToPage(' + p + ')">' + (p + 1) + '</button>');
     prev = p;

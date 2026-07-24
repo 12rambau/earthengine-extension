@@ -1,52 +1,79 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<style>{{{style}}}</style>
-</head>
-<body>
-<h1>Tasks</h1>
-<div class="topbar">
-	<div class="topbar-left">
-		<button id="refreshBtn" onclick="refresh()" class="btn-primary"><span class="refresh-icon">⟳</span> <span id="refreshLabel">Refresh</span></button>
-		<span class="toggle-switch" id="filterToggle">
-			<span class="slider" id="toggleSlider"></span>
-			<input type="radio" name="filter" id="filterExport" value="export" onclick="changeFilter('export')">
-			<label for="filterExport">Export</label>
-			<input type="radio" name="filter" id="filterImport" value="import" onclick="changeFilter('import')">
-			<label for="filterImport">Import</label>
-		</span>
-	</div>
-	<div style="display:flex;align-items:center;gap:6px;">
-		<select id="pageSize" class="per-page-select" onchange="changePageSize(this.value)" title="Items per page">
-			<option value="10">10</option>
-			<option value="25">25</option>
-			<option value="50">50</option>
-			<option value="100">100</option>
-			<option value="500">500</option>
-		</select>
-		<div class="col-picker-wrap">
-			<button onclick="togglePicker(event)" id="colBtn">Columns ▾</button>
-			<div id="col-picker" class="col-picker" style="display:none"></div>
-		</div>
-	</div>
-</div>
-<div class="table-wrap">
-<table>
-<thead id="thead"><tr></tr></thead>
-<tbody id="tbody"></tbody>
-</table>
-</div>
-<div class="pagination" id="toolbar-bottom">
-	<span class="page-info" id="pageInfo"></span>
-	<div class="pager" style="margin-left:auto;flex-shrink:0;">
-		<button class="nav-btn" onclick="prevPage()" id="prevBtn">◀ Prev</button>
-		<span id="pageNums"></span>
-		<button class="nav-btn" onclick="nextPage()" id="nextBtn">Next ▶</button>
-	</div>
-</div>
-</div>
-<script id="init-data" type="application/json">{{{initJson}}}</script>
-<script>{{{script}}}</script>
-</body></html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <style>
+      {{{style}}}
+    </style>
+  </head>
+  <body>
+    <h1>Tasks</h1>
+    <div class="topbar">
+      <div class="topbar-left">
+        <button id="refreshBtn" onclick="refresh()" class="btn-primary">
+          <span class="refresh-icon">⟳</span> <span id="refreshLabel">Refresh</span>
+        </button>
+        <span class="toggle-switch" id="filterToggle">
+          <span class="slider" id="toggleSlider"></span>
+          <input
+            type="radio"
+            name="filter"
+            id="filterExport"
+            value="export"
+            onclick="changeFilter('export')"
+          />
+          <label for="filterExport">Export</label>
+          <input
+            type="radio"
+            name="filter"
+            id="filterImport"
+            value="import"
+            onclick="changeFilter('import')"
+          />
+          <label for="filterImport">Import</label>
+        </span>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;">
+        <select
+          id="pageSize"
+          class="per-page-select"
+          onchange="changePageSize(this.value)"
+          title="Items per page"
+        >
+          <option value="10">10</option>
+          <option value="25">25</option>
+          <option value="50">50</option>
+          <option value="100">100</option>
+          <option value="500">500</option>
+        </select>
+        <div class="col-picker-wrap">
+          <button onclick="togglePicker(event)" id="colBtn">Columns ▾</button>
+          <div id="col-picker" class="col-picker" style="display:none"></div>
+        </div>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead id="thead">
+          <tr></tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+    <div class="pagination" id="toolbar-bottom">
+      <span class="page-info" id="pageInfo"></span>
+      <div class="pager" style="margin-left:auto;flex-shrink:0;">
+        <button class="nav-btn" onclick="prevPage()" id="prevBtn">◀ Prev</button>
+        <span id="pageNums"></span>
+        <button class="nav-btn" onclick="nextPage()" id="nextBtn">Next ▶</button>
+      </div>
+    </div>
+    <script id="init-data" type="application/json">
+      {{{initJson}}}
+    </script>
+    <script>
+      {{{script}}}
+    </script>
+  </body>
+</html>

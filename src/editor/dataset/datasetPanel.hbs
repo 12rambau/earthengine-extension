@@ -1,45 +1,49 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta http-equiv="Content-Security-Policy" content="{{csp}}">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<style>{{{style}}}</style>
-</head>
-<body>
-	<h1>{{title}}</h1>
-	<div class="header">
-		{{{previewImgHtml}}}
-		<div class="header-text">
-			<div class="meta">
-				<div class="meta-item">
-					<strong>Dataset Availability</strong>
-					{{startDate}} – {{endDate}}
-				</div>
-				<div class="meta-item">
-					<strong>Type</strong>
-					<code>{{geeType}}</code>
-				</div>
-				<div class="meta-item">
-					<strong>Provider</strong>
-					{{{providersHtml}}}
-				</div>
-				<div class="meta-item">
-					<strong>Catalog Page</strong>
-					<a href="{{catalogUrl}}">Open in browser</a>
-				</div>
-			</div>
-			{{{tagsHtml}}}
-		</div>
-	</div>
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="Content-Security-Policy" content="{{csp}}" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <style>
+      {{{style}}}
+    </style>
+  </head>
+  <body>
+    <h1>{{title}}</h1>
+    <div class="header">
+      {{{previewImgHtml}}}
+      <div class="header-text">
+        <div class="meta">
+          <div class="meta-item">
+            <strong>Dataset Availability</strong>
+            {{startDate}} – {{endDate}}
+          </div>
+          <div class="meta-item">
+            <strong>Type</strong>
+            <code>{{geeType}}</code>
+          </div>
+          <div class="meta-item">
+            <strong>Provider</strong>
+            {{{providersHtml}}}
+          </div>
+          <div class="meta-item">
+            <strong>Catalog Page</strong>
+            <a href="{{catalogUrl}}">Open in browser</a>
+          </div>
+        </div>
+        {{{tagsHtml}}}
+      </div>
+    </div>
 
-	<div class="snippet">
-		<code id="snippet-code">{{snippet}}</code>
-		<button id="copy-btn" class="copy-btn" title="Copy to clipboard">Copy</button>
-	</div>
+    <div class="snippet">
+      <code id="snippet-code">{{snippet}}</code>
+      <button id="copy-btn" class="copy-btn" title="Copy to clipboard">Copy</button>
+    </div>
 
-	{{{tabsHtml}}}
+    {{{tabsHtml}}}
 
-	<script nonce="{{nonce}}">{{{script}}}</script>
-</body>
+    <script nonce="{{nonce}}">
+      {{{script}}}
+    </script>
+  </body>
 </html>

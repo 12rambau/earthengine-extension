@@ -1,4 +1,8 @@
-* { box-sizing: border-box; margin: 0; padding: 0; }
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
 body {
   font-family: var(--vscode-font-family, sans-serif);
   color: var(--vscode-foreground);
@@ -40,7 +44,8 @@ body {
   max-height: 100%;
   object-fit: contain;
 }
-.thumb-loading, .thumb-unavailable {
+.thumb-loading,
+.thumb-unavailable {
   font-size: 0.85em;
   opacity: 0.6;
   text-align: center;
@@ -93,9 +98,13 @@ body {
   font-weight: 500;
   opacity: 0.7;
   border-bottom: 2px solid transparent;
-  transition: opacity 0.15s, border-color 0.15s;
+  transition:
+    opacity 0.15s,
+    border-color 0.15s;
 }
-.tab:hover { opacity: 1; }
+.tab:hover {
+  opacity: 1;
+}
 .tab.active {
   opacity: 1;
   border-bottom-color: var(--vscode-focusBorder);
@@ -106,7 +115,9 @@ body {
   overflow: auto;
   flex: 1;
 }
-.tab-panel.active { display: block; }
+.tab-panel.active {
+  display: block;
+}
 .empty-state {
   font-size: 0.9em;
   opacity: 0.6;
@@ -121,9 +132,17 @@ body {
   font-size: 0.9em;
   line-height: 1.6;
 }
-.description-text h2 { font-size: 1.3em; margin: 16px 0 8px; }
-.description-text h3 { font-size: 1.1em; margin: 12px 0 6px; }
-.description-text p { margin: 8px 0; }
+.description-text h2 {
+  font-size: 1.3em;
+  margin: 16px 0 8px;
+}
+.description-text h3 {
+  font-size: 1.1em;
+  margin: 12px 0 6px;
+}
+.description-text p {
+  margin: 8px 0;
+}
 .description-text code {
   background: var(--vscode-textCodeBlock-background);
   padding: 1px 4px;
@@ -145,12 +164,16 @@ body {
   overflow: auto;
   max-height: 100%;
 }
-.images-table, .bands-table, .props-table {
+.images-table,
+.bands-table,
+.props-table {
   width: 100%;
   border-collapse: collapse;
   font-size: 0.85em;
 }
-.images-table th, .bands-table th, .props-table th {
+.images-table th,
+.bands-table th,
+.props-table th {
   text-align: left;
   background: var(--vscode-list-hoverBackground);
   padding: 6px 10px;
@@ -159,7 +182,9 @@ body {
   top: 0;
   white-space: nowrap;
 }
-.images-table td, .bands-table td, .props-table td {
+.images-table td,
+.bands-table td,
+.props-table td {
   padding: 6px 10px;
   border-bottom: 1px solid var(--vscode-panel-border);
   white-space: nowrap;
@@ -182,21 +207,55 @@ body {
   font-weight: 500;
   width: 30%;
 }
-.actions-cell { white-space: nowrap; text-align: right; }
-.action-dots { display: inline-flex; align-items: center; height: 22px; opacity: 0.4; }
-.action-dot { padding: 2px 6px; display: inline-flex; align-items: center; }
-.action-btns { display: none; align-items: center; height: 22px; }
-tr:hover .action-dots, tr:focus-within .action-dots { display: none; }
-tr:hover .action-btns, tr:focus-within .action-btns { display: inline-flex; }
-.action-btn {
-  background: none !important; border: none !important; cursor: pointer;
-  padding: 2px 6px; border-radius: 3px;
-  color: var(--vscode-foreground); opacity: 0.7;
-  display: inline-flex; align-items: center;
+.actions-cell {
+  white-space: nowrap;
+  text-align: right;
 }
-.action-btn:hover { opacity: 1; background: var(--vscode-list-hoverBackground) !important; }
-.action-btn.danger { color: var(--vscode-errorForeground); }
-.action-btn.danger:hover { background: var(--vscode-inputValidation-errorBackground) !important; }
+.action-dots {
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  opacity: 0.4;
+}
+.action-dot {
+  padding: 2px 6px;
+  display: inline-flex;
+  align-items: center;
+}
+.action-btns {
+  display: none;
+  align-items: center;
+  height: 22px;
+}
+tr:hover .action-dots,
+tr:focus-within .action-dots {
+  display: none;
+}
+tr:hover .action-btns,
+tr:focus-within .action-btns {
+  display: inline-flex;
+}
+.action-btn {
+  background: none !important;
+  border: none !important;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 3px;
+  color: var(--vscode-foreground);
+  opacity: 0.7;
+  display: inline-flex;
+  align-items: center;
+}
+.action-btn:hover {
+  opacity: 1;
+  background: var(--vscode-list-hoverBackground) !important;
+}
+.action-btn.danger {
+  color: var(--vscode-errorForeground);
+}
+.action-btn.danger:hover {
+  background: var(--vscode-inputValidation-errorBackground) !important;
+}
 .spinner {
   display: inline-block;
   width: 12px;
@@ -210,5 +269,7 @@ tr:hover .action-btns, tr:focus-within .action-btns { display: inline-flex; }
   margin-right: 6px;
 }
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }

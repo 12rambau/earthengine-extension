@@ -46,7 +46,9 @@
   });
 
   function formatNum(n) {
-    if (Number.isInteger(n)) return String(n);
+    if (Number.isInteger(n)) {
+      return String(n);
+    }
     return n.toFixed(4);
   }
 })();

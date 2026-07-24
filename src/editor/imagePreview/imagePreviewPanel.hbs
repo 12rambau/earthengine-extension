@@ -1,92 +1,102 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src https: data:; style-src 'nonce-{{nonce}}'; script-src 'nonce-{{nonce}}';">
-<style nonce="{{nonce}}">
-{{{style}}}
-</style>
-</head>
-<body>
-<header class="title-bar">
-  <h1>Asset details: {{title}}</h1>
-</header>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; img-src https: data:; style-src 'nonce-{{nonce}}'; script-src 'nonce-{{nonce}}';"
+    />
+    <style nonce="{{nonce}}">
+      {{{style}}}
+    </style>
+  </head>
+  <body>
+    <header class="title-bar">
+      <h1>Asset details: {{title}}</h1>
+    </header>
 
-<div class="layout">
-  <!-- Left sidebar -->
-  <aside class="sidebar">
-    <div class="thumbnail-container">
-      <div class="thumbnail-placeholder" id="thumbnail">
-        <span class="thumb-loading">Loading thumbnail...</span>
-      </div>
+    <div class="layout">
+      <!-- Left sidebar -->
+      <aside class="sidebar">
+        <div class="thumbnail-container">
+          <div class="thumbnail-placeholder" id="thumbnail">
+            <span class="thumb-loading">Loading thumbnail...</span>
+          </div>
+        </div>
+
+        <div class="sidebar-info">
+          <div class="info-row">
+            <span class="info-label">Image ID</span>
+            <span class="info-value asset-id" id="asset-id" title="{{assetId}}">{{assetId}}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Date</span>
+            <span class="info-value">Start date: {{startDate}}<br />End date: {{endDate}}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">File Size</span>
+            <span class="info-value">{{fileSize}}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Number of Bands</span>
+            <span class="info-value">{{bandCount}}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Last modified</span>
+            <span class="info-value">{{lastModified}}</span>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Right content with tabs -->
+      <main class="content">
+        <nav class="tabs">
+          <button class="tab active" data-tab="description">DESCRIPTION</button>
+          <button class="tab" data-tab="bands">BANDS</button>
+          <button class="tab" data-tab="properties">PROPERTIES</button>
+        </nav>
+
+        <section class="tab-panel active" id="tab-description">{{{descriptionHtml}}}</section>
+
+        <section class="tab-panel" id="tab-bands">
+          <table class="bands-table">
+            <thead>
+              <tr>
+                <th>Index</th>
+                <th>Name</th>
+                <th>Type</th>
+                <th>Dimensions</th>
+                <th>CRS</th>
+                <th>Nominal Scale</th>
+                <th>Min</th>
+                <th>Max</th>
+              </tr>
+            </thead>
+            <tbody>
+              {{{bandsRows}}}
+            </tbody>
+          </table>
+        </section>
+
+        <section class="tab-panel" id="tab-properties">
+          <table class="props-table">
+            <thead>
+              <tr>
+                <th>Property</th>
+                <th>Value</th>
+              </tr>
+            </thead>
+            <tbody>
+              {{{propsRows}}}
+            </tbody>
+          </table>
+        </section>
+      </main>
     </div>
 
-    <div class="sidebar-info">
-      <div class="info-row">
-        <span class="info-label">Image ID</span>
-        <span class="info-value asset-id" id="asset-id" title="{{assetId}}">{{assetId}}</span>
-      </div>
-      <div class="info-row">
-        <span class="info-label">Date</span>
-        <span class="info-value">Start date: {{startDate}}<br>End date: {{endDate}}</span>
-      </div>
-      <div class="info-row">
-        <span class="info-label">File Size</span>
-        <span class="info-value">{{fileSize}}</span>
-      </div>
-      <div class="info-row">
-        <span class="info-label">Number of Bands</span>
-        <span class="info-value">{{bandCount}}</span>
-      </div>
-      <div class="info-row">
-        <span class="info-label">Last modified</span>
-        <span class="info-value">{{lastModified}}</span>
-      </div>
-    </div>
-  </aside>
-
-  <!-- Right content with tabs -->
-  <main class="content">
-    <nav class="tabs">
-      <button class="tab active" data-tab="description">DESCRIPTION</button>
-      <button class="tab" data-tab="bands">BANDS</button>
-      <button class="tab" data-tab="properties">PROPERTIES</button>
-    </nav>
-
-    <section class="tab-panel active" id="tab-description">
-      {{{descriptionHtml}}}
-    </section>
-
-    <section class="tab-panel" id="tab-bands">
-      <table class="bands-table">
-        <thead>
-          <tr>
-            <th>Index</th>
-            <th>Name</th>
-            <th>Type</th>
-            <th>Dimensions</th>
-            <th>CRS</th>
-            <th>Nominal Scale</th>
-            <th>Min</th>
-            <th>Max</th>
-          </tr>
-        </thead>
-        <tbody>
-          {{{bandsRows}}}
-        </tbody>
-      </table>
-    </section>
-
-    <section class="tab-panel" id="tab-properties">
-      <table class="props-table">
-        <thead><tr><th>Property</th><th>Value</th></tr></thead>
-        <tbody>{{{propsRows}}}</tbody>
-      </table>
-    </section>
-  </main>
-</div>
-
-<script nonce="{{nonce}}">{{{script}}}</script>
-</body>
+    <script nonce="{{nonce}}">
+      {{{script}}}
+    </script>
+  </body>
 </html>

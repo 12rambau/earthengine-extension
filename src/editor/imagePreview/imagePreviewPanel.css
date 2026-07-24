@@ -1,4 +1,8 @@
-* { box-sizing: border-box; margin: 0; padding: 0; }
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
 body {
   font-family: var(--vscode-font-family, sans-serif);
   color: var(--vscode-foreground);
@@ -40,7 +44,8 @@ body {
   max-height: 100%;
   object-fit: contain;
 }
-.thumb-loading, .thumb-unavailable {
+.thumb-loading,
+.thumb-unavailable {
   font-size: 0.85em;
   opacity: 0.6;
   text-align: center;
@@ -93,9 +98,13 @@ body {
   font-weight: 500;
   opacity: 0.7;
   border-bottom: 2px solid transparent;
-  transition: opacity 0.15s, border-color 0.15s;
+  transition:
+    opacity 0.15s,
+    border-color 0.15s;
 }
-.tab:hover { opacity: 1; }
+.tab:hover {
+  opacity: 1;
+}
 .tab.active {
   opacity: 1;
   border-bottom-color: var(--vscode-focusBorder);
@@ -106,18 +115,22 @@ body {
   overflow: auto;
   flex: 1;
 }
-.tab-panel.active { display: block; }
+.tab-panel.active {
+  display: block;
+}
 .description-text {
   font-size: 0.9em;
   white-space: pre-wrap;
   opacity: 0.85;
 }
-.bands-table, .props-table {
+.bands-table,
+.props-table {
   width: 100%;
   border-collapse: collapse;
   font-size: 0.85em;
 }
-.bands-table th, .props-table th {
+.bands-table th,
+.props-table th {
   text-align: left;
   background: var(--vscode-list-hoverBackground);
   padding: 6px 10px;
@@ -125,7 +138,8 @@ body {
   position: sticky;
   top: 0;
 }
-.bands-table td, .props-table td {
+.bands-table td,
+.props-table td {
   padding: 6px 10px;
   border-bottom: 1px solid var(--vscode-panel-border);
 }
@@ -148,5 +162,7 @@ body {
   vertical-align: middle;
 }
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
