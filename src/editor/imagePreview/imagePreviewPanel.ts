@@ -15,14 +15,9 @@
 import * as vscode from 'vscode';
 import { marked } from 'marked';
 import { EEAsset, EEBand } from '../../sidebar/assets/eeApiClient.js';
-import { httpRequest } from '../../shared/httpClient.js';
-import {
-  escapeHtml,
-  formatBytes,
-  formatDate,
-  webviewBaseStyle,
-} from '../../shared/webviewUtils.js';
+import { escapeHtml, formatBytes, formatDate } from '../../shared/webviewUtils.js';
 import { renderTemplate } from '../../shared/index.js';
+import { ensureEe, evaluate, getThumbUrl } from '../../shared/eeSession.js';
 import template from './imagePreviewPanel.hbs';
 import style from './imagePreviewPanel.css';
 import script from './imagePreviewPanel.webview.js';
@@ -30,8 +25,6 @@ import script from './imagePreviewPanel.webview.js';
 // ==================================================================
 // CONSTANTS
 // ==================================================================
-const EE_API_BASE = 'https://earthengine.googleapis.com/v1';
-
 /** Near-global bbox in EPSG:4326, shrunk a few degrees to avoid antimeridian issues. */
 const GLOBAL_BBOX = [-175, -85, 175, 85];
 
@@ -39,7 +32,7 @@ const GLOBAL_BBOX = [-175, -85, 175, 85];
 // PUBLIC API
 // ==================================================================
 /** Opens a read-only WebView showing full metadata for an IMAGE asset. */
-export function openImagePreview(asset: EEAsset, accessToken: string): void {
+export function openImagePreview(asset: EEAsset): void {
   const panel = vscode.window.createWebviewPanel(
     'earthengine.imagePreview',
     `Asset details: ${asset.id || asset.name.split('/').pop() || 'Image'}`,
@@ -53,8 +46,8 @@ export function openImagePreview(asset: EEAsset, accessToken: string): void {
   panel.webview.onDidReceiveMessage(async (msg: { type: string }) => {
     if (msg.type === 'ready') {
       // Fire-and-forget: send thumbnail + min/max data asynchronously
-      sendThumbnail(asset, accessToken, panel);
-      sendMinMax(asset, accessToken, panel);
+      sendThumbnail(asset, panel);
+      sendMinMax(asset, panel);
     }
   });
 }
@@ -62,73 +55,33 @@ export function openImagePreview(asset: EEAsset, accessToken: string): void {
 // ==================================================================
 // THUMBNAIL
 // ==================================================================
-async function sendThumbnail(
-  asset: EEAsset,
-  accessToken: string,
-  panel: vscode.WebviewPanel,
-): Promise<void> {
+async function sendThumbnail(asset: EEAsset, panel: vscode.WebviewPanel): Promise<void> {
   try {
-    const thumbUrl = await getThumbnailUrl(asset, accessToken);
+    const thumbUrl = await getThumbnailUrl(asset);
     panel.webview.postMessage({ type: 'thumbnail', url: thumbUrl });
   } catch {
     panel.webview.postMessage({ type: 'thumbnail', url: '' });
   }
 }
 
-async function getThumbnailUrl(asset: EEAsset, accessToken: string): Promise<string> {
+/** Visualizes the image's first band and requests a 256px thumbnail URL. */
+async function getThumbnailUrl(asset: EEAsset): Promise<string> {
+  const ee = await ensureEe();
   const firstBand = asset.bands?.[0]?.id;
-  const expression: Record<string, unknown> = {
-    result: '0',
-    values: {
-      '0': {
-        functionInvocationValue: {
-          functionName: 'Image.visualize',
-          arguments: {
-            image: {
-              functionInvocationValue: {
-                functionName: 'Image.load',
-                arguments: { id: { constantValue: asset.name } },
-              },
-            },
-            bands: { constantValue: firstBand ? [firstBand] : [] },
-          },
-        },
-      },
-    },
-  };
-
-  const region = getFootprintOrGlobal(asset);
-
-  const body = JSON.stringify({
-    expression,
-    fileFormat: 'PNG',
-    bandIds: firstBand ? [firstBand] : undefined,
-    grid: {
-      dimensions: { width: 256, height: 256 },
-    },
-    region,
-    bestEffort: true,
+  const visualized = ee.Image(asset.name).visualize(firstBand ? { bands: [firstBand] } : {});
+  return getThumbUrl(visualized, {
+    dimensions: 256,
+    region: getFootprintOrGlobal(asset),
+    format: 'png',
   });
-
-  const url = `${EE_API_BASE}/projects/earthengine-legacy/thumbnails`;
-  const resp = await httpRequest(url, 'POST', accessToken, body);
-  const parsed = JSON.parse(resp) as { name?: string };
-  if (parsed.name) {
-    return `https://earthengine.googleapis.com/v1/${parsed.name}:getPixels`;
-  }
-  throw new Error('No thumbnail name returned');
 }
 
 // ==================================================================
 // MIN/MAX
 // ==================================================================
-async function sendMinMax(
-  asset: EEAsset,
-  accessToken: string,
-  panel: vscode.WebviewPanel,
-): Promise<void> {
+async function sendMinMax(asset: EEAsset, panel: vscode.WebviewPanel): Promise<void> {
   try {
-    const minMax = await computeMinMax(asset, accessToken);
+    const minMax = await computeMinMax(asset);
     panel.webview.postMessage({ type: 'minmax', data: minMax });
   } catch {
     panel.webview.postMessage({ type: 'minmax', data: null });
@@ -139,43 +92,20 @@ interface BandMinMax {
   [bandId: string]: { min: number | null; max: number | null };
 }
 
-async function computeMinMax(asset: EEAsset, accessToken: string): Promise<BandMinMax> {
-  const region = getFootprintOrGlobal(asset);
-
-  const body = JSON.stringify({
-    expression: {
-      result: '0',
-      values: {
-        '0': {
-          functionInvocationValue: {
-            functionName: 'Image.reduceRegion',
-            arguments: {
-              image: {
-                functionInvocationValue: {
-                  functionName: 'Image.load',
-                  arguments: { id: { constantValue: asset.name } },
-                },
-              },
-              reducer: {
-                functionInvocationValue: { functionName: 'Reducer.minMax', arguments: {} },
-              },
-              geometry: { constantValue: region },
-              bestEffort: { constantValue: true },
-              maxPixels: { constantValue: 1e8 },
-            },
-          },
-        },
-      },
-    },
+/** Reduces the image over its footprint with ee.Reducer.minMax() and groups the result per band. */
+async function computeMinMax(asset: EEAsset): Promise<BandMinMax> {
+  const ee = await ensureEe();
+  const reduced = ee.Image(asset.name).reduceRegion({
+    reducer: ee.Reducer.minMax(),
+    geometry: getFootprintOrGlobal(asset),
+    bestEffort: true,
+    maxPixels: 1e8,
   });
-
-  const url = `${EE_API_BASE}/projects/earthengine-legacy/value:compute`;
-  const resp = await httpRequest(url, 'POST', accessToken, body);
-  const parsed = JSON.parse(resp) as { result?: Record<string, number> };
+  const values = await evaluate<Record<string, number> | null>(reduced);
 
   const result: BandMinMax = {};
-  if (parsed.result) {
-    for (const [key, val] of Object.entries(parsed.result)) {
+  if (values) {
+    for (const [key, val] of Object.entries(values)) {
       const match = key.match(/^(.+)_(min|max)$/);
       if (match) {
         const bandId = match[1];

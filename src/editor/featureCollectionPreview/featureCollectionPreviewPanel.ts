@@ -14,9 +14,9 @@
 import * as vscode from 'vscode';
 import { marked } from 'marked';
 import { EEAsset, listFeatures } from '../../sidebar/assets/eeApiClient.js';
-import { httpRequest } from '../../shared/httpClient.js';
 import { escapeHtml, formatBytes, formatDate } from '../../shared/webviewUtils.js';
 import { renderTemplate } from '../../shared/index.js';
+import { ensureEe, getThumbUrl } from '../../shared/eeSession.js';
 import template from './featureCollectionPreviewPanel.hbs';
 import style from './featureCollectionPreviewPanel.css';
 import script from './featureCollectionPreviewPanel.webview.js';
@@ -24,8 +24,6 @@ import script from './featureCollectionPreviewPanel.webview.js';
 // ==================================================================
 // CONSTANTS
 // ==================================================================
-const EE_API_BASE = 'https://earthengine.googleapis.com/v1';
-
 /** Number of features to display in the FEATURES tab. */
 const FEATURES_PAGE_SIZE = 20;
 
@@ -58,7 +56,7 @@ export async function openFeatureCollectionPreview(
   // Handle messages from the WebView (lazy thumbnail loading)
   panel.webview.onDidReceiveMessage(async (msg: { type: string }) => {
     if (msg.type === 'ready') {
-      sendThumbnail(asset, accessToken, panel);
+      sendThumbnail(asset, panel);
     }
   });
 }
@@ -66,13 +64,9 @@ export async function openFeatureCollectionPreview(
 // ==================================================================
 // THUMBNAIL
 // ==================================================================
-async function sendThumbnail(
-  asset: EEAsset,
-  accessToken: string,
-  panel: vscode.WebviewPanel,
-): Promise<void> {
+async function sendThumbnail(asset: EEAsset, panel: vscode.WebviewPanel): Promise<void> {
   try {
-    const thumbUrl = await getTableThumbnailUrl(asset, accessToken);
+    const thumbUrl = await getTableThumbnailUrl(asset);
     panel.webview.postMessage({ type: 'thumbnail', url: thumbUrl });
   } catch {
     panel.webview.postMessage({
@@ -83,49 +77,11 @@ async function sendThumbnail(
   }
 }
 
-async function getTableThumbnailUrl(asset: EEAsset, accessToken: string): Promise<string> {
-  // Paint the FeatureCollection boundaries as dark strokes on a white background
-  const expression = {
-    result: '0',
-    values: {
-      '0': {
-        functionInvocationValue: {
-          functionName: 'Image.paint',
-          arguments: {
-            image: {
-              functionInvocationValue: {
-                functionName: 'Image.constant',
-                arguments: { value: { constantValue: 1 } },
-              },
-            },
-            featureCollection: {
-              functionInvocationValue: {
-                functionName: 'FeatureCollection.load',
-                arguments: { id: { constantValue: asset.name } },
-              },
-            },
-            color: { constantValue: 0 },
-            width: { constantValue: 1 },
-          },
-        },
-      },
-    },
-  };
-
-  const body = JSON.stringify({
-    expression,
-    fileFormat: 'PNG',
-    grid: { dimensions: { width: 256, height: 256 } },
-    bestEffort: true,
-  });
-
-  const url = `${EE_API_BASE}/projects/earthengine-legacy/thumbnails`;
-  const resp = await httpRequest(url, 'POST', accessToken, body);
-  const parsed = JSON.parse(resp) as { name?: string };
-  if (parsed.name) {
-    return `https://earthengine.googleapis.com/v1/${parsed.name}:getPixels`;
-  }
-  throw new Error('No thumbnail name returned');
+/** Paints the table's feature boundaries as dark strokes on white and requests a thumbnail. */
+async function getTableThumbnailUrl(asset: EEAsset): Promise<string> {
+  const ee = await ensureEe();
+  const boundaries = ee.Image(1).paint(ee.FeatureCollection(asset.name), 0, 1);
+  return getThumbUrl(boundaries, { dimensions: 256, format: 'png' });
 }
 
 // ==================================================================

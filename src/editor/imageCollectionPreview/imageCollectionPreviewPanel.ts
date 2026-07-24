@@ -14,9 +14,9 @@
 import * as vscode from 'vscode';
 import { marked } from 'marked';
 import { EEAsset, EEBand, listAssets, getAsset } from '../../sidebar/assets/eeApiClient.js';
-import { httpRequest } from '../../shared/httpClient.js';
 import { escapeHtml, formatBytes, formatDate } from '../../shared/webviewUtils.js';
 import { renderTemplate } from '../../shared/index.js';
+import { ensureEe, getThumbUrl } from '../../shared/eeSession.js';
 import template from './imageCollectionPreviewPanel.hbs';
 import imagesTableTemplate from './imagesTable.hbs';
 import bandsTableTemplate from './bandsTable.hbs';
@@ -26,8 +26,6 @@ import script from './imageCollectionPreviewPanel.webview.js';
 // ==================================================================
 // CONSTANTS
 // ==================================================================
-const EE_API_BASE = 'https://earthengine.googleapis.com/v1';
-
 /** Max images fetched for the IMAGES tab. */
 const IMAGES_PAGE_SIZE = 100;
 
@@ -84,7 +82,7 @@ export async function openImageCollectionPreview(
   // Handle messages from the WebView
   panel.webview.onDidReceiveMessage(async (msg: { type: string; name?: string }) => {
     if (msg.type === 'ready') {
-      sendThumbnail(asset, accessToken, panel);
+      sendThumbnail(asset, panel);
     } else if (msg.type === 'openImage' && msg.name) {
       const token = await getTokenSafe(accessToken);
       try {
@@ -123,68 +121,20 @@ function getTokenSafe(accessToken: string): Promise<string> {
 // ==================================================================
 // THUMBNAIL
 // ==================================================================
-async function sendThumbnail(
-  asset: EEAsset,
-  accessToken: string,
-  panel: vscode.WebviewPanel,
-): Promise<void> {
+async function sendThumbnail(asset: EEAsset, panel: vscode.WebviewPanel): Promise<void> {
   try {
-    const thumbUrl = await getCollectionThumbnailUrl(asset, accessToken);
+    const thumbUrl = await getCollectionThumbnailUrl(asset);
     panel.webview.postMessage({ type: 'thumbnail', url: thumbUrl });
   } catch {
     panel.webview.postMessage({ type: 'thumbnail', url: '', error: 'Thumbnail not available.' });
   }
 }
 
-async function getCollectionThumbnailUrl(asset: EEAsset, accessToken: string): Promise<string> {
-  const expression = {
-    result: '0',
-    values: {
-      '0': {
-        functionInvocationValue: {
-          functionName: 'Image.visualize',
-          arguments: {
-            image: {
-              functionInvocationValue: {
-                functionName: 'ImageCollection.mosaic',
-                arguments: {
-                  collection: {
-                    functionInvocationValue: {
-                      functionName: 'Collection.limit',
-                      arguments: {
-                        collection: {
-                          functionInvocationValue: {
-                            functionName: 'ImageCollection.load',
-                            arguments: { id: { constantValue: asset.name } },
-                          },
-                        },
-                        limit: { constantValue: MOSAIC_LIMIT },
-                      },
-                    },
-                  },
-                },
-              },
-            },
-          },
-        },
-      },
-    },
-  };
-
-  const body = JSON.stringify({
-    expression,
-    fileFormat: 'PNG',
-    grid: { dimensions: { width: 256, height: 256 } },
-    bestEffort: true,
-  });
-
-  const url = `${EE_API_BASE}/projects/earthengine-legacy/thumbnails`;
-  const resp = await httpRequest(url, 'POST', accessToken, body);
-  const parsed = JSON.parse(resp) as { name?: string };
-  if (parsed.name) {
-    return `https://earthengine.googleapis.com/v1/${parsed.name}:getPixels`;
-  }
-  throw new Error('No thumbnail name returned');
+/** Mosaics the first N images of the collection and requests a 256px thumbnail URL. */
+async function getCollectionThumbnailUrl(asset: EEAsset): Promise<string> {
+  const ee = await ensureEe();
+  const mosaic = ee.ImageCollection(asset.name).limit(MOSAIC_LIMIT).mosaic().visualize({});
+  return getThumbUrl(mosaic, { dimensions: 256, format: 'png' });
 }
 
 // ==================================================================

@@ -14,6 +14,7 @@
 
 import * as vscode from 'vscode';
 import { AuthService, TokenStorage } from './auth/index.js';
+import { configureEeSession } from './shared/eeSession.js';
 import { ProfilesSection } from './sidebar/profiles/index.js';
 import { AssetsSection } from './sidebar/assets/index.js';
 import { TasksSection } from './sidebar/tasks/index.js';
@@ -34,6 +35,10 @@ export function activate(context: vscode.ExtensionContext) {
   // ==================================================================
   const tokenStorage = new TokenStorage(context.globalState);
   const authService = new AuthService(tokenStorage);
+
+  // Bridge the Earth Engine JS client to our auth service (token refresher +
+  // lazy per-project initialization). See shared/eeSession.
+  configureEeSession(authService);
 
   // ==================================================================
   // SIDEBAR SECTIONS
