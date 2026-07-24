@@ -38,39 +38,6 @@ def _post(endpoint: str, data: dict):
         return None
 
 
-def _get_default_vis_params(ee_object, vis_params=None):
-    """Build visualization parameters with sensible defaults."""
-    vis = dict(vis_params or {})
-
-    if isinstance(ee_object, ee.FeatureCollection):
-        return vis
-
-    if isinstance(ee_object, ee.ImageCollection):
-        ee_object = ee_object.mosaic()
-
-    if isinstance(ee_object, ee.Image):
-        # If no bands specified, try to pick reasonable defaults
-        if "bands" not in vis:
-            info = ee_object.bandNames().getInfo()
-            if info and len(info) >= 3:
-                vis["bands"] = info[:3]
-            elif info:
-                vis["bands"] = [info[0]]
-
-        # Try to read visualization params from the image metadata
-        if "min" not in vis and "max" not in vis:
-            try:
-                props = ee_object.getInfo().get("properties", {})
-                if "visualization_0_min" in props:
-                    vis["min"] = props["visualization_0_min"]
-                    vis["max"] = props.get("visualization_0_max", vis["min"])
-                if "visualization_0_bands" in props and "bands" not in (vis_params or {}):
-                    vis["bands"] = props["visualization_0_bands"].split(",")
-            except Exception:
-                pass
-
-    return vis
-
 
 class _Map:
     """Singleton Map object that communicates with the VS Code extension."""
@@ -78,55 +45,50 @@ class _Map:
     def addLayer(self, ee_object, vis_params=None, name=None, shown=True, opacity=1.0):
         """Add an Earth Engine layer to the VS Code map.
 
+        The object is serialized and sent to the VS Code extension, which
+        resolves the tile URL via the EE JS client. No EE API calls are made
+        on the Python side.
+
         Args:
-            ee_object: An ee.Image, ee.ImageCollection, ee.FeatureCollection, or ee.Geometry.
-            vis_params: Visualization parameters dict (bands, min, max, palette, etc.).
+            ee_object: An ee.Image, ee.ImageCollection, ee.FeatureCollection,
+                       ee.Feature, or ee.Geometry.
+            vis_params: Visualization parameters dict (bands, min, max, palette,
+                        color, strokeWidth, etc.).
             name: Layer name. Auto-generated if not provided.
             shown: Whether the layer is visible.
             opacity: Layer opacity (0 to 1).
         """
-        vis = _get_default_vis_params(ee_object, vis_params)
+        vis_params = dict(vis_params or {})
 
-        # Handle different EE types
+        # Normalise to a single ee.Image (expression only — no API calls) ------
+
         if isinstance(ee_object, ee.ImageCollection):
             ee_object = ee_object.mosaic()
 
-        if isinstance(ee_object, (ee.Geometry, ee.Feature)):
-            # Convert to FeatureCollection for display
-            if isinstance(ee_object, ee.Geometry):
-                ee_object = ee.FeatureCollection([ee.Feature(ee_object)])
-            elif isinstance(ee_object, ee.Feature):
-                ee_object = ee.FeatureCollection([ee_object])
+        if isinstance(ee_object, ee.Geometry):
+            ee_object = ee.FeatureCollection([ee.Feature(ee_object)])
+        elif isinstance(ee_object, ee.Feature):
+            ee_object = ee.FeatureCollection([ee_object])
 
         if isinstance(ee_object, ee.FeatureCollection):
-            # Get GeoJSON for vector data
-            try:
-                geojson = ee_object.getInfo()
-                _post("addGeoJson", {
-                    "geojson": geojson,
-                    "name": name or "Vector Layer",
-                    "shown": shown,
-                    "opacity": opacity,
-                    "style": vis,
-                })
-                return
-            except Exception as e:
-                print(f"[Map] Error getting vector data: {e}")
-                return
+            stroke_width = vis_params.pop("strokeWidth", 2)
+            color = vis_params.pop("color", "000000")
+            ee_object = ee.Image().paint(ee_object, 1, stroke_width)
+            vis_params = {"min": 0, "max": 1, "palette": [color]}
 
-        if isinstance(ee_object, ee.Image):
-            try:
-                map_id_dict = ee_object.getMapId(vis)
-                tile_url = map_id_dict["tile_fetcher"].url_format
-                _post("addTileLayer", {
-                    "url": tile_url,
-                    "name": name or "Layer",
-                    "shown": shown,
-                    "opacity": opacity,
-                })
-            except Exception as e:
-                print(f"[Map] Error creating tile layer: {e}")
-                return
+        if not isinstance(ee_object, ee.Image):
+            print(f"[Map] Unsupported object type: {type(ee_object)}")
+            return
+
+        # Serialize and let the extension host resolve the tile URL ------------
+
+        _post("addLayer", {
+            "serialized": ee_object.serialize(),
+            "visParams": vis_params,
+            "name": name or "Layer",
+            "shown": shown,
+            "opacity": opacity,
+        })
 
     def centerObject(self, ee_object, zoom=None):
         """Center the map on an Earth Engine object.

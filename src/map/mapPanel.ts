@@ -10,6 +10,7 @@
 import * as vscode from 'vscode';
 import { EditorPanel } from '../shared/baseComponents.js';
 import { MapBridgeServer, MapCommand } from './mapBridgeServer.js';
+import { ensureEe, getMapIdUrl } from '../shared/eeSession.js';
 import { renderTemplate } from '../shared/index.js';
 import template from './mapPanel.hbs';
 import style from './mapPanel.css';
@@ -55,11 +56,125 @@ export class MapPanel extends EditorPanel {
       }),
     });
 
-    this.commandDisposable = this.bridgeServer.onCommand((cmd: MapCommand) => {
-      if (this.panel) {
-        this.panel.webview.postMessage(cmd);
+    this.commandDisposable = this.bridgeServer.onCommand(async (cmd: MapCommand) => {
+      if (!this.panel) {
+        return;
       }
+
+      if (cmd.type === 'addLayer') {
+        const d = cmd.data as {
+          serialized: string;
+          visParams: Record<string, unknown>;
+          name: string;
+          shown: boolean;
+          opacity: number;
+        };
+        try {
+          await this.handleAddLayer(d);
+        } catch (err) {
+          vscode.window.showErrorMessage(
+            `[Map] Layer error: ${err instanceof Error ? err.message : String(err)}`,
+          );
+        }
+        return;
+      }
+
+      this.panel.webview.postMessage(cmd);
     });
+  }
+
+  // ── Layer helpers ────────────────────────────────────────────────
+
+  /** Deserializes an EE expression, resolves the tile URL, and pushes it to the WebView. */
+  private async handleAddLayer(d: {
+    serialized: string;
+    visParams: Record<string, unknown>;
+    name: string;
+    shown: boolean;
+    opacity: number;
+  }): Promise<void> {
+    console.log(
+      '[Map:handleAddLayer] start, name:',
+      d.name,
+      'serialized len:',
+      d.serialized?.length,
+    );
+    const ee = await ensureEe();
+    console.log('[Map:handleAddLayer] ensureEe done, deserializing...');
+    const image = ee.Deserializer.fromJSON(d.serialized);
+    console.log('[Map:handleAddLayer] deserialized, calling getMapIdUrl...');
+    const url = await getMapIdUrl(image, d.visParams ?? {});
+    console.log('[Map:handleAddLayer] tile URL received:', url?.slice(0, 80));
+    if (this.panel) {
+      this.panel.webview.postMessage({
+        type: 'addTileLayer',
+        data: { url, name: d.name, shown: d.shown, opacity: d.opacity },
+      });
+    }
+  }
+
+  /**
+   * Hardcoded test layer — NOAA DMSP-OLS nighttime lights linear fit.
+   * Classic front-page Earth Engine example (stable since ~2010).
+   *
+   *   Collection: NOAA/DMSP-OLS/NIGHTTIME_LIGHTS → stable_lights band
+   *   Transform:  prepend a year-since-1991 band, reduce with linearFit
+   *   Viz:        scale→red/blue  offset→green
+   */
+  private async testNighttimeLights(): Promise<void> {
+    const step = async (label: string, fn: () => Promise<unknown> | unknown) => {
+      try {
+        const result = await fn();
+        vscode.window.showInformationMessage(`[Map test] ✓ ${label}`);
+        return result;
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        vscode.window.showErrorMessage(`[Map test] ✗ ${label}: ${msg}`);
+        throw err;
+      }
+    };
+
+    await step('open()', () => this.open());
+
+    const eeAny = (await step('ensureEe()', () => ensureEe())) as any;
+
+    const image = await step('build expression', () => {
+      const createTimeBand = (img: any) => {
+        const year = eeAny.Date(img.get('system:time_start')).get('year').subtract(1991);
+        return eeAny.Image(year).byte().addBands(img);
+      };
+      const france = eeAny
+        .FeatureCollection('FAO/GAUL/2015/level0')
+        .filter(eeAny.Filter.eq('ADM0_NAME', 'France'));
+      return eeAny
+        .ImageCollection('NOAA/DMSP-OLS/NIGHTTIME_LIGHTS')
+        .select('stable_lights')
+        .map(createTimeBand)
+        .reduce(eeAny.Reducer.linearFit())
+        .clip(france);
+    });
+
+    const serialized = (await step('Serializer.toJSON()', () =>
+      eeAny.Serializer.toJSON(image),
+    )) as string;
+
+    await step('handleAddLayer()', () =>
+      this.handleAddLayer({
+        serialized,
+        visParams: { min: 0, max: [0.18, 20, -0.18], bands: ['scale', 'offset', 'scale'] },
+        name: 'stable lights trend',
+        shown: true,
+        opacity: 1.0,
+      }),
+    );
+
+    // Fly to France
+    if (this.panel) {
+      this.panel.webview.postMessage({
+        type: 'setCenter',
+        data: { lat: 46.5, lon: 2.5, zoom: 5 },
+      });
+    }
   }
 
   protected override onDidDispose(): void {
@@ -72,10 +187,13 @@ export class MapPanel extends EditorPanel {
     super.dispose();
   }
 
-  /** Registers the `earthengine.openMap` command. */
+  /** Registers map commands. */
   register(context: vscode.ExtensionContext): void {
     context.subscriptions.push(
       vscode.commands.registerCommand('earthengine.openMap', () => this.open()),
+      vscode.commands.registerCommand('earthengine.map.testNighttimeLights', () =>
+        this.testNighttimeLights(),
+      ),
       this,
     );
   }

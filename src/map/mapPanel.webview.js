@@ -29,8 +29,6 @@ const map = L.map('map', {
 // BASEMAP MANAGEMENT
 // ==================================================================
 
-let currentBasemap = null;
-
 function isDarkTheme() {
   return (
     document.body.classList.contains('vscode-dark') ||
@@ -38,23 +36,42 @@ function isDarkTheme() {
   );
 }
 
-function themeBasemapId() {
-  return isDarkTheme() ? darkBasemap : lightBasemap;
-}
+// Create all basemap tile layers upfront as fixed instances.
+const basemapTileLayers = {
+  [darkBasemap]: L.tileLayer.provider(darkBasemap),
+  [lightBasemap]: L.tileLayer.provider(lightBasemap),
+  [satelliteBasemap]: L.tileLayer.provider(satelliteBasemap),
+  [planBasemap]: L.tileLayer.provider(planBasemap),
+};
+
+// Register base layers in L.control.layers for proper Leaflet group ordering.
+// The native control UI is hidden — the custom panel below handles UX.
+const nativeLayerControl = L.control
+  .layers(
+    {
+      Dark: basemapTileLayers[darkBasemap],
+      Light: basemapTileLayers[lightBasemap],
+      Satellite: basemapTileLayers[satelliteBasemap],
+      Plan: basemapTileLayers[planBasemap],
+    },
+    {},
+    { collapsed: true },
+  )
+  .addTo(map);
+nativeLayerControl.getContainer().style.display = 'none';
+
+let currentBasemap = basemapTileLayers[isDarkTheme() ? darkBasemap : lightBasemap];
+currentBasemap.addTo(map);
 
 function setBasemap(id) {
-  if (currentBasemap) {
-    map.removeLayer(currentBasemap);
+  const next = basemapTileLayers[id];
+  if (!next || next === currentBasemap) {
+    return;
   }
-  try {
-    currentBasemap = L.tileLayer.provider(id);
-    currentBasemap.addTo(map);
-  } catch (e) {
-    console.warn('Unknown basemap provider:', id);
-  }
+  map.removeLayer(currentBasemap);
+  next.addTo(map);
+  currentBasemap = next;
 }
-
-setBasemap(themeBasemapId());
 
 // ==================================================================
 // MAP CONTROLS
@@ -69,7 +86,7 @@ function activateMode(mode) {
     activeMode = 'theme';
     satelliteBtn.classList.remove('active');
     planBtn.classList.remove('active');
-    setBasemap(themeBasemapId());
+    setBasemap(isDarkTheme() ? darkBasemap : lightBasemap);
   } else {
     activeMode = mode;
     satelliteBtn.classList.toggle('active', mode === 'satellite');
@@ -80,12 +97,85 @@ function activateMode(mode) {
 
 new MutationObserver(() => {
   if (activeMode === 'theme') {
-    setBasemap(themeBasemapId());
+    setBasemap(isDarkTheme() ? darkBasemap : lightBasemap);
   }
 }).observe(document.body, { attributes: true, attributeFilter: ['class'] });
 
 satelliteBtn.addEventListener('click', () => activateMode('satellite'));
 planBtn.addEventListener('click', () => activateMode('plan'));
+
+// ==================================================================
+// LAYERS PANEL
+// ==================================================================
+
+/** @type {Array<{tileLayer: L.TileLayer, name: string, visible: boolean, opacity: number}>} */
+const overlays = [];
+
+const layersPanel = document.getElementById('layers-panel');
+const layersList = document.getElementById('layers-list');
+const layersToggleBtn = document.getElementById('layers-toggle');
+const layersCloseBtn = document.getElementById('layers-close');
+
+layersToggleBtn.addEventListener('click', () => {
+  layersPanel.classList.toggle('visible');
+  layersToggleBtn.classList.toggle('active', layersPanel.classList.contains('visible'));
+});
+layersCloseBtn.addEventListener('click', () => {
+  layersPanel.classList.remove('visible');
+  layersToggleBtn.classList.remove('active');
+});
+
+function renderOverlayLayer(index) {
+  const entry = overlays[index];
+
+  // Remove empty-state placeholder if this is the first layer
+  const empty = layersList.querySelector('.layers-empty');
+  if (empty) {
+    empty.remove();
+  }
+
+  const row = document.createElement('div');
+  row.className = 'layer-row';
+  row.dataset.index = index;
+
+  const visBtn = document.createElement('button');
+  visBtn.className = 'map-btn layer-vis-btn' + (entry.visible ? ' active' : '');
+  visBtn.title = 'Toggle visibility';
+  visBtn.innerHTML = '<i class="fa-solid ' + (entry.visible ? 'fa-eye' : 'fa-eye-slash') + '"></i>';
+  visBtn.addEventListener('click', () => {
+    entry.visible = !entry.visible;
+    if (entry.visible) {
+      entry.tileLayer.addTo(map);
+      visBtn.classList.add('active');
+      visBtn.innerHTML = '<i class="fa-solid fa-eye"></i>';
+    } else {
+      map.removeLayer(entry.tileLayer);
+      visBtn.classList.remove('active');
+      visBtn.innerHTML = '<i class="fa-solid fa-eye-slash"></i>';
+    }
+  });
+
+  const slider = document.createElement('input');
+  slider.type = 'range';
+  slider.className = 'layer-opacity';
+  slider.min = '0';
+  slider.max = '10';
+  slider.value = String(Math.round(entry.opacity * 10));
+  slider.addEventListener('input', () => {
+    entry.opacity = Number(slider.value) / 10;
+    entry.tileLayer.setOpacity(entry.opacity);
+  });
+
+  const nameEl = document.createElement('span');
+  nameEl.className = 'layer-name';
+  nameEl.textContent = entry.name;
+  nameEl.title = entry.name;
+
+  row.appendChild(visBtn);
+  row.appendChild(slider);
+  row.appendChild(nameEl);
+  layersList.appendChild(row);
+}
 
 // ==================================================================
 // STATUS BAR
@@ -108,27 +198,18 @@ window.addEventListener('message', (e) => {
 
   if (msg.type === 'addTileLayer') {
     const d = msg.data;
+    const opacity = d.opacity ?? 1.0;
     const tileLayer = L.tileLayer(d.url, {
       maxZoom: 24,
-      opacity: d.opacity || 1.0,
+      opacity,
       attribution: 'Google Earth Engine',
     });
+    nativeLayerControl.addOverlay(tileLayer, d.name || 'Layer');
+    const index = overlays.length;
+    overlays.push({ tileLayer, name: d.name || 'Layer', visible: d.shown !== false, opacity });
+    renderOverlayLayer(index);
     if (d.shown !== false) {
       tileLayer.addTo(map);
-    }
-  } else if (msg.type === 'addGeoJson') {
-    const d = msg.data;
-    const style = d.style || {};
-    const geoLayer = L.geoJSON(d.geojson, {
-      style: {
-        color: style.color || '#3388ff',
-        weight: style.weight || 2,
-        opacity: d.opacity || 1.0,
-        fillOpacity: style.fillOpacity || 0.2,
-      },
-    });
-    if (d.shown !== false) {
-      geoLayer.addTo(map);
     }
   } else if (msg.type === 'centerObject') {
     const d = msg.data;

@@ -303,6 +303,11 @@
         "icon": "$(map)"
       },
       {
+        "command": "earthengine.map.testNighttimeLights",
+        "title": "Earth Engine: Test – Nighttime Lights Trend",
+        "icon": "$(beaker)"
+      },
+      {
         "command": "earthengine.openExportTasksPanel",
         "title": "Earth Engine: Open Export Tasks",
         "icon": "$(open-preview)"
