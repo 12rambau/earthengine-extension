@@ -16,6 +16,7 @@ import {
   getOperation,
 } from '../../sidebar/tasks/tasksApiClient.js';
 import { AuthService } from '../../auth/index.js';
+import { openAssetPreview } from '../assets/assetPreviewPanel.js';
 
 type TaskFilter = 'export' | 'import';
 
@@ -81,6 +82,7 @@ export async function openTasksPanel(
       attempt: op.metadata?.attempt ?? null,
       priority: op.metadata?.priority ?? null,
       computeUsage: op.metadata?.batchEecuUsageSeconds ?? null,
+      destinationUris: op.metadata?.destinationUris || [],
       error: op.error?.message || '',
     }));
     panel.webview.postMessage({ type: 'data', tasks: filtered, loading, silent });
@@ -181,6 +183,16 @@ export async function openTasksPanel(
       } catch (err) {
         const m = err instanceof Error ? err.message : String(err);
         panel.webview.postMessage({ type: 'error', message: m });
+      }
+    } else if (msg.type === 'preview') {
+      try {
+        const t = await authService.getToken();
+        if (t && msg.assetName) {
+          await openAssetPreview(msg.assetName, t);
+        }
+      } catch (err) {
+        const m = err instanceof Error ? err.message : String(err);
+        vscode.window.showErrorMessage(`Failed to open preview: ${m}`);
       }
     } else if (msg.type === 'refresh') {
       panel.webview.postMessage({ type: 'refreshStart' });
@@ -350,7 +362,8 @@ th .sort-arrow { opacity: 0.5; margin-left: 4px; }
 th.sorted .sort-arrow { opacity: 1; }
 td { padding: 5px 8px; border-bottom: 1px solid var(--vscode-panel-border); }
 tr:hover { background: var(--vscode-list-hoverBackground); }
-.status { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
+.icon-col { width: 24px; padding: 3px 4px; text-align: center; }
+.status { white-space: nowrap; }
 .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
 .dot.succeeded { background: var(--vscode-testing-iconPassed); }
 .dot.failed { background: var(--vscode-testing-iconFailed); }
@@ -362,11 +375,21 @@ tr:hover { background: var(--vscode-list-hoverBackground); }
 .btn-primary.loading .refresh-icon { animation: spin 0.8s linear infinite; }
 .table-wrap.loading { opacity: 0.45; pointer-events: none; transition: opacity 0.15s; }
 .spinner { width: 10px; height: 10px; border: 2px solid var(--vscode-foreground); border-top-color: transparent; border-radius: 50%; display: inline-block; animation: spin 1s linear infinite; }
-.cancel-btn {
-	background: none; border: none; color: var(--vscode-errorForeground);
-	cursor: pointer; font-size: 0.85em; padding: 2px 6px; border-radius: 3px;
+.actions-cell { white-space: nowrap; text-align: right; }
+.action-dots { display: inline-flex; align-items: center; height: 22px; opacity: 0.4; }
+.action-dot { padding: 2px 6px; display: inline-flex; align-items: center; }
+.action-btns { display: none; align-items: center; height: 22px; }
+tr:hover .action-dots, tr:focus-within .action-dots { display: none; }
+tr:hover .action-btns, tr:focus-within .action-btns { display: inline-flex; }
+.action-btn {
+	background: none !important; border: none !important; cursor: pointer;
+	padding: 2px 6px; border-radius: 3px;
+	color: var(--vscode-foreground); opacity: 0.7;
+	display: inline-flex; align-items: center;
 }
-.cancel-btn:hover { background: var(--vscode-inputValidation-errorBackground); }
+.action-btn:hover { opacity: 1; background: var(--vscode-list-hoverBackground) !important; }
+.action-btn.danger { color: var(--vscode-errorForeground); }
+.action-btn.danger:hover { background: var(--vscode-inputValidation-errorBackground) !important; }
 .error-text { color: var(--vscode-errorForeground); }
 .elapsed { opacity: 0.7; }
 .id-cell { font-family: var(--vscode-editor-font-family, monospace); font-size: 0.78em; max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -412,6 +435,7 @@ tr:hover { background: var(--vscode-list-hoverBackground); }
 const vscode = acquireVsCodeApi();
 
 const ALL_COLS = [
+	{ key: 'icon',         label: '',              required: true },
 	{ key: 'state',        label: 'Status',        required: true },
 	{ key: 'description',  label: 'Name',           required: true },
 	{ key: 'id',           label: 'ID' },
@@ -446,7 +470,7 @@ function saveState() {
 
 function buildPicker() {
 	const picker = document.getElementById('col-picker');
-	picker.innerHTML = ALL_COLS.map(c => {
+	picker.innerHTML = ALL_COLS.filter(c => c.label).map(c => {
 		const checked = visibleCols.has(c.key) ? 'checked' : '';
 		const disabled = c.required ? 'disabled' : '';
 		const cls = c.required ? 'col-item required' : 'col-item';
@@ -481,8 +505,7 @@ document.addEventListener('click', () => {
 
 function renderHeader() {
 	const tr = document.querySelector('#thead tr');
-	tr.innerHTML = ALL_COLS.filter(c => visibleCols.has(c.key)).map(c => {
-		if (c.key === 'actions') return '<th>Actions</th>';
+	tr.innerHTML = ALL_COLS.filter(c => visibleCols.has(c.key)).map(c => {		if (c.key === 'icon') return '<th class="icon-col"></th>';		if (c.key === 'actions') return '<th>Actions</th>';
 		return '<th onclick="sortBy(\\''+c.key+'\\')">'+esc(c.label)+' <span class="sort-arrow">\u25b2</span></th>';
 	}).join('');
 	updateSortArrows();
@@ -494,7 +517,7 @@ function updateSortArrows() {
 		const arrow = th.querySelector('.sort-arrow');
 		if (arrow) arrow.textContent = '\u25b2';
 	});
-	const visCols = ALL_COLS.filter(c => visibleCols.has(c.key) && c.key !== 'actions');
+	const visCols = ALL_COLS.filter(c => visibleCols.has(c.key) && c.key !== 'actions' && c.key !== 'icon');
 	const idx = visCols.findIndex(c => c.key === sortCol);
 	if (idx >= 0) {
 		const th = document.querySelectorAll('thead th')[idx];
@@ -524,6 +547,35 @@ function formatTime(t) {
 
 function esc(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
+const ACTION_ICONS = {
+	cancel: '<svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M8 1a7 7 0 1 0 0 14A7 7 0 0 0 8 1zm0 13A6 6 0 1 1 8 2a6 6 0 0 1 0 12zm3.15-8.85a.5.5 0 0 1 0 .7L8.71 8.29l2.44 2.44a.5.5 0 0 1-.7.7L8 9l-2.44 2.44a.5.5 0 0 1-.7-.7L7.29 8.29 4.85 5.85a.5.5 0 1 1 .7-.7L8 7.59l2.44-2.44a.5.5 0 0 1 .7 0z"/></svg>',
+	preview: '<svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M13.5 1H4.5C3.122 1 2 2.122 2 3.5V6.276C2.319 6.162 2.653 6.089 3 6.05V3.499C3 2.672 3.673 1.999 4.5 1.999H8.5V13.385L9.557 14.442C9.714 14.591 9.831 14.786 9.907 14.999H13.5C14.878 14.999 16 13.877 16 12.499V3.5C16 2.122 14.878 1 13.5 1ZM15 12.5C15 13.327 14.327 14 13.5 14H9.5V2H13.5C14.327 2 15 2.673 15 3.5V12.5ZM6.29 12.59C6.74 12.01 7 11.28 7 10.5C7 8.57 5.43 7 3.5 7C1.57 7 0 8.57 0 10.5C0 12.43 1.57 14 3.5 14C4.28 14 5.01 13.74 5.59 13.29L8.15 15.85C8.24 15.95 8.37 16 8.5 16C8.63 16 8.76 15.95 8.85 15.85C9.05 15.66 9.05 15.34 8.85 15.15L6.29 12.59ZM5.5 12C5.36 12.19 5.19 12.36 5 12.5C4.59 12.81 4.06 13 3.5 13C2.12 13 1 11.88 1 10.5C1 9.12 2.12 8 3.5 8C4.88 8 6 9.12 6 10.5C6 11.06 5.81 11.59 5.5 12Z"/></svg>',
+	dot: '<svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M8 6.25a1.75 1.75 0 1 1 0 3.5 1.75 1.75 0 0 1 0-3.5z"/></svg>',
+};
+
+/** Extracts an EE asset name from a destinationUri. */
+function assetNameFromUri(uri) {
+	const m = uri.match(/\\/v1\\/(projects\\/[^/]+\\/assets\\/.+)/);
+	return m ? m[1] : null;
+}
+
+function actionsHtml(t) {
+	const btns = [];
+	if (t.state === 'RUNNING' || t.state === 'PENDING') {
+		btns.push('<button class="action-btn danger" title="Cancel task" onclick="cancelTask(\\'' + t.name + '\\')">' + ACTION_ICONS.cancel + '</button>');
+	}
+	if (t.state === 'SUCCEEDED' && t.destinationUris && t.destinationUris.length > 0) {
+		const assetName = assetNameFromUri(t.destinationUris[0]);
+		if (assetName) {
+			btns.push('<button class="action-btn" title="Preview asset" onclick="previewAsset(\\'' + esc(assetName) + '\\')">' + ACTION_ICONS.preview + '</button>');
+		}
+	}
+	if (btns.length === 0) return '';
+	const dots = ('<span class="action-dot">' + ACTION_ICONS.dot + '</span>').repeat(btns.length);
+	return '<span class="action-dots">' + dots + '</span>'
+		+ '<span class="action-btns">' + btns.join('') + '</span>';
+}
+
 // ── Render ────────────────────────────────────────────────────────────
 
 function render() {
@@ -540,13 +592,11 @@ function render() {
 	const vis = key => visibleCols.has(key);
 	const tbody = document.getElementById('tbody');
 	tbody.innerHTML = page.map(t => {
-		const cancelBtn = (t.state === 'RUNNING' || t.state === 'PENDING')
-			? '<button class="cancel-btn" onclick="cancelTask(\\'' + t.name + '\\')">✕ Cancel</button>'
-			: '';
 		const errorSpan = t.error ? '<br><span class="error-text">' + esc(t.error) + '</span>' : '';
 		const computeStr = t.computeUsage != null ? t.computeUsage.toFixed(1) + '\u202fEECU\u00b7s' : '';
 		return '<tr>'
-			+ (vis('state')        ? '<td><span class="status">'+statusHtml(t.state)+' '+t.state+'</span></td>' : '')
+			+ (vis('icon')         ? '<td class="icon-col">'+statusHtml(t.state)+'</td>' : '')
+			+ (vis('state')        ? '<td><span class="status">'+t.state+'</span></td>' : '')
 			+ (vis('description')  ? '<td>'+esc(t.description)+errorSpan+'</td>' : '')
 			+ (vis('id')           ? '<td class="id-cell" title="'+esc(t.id)+'">'+esc(t.id)+'</td>' : '')
 			+ (vis('createTime')   ? '<td>'+formatTime(t.createTime)+'</td>' : '')
@@ -555,7 +605,7 @@ function render() {
 			+ (vis('attempt')      ? '<td style="text-align:center">'+(t.attempt != null ? t.attempt : '')+'</td>' : '')
 			+ (vis('priority')     ? '<td style="text-align:center">'+(t.priority != null ? t.priority : '')+'</td>' : '')
 			+ (vis('computeUsage') ? '<td class="compute">'+computeStr+'</td>' : '')
-			+ (vis('actions')      ? '<td>'+cancelBtn+'</td>' : '')
+			+ (vis('actions')      ? '<td class="actions-cell">' + actionsHtml(t) + '</td>' : '')
 			+ '</tr>';
 	}).join('');
 
@@ -624,6 +674,7 @@ function setLoading(on) {
 	}
 }
 function cancelTask(name) { vscode.postMessage({ type: 'cancel', name }); }
+function previewAsset(assetName) { vscode.postMessage({ type: 'preview', assetName }); }
 function refresh() { vscode.postMessage({ type: 'refresh' }); }
 
 window.addEventListener('message', e => {
