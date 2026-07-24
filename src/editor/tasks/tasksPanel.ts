@@ -290,7 +290,8 @@ th .sort-arrow { opacity: 0.5; margin-left: 4px; }
 th.sorted .sort-arrow { opacity: 1; }
 td { padding: 5px 8px; border-bottom: 1px solid var(--vscode-panel-border); }
 tr:hover { background: var(--vscode-list-hoverBackground); }
-.status { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
+.icon-col { width: 24px; padding: 3px 4px; text-align: center; }
+.status { white-space: nowrap; }
 .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
 .dot.succeeded { background: var(--vscode-testing-iconPassed); }
 .dot.failed { background: var(--vscode-testing-iconFailed); }
@@ -362,6 +363,7 @@ tr:hover .action-btns, tr:focus-within .action-btns { display: inline-flex; }
 const vscode = acquireVsCodeApi();
 
 const ALL_COLS = [
+	{ key: 'icon',         label: '',              required: true },
 	{ key: 'state',        label: 'Status',        required: true },
 	{ key: 'description',  label: 'Name',           required: true },
 	{ key: 'id',           label: 'ID' },
@@ -396,7 +398,7 @@ function saveState() {
 
 function buildPicker() {
 	const picker = document.getElementById('col-picker');
-	picker.innerHTML = ALL_COLS.map(c => {
+	picker.innerHTML = ALL_COLS.filter(c => c.label).map(c => {
 		const checked = visibleCols.has(c.key) ? 'checked' : '';
 		const disabled = c.required ? 'disabled' : '';
 		const cls = c.required ? 'col-item required' : 'col-item';
@@ -431,8 +433,7 @@ document.addEventListener('click', () => {
 
 function renderHeader() {
 	const tr = document.querySelector('#thead tr');
-	tr.innerHTML = ALL_COLS.filter(c => visibleCols.has(c.key)).map(c => {
-		if (c.key === 'actions') return '<th>Actions</th>';
+	tr.innerHTML = ALL_COLS.filter(c => visibleCols.has(c.key)).map(c => {		if (c.key === 'icon') return '<th class="icon-col"></th>';		if (c.key === 'actions') return '<th>Actions</th>';
 		return '<th onclick="sortBy(\\''+c.key+'\\')">'+esc(c.label)+' <span class="sort-arrow">\u25b2</span></th>';
 	}).join('');
 	updateSortArrows();
@@ -444,7 +445,7 @@ function updateSortArrows() {
 		const arrow = th.querySelector('.sort-arrow');
 		if (arrow) arrow.textContent = '\u25b2';
 	});
-	const visCols = ALL_COLS.filter(c => visibleCols.has(c.key) && c.key !== 'actions');
+	const visCols = ALL_COLS.filter(c => visibleCols.has(c.key) && c.key !== 'actions' && c.key !== 'icon');
 	const idx = visCols.findIndex(c => c.key === sortCol);
 	if (idx >= 0) {
 		const th = document.querySelectorAll('thead th')[idx];
@@ -522,7 +523,8 @@ function render() {
 		const errorSpan = t.error ? '<br><span class="error-text">' + esc(t.error) + '</span>' : '';
 		const computeStr = t.computeUsage != null ? t.computeUsage.toFixed(1) + '\u202fEECU\u00b7s' : '';
 		return '<tr>'
-			+ (vis('state')        ? '<td><span class="status">'+statusHtml(t.state)+' '+t.state+'</span></td>' : '')
+			+ (vis('icon')         ? '<td class="icon-col">'+statusHtml(t.state)+'</td>' : '')
+			+ (vis('state')        ? '<td><span class="status">'+t.state+'</span></td>' : '')
 			+ (vis('description')  ? '<td>'+esc(t.description)+errorSpan+'</td>' : '')
 			+ (vis('id')           ? '<td class="id-cell" title="'+esc(t.id)+'">'+esc(t.id)+'</td>' : '')
 			+ (vis('createTime')   ? '<td>'+formatTime(t.createTime)+'</td>' : '')
