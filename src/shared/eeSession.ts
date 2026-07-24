@@ -223,7 +223,6 @@ export async function getMapIdUrl(
   image: unknown,
   visParams: Record<string, unknown>,
 ): Promise<string> {
-  console.log('[getMapIdUrl] start, visParams:', JSON.stringify(visParams).slice(0, 120));
   const eeAny = (await ensureEe()) as any;
 
   // Bake vis params into the expression via visualize() — this handles
@@ -233,24 +232,16 @@ export async function getMapIdUrl(
 
   // encodeCloudApi = encodeCloudApiExpression + domain_object_serialize → plain JSON
   const expression = eeAny.Serializer.encodeCloudApi(finalImage);
-  console.log('[getMapIdUrl] expression encoded, keys:', Object.keys(expression ?? {}).join(','));
-
   const body: Record<string, unknown> = { expression, fileFormat: 'AUTO_JPEG_PNG' };
 
   // POST via Node https — not xmlhttprequest ---------------------------
   const { token, project } = await getEeContext();
   const url = `https://earthengine.googleapis.com/v1/projects/${encodeURIComponent(project)}/maps?fields=name`;
-  console.log('[getMapIdUrl] POSTing to:', url, 'token prefix:', token?.slice(0, 10));
-
   const raw = await httpRequest(url, 'POST', token, JSON.stringify(body));
-  console.log('[getMapIdUrl] POST response raw:', raw?.slice(0, 200));
-
   const parsed = JSON.parse(raw) as { name?: string };
   if (!parsed.name) {
     throw new Error(`Maps API returned no map name. Response: ${raw}`);
   }
 
-  const tileUrl = `https://earthengine.googleapis.com/v1/${parsed.name}/tiles/{z}/{x}/{y}`;
-  console.log('[getMapIdUrl] tile URL:', tileUrl.slice(0, 100));
-  return tileUrl;
+  return `https://earthengine.googleapis.com/v1/${parsed.name}/tiles/{z}/{x}/{y}`;
 }
