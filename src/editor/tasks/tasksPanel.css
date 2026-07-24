@@ -1,3 +1,6 @@
+/* ==================================================================
+   RESET & BASE LAYOUT
+   ================================================================== */
 *,
 *::before,
 *::after {
@@ -25,6 +28,10 @@ h1 {
   gap: 8px;
   flex-shrink: 0;
 }
+
+/* ==================================================================
+   TOOLBAR
+   ================================================================== */
 .topbar {
   display: flex;
   align-items: center;
@@ -38,6 +45,10 @@ h1 {
   align-items: center;
   gap: 8px;
 }
+
+/* ==================================================================
+   TABLE CONTAINER
+   ================================================================== */
 .table-wrap {
   flex: 1 1 0;
   overflow-y: auto;
@@ -45,6 +56,10 @@ h1 {
   border: 1px solid var(--vscode-panel-border);
   border-radius: 3px;
 }
+
+/* ==================================================================
+   PAGINATION
+   ================================================================== */
 .pagination {
   display: flex;
   align-items: center;
@@ -96,6 +111,10 @@ h1 {
   font-size: 0.85em;
   user-select: none;
 }
+
+/* ==================================================================
+   PAGE-SIZE SELECT
+   ================================================================== */
 .per-page-select {
   appearance: none;
   -webkit-appearance: none;
@@ -110,7 +129,10 @@ h1 {
 .per-page-select:hover {
   background-color: var(--vscode-button-secondaryHoverBackground) !important;
 }
-/* Sliding toggle */
+
+/* ==================================================================
+   FILTER TOGGLE
+   ================================================================== */
 .toggle-switch {
   display: inline-flex;
   border-radius: 4px;
@@ -144,6 +166,10 @@ h1 {
 .toggle-switch input:checked + label {
   color: var(--vscode-button-foreground);
 }
+
+/* ==================================================================
+   INLINE SPINNER
+   ================================================================== */
 .spinner-inline {
   width: 9px;
   height: 9px;
@@ -156,6 +182,10 @@ h1 {
   vertical-align: middle;
   margin-left: 5px;
 }
+
+/* ==================================================================
+   BUTTONS
+   ================================================================== */
 button,
 select {
   background: var(--vscode-button-secondaryBackground);
@@ -185,7 +215,10 @@ button:disabled {
   font-size: 0.85em;
   opacity: 0.7;
 }
-/* Column picker */
+
+/* ==================================================================
+   COLUMN PICKER
+   ================================================================== */
 .col-picker-wrap {
   position: relative;
 }
@@ -223,7 +256,10 @@ button:disabled {
   opacity: 0.5;
   cursor: default;
 }
-/* Table */
+
+/* ==================================================================
+   TABLE
+   ================================================================== */
 table {
   width: 100%;
   border-collapse: collapse;
@@ -266,6 +302,10 @@ tr:hover {
 .status {
   white-space: nowrap;
 }
+
+/* ==================================================================
+   STATUS INDICATORS
+   ================================================================== */
 .dot {
   width: 8px;
   height: 8px;
@@ -284,6 +324,10 @@ tr:hover {
 .dot.pending {
   background: var(--vscode-charts-yellow);
 }
+
+/* ==================================================================
+   LOADING STATES
+   ================================================================== */
 @keyframes spin {
   to {
     transform: rotate(360deg);
@@ -313,6 +357,10 @@ tr:hover {
   display: inline-block;
   animation: spin 1s linear infinite;
 }
+
+/* ==================================================================
+   ROW ACTIONS
+   ================================================================== */
 .actions-cell {
   white-space: nowrap;
   text-align: right;
@@ -362,6 +410,10 @@ tr:focus-within .action-btns {
 .action-btn.danger:hover {
   background: var(--vscode-inputValidation-errorBackground) !important;
 }
+
+/* ==================================================================
+   TABLE CELLS
+   ================================================================== */
 .error-text {
   color: var(--vscode-errorForeground);
 }

@@ -14,7 +14,7 @@ This is a VS Code extension for Google Earth Engine. Read `.github/ARCHITECTURE.
 - **Shared code**: HTTP utilities go in `src/shared/httpClient.ts`, HTML/WebView utilities go in `src/shared/webviewUtils.ts`. Never duplicate these.
 - **Imports**: always use `.js` extensions in import paths.
 - **No emojis**: use VS Code ThemeIcon codicons in tree views, inline SVG in WebViews.
-- **Comments**: add `/** @module */` headers on new files, `// ── Section ──` separators in long files, JSDoc on public APIs.
+- **Comments**: add `/** @module */` headers on new files, `// ── Section ──` separators in long files, JSDoc on public APIs. In `.css` files, group rules by component with three-line banner comments (a `=` bar, the UPPERCASE section name, another bar) so sections stand out in the minimap.
 - **package.json**: be careful with JSON structure — orphan fragments are a recurring issue. Validate after edits.
 - **Lazy loading pattern**: tree views return spinner placeholders immediately, load in background, then fire `_onDidChangeTreeData`. See `assetsTreeDataProvider.ts` for the canonical example.
 - **Pagination**: server-side (API pageToken) for large collections, not client-side.
@@ -24,7 +24,14 @@ This is a VS Code extension for Google Earth Engine. Read `.github/ARCHITECTURE.
 Every WebView panel is assembled from three sibling files, all bundled as plain strings by esbuild (`.hbs`/`.css` via the `text` loader, `.webview.js` via the `webview-script-text` plugin; type declarations in `src/templates.d.ts`):
 
 1. `{name}Panel.hbs` — Handlebars template, markup only. Inject the other two with `<style>{{{style}}}</style>` and `<script>{{{script}}}</script>` (add `nonce="{{nonce}}"` when the panel sets a CSP). Never hard-code CSS or JS in a template.
-2. `{name}Panel.css` — stylesheet, VS Code theme variables only (`var(--vscode-...)`).
+2. `{name}Panel.css` — stylesheet, VS Code theme variables only (`var(--vscode-...)`). Group rules by component behind three-line banner comments so related styles read as a block and stand out in the minimap:
+
+   ```css
+   /* ==================================================================
+      TOOLBAR
+      ================================================================== */
+   ```
+
 3. `{name}Panel.webview.js` — browser-side script (classic script, not a module). The `.webview.js` suffix is required — esbuild and eslint match on it.
 
 In the panel's `.ts`:

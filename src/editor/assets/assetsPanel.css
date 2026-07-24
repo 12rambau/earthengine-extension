@@ -1,3 +1,6 @@
+/* ==================================================================
+   RESET & BASE LAYOUT
+   ================================================================== */
 *,
 *::before,
 *::after {
@@ -25,6 +28,10 @@ h1 {
   gap: 8px;
   flex-shrink: 0;
 }
+
+/* ==================================================================
+   TOOLBAR
+   ================================================================== */
 .topbar {
   display: flex;
   align-items: center;
@@ -39,6 +46,10 @@ h1 {
   gap: 8px;
   min-width: 0;
 }
+
+/* ==================================================================
+   BREADCRUMB
+   ================================================================== */
 .breadcrumb {
   display: flex;
   align-items: center;
@@ -61,6 +72,10 @@ h1 {
 .breadcrumb .sep {
   opacity: 0.5;
 }
+
+/* ==================================================================
+   TABLE CONTAINER
+   ================================================================== */
 .table-wrap {
   flex: 1 1 0;
   overflow-y: auto;
@@ -68,6 +83,10 @@ h1 {
   border: 1px solid var(--vscode-panel-border);
   border-radius: 3px;
 }
+
+/* ==================================================================
+   PAGINATION
+   ================================================================== */
 .pagination {
   display: flex;
   align-items: center;
@@ -119,6 +138,10 @@ h1 {
   font-size: 0.85em;
   user-select: none;
 }
+
+/* ==================================================================
+   PAGE-SIZE SELECT
+   ================================================================== */
 .per-page-select {
   appearance: none;
   -webkit-appearance: none;
@@ -133,6 +156,10 @@ h1 {
 .per-page-select:hover {
   background-color: var(--vscode-button-secondaryHoverBackground) !important;
 }
+
+/* ==================================================================
+   INLINE SPINNER
+   ================================================================== */
 .spinner-inline {
   width: 9px;
   height: 9px;
@@ -145,6 +172,10 @@ h1 {
   vertical-align: middle;
   margin-left: 5px;
 }
+
+/* ==================================================================
+   BUTTONS
+   ================================================================== */
 button,
 select {
   background: var(--vscode-button-secondaryBackground);
@@ -174,7 +205,10 @@ button:disabled {
   font-size: 0.85em;
   opacity: 0.7;
 }
-/* Column picker */
+
+/* ==================================================================
+   COLUMN PICKER
+   ================================================================== */
 .col-picker-wrap {
   position: relative;
 }
@@ -212,7 +246,10 @@ button:disabled {
   opacity: 0.5;
   cursor: default;
 }
-/* Table */
+
+/* ==================================================================
+   TABLE
+   ================================================================== */
 table {
   width: 100%;
   border-collapse: collapse;
@@ -247,6 +284,10 @@ td {
 tr:hover {
   background: var(--vscode-list-hoverBackground);
 }
+
+/* ==================================================================
+   LOADING STATES
+   ================================================================== */
 @keyframes spin {
   to {
     transform: rotate(360deg);
@@ -267,6 +308,10 @@ tr:hover {
   pointer-events: none;
   transition: opacity 0.15s;
 }
+
+/* ==================================================================
+   ASSET NAME & ICONS
+   ================================================================== */
 .name-link {
   background: none !important;
   border: none !important;
@@ -300,6 +345,10 @@ tr:hover {
   font-size: 0.78em;
   opacity: 0.75;
 }
+
+/* ==================================================================
+   ROW ACTIONS
+   ================================================================== */
 .actions-cell {
   white-space: nowrap;
   text-align: right;
