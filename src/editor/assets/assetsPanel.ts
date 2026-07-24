@@ -41,8 +41,9 @@ const ACTION_COMMANDS: Record<string, string> = {
   copy: 'earthengine.copyAsset',
 };
 
-// ── Public API ──────────────────────────────────────────────────────
-
+// ==================================================================
+// PUBLIC API
+// ==================================================================
 /** Opens the Asset Manager WebView panel for the active profile's project. */
 export async function openAssetsPanel(
   authService: AuthService,

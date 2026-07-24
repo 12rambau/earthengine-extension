@@ -1,3 +1,9 @@
+/**
+ * @module datasetPanel.webview
+ * Browser-side script for the dataset detail panel: tab switching and the
+ * snippet copy-to-clipboard button.
+ */
+
 const vscode = acquireVsCodeApi();
 const btn = document.getElementById('copy-btn');
 btn.addEventListener('click', () => {

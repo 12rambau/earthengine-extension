@@ -13,16 +13,18 @@ import { fetchRootCatalog, fetchProviderCatalog, fetchCollectionMetadata } from 
 type NodeType = 'category' | 'provider' | 'dataset';
 type CollectionMetadata = { type: string; description: string; keywords: string[] };
 
-// ── Constants ───────────────────────────────────────────────────────
-
+// ==================================================================
+// CONSTANTS
+// ==================================================================
 const TYPE_ICONS: Record<string, vscode.ThemeIcon> = {
   image_collection: new vscode.ThemeIcon('layers', new vscode.ThemeColor('charts.blue')),
   image: new vscode.ThemeIcon('file-media', new vscode.ThemeColor('charts.orange')),
   table: new vscode.ThemeIcon('table', new vscode.ThemeColor('charts.green')),
 };
 
-// ── Publisher / Community Catalogs ───────────────────────────────
-
+// ==================================================================
+// PUBLISHER / COMMUNITY CATALOGS
+// ==================================================================
 const PUBLISHER_CATALOGS = [
   { name: 'BirdLife International', id: 'ee-kbas-in-gee' },
   { name: 'Canadian Forest Earth Observation Products', id: 'gcpm041u-lemur' },
@@ -46,8 +48,9 @@ const PUBLISHER_CATALOGS = [
 
 const COMMUNITY_CATALOGS = [{ name: 'Awesome GEE Community Catalog', id: 'sat-io' }];
 
-// ── DatasetTreeItem ────────────────────────────────────────────────
-
+// ==================================================================
+// DATASETTREEITEM
+// ==================================================================
 /** Tree item representing a dataset category, provider, or individual dataset. */
 export class DatasetTreeItem extends vscode.TreeItem {
   constructor(
@@ -114,8 +117,9 @@ export class DatasetTreeItem extends vscode.TreeItem {
   }
 }
 
-// ── DatasetTreeDataProvider ────────────────────────────────────────
-
+// ==================================================================
+// DATASETTREEDATAPROVIDER
+// ==================================================================
 /** Provides a three-level dataset tree: category → provider → datasets. */
 export class DatasetTreeDataProvider implements vscode.TreeDataProvider<DatasetTreeItem> {
   private _onDidChangeTreeData = new vscode.EventEmitter<DatasetTreeItem | undefined | void>();

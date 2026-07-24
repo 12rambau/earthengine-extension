@@ -1,3 +1,9 @@
+/**
+ * @module imageCollectionPreviewPanel.webview
+ * Browser-side script for the ImageCollection preview panel: tab switching,
+ * async thumbnail loading, and per-image open/delete row actions.
+ */
+
 (function () {
   const vscode = acquireVsCodeApi();
 

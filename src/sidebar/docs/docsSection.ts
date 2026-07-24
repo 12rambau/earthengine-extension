@@ -10,8 +10,9 @@ import * as vscode from 'vscode';
 import { SidebarSection } from '../../shared/baseComponents.js';
 import { DocsTreeDataProvider } from './docsTreeDataProvider.js';
 
-// ── DocsSection ─────────────────────────────────────────────────────
-
+// ==================================================================
+// DOCSSECTION
+// ==================================================================
 /** Sidebar section that lists all `ee.*` API methods in a tree. */
 export class DocsSection extends SidebarSection {
   private provider: DocsTreeDataProvider;

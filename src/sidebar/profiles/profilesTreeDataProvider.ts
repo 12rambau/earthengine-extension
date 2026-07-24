@@ -9,8 +9,9 @@
 import * as vscode from 'vscode';
 import { AuthService, Profile } from '../../auth/index.js';
 
-// ── ProfilesTreeItem ────────────────────────────────────────────────
-
+// ==================================================================
+// PROFILESTREEITEM
+// ==================================================================
 /** Tree item representing a single Earth Engine profile. */
 export class ProfilesTreeItem extends vscode.TreeItem {
   constructor(
@@ -41,8 +42,9 @@ export class ProfilesTreeItem extends vscode.TreeItem {
   }
 }
 
-// ── ProfilesTreeDataProvider ───────────────────────────────────────
-
+// ==================================================================
+// PROFILESTREEDATAPROVIDER
+// ==================================================================
 /** Provides profile tree items; refreshes automatically on auth changes. */
 export class ProfilesTreeDataProvider implements vscode.TreeDataProvider<ProfilesTreeItem> {
   private _onDidChangeTreeData = new vscode.EventEmitter<ProfilesTreeItem | undefined | void>();

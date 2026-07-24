@@ -1,3 +1,9 @@
+/**
+ * @module imagePreviewPanel.webview
+ * Browser-side script for the Image preview panel: tab switching and rendering
+ * the async thumbnail and per-band min/max requested from the extension host.
+ */
+
 (function () {
   const vscode = acquireVsCodeApi();
 

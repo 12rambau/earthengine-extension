@@ -18,8 +18,9 @@ export interface MapCommand {
   data: Record<string, unknown>;
 }
 
-// ── MapBridgeServer ───────────────────────────────────────────────
-
+// ==================================================================
+// MAPBRIDGESERVER
+// ==================================================================
 /** Lightweight HTTP server bridging Python map commands to the VS Code extension. */
 export class MapBridgeServer {
   private server: http.Server | undefined;

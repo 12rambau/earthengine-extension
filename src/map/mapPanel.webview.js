@@ -1,3 +1,10 @@
+/**
+ * @module mapPanel.webview
+ * Browser-side script for the map panel. Initialises the Leaflet map with base
+ * layers, layer control and status bar, and applies tile-layer, GeoJSON and
+ * viewport commands forwarded from the extension host.
+ */
+
 const vscode = acquireVsCodeApi();
 
 // Init map

@@ -13,8 +13,9 @@ import { AssetsTreeDataProvider, AssetTreeItem } from './assetsTreeDataProvider.
 import { copyAsset, createFolder, deleteAsset, moveAsset } from './eeApiClient.js';
 import { openAssetPreview, openAssetsPanel } from '../../editor/assets/index.js';
 
-// ── AssetsSection ───────────────────────────────────────────────────
-
+// ==================================================================
+// ASSETSSECTION
+// ==================================================================
 /** Sidebar section that displays the user's Earth Engine asset tree. */
 export class AssetsSection extends SidebarSection {
   private provider: AssetsTreeDataProvider;

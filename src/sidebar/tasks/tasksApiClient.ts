@@ -9,12 +9,14 @@
 
 import { httpRequest } from '../../shared/httpClient.js';
 
-// ── Constants ───────────────────────────────────────────────────────
-
+// ==================================================================
+// CONSTANTS
+// ==================================================================
 const EE_API_BASE = 'https://earthengine.googleapis.com/v1';
 
-// ── Interfaces ──────────────────────────────────────────────────────
-
+// ==================================================================
+// INTERFACES
+// ==================================================================
 /** Metadata embedded in an Earth Engine operation. */
 export interface OperationMetadata {
   '@type'?: string;
@@ -54,8 +56,9 @@ export interface PaginatedOperations {
   project: string;
 }
 
-// ── API Functions ───────────────────────────────────────────────────
-
+// ==================================================================
+// API FUNCTIONS
+// ==================================================================
 /**
  * Fetches one page of operations, falling back to `earthengine-legacy`
  * if the user's project returns no results.
@@ -108,8 +111,9 @@ export async function getOperation(name: string, accessToken: string): Promise<O
   return JSON.parse(response) as Operation;
 }
 
-// ── Task Helpers ────────────────────────────────────────────────────
-
+// ==================================================================
+// TASK HELPERS
+// ==================================================================
 /** Returns `true` if the operation is an export-type task. */
 export function isExportTask(op: Operation): boolean {
   const type = (op.metadata?.type || '').toUpperCase();

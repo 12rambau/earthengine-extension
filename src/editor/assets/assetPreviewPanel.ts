@@ -18,8 +18,9 @@ import { openFeatureCollectionPreview } from '../featureCollectionPreview/index.
 import { renderTemplate } from '../../shared/index.js';
 import template from './assetPreviewPanel.hbs';
 
-// ── Public API ──────────────────────────────────────────────────────
-
+// ==================================================================
+// PUBLIC API
+// ==================================================================
 /** Fetches the asset then opens the appropriate type-specific preview panel. */
 export async function openAssetPreview(assetName: string, accessToken: string): Promise<void> {
   const asset = await getAsset(assetName, accessToken);
@@ -39,8 +40,9 @@ export async function openAssetPreview(assetName: string, accessToken: string): 
   }
 }
 
-// ── Fallback ────────────────────────────────────────────────────────
-
+// ==================================================================
+// FALLBACK
+// ==================================================================
 function openGenericPreview(asset: EEAsset): void {
   const panel = vscode.window.createWebviewPanel(
     'earthengine.assetPreview',

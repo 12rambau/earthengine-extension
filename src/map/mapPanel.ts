@@ -15,8 +15,9 @@ import template from './mapPanel.hbs';
 import style from './mapPanel.css';
 import script from './mapPanel.webview.js';
 
-// ── MapPanel ────────────────────────────────────────────────────────
-
+// ==================================================================
+// MAPPANEL
+// ==================================================================
 /** Editor panel hosting a Leaflet map that visualises Earth Engine layers. */
 export class MapPanel extends EditorPanel {
   private bridgeServer: MapBridgeServer;

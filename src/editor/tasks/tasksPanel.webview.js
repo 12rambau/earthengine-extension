@@ -1,3 +1,10 @@
+/**
+ * @module tasksPanel.webview
+ * Browser-side script for the Tasks panel. Renders the sortable, paginated
+ * task table with the export/import filter toggle and column picker, and
+ * messages the extension host for refresh, cancel and preview.
+ */
+
 const vscode = acquireVsCodeApi();
 
 const ALL_COLS = [
@@ -28,8 +35,9 @@ let currentPage = 0;
 let sortCol = 'createTime';
 let sortDir = -1; // -1 = desc
 
-// ── Filter ──────────────────────────────────────────────────────────
-
+// ==================================================================
+// FILTER
+// ==================================================================
 function isExportTask(t) {
   const type = (t.type || '').toUpperCase();
   return type.startsWith('EXPORT') || type === '';
@@ -54,14 +62,16 @@ function changeFilter(f) {
   render();
 }
 
-// ── Persistence ─────────────────────────────────────────────────────
-
+// ==================================================================
+// PERSISTENCE
+// ==================================================================
 function saveState() {
   vscode.postMessage({ type: 'savePrefs', visibleCols: [...visibleCols], pageSize });
 }
 
-// ── Column picker ────────────────────────────────────────────────────
-
+// ==================================================================
+// COLUMN PICKER
+// ==================================================================
 function buildPicker() {
   const picker = document.getElementById('col-picker');
   picker.innerHTML = ALL_COLS.filter((c) => c.label)
@@ -109,8 +119,9 @@ document.addEventListener('click', () => {
   document.getElementById('col-picker').style.display = 'none';
 });
 
-// ── Table header ─────────────────────────────────────────────────────
-
+// ==================================================================
+// TABLE HEADER
+// ==================================================================
 function renderHeader() {
   const tr = document.querySelector('#thead tr');
   tr.innerHTML = ALL_COLS.filter((c) => visibleCols.has(c.key))
@@ -157,8 +168,9 @@ function updateSortArrows() {
   }
 }
 
-// ── Helpers ───────────────────────────────────────────────────────────
-
+// ==================================================================
+// HELPERS
+// ==================================================================
 function statusHtml(state) {
   if (state === 'RUNNING' || state === 'CANCELLING') {
     return '<span class="spinner"></span>';
@@ -240,8 +252,9 @@ function actionsHtml(t) {
   );
 }
 
-// ── Render ────────────────────────────────────────────────────────────
-
+// ==================================================================
+// RENDER
+// ==================================================================
 function render() {
   const sorted = [...tasks].sort((a, b) => {
     const va = a[sortCol] ?? '';
@@ -412,7 +425,9 @@ window.addEventListener('message', (e) => {
   }
 });
 
-// ── Init ──────────────────────────────────────────────────────────────
+// ==================================================================
+// INIT
+// ==================================================================
 buildPicker();
 renderHeader();
 document.getElementById('pageSize').value = String(pageSize);

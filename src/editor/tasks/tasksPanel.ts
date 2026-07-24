@@ -24,8 +24,9 @@ import script from './tasksPanel.webview.js';
 
 type TaskFilter = 'export' | 'import';
 
-// ── Public API ──────────────────────────────────────────────────────
-
+// ==================================================================
+// PUBLIC API
+// ==================================================================
 /** Opens a WebView panel listing tasks of the given filter type. */
 const PREFS_KEY = 'earthengine.tasks.prefs';
 
@@ -56,7 +57,7 @@ export async function openTasksPanel(
   let allOps: Operation[] = [];
   let resolvedProject = profile.project;
 
-  // ── Terminal states that will never change ──
+  // Terminal states that will never change
   const TERMINAL_STATES = new Set(['SUCCEEDED', 'FAILED', 'CANCELLED']);
 
   function sendData(loading = false, silent = false) {

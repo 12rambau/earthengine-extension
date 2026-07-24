@@ -29,11 +29,15 @@ const sections: vscode.Disposable[] = [];
  * Sets up the auth service, registers all sidebar sections and the map panel.
  */
 export function activate(context: vscode.ExtensionContext) {
-  // ── Core services ──────────────────────────────────────────────────────
+  // ==================================================================
+  // CORE SERVICES
+  // ==================================================================
   const tokenStorage = new TokenStorage(context.globalState);
   const authService = new AuthService(tokenStorage);
 
-  // ── Sidebar sections ───────────────────────────────────────────────────
+  // ==================================================================
+  // SIDEBAR SECTIONS
+  // ==================================================================
   // Each section is self-contained: it owns its tree view, commands, and cleanup.
   const profiles = new ProfilesSection(authService);
   const assets = new AssetsSection(authService);
@@ -49,7 +53,9 @@ export function activate(context: vscode.ExtensionContext) {
 
   sections.push(profiles, assets, tasks, dataset, docs);
 
-  // ── Map panel ──────────────────────────────────────────────────────────
+  // ==================================================================
+  // MAP PANEL
+  // ==================================================================
   // Leaflet-based interactive map that receives layers from Python scripts
   // through a local HTTP bridge server.
   const mapPanel = new MapPanel();

@@ -15,8 +15,9 @@ import { cancelOperation } from './tasksApiClient.js';
 import type { Operation } from './tasksApiClient.js';
 import { openTasksPanel } from '../../editor/tasks/index.js';
 
-// ── TasksSection ────────────────────────────────────────────────────
-
+// ==================================================================
+// TASKSSECTION
+// ==================================================================
 /** Sidebar section displaying export and import task trees. */
 export class TasksSection extends SidebarSection {
   private exportProvider: TasksTreeDataProvider;
@@ -37,7 +38,9 @@ export class TasksSection extends SidebarSection {
       this.importProvider.refresh();
     });
 
-    // ── Bottom Panel: Export & Import task trees ──
+    // ==================================================================
+    // BOTTOM PANEL: EXPORT & IMPORT TASK TREES
+    // ==================================================================
     const panelExportProvider = new TasksTreeDataProvider(this.authService, 'export');
     const panelImportProvider = new TasksTreeDataProvider(this.authService, 'import');
     this.createTreeView('earthengine.panelTasks.export', panelExportProvider);

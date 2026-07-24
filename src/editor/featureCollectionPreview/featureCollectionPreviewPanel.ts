@@ -21,15 +21,17 @@ import template from './featureCollectionPreviewPanel.hbs';
 import style from './featureCollectionPreviewPanel.css';
 import script from './featureCollectionPreviewPanel.webview.js';
 
-// ── Constants ───────────────────────────────────────────────────────
-
+// ==================================================================
+// CONSTANTS
+// ==================================================================
 const EE_API_BASE = 'https://earthengine.googleapis.com/v1';
 
 /** Number of features to display in the FEATURES tab. */
 const FEATURES_PAGE_SIZE = 20;
 
-// ── Public API ──────────────────────────────────────────────────────
-
+// ==================================================================
+// PUBLIC API
+// ==================================================================
 /** Opens a read-only WebView showing full metadata for a TABLE asset. */
 export async function openFeatureCollectionPreview(
   asset: EEAsset,
@@ -61,8 +63,9 @@ export async function openFeatureCollectionPreview(
   });
 }
 
-// ── Thumbnail ───────────────────────────────────────────────────────
-
+// ==================================================================
+// THUMBNAIL
+// ==================================================================
 async function sendThumbnail(
   asset: EEAsset,
   accessToken: string,
@@ -125,8 +128,9 @@ async function getTableThumbnailUrl(asset: EEAsset, accessToken: string): Promis
   throw new Error('No thumbnail name returned');
 }
 
-// ── Column type inference ───────────────────────────────────────────
-
+// ==================================================================
+// COLUMN TYPE INFERENCE
+// ==================================================================
 interface ColumnInfo {
   name: string;
   type: string;
@@ -164,8 +168,9 @@ function inferType(val: unknown): string {
   return 'Object';
 }
 
-// ── HTML builder ────────────────────────────────────────────────────
-
+// ==================================================================
+// HTML BUILDER
+// ==================================================================
 function buildHtml(
   asset: EEAsset,
   features: { properties?: Record<string, unknown> }[],
@@ -219,8 +224,9 @@ function buildHtml(
   });
 }
 
-// ── Features table ──────────────────────────────────────────────────
-
+// ==================================================================
+// FEATURES TABLE
+// ==================================================================
 function buildFeaturesTable(
   features: { properties?: Record<string, unknown> }[],
   columns: ColumnInfo[],
@@ -254,8 +260,9 @@ function buildFeaturesTable(
   </div>`;
 }
 
-// ── Columns table ───────────────────────────────────────────────────
-
+// ==================================================================
+// COLUMNS TABLE
+// ==================================================================
 function buildColumnsTable(columns: ColumnInfo[]): string {
   if (columns.length === 0) {
     return '<p class="empty-state">No columns detected.</p>';
@@ -274,8 +281,9 @@ function buildColumnsTable(columns: ColumnInfo[]): string {
   </table>`;
 }
 
-// ── Properties helper ───────────────────────────────────────────────
-
+// ==================================================================
+// PROPERTIES HELPER
+// ==================================================================
 /** System property prefixes and keys to exclude from the PROPERTIES tab. */
 const SYSTEM_PREFIXES = ['system:'];
 const EXCLUDED_KEYS = new Set(['description']);
@@ -303,8 +311,9 @@ function buildPropertiesRows(props?: Record<string, unknown>): string {
   </table>`;
 }
 
-// ── Nonce helper ────────────────────────────────────────────────────
-
+// ==================================================================
+// NONCE HELPER
+// ==================================================================
 function getNonce(): string {
   let text = '';
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';

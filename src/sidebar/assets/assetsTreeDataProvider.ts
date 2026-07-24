@@ -10,8 +10,9 @@ import * as vscode from 'vscode';
 import { AuthService } from '../../auth/index.js';
 import { listAssets, EEAsset } from './eeApiClient.js';
 
-// ── Constants ───────────────────────────────────────────────────────
-
+// ==================================================================
+// CONSTANTS
+// ==================================================================
 const TYPE_ICONS: Record<string, vscode.ThemeIcon> = {
   FOLDER: new vscode.ThemeIcon('folder'),
   IMAGE_COLLECTION: new vscode.ThemeIcon('layers', new vscode.ThemeColor('charts.blue')),
@@ -21,8 +22,9 @@ const TYPE_ICONS: Record<string, vscode.ThemeIcon> = {
 
 const CONTAINER_TYPES = new Set(['FOLDER']);
 
-// ── AssetTreeItem ───────────────────────────────────────────────────
-
+// ==================================================================
+// ASSETTREEITEM
+// ==================================================================
 /** Tree item representing a single Earth Engine asset (image, table, folder, etc.). */
 export class AssetTreeItem extends vscode.TreeItem {
   constructor(
@@ -73,8 +75,9 @@ export class AssetTreeItem extends vscode.TreeItem {
   }
 }
 
-// ── AssetsTreeDataProvider ─────────────────────────────────────────
-
+// ==================================================================
+// ASSETSTREEDATAPROVIDER
+// ==================================================================
 /** Provides lazy-loading asset tree items with background pagination. */
 export class AssetsTreeDataProvider implements vscode.TreeDataProvider<AssetTreeItem> {
   private _onDidChangeTreeData = new vscode.EventEmitter<AssetTreeItem | undefined | void>();

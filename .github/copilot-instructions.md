@@ -14,7 +14,14 @@ This is a VS Code extension for Google Earth Engine. Read `.github/ARCHITECTURE.
 - **Shared code**: HTTP utilities go in `src/shared/httpClient.ts`, HTML/WebView utilities go in `src/shared/webviewUtils.ts`. Never duplicate these.
 - **Imports**: always use `.js` extensions in import paths.
 - **No emojis**: use VS Code ThemeIcon codicons in tree views, inline SVG in WebViews.
-- **Comments**: add `/** @module */` headers on new files, `// ── Section ──` separators in long files, JSDoc on public APIs. In `.css` files, group rules by component with three-line banner comments (a `=` bar, the UPPERCASE section name, another bar) so sections stand out in the minimap.
+- **Comments**: every `.ts` and `.webview.js` file starts with a `/** @module <name> */` header — a one-line summary, optionally followed by a longer description (barrels/`index.ts` get a one-liner naming what they re-export). Add JSDoc on public APIs. Divide long files into sections with a three-line banner comment — a `=` bar, the UPPERCASE section name, another bar — using the same style everywhere so sections stand out in the minimap: `//` line comments in `.ts`/`.js` (indent to match the surrounding code for in-class/in-function sections), `/* … */` in `.css`. Example:
+
+  ```ts
+  // ==================================================================
+  // PUBLIC API
+  // ==================================================================
+  ```
+
 - **package.json**: be careful with JSON structure — orphan fragments are a recurring issue. Validate after edits.
 - **Lazy loading pattern**: tree views return spinner placeholders immediately, load in background, then fire `_onDidChangeTreeData`. See `assetsTreeDataProvider.ts` for the canonical example.
 - **Pagination**: server-side (API pageToken) for large collections, not client-side.

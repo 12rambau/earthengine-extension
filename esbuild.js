@@ -1,3 +1,10 @@
+/**
+ * @module esbuild
+ * Build script: bundles the extension with esbuild, inlining WebView templates,
+ * stylesheets and client scripts as text (see the loader config and the
+ * webview-script-text plugin).
+ */
+
 const esbuild = require('esbuild');
 const fs = require('fs');
 

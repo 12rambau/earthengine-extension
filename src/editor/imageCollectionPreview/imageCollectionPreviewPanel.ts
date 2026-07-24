@@ -23,8 +23,9 @@ import bandsTableTemplate from './bandsTable.hbs';
 import style from './imageCollectionPreviewPanel.css';
 import script from './imageCollectionPreviewPanel.webview.js';
 
-// ── Constants ───────────────────────────────────────────────────────
-
+// ==================================================================
+// CONSTANTS
+// ==================================================================
 const EE_API_BASE = 'https://earthengine.googleapis.com/v1';
 
 /** Max images fetched for the IMAGES tab. */
@@ -33,8 +34,9 @@ const IMAGES_PAGE_SIZE = 100;
 /** Max images used in the thumbnail mosaic. */
 const MOSAIC_LIMIT = 10;
 
-// ── Action icons (inline SVG) ───────────────────────────────────────
-
+// ==================================================================
+// ACTION ICONS (INLINE SVG)
+// ==================================================================
 const ICON_PREVIEW =
   '<svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M13.5 1H4.5C3.122 1 2 2.122 2 3.5V6.276C2.319 6.162 2.653 6.089 3 6.05V3.499C3 2.672 3.673 1.999 4.5 1.999H8.5V13.385L9.557 14.442C9.714 14.591 9.831 14.786 9.907 14.999H13.5C14.878 14.999 16 13.877 16 12.499V3.5C16 2.122 14.878 1 13.5 1ZM15 12.5C15 13.327 14.327 14 13.5 14H9.5V2H13.5C14.327 2 15 2.673 15 3.5V12.5ZM6.29 12.59C6.74 12.01 7 11.28 7 10.5C7 8.57 5.43 7 3.5 7C1.57 7 0 8.57 0 10.5C0 12.43 1.57 14 3.5 14C4.28 14 5.01 13.74 5.59 13.29L8.15 15.85C8.24 15.95 8.37 16 8.5 16C8.63 16 8.76 15.95 8.85 15.85C9.05 15.66 9.05 15.34 8.85 15.15L6.29 12.59ZM5.5 12C5.36 12.19 5.19 12.36 5 12.5C4.59 12.81 4.06 13 3.5 13C2.12 13 1 11.88 1 10.5C1 9.12 2.12 8 3.5 8C4.88 8 6 9.12 6 10.5C6 11.06 5.81 11.59 5.5 12Z"/></svg>';
 const ICON_DELETE =
@@ -42,8 +44,9 @@ const ICON_DELETE =
 const ACTION_DOT =
   '<span class="action-dot"><svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M8 6.25a1.75 1.75 0 1 1 0 3.5 1.75 1.75 0 0 1 0-3.5z"/></svg></span>';
 
-// ── Public API ──────────────────────────────────────────────────────
-
+// ==================================================================
+// PUBLIC API
+// ==================================================================
 /** Opens a read-only WebView showing full metadata for an IMAGE_COLLECTION asset. */
 export async function openImageCollectionPreview(
   asset: EEAsset,
@@ -117,8 +120,9 @@ function getTokenSafe(accessToken: string): Promise<string> {
   return Promise.resolve(accessToken);
 }
 
-// ── Thumbnail ───────────────────────────────────────────────────────
-
+// ==================================================================
+// THUMBNAIL
+// ==================================================================
 async function sendThumbnail(
   asset: EEAsset,
   accessToken: string,
@@ -183,8 +187,9 @@ async function getCollectionThumbnailUrl(asset: EEAsset, accessToken: string): P
   throw new Error('No thumbnail name returned');
 }
 
-// ── HTML builder ────────────────────────────────────────────────────
-
+// ==================================================================
+// HTML BUILDER
+// ==================================================================
 function buildHtml(asset: EEAsset, childImages: EEAsset[], bands: EEBand[]): string {
   const nonce = getNonce();
   const title = asset.id || asset.name.split('/').pop() || 'ImageCollection';
@@ -229,8 +234,9 @@ function buildHtml(asset: EEAsset, childImages: EEAsset[], bands: EEBand[]): str
   });
 }
 
-// ── Images table ────────────────────────────────────────────────────
-
+// ==================================================================
+// IMAGES TABLE
+// ==================================================================
 function buildImagesTable(images: EEAsset[]): string {
   if (images.length === 0) {
     return '<p class="empty-state">No images found.</p>';
@@ -266,8 +272,9 @@ function buildImagesTable(images: EEAsset[]): string {
   return renderTemplate(imagesTableTemplate, { rows });
 }
 
-// ── Bands table ─────────────────────────────────────────────────────
-
+// ==================================================================
+// BANDS TABLE
+// ==================================================================
 function buildBandsTable(bands: EEBand[]): string {
   if (bands.length === 0) {
     return '<p class="empty-state">No band information available.</p>';
@@ -297,8 +304,9 @@ function buildBandsTable(bands: EEBand[]): string {
   return renderTemplate(bandsTableTemplate, { rows });
 }
 
-// ── Properties helper ───────────────────────────────────────────────
-
+// ==================================================================
+// PROPERTIES HELPER
+// ==================================================================
 const SYSTEM_PREFIXES = ['system:'];
 const EXCLUDED_KEYS = new Set(['description']);
 
@@ -325,8 +333,9 @@ function buildPropertiesRows(props?: Record<string, unknown>): string {
   </table>`;
 }
 
-// ── Nonce helper ────────────────────────────────────────────────────
-
+// ==================================================================
+// NONCE HELPER
+// ==================================================================
 function getNonce(): string {
   let text = '';
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';

@@ -15,8 +15,9 @@ import {
   getProfileCredentialsPath,
 } from './oauth.js';
 
-// ── Interfaces ──────────────────────────────────────────────────────
-
+// ==================================================================
+// INTERFACES
+// ==================================================================
 /** A saved authentication profile (email + project + on-disk credentials path). */
 export interface Profile {
   email: string;
@@ -24,13 +25,15 @@ export interface Profile {
   credentialsPath: string;
 }
 
-// ── Storage Keys ────────────────────────────────────────────────────
-
+// ==================================================================
+// STORAGE KEYS
+// ==================================================================
 const PROFILES_KEY = 'earthengine.profiles';
 const ACTIVE_PROFILE_KEY = 'earthengine.activeProfile';
 
-// ── TokenStorage ────────────────────────────────────────────────────
-
+// ==================================================================
+// TOKENSTORAGE
+// ==================================================================
 /**
  * Manages Earth Engine authentication profiles.
  * Profiles are stored in VS Code global state; credentials live on disk.

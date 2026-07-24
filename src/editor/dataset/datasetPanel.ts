@@ -16,8 +16,9 @@ import bandsTableTemplate from './datasetPanelBandsTable.hbs';
 import style from './datasetPanel.css';
 import script from './datasetPanel.webview.js';
 
-// ── Public API ──────────────────────────────────────────────────────
-
+// ==================================================================
+// PUBLIC API
+// ==================================================================
 /** Creates and displays a WebView panel for a single dataset collection. */
 export function createDatasetPanel(
   collection: StacCollection,
@@ -43,8 +44,9 @@ export function createDatasetPanel(
   return panel;
 }
 
-// ── HTML Builder ────────────────────────────────────────────────────
-
+// ==================================================================
+// HTML BUILDER
+// ==================================================================
 function buildHtml(c: StacCollection, webview: vscode.Webview): string {
   const temporal = c.extent?.temporal?.interval?.[0];
   const startDate = temporal?.[0] || 'N/A';
@@ -158,8 +160,9 @@ function buildHtml(c: StacCollection, webview: vscode.Webview): string {
   });
 }
 
-// ── Helpers ─────────────────────────────────────────────────────────
-
+// ==================================================================
+// HELPERS
+// ==================================================================
 function escapeHtml(str: string): string {
   return str
     .replace(/&/g, '&amp;')

@@ -1,3 +1,9 @@
+/**
+ * @module featureCollectionPreviewPanel.webview
+ * Browser-side script for the FeatureCollection preview panel: tab switching
+ * and async thumbnail loading.
+ */
+
 (function () {
   const vscode = acquireVsCodeApi();
 

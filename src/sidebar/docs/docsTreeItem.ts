@@ -9,8 +9,9 @@
 
 import * as vscode from 'vscode';
 
-// ── DocsTreeItem ────────────────────────────────────────────────────
-
+// ==================================================================
+// DOCSTREEITEM
+// ==================================================================
 /** Tree item representing a single API entry with an optional rich tooltip. */
 export class DocsTreeItem extends vscode.TreeItem {
   constructor(

@@ -23,8 +23,9 @@ import {
 
 type TaskFilter = 'export' | 'import';
 
-// ── Constants ───────────────────────────────────────────────────────
-
+// ==================================================================
+// CONSTANTS
+// ==================================================================
 const STATE_COLORS: Partial<Record<string, vscode.ThemeColor>> = {
   PENDING: new vscode.ThemeColor('testing.iconQueued'),
   RUNNING: new vscode.ThemeColor('progressBar.background'),
@@ -51,8 +52,9 @@ function getTypeIconId(op: Operation): string {
   return 'symbol-misc';
 }
 
-// ── TaskTreeItem ────────────────────────────────────────────────────
-
+// ==================================================================
+// TASKTREEITEM
+// ==================================================================
 /** Tree item representing a single Earth Engine operation/task. */
 export class TaskTreeItem extends vscode.TreeItem {
   constructor(public readonly operation: Operation) {
@@ -77,7 +79,9 @@ export class TaskTreeItem extends vscode.TreeItem {
 
     this.description = elapsed;
 
-    // ── Tooltip ──────────────────────────────────────────────────────
+    // ==================================================================
+    // TOOLTIP
+    // ==================================================================
     const meta = operation.metadata;
     const operationId = operation.name.split('/').pop() ?? operation.name;
     const truncatedDesc = desc.length > 80 ? `${desc.slice(0, 80)}…` : desc;
@@ -123,8 +127,9 @@ export class TaskTreeItem extends vscode.TreeItem {
   }
 }
 
-// ── TasksTreeDataProvider ──────────────────────────────────────────
-
+// ==================================================================
+// TASKSTREEDATAPROVIDER
+// ==================================================================
 /** Reads the configured max items from the extension settings. */
 function getMaxTasks(): number {
   return vscode.workspace.getConfiguration('earthengine.tasks').get<number>('maxItems', 100);
@@ -162,7 +167,9 @@ export class TasksTreeDataProvider implements vscode.TreeDataProvider<TaskTreeIt
     authService.onDidChangeAuth(() => this.refresh());
   }
 
-  // ── Status filter ───────────────────────────────────────────────────
+  // ==================================================================
+  // STATUS FILTER
+  // ==================================================================
 
   /** Sets the status filter. Pass undefined or empty set to clear. */
   setStatusFilter(states: Set<string> | undefined): void {
@@ -258,7 +265,9 @@ export class TasksTreeDataProvider implements vscode.TreeDataProvider<TaskTreeIt
     return items;
   }
 
-  // ── Data loading ────────────────────────────────────────────────────
+  // ==================================================================
+  // DATA LOADING
+  // ==================================================================
 
   /** Initial load: fetch first page immediately, then continue in background. */
   private async initialLoad(): Promise<void> {

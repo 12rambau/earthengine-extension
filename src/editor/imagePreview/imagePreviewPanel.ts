@@ -27,15 +27,17 @@ import template from './imagePreviewPanel.hbs';
 import style from './imagePreviewPanel.css';
 import script from './imagePreviewPanel.webview.js';
 
-// ── Constants ───────────────────────────────────────────────────────
-
+// ==================================================================
+// CONSTANTS
+// ==================================================================
 const EE_API_BASE = 'https://earthengine.googleapis.com/v1';
 
 /** Near-global bbox in EPSG:4326, shrunk a few degrees to avoid antimeridian issues. */
 const GLOBAL_BBOX = [-175, -85, 175, 85];
 
-// ── Public API ──────────────────────────────────────────────────────
-
+// ==================================================================
+// PUBLIC API
+// ==================================================================
 /** Opens a read-only WebView showing full metadata for an IMAGE asset. */
 export function openImagePreview(asset: EEAsset, accessToken: string): void {
   const panel = vscode.window.createWebviewPanel(
@@ -57,8 +59,9 @@ export function openImagePreview(asset: EEAsset, accessToken: string): void {
   });
 }
 
-// ── Thumbnail ───────────────────────────────────────────────────────
-
+// ==================================================================
+// THUMBNAIL
+// ==================================================================
 async function sendThumbnail(
   asset: EEAsset,
   accessToken: string,
@@ -116,8 +119,9 @@ async function getThumbnailUrl(asset: EEAsset, accessToken: string): Promise<str
   throw new Error('No thumbnail name returned');
 }
 
-// ── Min/Max ─────────────────────────────────────────────────────────
-
+// ==================================================================
+// MIN/MAX
+// ==================================================================
 async function sendMinMax(
   asset: EEAsset,
   accessToken: string,
@@ -186,8 +190,9 @@ async function computeMinMax(asset: EEAsset, accessToken: string): Promise<BandM
   return result;
 }
 
-// ── Geometry helper ─────────────────────────────────────────────────
-
+// ==================================================================
+// GEOMETRY HELPER
+// ==================================================================
 function getFootprintOrGlobal(asset: EEAsset): Record<string, unknown> {
   if (asset.geometry) {
     return asset.geometry as Record<string, unknown>;
@@ -207,8 +212,9 @@ function getFootprintOrGlobal(asset: EEAsset): Record<string, unknown> {
   };
 }
 
-// ── HTML builder ────────────────────────────────────────────────────
-
+// ==================================================================
+// HTML BUILDER
+// ==================================================================
 function buildImageHtml(asset: EEAsset, webview: vscode.Webview): string {
   const bands = asset.bands || [];
   const nonce = getNonce();
@@ -268,8 +274,9 @@ function buildImageHtml(asset: EEAsset, webview: vscode.Webview): string {
   });
 }
 
-// ── Properties helper ───────────────────────────────────────────────
-
+// ==================================================================
+// PROPERTIES HELPER
+// ==================================================================
 /** Property keys excluded from the PROPERTIES tab (system + description). */
 const EXCLUDED_PROP_PREFIXES = ['system:'];
 const EXCLUDED_PROP_KEYS = new Set(['description']);
@@ -291,8 +298,9 @@ function buildPropertiesRows(props?: Record<string, unknown>): string {
     .join('');
 }
 
-// ── Nonce helper ────────────────────────────────────────────────────
-
+// ==================================================================
+// NONCE HELPER
+// ==================================================================
 function getNonce(): string {
   let text = '';
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';

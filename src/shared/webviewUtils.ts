@@ -1,3 +1,10 @@
+/**
+ * @module webviewUtils
+ * HTML/WebView helpers shared across editor panels: Handlebars template
+ * rendering, HTML escaping, value formatting (bytes, dates, asset types), a
+ * properties-table renderer, the base stylesheet, and inline SVG icons.
+ */
+
 import Handlebars from 'handlebars';
 import baseStyle from './webviewBase.css';
 

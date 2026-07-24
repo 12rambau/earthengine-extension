@@ -1,3 +1,10 @@
+/**
+ * @module assetsPanel.webview
+ * Browser-side script for the Asset Manager panel. Renders the sortable,
+ * paginated asset table with column picker, breadcrumb and pagination, and
+ * messages the extension host for navigation, preview and row actions.
+ */
+
 const vscode = acquireVsCodeApi();
 
 const ALL_COLS = [
@@ -50,14 +57,16 @@ function esc(s) {
     .replace(/"/g, '&quot;');
 }
 
-// ── Persistence ─────────────────────────────────────────────────────
-
+// ==================================================================
+// PERSISTENCE
+// ==================================================================
 function saveState() {
   vscode.postMessage({ type: 'savePrefs', visibleCols: [...visibleCols], pageSize });
 }
 
-// ── Column picker ────────────────────────────────────────────────────
-
+// ==================================================================
+// COLUMN PICKER
+// ==================================================================
 function buildPicker() {
   const picker = document.getElementById('col-picker');
   picker.innerHTML = ALL_COLS.map((c) => {
@@ -103,8 +112,9 @@ document.addEventListener('click', () => {
   document.getElementById('col-picker').style.display = 'none';
 });
 
-// ── Table header ─────────────────────────────────────────────────────
-
+// ==================================================================
+// TABLE HEADER
+// ==================================================================
 function renderHeader() {
   const tr = document.querySelector('#thead tr');
   tr.innerHTML = ALL_COLS.filter((c) => visibleCols.has(c.key))
@@ -149,8 +159,9 @@ function updateSortArrows() {
   }
 }
 
-// ── Breadcrumb ───────────────────────────────────────────────────────
-
+// ==================================================================
+// BREADCRUMB
+// ==================================================================
 function renderBreadcrumb() {
   const bc = document.getElementById('breadcrumb');
   bc.innerHTML = '';
@@ -183,8 +194,9 @@ function renderBreadcrumb() {
   }
 }
 
-// ── Render ────────────────────────────────────────────────────────────
-
+// ==================================================================
+// RENDER
+// ==================================================================
 function formatType(t) {
   return (t || '').toLowerCase().replace(/_/g, ' ');
 }
@@ -315,8 +327,9 @@ function goToPage(p) {
   render();
 }
 
-// ── Actions ───────────────────────────────────────────────────────────
-
+// ==================================================================
+// ACTIONS
+// ==================================================================
 function sortBy(col) {
   if (sortCol === col) {
     sortDir *= -1;
@@ -406,7 +419,9 @@ window.addEventListener('message', (e) => {
   }
 });
 
-// ── Init ──────────────────────────────────────────────────────────────
+// ==================================================================
+// INIT
+// ==================================================================
 buildPicker();
 renderHeader();
 document.getElementById('pageSize').value = String(pageSize);
