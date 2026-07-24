@@ -11,6 +11,7 @@
 
 import ee from '@google/earthengine';
 import { AuthService } from '../auth/index.js';
+import { httpRequest } from './httpClient.js';
 
 let authService: AuthService | undefined;
 let readyProject: string | undefined;
@@ -80,6 +81,21 @@ export async function ensureEe(): Promise<typeof ee> {
   return ee;
 }
 
+/** Returns the current access token and project for direct REST calls. */
+export async function getEeContext(): Promise<{ token: string; project: string }> {
+  if (!authService) {
+    throw new Error('EE session not configured');
+  }
+  const token = await authService.getToken();
+  if (!token) {
+    throw new Error('Not authenticated');
+  }
+  if (!readyProject) {
+    throw new Error('EE session not initialized — call ensureEe() first');
+  }
+  return { token, project: readyProject };
+}
+
 /** Sets an initial token then initializes the client against `project`. */
 function initialize(project: string): Promise<void> {
   return new Promise((resolve, reject) => {
@@ -90,6 +106,31 @@ function initialize(project: string): Promise<void> {
           reject(new Error('Not authenticated'));
           return;
         }
+
+        const eeAny = ee as any;
+        const algUrl = `https://earthengine.googleapis.com/v1/projects/${encodeURIComponent(project)}/algorithms?prettyPrint=false`;
+        eeAny.data.getAlgorithms = (opt_callback?: (data: unknown, error?: string) => void) => {
+          if (!opt_callback) {
+            // Synchronous path — only hit when there's no success callback.
+            // Shouldn't occur with our async initialization, but fall through
+            // to original behaviour to avoid breaking anything.
+            throw new Error('[EE] Synchronous getAlgorithms not available in extension host');
+          }
+          authService!
+            .getToken()
+            .then((tok) => {
+              if (!tok) {
+                throw new Error('Not authenticated');
+              }
+              return httpRequest(algUrl, 'GET', tok);
+            })
+            .then((raw) => {
+              const converted = eeAny.rpc_convert.algorithms(JSON.parse(raw));
+              opt_callback(converted, undefined);
+            })
+            .catch((err: unknown) => opt_callback(undefined, String(err)));
+        };
+
         ee.data.setAuthToken(
           null,
           'Bearer',
@@ -134,6 +175,27 @@ export async function getAssetInfo(name: string): Promise<unknown> {
   });
 }
 
+/**
+ * Evaluates an EE ComputedObject server-side and returns the JavaScript value.
+ *
+ * Bypasses `ee.data.computeValue` (which uses the xmlhttprequest transport
+ * known to fail in the extension host) by calling `/value:compute` directly
+ * via `httpClient`.
+ */
+export async function computeValue<T = unknown>(eeObject: unknown): Promise<T> {
+  const eeAny = (await ensureEe()) as any;
+  // encodeCloudApi = encodeCloudApiExpression + domain_object_serialize → plain JSON
+  const expression = eeAny.Serializer.encodeCloudApi(eeObject);
+  const { token, project } = await getEeContext();
+  const url = `https://earthengine.googleapis.com/v1/projects/${encodeURIComponent(project)}/value:compute`;
+  const raw = await httpRequest(url, 'POST', token, JSON.stringify({ expression }));
+  const parsed = JSON.parse(raw) as { result?: T; error?: { message?: string } };
+  if (parsed.error) {
+    throw new Error(parsed.error.message ?? JSON.stringify(parsed.error));
+  }
+  return parsed.result as T;
+}
+
 /** Promisified `ee.Image.getThumbURL()`. */
 export function getThumbUrl(
   image: {
@@ -147,4 +209,39 @@ export function getThumbUrl(
   return new Promise((resolve, reject) => {
     image.getThumbURL(params, (url, error) => (error ? reject(new Error(error)) : resolve(url)));
   });
+}
+
+/**
+ * Requests a tile URL for an EE Image expression, bypassing `ee.data.getMapId`
+ * (which uses the xmlhttprequest transport known to fail in the extension host).
+ *
+ * Bakes vis params into the expression via `ee.Image.visualize()` (handles
+ * duplicate bands, array min/max, etc.) then POSTs to the Maps REST API
+ * directly via `httpClient`.
+ */
+export async function getMapIdUrl(
+  image: unknown,
+  visParams: Record<string, unknown>,
+): Promise<string> {
+  const eeAny = (await ensureEe()) as any;
+
+  // Bake vis params into the expression via visualize() — this handles
+  // duplicate band names and array min/max that the Maps API bandIds field rejects.
+  const finalImage =
+    Object.keys(visParams).length > 0 ? eeAny.Image(image).visualize(visParams) : image;
+
+  // encodeCloudApi = encodeCloudApiExpression + domain_object_serialize → plain JSON
+  const expression = eeAny.Serializer.encodeCloudApi(finalImage);
+  const body: Record<string, unknown> = { expression, fileFormat: 'AUTO_JPEG_PNG' };
+
+  // POST via Node https — not xmlhttprequest ---------------------------
+  const { token, project } = await getEeContext();
+  const url = `https://earthengine.googleapis.com/v1/projects/${encodeURIComponent(project)}/maps?fields=name`;
+  const raw = await httpRequest(url, 'POST', token, JSON.stringify(body));
+  const parsed = JSON.parse(raw) as { name?: string };
+  if (!parsed.name) {
+    throw new Error(`Maps API returned no map name. Response: ${raw}`);
+  }
+
+  return `https://earthengine.googleapis.com/v1/${parsed.name}/tiles/{z}/{x}/{y}`;
 }

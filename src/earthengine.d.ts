@@ -21,6 +21,16 @@ declare module '@google/earthengine' {
     /** Asynchronously evaluates the object server-side. */
     evaluate(callback: EeCallback): void;
     getInfo(callback?: EeCallback): unknown;
+    /** Returns the serialized JSON string of this object's expression. */
+    serialize(): string;
+  }
+
+  /** Result returned by `ee.Image.getMapId`. */
+  interface EeMapId {
+    /** Tile URL template with `{z}`, `{x}`, `{y}` placeholders. */
+    urlFormat: string;
+    mapid?: string;
+    formatTileUrl?: (x: number, y: number, z: number) => string;
   }
 
   interface EeFeatureCollection extends EeComputedObject {
@@ -34,6 +44,11 @@ declare module '@google/earthengine' {
     /** Paints the features of a collection onto the image (color, width). */
     paint(featureCollection: unknown, color?: unknown, width?: unknown): EeImage;
     reduceRegion(params: Record<string, unknown>): EeComputedObject;
+    /** Requests a tile map ID; `callback` receives `(mapId, error?)`. */
+    getMapId(
+      visParams: Record<string, unknown>,
+      callback: (result: EeMapId, error?: string) => void,
+    ): void;
     /** Requests a thumbnail URL; `callback` receives `(url, error?)`. */
     getThumbURL(
       params: Record<string, unknown>,
@@ -93,6 +108,15 @@ declare module '@google/earthengine' {
     Reducer: EeReducer;
     Geometry: unknown;
     Number: unknown;
+    Deserializer: {
+      /** Deserializes a JSON string produced by the Python `ee_object.serialize()`. */
+      fromJSON(json: string): EeComputedObject;
+      decode(json: unknown): EeComputedObject;
+    };
+    Serializer: {
+      toJSON(obj: unknown): string;
+      encode(obj: unknown): unknown;
+    };
     /** `initialize(baseurl, tileurl, success?, error?, xsrf?, project?)`. */
     initialize(
       baseurl: string | null,

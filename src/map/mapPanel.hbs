@@ -4,16 +4,56 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/@fortawesome/fontawesome-free@6.7.2/css/all.min.css"
+    />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet-providers@2.0.0/leaflet-providers.js"></script>
+    <script id="init-data" type="application/json">
+      {{{initJson}}}
+    </script>
     <style>
       {{{style}}}
     </style>
   </head>
   <body>
     <div id="map"></div>
-    <div class="layer-control" id="layerControl">
-      <h3>Layers</h3>
-      <div id="layerList"></div>
+    <div class="map-controls">
+      <button id="layers-toggle" class="map-btn" title="Manage layers">
+        <i class="fa-solid fa-layer-group"></i>
+      </button>
+      <button id="inspector-toggle" class="map-btn" title="Pixel inspector">
+        <i class="fa-solid fa-crosshairs"></i>
+      </button>
+      <button id="plan-toggle" class="map-btn" title="Toggle plan view">
+        <i class="fa-solid fa-map"></i>
+      </button>
+      <button id="satellite-toggle" class="map-btn" title="Toggle satellite view">
+        <i class="fa-solid fa-satellite"></i>
+      </button>
+    </div>
+    <div id="layers-panel" class="layers-panel">
+      <div class="layers-panel-header">
+        <span>Layers</span>
+        <button id="layers-close" class="map-btn layers-close-btn" title="Close">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+      <div id="layers-list" class="layers-list">
+        <p class="layers-empty">No layers yet.</p>
+      </div>
+    </div>
+    <div id="inspector-panel" class="inspector-panel">
+      <div class="inspector-panel-header">
+        <span>Inspector</span>
+        <button id="inspector-close" class="map-btn layers-close-btn" title="Close">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+      <div id="inspector-content" class="inspector-content">
+        <p class="inspector-hint">Activate then click on the map.</p>
+      </div>
     </div>
     <div class="status-bar">
       <span id="coords">0.000, 0.000</span>

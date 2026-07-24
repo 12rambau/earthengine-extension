@@ -1,133 +1,186 @@
 /**
  * @module mapPanel.webview
- * Browser-side script for the map panel. Initialises the Leaflet map with base
- * layers, layer control and status bar, and applies tile-layer, GeoJSON and
- * viewport commands forwarded from the extension host.
+ * Browser-side script for the map panel. Initialises the Leaflet map,
+ * manages configurable base layers and satellite toggle, and applies tile-layer,
+ * GeoJSON and viewport commands forwarded from the extension host.
  */
+
+// ==================================================================
+// INIT DATA
+// ==================================================================
+
+const { darkBasemap, lightBasemap, satelliteBasemap, planBasemap } = JSON.parse(
+  document.getElementById('init-data').textContent,
+);
 
 const vscode = acquireVsCodeApi();
 
-// Init map
+// ==================================================================
+// MAP
+// ==================================================================
+
 const map = L.map('map', {
   center: [0, 0],
   zoom: 2,
-  zoomControl: true,
+  zoomControl: false,
 });
 
-// Base layers
-const osmDark = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-  attribution:
-    '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/">CARTO</a>',
-  maxZoom: 24,
-  subdomains: 'abcd',
-});
-const osmLight = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-  attribution: '&copy; OSM &copy; CARTO',
-  maxZoom: 24,
-  subdomains: 'abcd',
-});
-const satellite = L.tileLayer(
-  'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-  {
-    attribution: '&copy; Esri',
-    maxZoom: 24,
-  },
-);
+// ==================================================================
+// BASEMAP MANAGEMENT
+// ==================================================================
 
-// Detect theme
-const isDark =
-  document.body.style.backgroundColor === '' ||
-  getComputedStyle(document.body).backgroundColor.includes('30') ||
-  getComputedStyle(document.body).backgroundColor.includes('1e');
-(isDark ? osmDark : osmLight).addTo(map);
+function isDarkTheme() {
+  return (
+    document.body.classList.contains('vscode-dark') ||
+    document.body.classList.contains('vscode-high-contrast')
+  );
+}
 
-L.control
+// Create all basemap tile layers upfront as fixed instances.
+const basemapTileLayers = {
+  [darkBasemap]: L.tileLayer.provider(darkBasemap),
+  [lightBasemap]: L.tileLayer.provider(lightBasemap),
+  [satelliteBasemap]: L.tileLayer.provider(satelliteBasemap),
+  [planBasemap]: L.tileLayer.provider(planBasemap),
+};
+
+// Register base layers in L.control.layers for proper Leaflet group ordering.
+// The native control UI is hidden — the custom panel below handles UX.
+const nativeLayerControl = L.control
   .layers(
     {
-      Dark: osmDark,
-      Light: osmLight,
-      Satellite: satellite,
+      Dark: basemapTileLayers[darkBasemap],
+      Light: basemapTileLayers[lightBasemap],
+      Satellite: basemapTileLayers[satelliteBasemap],
+      Plan: basemapTileLayers[planBasemap],
     },
     {},
-    { position: 'topleft' },
+    { collapsed: true },
   )
   .addTo(map);
+nativeLayerControl.getContainer().style.display = 'none';
 
-// Track layers
-const overlayLayers = {};
-let layerCounter = 0;
+let currentBasemap = basemapTileLayers[isDarkTheme() ? darkBasemap : lightBasemap];
+currentBasemap.addTo(map);
 
-function updateLayerControl() {
-  const list = document.getElementById('layerList');
-  const keys = Object.keys(overlayLayers);
-  if (keys.length === 0) {
-    list.innerHTML = '<div style="opacity:0.5;padding:4px 0">No layers added</div>';
+function setBasemap(id) {
+  const next = basemapTileLayers[id];
+  if (!next || next === currentBasemap) {
     return;
   }
-  list.innerHTML = keys
-    .map((key) => {
-      const layer = overlayLayers[key];
-      const checked = map.hasLayer(layer.leafletLayer) ? 'checked' : '';
-      const opacity = Math.round((layer.leafletLayer.options.opacity || 1) * 100);
-      return (
-        '<div class="layer-item">' +
-        '<input type="checkbox" ' +
-        checked +
-        ' onchange="toggleLayer(\'' +
-        esc(key) +
-        '\', this.checked)">' +
-        '<label>' +
-        esc(layer.name) +
-        '</label>' +
-        '<input type="range" class="opacity-slider" min="0" max="100" value="' +
-        opacity +
-        '" onchange="setOpacity(\'' +
-        esc(key) +
-        '\', this.value/100)" title="Opacity">' +
-        '<button class="remove-btn" onclick="removeLayer(\'' +
-        esc(key) +
-        '\')" title="Remove">&times;</button>' +
-        '</div>'
-      );
-    })
-    .join('');
+  map.removeLayer(currentBasemap);
+  next.addTo(map);
+  currentBasemap = next;
 }
 
-function esc(s) {
-  return (s || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
-}
+// ==================================================================
+// MAP CONTROLS
+// ==================================================================
 
-function toggleLayer(key, visible) {
-  const layer = overlayLayers[key];
-  if (!layer) {
-    return;
-  }
-  if (visible) {
-    map.addLayer(layer.leafletLayer);
+let activeMode = 'theme'; // 'theme' | 'plan' | 'satellite'
+const satelliteBtn = document.getElementById('satellite-toggle');
+const planBtn = document.getElementById('plan-toggle');
+
+function activateMode(mode) {
+  if (activeMode === mode) {
+    activeMode = 'theme';
+    satelliteBtn.classList.remove('active');
+    planBtn.classList.remove('active');
+    setBasemap(isDarkTheme() ? darkBasemap : lightBasemap);
   } else {
-    map.removeLayer(layer.leafletLayer);
+    activeMode = mode;
+    satelliteBtn.classList.toggle('active', mode === 'satellite');
+    planBtn.classList.toggle('active', mode === 'plan');
+    setBasemap(mode === 'satellite' ? satelliteBasemap : planBasemap);
   }
 }
 
-function setOpacity(key, opacity) {
-  const layer = overlayLayers[key];
-  if (!layer) {
-    return;
+new MutationObserver(() => {
+  if (activeMode === 'theme') {
+    setBasemap(isDarkTheme() ? darkBasemap : lightBasemap);
   }
-  layer.leafletLayer.setOpacity(opacity);
+}).observe(document.body, { attributes: true, attributeFilter: ['class'] });
+
+satelliteBtn.addEventListener('click', () => activateMode('satellite'));
+planBtn.addEventListener('click', () => activateMode('plan'));
+
+// ==================================================================
+// LAYERS PANEL
+// ==================================================================
+
+/** @type {Array<{tileLayer: L.TileLayer, name: string, visible: boolean, opacity: number}>} */
+const overlays = [];
+
+const layersPanel = document.getElementById('layers-panel');
+const layersList = document.getElementById('layers-list');
+const layersToggleBtn = document.getElementById('layers-toggle');
+const layersCloseBtn = document.getElementById('layers-close');
+
+layersToggleBtn.addEventListener('click', () => {
+  layersPanel.classList.toggle('visible');
+  layersToggleBtn.classList.toggle('active', layersPanel.classList.contains('visible'));
+});
+layersCloseBtn.addEventListener('click', () => {
+  layersPanel.classList.remove('visible');
+  layersToggleBtn.classList.remove('active');
+});
+
+function renderOverlayLayer(index) {
+  const entry = overlays[index];
+
+  // Remove empty-state placeholder if this is the first layer
+  const empty = layersList.querySelector('.layers-empty');
+  if (empty) {
+    empty.remove();
+  }
+
+  const row = document.createElement('div');
+  row.className = 'layer-row';
+  row.dataset.index = index;
+
+  const visBtn = document.createElement('button');
+  visBtn.className = 'map-btn layer-vis-btn' + (entry.visible ? ' active' : '');
+  visBtn.title = 'Toggle visibility';
+  visBtn.innerHTML = '<i class="fa-solid ' + (entry.visible ? 'fa-eye' : 'fa-eye-slash') + '"></i>';
+  visBtn.addEventListener('click', () => {
+    entry.visible = !entry.visible;
+    if (entry.visible) {
+      entry.tileLayer.addTo(map);
+      visBtn.classList.add('active');
+      visBtn.innerHTML = '<i class="fa-solid fa-eye"></i>';
+    } else {
+      map.removeLayer(entry.tileLayer);
+      visBtn.classList.remove('active');
+      visBtn.innerHTML = '<i class="fa-solid fa-eye-slash"></i>';
+    }
+  });
+
+  const slider = document.createElement('input');
+  slider.type = 'range';
+  slider.className = 'layer-opacity';
+  slider.min = '0';
+  slider.max = '10';
+  slider.value = String(Math.round(entry.opacity * 10));
+  slider.addEventListener('input', () => {
+    entry.opacity = Number(slider.value) / 10;
+    entry.tileLayer.setOpacity(entry.opacity);
+  });
+
+  const nameEl = document.createElement('span');
+  nameEl.className = 'layer-name';
+  nameEl.textContent = entry.name;
+  nameEl.title = entry.name;
+
+  row.appendChild(visBtn);
+  row.appendChild(slider);
+  row.appendChild(nameEl);
+  layersList.appendChild(row);
 }
 
-function removeLayer(key) {
-  const layer = overlayLayers[key];
-  if (!layer) {
-    return;
-  }
-  map.removeLayer(layer.leafletLayer);
-  delete overlayLayers[key];
-  updateLayerControl();
-}
+// ==================================================================
+// STATUS BAR
+// ==================================================================
 
-// Status bar updates
 map.on('mousemove', (e) => {
   document.getElementById('coords').textContent =
     e.latlng.lat.toFixed(4) + ', ' + e.latlng.lng.toFixed(4);
@@ -136,40 +189,82 @@ map.on('zoomend', () => {
   document.getElementById('zoom').textContent = 'Zoom: ' + map.getZoom();
 });
 
-// Handle messages from the extension (forwarded from Python)
+// ==================================================================
+// PIXEL INSPECTOR
+// ==================================================================
+
+let inspectorActive = false;
+let inspectorMarker = null;
+
+const inspectorToggleBtn = document.getElementById('inspector-toggle');
+const inspectorPanel = document.getElementById('inspector-panel');
+const inspectorContent = document.getElementById('inspector-content');
+const inspectorCloseBtn = document.getElementById('inspector-close');
+
+function escapeHtml(str) {
+  return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function setInspectorActive(active) {
+  inspectorActive = active;
+  inspectorToggleBtn.classList.toggle('active', active);
+  map.getContainer().style.cursor = active ? 'crosshair' : '';
+  if (active) {
+    inspectorPanel.classList.add('visible');
+  }
+}
+
+inspectorToggleBtn.addEventListener('click', () => setInspectorActive(!inspectorActive));
+
+inspectorCloseBtn.addEventListener('click', () => {
+  setInspectorActive(false);
+  inspectorPanel.classList.remove('visible');
+  if (inspectorMarker) {
+    map.removeLayer(inspectorMarker);
+    inspectorMarker = null;
+  }
+});
+
+map.on('click', (e) => {
+  if (!inspectorActive) {
+    return;
+  }
+  const { lat, lng } = e.latlng;
+
+  if (inspectorMarker) {
+    inspectorMarker.setLatLng([lat, lng]);
+  } else {
+    inspectorMarker = L.marker([lat, lng]).addTo(map);
+  }
+
+  inspectorContent.innerHTML =
+    '<p class="inspector-loading"><i class="fa-solid fa-spinner fa-spin"></i> Loading\u2026</p>';
+
+  vscode.postMessage({ type: 'inspect', data: { lat, lng, zoom: map.getZoom() } });
+});
+
+// ==================================================================
+// MESSAGE HANDLER
+// ==================================================================
+
 window.addEventListener('message', (e) => {
   const msg = e.data;
 
   if (msg.type === 'addTileLayer') {
     const d = msg.data;
-    const key = 'layer_' + ++layerCounter;
+    const opacity = d.opacity ?? 1.0;
     const tileLayer = L.tileLayer(d.url, {
       maxZoom: 24,
-      opacity: d.opacity || 1.0,
+      opacity,
       attribution: 'Google Earth Engine',
     });
+    nativeLayerControl.addOverlay(tileLayer, d.name || 'Layer');
+    const index = overlays.length;
+    overlays.push({ tileLayer, name: d.name || 'Layer', visible: d.shown !== false, opacity });
+    renderOverlayLayer(index);
     if (d.shown !== false) {
       tileLayer.addTo(map);
     }
-    overlayLayers[key] = { name: d.name || 'Layer', leafletLayer: tileLayer };
-    updateLayerControl();
-  } else if (msg.type === 'addGeoJson') {
-    const d = msg.data;
-    const key = 'layer_' + ++layerCounter;
-    const style = d.style || {};
-    const geoLayer = L.geoJSON(d.geojson, {
-      style: {
-        color: style.color || '#3388ff',
-        weight: style.weight || 2,
-        opacity: d.opacity || 1.0,
-        fillOpacity: style.fillOpacity || 0.2,
-      },
-    });
-    if (d.shown !== false) {
-      geoLayer.addTo(map);
-    }
-    overlayLayers[key] = { name: d.name || 'Vector', leafletLayer: geoLayer };
-    updateLayerControl();
   } else if (msg.type === 'centerObject') {
     const d = msg.data;
     if (d.bounds) {
@@ -187,12 +282,51 @@ window.addEventListener('message', (e) => {
     const d = msg.data;
     map.setView([d.lat, d.lon], d.zoom || map.getZoom());
   } else if (msg.type === 'clear') {
-    for (const key of Object.keys(overlayLayers)) {
-      map.removeLayer(overlayLayers[key].leafletLayer);
-      delete overlayLayers[key];
+    // TODO: implement clear
+  } else if (msg.type === 'inspectResult') {
+    const d = msg.data;
+    let html =
+      '<p class="inspector-coords">\u{1F4CD} ' +
+      d.lng.toFixed(4) +
+      ', ' +
+      d.lat.toFixed(4) +
+      ' @ ' +
+      d.scale +
+      'm</p>';
+
+    for (const layer of d.results) {
+      html +=
+        '<div class="inspector-layer"><span class="inspector-layer-name">' +
+        escapeHtml(layer.name) +
+        '</span>';
+      if (layer.error) {
+        html += '<p class="inspector-error">' + escapeHtml(layer.error) + '</p>';
+      } else {
+        const entries = Object.entries(layer.values || {});
+        if (entries.length === 0) {
+          html += '<p class="inspector-no-data">No data at this location.</p>';
+        } else {
+          html += '<table class="inspector-table">';
+          for (const [k, v] of entries) {
+            const display =
+              v === null ? '\u2014' : typeof v === 'number' ? v.toFixed(4) : String(v);
+            html +=
+              '<tr><td class="inspector-band">' +
+              escapeHtml(k) +
+              '</td><td class="inspector-val">' +
+              display +
+              '</td></tr>';
+          }
+          html += '</table>';
+        }
+      }
+      html += '</div>';
     }
-    updateLayerControl();
+
+    if (d.results.length === 0) {
+      html += '<p class="inspector-hint">No layers to inspect.</p>';
+    }
+
+    inspectorContent.innerHTML = html;
   }
 });
-
-updateLayerControl();

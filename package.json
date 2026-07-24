@@ -36,6 +36,94 @@
           "minimum": 10,
           "maximum": 1000,
           "description": "Maximum number of tasks to display in the sidebar and panel tree views."
+        },
+        "earthengine.map.darkBasemap": {
+          "type": "string",
+          "default": "CartoDB.DarkMatter",
+          "description": "Base map layer used when VS Code is in a dark colour theme.",
+          "enum": [
+            "CartoDB.DarkMatter",
+            "Stadia.AlidadeSmoothDark",
+            "Stadia.StamenTonerDark",
+            "Jawg.Dark",
+            "Jawg.Matrix"
+          ],
+          "enumDescriptions": [
+            "CartoDB dark matter (default)",
+            "Stadia smooth dark",
+            "Stadia Stamen toner dark",
+            "Jawg dark (API key required)",
+            "Jawg matrix (API key required)"
+          ]
+        },
+        "earthengine.map.lightBasemap": {
+          "type": "string",
+          "default": "CartoDB.Positron",
+          "description": "Base map layer used when VS Code is in a light colour theme.",
+          "enum": [
+            "CartoDB.Positron",
+            "Stadia.AlidadeSmooth",
+            "Stadia.StamenTonerLite",
+            "Jawg.Light",
+            "Esri.WorldGrayCanvas"
+          ],
+          "enumDescriptions": [
+            "CartoDB Positron (default)",
+            "Stadia smooth light",
+            "Stadia Stamen toner lite",
+            "Jawg light (API key required)",
+            "Esri world grey canvas"
+          ]
+        },
+        "earthengine.map.satelliteBasemap": {
+          "type": "string",
+          "default": "Esri.WorldImagery",
+          "description": "Base map layer used when satellite view is active.",
+          "enum": [
+            "Esri.WorldImagery",
+            "Stadia.AlidadeSatellite",
+            "GeoportailFrance.orthos"
+          ],
+          "enumDescriptions": [
+            "Esri world imagery (default)",
+            "Stadia Alidade satellite",
+            "Geoportail France ortho photos"
+          ]
+        },
+        "earthengine.map.planBasemap": {
+          "type": "string",
+          "default": "CartoDB.Voyager",
+          "description": "Base map layer used when plan view is active.",
+          "enum": [
+            "GeoportailFrance.plan",
+            "CartoDB.Voyager",
+            "OpenStreetMap.Mapnik",
+            "OpenTopoMap",
+            "Stadia.OSMBright",
+            "Stadia.Outdoors",
+            "Stadia.StamenToner",
+            "Thunderforest.SpinalMap",
+            "Thunderforest.Landscape",
+            "Thunderforest.Outdoors",
+            "Thunderforest.Atlas",
+            "Jawg.Streets",
+            "Esri.WorldTopoMap"
+          ],
+          "enumDescriptions": [
+            "Geoportail France plan (default)",
+            "CartoDB Voyager",
+            "OpenStreetMap standard",
+            "OpenTopoMap topographic",
+            "Stadia OSM bright",
+            "Stadia outdoors",
+            "Stadia Stamen toner",
+            "Thunderforest spinal map (API key required)",
+            "Thunderforest landscape (API key required)",
+            "Thunderforest outdoors (API key required)",
+            "Thunderforest atlas (API key required)",
+            "Jawg streets (API key required)",
+            "Esri world topo map"
+          ]
         }
       }
     },
@@ -213,6 +301,11 @@
         "command": "earthengine.openMap",
         "title": "Open Map View",
         "icon": "$(map)"
+      },
+      {
+        "command": "earthengine.map.testNighttimeLights",
+        "title": "Earth Engine: Test – Nighttime Lights Trend",
+        "icon": "$(beaker)"
       },
       {
         "command": "earthengine.openExportTasksPanel",

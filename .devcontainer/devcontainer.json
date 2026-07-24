@@ -1,15 +1,13 @@
 {
-	"name": "earthengine Extension Dev",
-	"image": "mcr.microsoft.com/devcontainers/typescript-node:22",
-	"features": {
-		"ghcr.io/devcontainers/features/desktop-lite:1": {}
-	},
-	"postCreateCommand": "npm install",
-	"customizations": {
-		"vscode": {
-			"extensions": [
-				"dbaeumer.vscode-eslint"
-			]
-		}
-	}
+  "name": "earthengine Extension Dev",
+  "image": "mcr.microsoft.com/devcontainers/typescript-node:22",
+  "features": {
+    "ghcr.io/devcontainers/features/desktop-lite:1": {}
+  },
+  "postCreateCommand": "npm install && sudo apt-get install -y python3-pip && pip3 install -r python/requirements.txt",
+  "customizations": {
+    "vscode": {
+      "extensions": ["dbaeumer.vscode-eslint", "ms-python.python"]
+    }
+  }
 }
