@@ -108,7 +108,7 @@ planBtn.addEventListener('click', () => activateMode('plan'));
 // LAYERS PANEL
 // ==================================================================
 
-/** @type {Array<{tileLayer: L.TileLayer, name: string, visible: boolean, opacity: number}>} */
+/** @type {Array<{tileLayer: L.TileLayer, name: string, visible: boolean, opacity: number, visParams: object|null}>} */
 const overlays = [];
 
 const layersPanel = document.getElementById('layers-panel');
@@ -174,7 +174,299 @@ function renderOverlayLayer(index) {
   row.appendChild(visBtn);
   row.appendChild(slider);
   row.appendChild(nameEl);
+
+  // Scale toggle button
+  if (entry.visParams && (entry.visParams.palette || entry.visParams.bands)) {
+    var scaleBtn = document.createElement('button');
+    scaleBtn.className = 'map-btn layer-vis-btn scale-active-btn';
+    scaleBtn.title = 'Toggle scale';
+    scaleBtn.innerHTML = '<i class="fa-solid fa-sliders"></i>';
+    scaleBtn.addEventListener('click', function () {
+      if (activeScaleIndex === index) {
+        hideScale();
+      } else {
+        showScale(index);
+      }
+      scaleBtn.classList.toggle('active', activeScaleIndex === index);
+      layersList.querySelectorAll('.scale-active-btn').forEach(function (b) {
+        if (b !== scaleBtn) {
+          b.classList.remove('active');
+        }
+      });
+    });
+    row.appendChild(scaleBtn);
+  }
+
   layersList.appendChild(row);
+}
+
+// ==================================================================
+// SCALE BAR
+// ==================================================================
+
+var scaleBar = document.getElementById('scale-bar');
+var activeScaleIndex = -1;
+
+function paletteGradient(palette) {
+  if (!palette || palette.length === 0) {
+    return 'linear-gradient(to right, #000, #fff)';
+  }
+  var colors = palette.map(function (c) {
+    return c.startsWith('#') ? c : '#' + c;
+  });
+  return 'linear-gradient(to right, ' + colors.join(', ') + ')';
+}
+
+function showScale(index) {
+  var entry = overlays[index];
+  if (!entry || !entry.visParams) {
+    return;
+  }
+  activeScaleIndex = index;
+  var vp = entry.visParams;
+  var bands = vp.bands || [];
+  var palette = vp.palette || null;
+  var minArr = Array.isArray(vp.min) ? vp.min : [vp.min != null ? vp.min : 0];
+  var maxArr = Array.isArray(vp.max) ? vp.max : [vp.max != null ? vp.max : 1];
+
+  scaleBar.innerHTML = '';
+
+  if (palette && bands.length <= 1) {
+    scaleBar.appendChild(
+      buildScaleRow(bands[0] || 'b0', minArr[0], maxArr[0], paletteGradient(palette)),
+    );
+  } else if (bands.length === 3) {
+    var ch = ['#ff0000', '#00ff00', '#0000ff'];
+    for (var i = 0; i < 3; i++) {
+      var mn = minArr[i] != null ? minArr[i] : minArr[0];
+      var mx = maxArr[i] != null ? maxArr[i] : maxArr[0];
+      scaleBar.appendChild(
+        buildScaleRow(
+          bands[i] || 'b' + i,
+          mn,
+          mx,
+          'linear-gradient(to right, #000, ' + ch[i] + ')',
+        ),
+      );
+    }
+  } else if (palette) {
+    scaleBar.appendChild(buildScaleRow('b0', minArr[0], maxArr[0], paletteGradient(palette)));
+  } else {
+    scaleBar.appendChild(
+      buildScaleRow('b0', minArr[0], maxArr[0], 'linear-gradient(to right, #000, #fff)'),
+    );
+  }
+
+  scaleBar.classList.add('visible');
+}
+
+function hideScale() {
+  activeScaleIndex = -1;
+  scaleBar.classList.remove('visible');
+  scaleBar.innerHTML = '';
+}
+
+function buildScaleRow(label, min, max, gradient) {
+  var row = document.createElement('div');
+  row.className = 'scale-row';
+
+  var lbl = document.createElement('span');
+  lbl.className = 'scale-label';
+  lbl.textContent = label || fmtVal(min) + '\u2013' + fmtVal(max);
+  lbl.title = label;
+  row.appendChild(lbl);
+
+  var wrap = document.createElement('div');
+  wrap.className = 'scale-gradient-wrap';
+
+  var grad = document.createElement('div');
+  grad.className = 'scale-gradient';
+  grad.style.background = gradient;
+  wrap.appendChild(grad);
+
+  var pointer = document.createElement('div');
+  pointer.className = 'scale-pointer';
+  var tooltip = document.createElement('div');
+  tooltip.className = 'scale-tooltip';
+  pointer.appendChild(tooltip);
+  wrap.appendChild(pointer);
+
+  wrap.addEventListener('mousemove', function (ev) {
+    var rect = wrap.getBoundingClientRect();
+    var pct = Math.max(0, Math.min(1, (ev.clientX - rect.left) / rect.width));
+    var val = min + pct * (max - min);
+    pointer.style.left = pct * 100 + '%';
+    pointer.style.display = 'block';
+    tooltip.style.display = 'block';
+    tooltip.textContent = fmtVal(val);
+  });
+  wrap.addEventListener('mouseleave', function () {
+    pointer.style.display = 'none';
+    tooltip.style.display = 'none';
+  });
+
+  row.appendChild(wrap);
+
+  var maxEl = document.createElement('span');
+  maxEl.className = 'scale-max';
+  maxEl.textContent = fmtVal(min) + '\u2013' + fmtVal(max);
+  row.appendChild(maxEl);
+
+  return row;
+}
+
+function fmtVal(v) {
+  if (v == null) {
+    return '';
+  }
+  var n = Number(v);
+  if (Number.isNaN(n)) {
+    return String(v);
+  }
+  if (Number.isInteger(n)) {
+    return String(n);
+  }
+  return n.toPrecision(4);
+}
+
+// ==================================================================
+// PIXEL → SCALE TRACKING
+// ==================================================================
+
+var _sampleCanvas = null;
+
+function sampleOverlayPixel(latlng, idx) {
+  var entry = overlays[idx];
+  if (!entry || !entry.visible) {
+    return null;
+  }
+  var container = entry.tileLayer.getContainer();
+  if (!container) {
+    return null;
+  }
+  var pt = map.latLngToContainerPoint(latlng);
+  var mapRect = map.getContainer().getBoundingClientRect();
+  var tiles = container.querySelectorAll('img');
+  for (var i = 0; i < tiles.length; i++) {
+    var tile = tiles[i];
+    var r = tile.getBoundingClientRect();
+    var tx = r.left - mapRect.left;
+    var ty = r.top - mapRect.top;
+    if (pt.x >= tx && pt.x < tx + r.width && pt.y >= ty && pt.y < ty + r.height) {
+      try {
+        if (!_sampleCanvas) {
+          _sampleCanvas = document.createElement('canvas');
+        }
+        _sampleCanvas.width = tile.naturalWidth || 256;
+        _sampleCanvas.height = tile.naturalHeight || 256;
+        var ctx = _sampleCanvas.getContext('2d');
+        ctx.drawImage(tile, 0, 0);
+        var sx = ((pt.x - tx) / r.width) * _sampleCanvas.width;
+        var sy = ((pt.y - ty) / r.height) * _sampleCanvas.height;
+        return ctx.getImageData(Math.floor(sx), Math.floor(sy), 1, 1).data;
+      } catch (_) {
+        return null;
+      }
+    }
+  }
+  return null;
+}
+
+function updateScaleFromMap(latlng) {
+  if (activeScaleIndex < 0) {
+    return;
+  }
+  var rgba = sampleOverlayPixel(latlng, activeScaleIndex);
+  var rows = scaleBar.querySelectorAll('.scale-row');
+  if (!rgba || rgba[3] === 0) {
+    // No data — hide pointers and restore original min/max labels
+    rows.forEach(function (row, i) {
+      var p = row.querySelector('.scale-pointer');
+      var t = row.querySelector('.scale-tooltip');
+      if (p) {
+        p.style.display = 'none';
+      }
+      if (t) {
+        t.style.display = 'none';
+      }
+      resetScaleLabels(row, i);
+    });
+    return;
+  }
+  var entry = overlays[activeScaleIndex];
+  if (!entry || !entry.visParams) {
+    return;
+  }
+  var vp = entry.visParams;
+  var bands = vp.bands || [];
+  var palette = vp.palette || null;
+  var minArr = Array.isArray(vp.min) ? vp.min : [vp.min != null ? vp.min : 0];
+  var maxArr = Array.isArray(vp.max) ? vp.max : [vp.max != null ? vp.max : 1];
+
+  if (palette && bands.length <= 1 && rows[0]) {
+    // Single band — use luminance as proxy for position
+    var lum = (rgba[0] * 0.299 + rgba[1] * 0.587 + rgba[2] * 0.114) / 255;
+    setPointer(rows[0], lum, minArr[0], maxArr[0]);
+  } else if (bands.length === 3) {
+    // RGB — each channel maps to its bar
+    if (rows[0]) {
+      setPointer(rows[0], rgba[0] / 255, minArr[0], maxArr[0]);
+    }
+    if (rows[1]) {
+      setPointer(
+        rows[1],
+        rgba[1] / 255,
+        minArr[1] != null ? minArr[1] : minArr[0],
+        maxArr[1] != null ? maxArr[1] : maxArr[0],
+      );
+    }
+    if (rows[2]) {
+      setPointer(
+        rows[2],
+        rgba[2] / 255,
+        minArr[2] != null ? minArr[2] : minArr[0],
+        maxArr[2] != null ? maxArr[2] : maxArr[0],
+      );
+    }
+  }
+}
+
+function setPointer(row, pct, min, max) {
+  var pointer = row.querySelector('.scale-pointer');
+  var tooltip = row.querySelector('.scale-tooltip');
+  var minEl = row.querySelector('.scale-min');
+  var maxEl = row.querySelector('.scale-max');
+  if (!pointer || !tooltip) {
+    return;
+  }
+  var c = Math.max(0, Math.min(1, pct));
+  pointer.style.left = c * 100 + '%';
+  pointer.style.display = 'block';
+  tooltip.style.display = 'block';
+  var val = min + c * (max - min);
+  tooltip.textContent = fmtVal(val);
+  if (maxEl) {
+    maxEl.textContent = fmtVal(val);
+  }
+}
+
+function resetScaleLabels(row, bandIndex) {
+  if (activeScaleIndex < 0) {
+    return;
+  }
+  var entry = overlays[activeScaleIndex];
+  if (!entry || !entry.visParams) {
+    return;
+  }
+  var vp = entry.visParams;
+  var minArr = Array.isArray(vp.min) ? vp.min : [vp.min != null ? vp.min : 0];
+  var maxArr = Array.isArray(vp.max) ? vp.max : [vp.max != null ? vp.max : 1];
+  var mn = minArr[bandIndex] != null ? minArr[bandIndex] : minArr[0];
+  var mx = maxArr[bandIndex] != null ? maxArr[bandIndex] : maxArr[0];
+  var maxEl = row.querySelector('.scale-max');
+  if (maxEl) {
+    maxEl.textContent = fmtVal(mn) + '\u2013' + fmtVal(mx);
+  }
 }
 
 // ==================================================================
@@ -184,6 +476,7 @@ function renderOverlayLayer(index) {
 map.on('mousemove', (e) => {
   document.getElementById('coords').textContent =
     e.latlng.lat.toFixed(4) + ', ' + e.latlng.lng.toFixed(4);
+  updateScaleFromMap(e.latlng);
 });
 map.on('zoomend', () => {
   document.getElementById('zoom').textContent = 'Zoom: ' + map.getZoom();
@@ -257,10 +550,17 @@ window.addEventListener('message', (e) => {
       maxZoom: 24,
       opacity,
       attribution: 'Google Earth Engine',
+      crossOrigin: 'anonymous',
     });
     nativeLayerControl.addOverlay(tileLayer, d.name || 'Layer');
     const index = overlays.length;
-    overlays.push({ tileLayer, name: d.name || 'Layer', visible: d.shown !== false, opacity });
+    overlays.push({
+      tileLayer,
+      name: d.name || 'Layer',
+      visible: d.shown !== false,
+      opacity,
+      visParams: d.visParams || null,
+    });
     renderOverlayLayer(index);
     if (d.shown !== false) {
       tileLayer.addTo(map);
