@@ -25,7 +25,7 @@ export class ProfilesTreeItem extends vscode.TreeItem {
     this.iconPath = new vscode.ThemeIcon(
       isActive ? 'circle-filled' : 'circle-outline',
       isActive
-        ? new vscode.ThemeColor('testing.iconPassed')
+        ? new vscode.ThemeColor('testing.icon')
         : new vscode.ThemeColor('testing.iconFailed'),
     );
     this.contextValue = isActive ? 'profile-active' : 'profile-inactive';
