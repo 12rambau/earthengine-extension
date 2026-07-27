@@ -65,34 +65,36 @@ export class MapLayerManager {
       // from the image's stored properties.
       try {
         const props = await computeValue<Record<string, unknown>>((image as any).toDictionary());
-        const vizKeys = Object.keys(props ?? {}).filter((k) => k.startsWith('visualization_'));
-        console.log(`[MapLayerManager] Found ${vizKeys.length} visualization_* properties`);
         const vizs = parseSepalVisualizations(props ?? {});
-        console.log(
-          `[MapLayerManager] Parsed ${vizs.length} SEPAL presets:`,
-          vizs.map((v) => `${v.index}:${v.name}(${v.type})`).join(', '),
-        );
         if (vizs.length > 0) {
-          const selector = hasDefault ? (rawVisParams['default'] as string | number) : 0; // no default specified → use first preset
+          const selector = hasDefault ? (rawVisParams['default'] as string | number) : 0;
           const viz = selectSepalViz(vizs, selector);
-          console.log(
-            `[MapLayerManager] Selected viz for '${selector}':`,
-            viz ? `${viz.name}(${viz.type}) bands=${viz.bands} values=${viz.values}` : 'none',
-          );
           if (viz) {
             const resolved = resolveSepalViz(viz, image, ee);
             resolvedImage = resolved.image;
             resolvedVisParams = resolved.visParams;
             displayVisParams = resolved.displayVisParams;
-            console.log('[MapLayerManager] Resolved visParams:', JSON.stringify(resolvedVisParams));
-            console.log('[MapLayerManager] Display visParams:', JSON.stringify(displayVisParams));
+          } else if (hasDefault) {
+            throw new Error(
+              `SEPAL visualization preset '${rawVisParams['default']}' not found. ` +
+                `Available: ${vizs.map((v) => v.name).join(', ')}`,
+            );
           }
+        } else if (hasDefault) {
+          throw new Error(
+            `No SEPAL visualization presets found on this image ` +
+              `(requested default: '${rawVisParams['default']}').`,
+          );
         }
       } catch (err) {
-        // Property fetch failed — log for diagnostics and fall through to
-        // EE's default rendering.
+        if (hasDefault) {
+          // An explicit default was requested — propagate the error so the
+          // caller's existing error-reporting path can surface it to the user.
+          throw err;
+        }
+        // No explicit default — silently fall through to EE's default rendering.
         console.log(
-          '[MapLayerManager] SEPAL viz resolution failed:',
+          '[MapLayerManager] SEPAL viz resolution failed (non-fatal):',
           err instanceof Error ? err.message : String(err),
         );
       }
