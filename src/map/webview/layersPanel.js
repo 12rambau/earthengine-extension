@@ -33,7 +33,9 @@ layersCloseBtn.addEventListener('click', () => {
  */
 export function renderOverlayLayer(layerIndex) {
   const arrayIdx = overlays.findIndex((o) => o.layerIndex === layerIndex);
-  if (arrayIdx === -1) return;
+  if (arrayIdx === -1) {
+    return;
+  }
   const entry = overlays[arrayIdx];
 
   const empty = layersList.querySelector('.layers-empty');

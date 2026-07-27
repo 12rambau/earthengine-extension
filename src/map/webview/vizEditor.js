@@ -18,7 +18,6 @@ let _overlay = null; // The overlay div element
 let _currentLayerIndex = -1;
 let _bands = [];
 let _presets = [];
-let _pendingComputeBtn = null;
 
 // ==================================================================
 // INIT
@@ -64,11 +63,10 @@ export function handleVizEditorData(data) {
  * @param {{ layerIndex: number, minMax: Object }} data
  */
 export function handleVizMinMax(data) {
-  if (_pendingComputeBtn) {
-    _pendingComputeBtn.textContent = 'Compute min/max';
-    _pendingComputeBtn.disabled = false;
-    _pendingComputeBtn = null;
-  }
+  _overlay.querySelectorAll('.viz-compute-btn').forEach((b) => {
+    b.textContent = 'Compute min/max';
+    b.disabled = false;
+  });
   if (data.layerIndex !== _currentLayerIndex) {
     return;
   }
@@ -391,9 +389,10 @@ function buildComputeBtn() {
   btn.className = 'viz-btn viz-btn-secondary viz-compute-btn';
   btn.textContent = 'Compute min/max';
   btn.addEventListener('click', () => {
-    _pendingComputeBtn = btn;
+    _overlay.querySelectorAll('.viz-compute-btn').forEach((b) => {
+      b.disabled = true;
+    });
     btn.textContent = 'Computing\u2026';
-    btn.disabled = true;
     _vscode.postMessage({ type: 'computeMinMax', data: { layerIndex: _currentLayerIndex } });
   });
   return btn;
@@ -573,7 +572,9 @@ function collectVisParams() {
     const bands = chans.map((c) => getSelectValue(prefix + '-' + c));
     const min = chans.map((c) => parseFloat(getFieldValue(prefix + '-' + c + '-min')));
     const max = chans.map((c) => parseFloat(getFieldValue(prefix + '-' + c + '-max')));
-    if (!min.every(Number.isFinite) || !max.every(Number.isFinite)) return null;
+    if (!min.every(Number.isFinite) || !max.every(Number.isFinite)) {
+      return null;
+    }
     const config = { vizType: type, bands, min, max };
     if (type === 'rgb') {
       const gamma = parseFloat(getFieldValue('rgb-gamma'));
@@ -588,7 +589,9 @@ function collectVisParams() {
     const band = getSelectValue('cont-band');
     const min = parseFloat(getFieldValue('cont-min'));
     const max = parseFloat(getFieldValue('cont-max'));
-    if (!Number.isFinite(min) || !Number.isFinite(max)) return null;
+    if (!Number.isFinite(min) || !Number.isFinite(max)) {
+      return null;
+    }
     const selectedPal = _overlay.querySelector('.viz-continuous-editor .viz-palette-item.selected');
     const palette = selectedPal ? selectedPal._colors : [];
     return { vizType: 'continuous', bands: [band], min: [min], max: [max], palette };
@@ -618,7 +621,9 @@ function collectVisParams() {
 
 function apply() {
   const config = collectVisParams();
-  if (!config) return;
+  if (!config) {
+    return;
+  }
   _vscode.postMessage({
     type: 'updateViz',
     data: { layerIndex: _currentLayerIndex, ...config },
