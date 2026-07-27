@@ -147,6 +147,7 @@ export class PanelTasksViewProvider implements vscode.WebviewViewProvider {
   private async loadAndStream(): Promise<void> {
     const token = await this.authService.getToken();
     if (!token) {
+      this.view?.webview.postMessage({ type: 'unauthenticated' });
       return;
     }
     const profile = this.authService.currentProfile!;
@@ -165,6 +166,7 @@ export class PanelTasksViewProvider implements vscode.WebviewViewProvider {
   private async refreshIncremental(): Promise<void> {
     const token = await this.authService.getToken();
     if (!token) {
+      this.view?.webview.postMessage({ type: 'unauthenticated' });
       return;
     }
     if (this.allOps.length === 0) {

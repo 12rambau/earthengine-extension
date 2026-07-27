@@ -46,9 +46,15 @@ function assetNameFromUri(uri) {
 // ==================================================================
 let tasks = [];
 let isLoading = true;
+let isUnauthenticated = false;
 
 function render() {
   const list = document.getElementById('taskList');
+
+  if (isUnauthenticated) {
+    list.innerHTML = '<li class="empty-state">sign in to view tasks</li>';
+    return;
+  }
 
   if (isLoading && tasks.length === 0) {
     list.innerHTML = '<li class="loading-state"><span class="loading-spinner"></span>loading…</li>';
@@ -120,8 +126,14 @@ function previewAsset(assetName) {
 window.addEventListener('message', function (e) {
   var msg = e.data;
   if (msg.type === 'data') {
+    isUnauthenticated = false;
     tasks = msg.tasks;
     isLoading = msg.loading;
+    render();
+  } else if (msg.type === 'unauthenticated') {
+    isUnauthenticated = true;
+    isLoading = false;
+    tasks = [];
     render();
   } else if (msg.type === 'cancelled') {
     var t = tasks.find(function (t) {
@@ -132,6 +144,7 @@ window.addEventListener('message', function (e) {
     }
     render();
   } else if (msg.type === 'loading') {
+    isUnauthenticated = false;
     isLoading = true;
     render();
   }
