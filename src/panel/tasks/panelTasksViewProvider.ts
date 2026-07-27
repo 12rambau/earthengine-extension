@@ -265,7 +265,7 @@ export class PanelTasksViewProvider implements vscode.WebviewViewProvider {
       `style-src 'unsafe-inline'`,
       `script-src 'nonce-${nonce}'`,
     ].join('; ');
-    const initJson = JSON.stringify({ filter: this.filter }).replace(/</g, '\u003c');
+    const initJson = JSON.stringify({ filter: this.filter }).replace(/</g, '\\u003c');
     return render({ csp, nonce, initJson, style, script });
   }
 
