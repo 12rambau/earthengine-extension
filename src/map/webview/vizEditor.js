@@ -405,6 +405,8 @@ function buildPaletteGrid(palettes) {
     const item = document.createElement('div');
     item.className = 'viz-palette-item';
     item.title = pal.name;
+    item.role = 'option';
+    item.tabIndex = 0;
 
     const bar = document.createElement('div');
     bar.className = 'viz-palette-bar';
@@ -426,12 +428,20 @@ function buildPaletteGrid(palettes) {
         const editor = _overlay.querySelector('.viz-categorical-editor');
         const legend = editor.querySelector('.viz-cat-legend');
         const existingRows = legend.querySelectorAll('.viz-cat-row');
-        // Apply colors to existing rows, or add new ones
         pal.colors.forEach((c, i) => {
           if (existingRows[i]) {
             existingRows[i].querySelector('.viz-cat-color').value = c;
+          } else {
+            addCategoryRow(legend, undefined, undefined, c);
           }
         });
+      }
+    });
+
+    item.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        item.click();
       }
     });
 
