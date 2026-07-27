@@ -96,8 +96,25 @@ export function updateScaleFromMap(latlng) {
   const maxArr = Array.isArray(vp.max) ? vp.max : [vp.max != null ? vp.max : 1];
 
   if (palette && bands.length <= 1 && rows[0]) {
-    const lum = (rgba[0] * 0.299 + rgba[1] * 0.587 + rgba[2] * 0.114) / 255;
-    setPointer(rows[0], lum, minArr[0], maxArr[0]);
+    // Find the palette entry whose RGB is closest to the sampled pixel and use
+    // its normalised index as the position within [min, max].  Luminance is not
+    // used because it does not follow data order for non-monotone palettes.
+    let bestIdx = 0;
+    let bestDist = Infinity;
+    for (let pi = 0; pi < palette.length; pi++) {
+      const hex = palette[pi].startsWith('#') ? palette[pi].slice(1) : palette[pi];
+      const len = hex.length === 3 ? 1 : 2;
+      const pr = parseInt(hex.slice(0, len).padStart(2, hex[0]), 16);
+      const pg = parseInt(hex.slice(len, len * 2).padStart(2, hex[len]), 16);
+      const pb = parseInt(hex.slice(len * 2, len * 3).padStart(2, hex[len * 2]), 16);
+      const dist = (rgba[0] - pr) ** 2 + (rgba[1] - pg) ** 2 + (rgba[2] - pb) ** 2;
+      if (dist < bestDist) {
+        bestDist = dist;
+        bestIdx = pi;
+      }
+    }
+    const pct = palette.length > 1 ? bestIdx / (palette.length - 1) : 0;
+    setPointer(rows[0], pct, minArr[0], maxArr[0]);
   } else if (bands.length === 3) {
     if (rows[0]) {
       setPointer(rows[0], rgba[0] / 255, minArr[0], maxArr[0]);
