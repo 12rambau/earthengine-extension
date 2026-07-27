@@ -459,17 +459,14 @@ body {
   background: var(--vscode-button-secondaryBackground);
   color: var(--vscode-button-secondaryForeground);
 }
-.viz-presets {
-  padding: 0 10px 6px;
-}
-.viz-presets-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-}
-.viz-preset-btn {
-  font-size: 10px;
-  padding: 2px 8px;
+.viz-preset-select {
+  background: var(--vscode-dropdown-background);
+  color: var(--vscode-dropdown-foreground);
+  border: 1px solid var(--vscode-dropdown-border);
+  border-radius: 3px;
+  font-size: 11px;
+  padding: 2px 4px;
+  max-width: 140px;
 }
 .viz-section-label {
   font-size: 10px;

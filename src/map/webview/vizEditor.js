@@ -98,6 +98,51 @@ function buildOverlay() {
   title.textContent = 'Visualization';
   header.appendChild(title);
 
+  // Presets dropdown (populated later, hidden when empty)
+  const presetSelect = document.createElement('select');
+  presetSelect.className = 'viz-preset-select';
+  presetSelect.style.display = 'none';
+  presetSelect.addEventListener('change', () => {
+    const idx = parseInt(presetSelect.value);
+    if (isNaN(idx) || idx < 0) {
+      return;
+    }
+    const p = _presets[idx];
+    if (!p) {
+      return;
+    }
+    const vp = { bands: p.bands || [] };
+    if (p.min) {
+      vp.min = p.min;
+    }
+    if (p.max) {
+      vp.max = p.max;
+    }
+    if (p.palette) {
+      vp.palette = p.palette;
+    }
+    if (p.gamma) {
+      vp.gamma = p.gamma;
+    }
+    if (p.labels) {
+      vp.labels = p.labels;
+    }
+    if (p.values) {
+      vp.values = p.values;
+    }
+    const typeMap = {
+      rgb: 'rgb',
+      hsv: 'hsv',
+      continuous: 'continuous',
+      categorical: 'categorical',
+    };
+    const editorType = typeMap[p.type] || 'rgb';
+    typeSelect.value = editorType;
+    showTypeEditor(editorType);
+    applyVisParams(vp);
+  });
+  header.appendChild(presetSelect);
+
   const typeSelect = document.createElement('select');
   typeSelect.className = 'viz-type-select';
   ['rgb', 'hsv', 'continuous', 'categorical'].forEach((t) => {
@@ -116,11 +161,6 @@ function buildOverlay() {
   header.appendChild(closeBtn);
 
   dialog.appendChild(header);
-
-  // ── Presets ──────────────────────────────────────────────────
-  const presetsDiv = document.createElement('div');
-  presetsDiv.className = 'viz-presets';
-  dialog.appendChild(presetsDiv);
 
   // ── Body ────────────────────────────────────────────────────
   const body = document.createElement('div');
@@ -421,40 +461,27 @@ function populateBandSelects(bands) {
 }
 
 function populatePresets(presets) {
-  const container = _overlay.querySelector('.viz-presets');
-  container.innerHTML = '';
+  const sel = _overlay.querySelector('.viz-preset-select');
+  sel.innerHTML = '';
   if (presets.length === 0) {
-    container.style.display = 'none';
+    sel.style.display = 'none';
     return;
   }
-  container.style.display = '';
+  sel.style.display = '';
 
-  const label = document.createElement('div');
-  label.className = 'viz-section-label';
-  label.textContent = 'Presets';
-  container.appendChild(label);
+  const placeholder = document.createElement('option');
+  placeholder.value = '-1';
+  placeholder.textContent = 'Preset\u2026';
+  placeholder.disabled = true;
+  placeholder.selected = true;
+  sel.appendChild(placeholder);
 
-  const row = document.createElement('div');
-  row.className = 'viz-presets-row';
-  for (const p of presets) {
-    const btn = document.createElement('button');
-    btn.className = 'viz-btn viz-preset-btn';
-    btn.textContent = p.name;
-    btn.title = p.type;
-    btn.addEventListener('click', () => {
-      // Send preset selection to host
-      _vscode.postMessage({
-        type: 'updateViz',
-        data: {
-          layerIndex: _currentLayerIndex,
-          preset: { index: p.index, name: p.name, type: p.type },
-        },
-      });
-      close();
-    });
-    row.appendChild(btn);
+  for (let i = 0; i < presets.length; i++) {
+    const opt = document.createElement('option');
+    opt.value = String(i);
+    opt.textContent = presets[i].name + ' (' + presets[i].type + ')';
+    sel.appendChild(opt);
   }
-  container.appendChild(row);
 }
 
 function applyVisParams(vp) {

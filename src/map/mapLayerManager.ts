@@ -172,9 +172,20 @@ export class MapLayerManager {
   }
 
   /** Returns parsed SEPAL visualization presets for the image at `layerIndex`. */
-  async getPresets(
-    layerIndex: number,
-  ): Promise<Array<{ index: number; name: string; type: string }>> {
+  async getPresets(layerIndex: number): Promise<
+    Array<{
+      index: number;
+      name: string;
+      type: string;
+      bands: string[];
+      min?: number[];
+      max?: number[];
+      palette?: string[];
+      gamma?: number[];
+      labels?: string[];
+      values?: number[];
+    }>
+  > {
     const layer = this._layers.get(layerIndex);
     if (!layer) {
       return [];
@@ -187,6 +198,13 @@ export class MapLayerManager {
         index: v.index,
         name: v.name,
         type: v.type,
+        bands: v.bands,
+        min: v.min,
+        max: v.max,
+        palette: v.palette,
+        gamma: v.gamma,
+        labels: v.labels,
+        values: v.values,
       }));
     } catch {
       return [];
