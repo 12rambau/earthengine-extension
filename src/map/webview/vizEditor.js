@@ -559,8 +559,9 @@ function collectVisParams() {
     const prefix = type === 'rgb' ? 'rgb' : 'hsv';
     const chans = type === 'rgb' ? ['r', 'g', 'b'] : ['h', 's', 'v'];
     const bands = chans.map((c) => getSelectValue(prefix + '-' + c));
-    const min = chans.map((c) => parseFloat(getFieldValue(prefix + '-' + c + '-min')) || 0);
-    const max = chans.map((c) => parseFloat(getFieldValue(prefix + '-' + c + '-max')) || 1);
+    const min = chans.map((c) => parseFloat(getFieldValue(prefix + '-' + c + '-min')));
+    const max = chans.map((c) => parseFloat(getFieldValue(prefix + '-' + c + '-max')));
+    if (!min.every(Number.isFinite) || !max.every(Number.isFinite)) return null;
     const config = { vizType: type, bands, min, max };
     if (type === 'rgb') {
       const gamma = parseFloat(getFieldValue('rgb-gamma'));
@@ -573,8 +574,9 @@ function collectVisParams() {
 
   if (type === 'continuous') {
     const band = getSelectValue('cont-band');
-    const min = parseFloat(getFieldValue('cont-min')) || 0;
-    const max = parseFloat(getFieldValue('cont-max')) || 1;
+    const min = parseFloat(getFieldValue('cont-min'));
+    const max = parseFloat(getFieldValue('cont-max'));
+    if (!Number.isFinite(min) || !Number.isFinite(max)) return null;
     const selectedPal = _overlay.querySelector('.viz-continuous-editor .viz-palette-item.selected');
     const palette = selectedPal ? selectedPal._colors : [];
     return { vizType: 'continuous', bands: [band], min: [min], max: [max], palette };
@@ -604,6 +606,7 @@ function collectVisParams() {
 
 function apply() {
   const config = collectVisParams();
+  if (!config) return;
   _vscode.postMessage({
     type: 'updateViz',
     data: { layerIndex: _currentLayerIndex, ...config },
