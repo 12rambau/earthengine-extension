@@ -15,5 +15,7 @@ export class EeLayer {
     public readonly serialized: string,
     /** Display name shown in the layer panel. */
     public readonly name: string,
+    /** The vis-params last used to render this layer. */
+    public visParams: Record<string, unknown> = {},
   ) {}
 }

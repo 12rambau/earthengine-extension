@@ -9,7 +9,9 @@ import { initBasemap, addNativeOverlay } from './webview/basemap.js';
 import { initControls } from './webview/controls.js';
 import { overlays } from './webview/overlays.js';
 import { renderOverlayLayer } from './webview/layersPanel.js';
+import { activeScaleIndex, showScale, hideScale } from './webview/scaleBar.js';
 import { initInspector, handleInspectResult } from './webview/inspector.js';
+import { initVizEditor, handleVizEditorData, handleVizMinMax } from './webview/vizEditor.js';
 import './webview/statusBar.js';
 
 // ==================================================================
@@ -29,6 +31,7 @@ const vscode = acquireVsCodeApi();
 initBasemap({ darkBasemap, lightBasemap, satelliteBasemap, planBasemap });
 initControls({ satelliteBasemap, planBasemap, darkBasemap, lightBasemap });
 initInspector(vscode);
+initVizEditor(vscode);
 
 // ==================================================================
 // MESSAGE HANDLER
@@ -47,15 +50,15 @@ window.addEventListener('message', (e) => {
       crossOrigin: 'anonymous',
     });
     addNativeOverlay(tileLayer, d.name || 'Layer');
-    const index = overlays.length;
     overlays.push({
       tileLayer,
       name: d.name || 'Layer',
       visible: d.shown !== false,
       opacity,
       visParams: d.visParams || null,
+      layerIndex: d.layerIndex,
     });
-    renderOverlayLayer(index);
+    renderOverlayLayer(d.layerIndex);
     if (d.shown !== false) {
       tileLayer.addTo(map);
     }
@@ -79,5 +82,36 @@ window.addEventListener('message', (e) => {
     // TODO: implement clear
   } else if (msg.type === 'inspectResult') {
     handleInspectResult(msg.data);
+  } else if (msg.type === 'vizEditorData') {
+    handleVizEditorData(msg.data);
+  } else if (msg.type === 'vizMinMax') {
+    handleVizMinMax(msg.data);
+  } else if (msg.type === 'replaceTileLayer') {
+    const d = msg.data;
+    // Find the overlay by layerIndex
+    const entry = overlays.find((o) => o.layerIndex === d.layerIndex);
+    if (entry) {
+      if (entry.visible) {
+        map.removeLayer(entry.tileLayer);
+      }
+      entry.tileLayer = L.tileLayer(d.url, {
+        maxZoom: 24,
+        opacity: entry.opacity,
+        attribution: 'Google Earth Engine',
+        crossOrigin: 'anonymous',
+      });
+      entry.visParams = d.visParams;
+      if (entry.visible) {
+        entry.tileLayer.addTo(map);
+      }
+      const arrayIdx = overlays.indexOf(entry);
+      if (activeScaleIndex === arrayIdx) {
+        if (entry.visParams && (entry.visParams.palette || entry.visParams.bands)) {
+          showScale(arrayIdx);
+        } else {
+          hideScale();
+        }
+      }
+    }
   }
 });

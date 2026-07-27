@@ -27,12 +27,16 @@ layersCloseBtn.addEventListener('click', () => {
 });
 
 /**
- * Appends a new row to the layers list for the overlay at `index`.
+ * Appends a new row to the layers list for the overlay with the given host-assigned `layerIndex`.
  *
- * @param {number} index - Index into the shared `overlays` array.
+ * @param {number} layerIndex - Host-assigned layer index.
  */
-export function renderOverlayLayer(index) {
-  const entry = overlays[index];
+export function renderOverlayLayer(layerIndex) {
+  const arrayIdx = overlays.findIndex((o) => o.layerIndex === layerIndex);
+  if (arrayIdx === -1) {
+    return;
+  }
+  const entry = overlays[arrayIdx];
 
   const empty = layersList.querySelector('.layers-empty');
   if (empty) {
@@ -41,7 +45,7 @@ export function renderOverlayLayer(index) {
 
   const row = document.createElement('div');
   row.className = 'layer-row';
-  row.dataset.index = index;
+  row.dataset.index = arrayIdx;
 
   const nameEl = document.createElement('span');
   nameEl.className = 'layer-name';
@@ -89,12 +93,12 @@ export function renderOverlayLayer(index) {
 
   if (entry.visParams && (entry.visParams.palette || entry.visParams.bands)) {
     scaleBtn.addEventListener('click', () => {
-      if (activeScaleIndex === index) {
+      if (activeScaleIndex === arrayIdx) {
         hideScale();
       } else {
-        showScale(index);
+        showScale(arrayIdx);
       }
-      scaleBtn.classList.toggle('active', activeScaleIndex === index);
+      scaleBtn.classList.toggle('active', activeScaleIndex === arrayIdx);
       layersList.querySelectorAll('.scale-active-btn').forEach((b) => {
         if (b !== scaleBtn) {
           b.classList.remove('active');
@@ -108,6 +112,19 @@ export function renderOverlayLayer(index) {
   }
 
   controls.appendChild(scaleBtn);
+
+  // Cog button — opens the visualization editor
+  const cogBtn = document.createElement('button');
+  cogBtn.className = 'map-btn layer-vis-btn';
+  cogBtn.title = 'Edit visualization';
+  cogBtn.innerHTML = '<i class="fa-solid fa-gear"></i>';
+  cogBtn.addEventListener('click', () => {
+    document.dispatchEvent(
+      new CustomEvent('openVizEditor', { detail: { layerIndex: entry.layerIndex } }),
+    );
+  });
+  controls.appendChild(cogBtn);
+
   row.appendChild(nameEl);
   row.appendChild(controls);
   layersList.appendChild(row);
