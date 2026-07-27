@@ -56,7 +56,7 @@ body {
   height: 12px;
   position: relative;
   border-radius: 2px;
-  overflow: hidden;
+  overflow: visible;
   cursor: crosshair;
 }
 .scale-gradient {
