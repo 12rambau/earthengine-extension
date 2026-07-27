@@ -152,20 +152,31 @@ export class MapLayerManager {
     const image = ee.Deserializer.fromJSON(layer.serialized);
     const reduced = (image as any).reduceRegion({
       reducer: ee.Reducer.minMax(),
+      geometry: {
+        type: 'Polygon',
+        coordinates: [
+          [
+            [-175, -85],
+            [175, -85],
+            [175, 85],
+            [-175, 85],
+            [-175, -85],
+          ],
+        ],
+      },
+      scale: 1000,
       bestEffort: true,
       maxPixels: 1e8,
     });
     const values = await evaluate<Record<string, number>>(reduced);
     const result: Record<string, { min: number; max: number }> = {};
-    if (values) {
-      for (const [key, val] of Object.entries(values)) {
-        const m = key.match(/^(.+)_(min|max)$/);
-        if (m) {
-          if (!result[m[1]]) {
-            result[m[1]] = { min: 0, max: 0 };
-          }
-          result[m[1]][m[2] as 'min' | 'max'] = val;
+    for (const [key, val] of Object.entries(values)) {
+      const m = key.match(/^(.+)_(min|max)$/);
+      if (m) {
+        if (!result[m[1]]) {
+          result[m[1]] = { min: 0, max: 0 };
         }
+        result[m[1]][m[2] as 'min' | 'max'] = val;
       }
     }
     return result;
