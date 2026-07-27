@@ -172,6 +172,55 @@ export class MapPanel extends EditorPanel {
     }
   }
 
+  /**
+   * Hardcoded test layer — SEPAL visualization example asset.
+   * Tests the SEPAL viz preset resolution: adds the same asset four times,
+   * each with a different `default` selector to exercise every preset type
+   * (rgb, hsv, continuous, categorical) stored on the asset.
+   *
+   *   Asset: users/wiell/forum/visualization_example
+   *   Reference: https://pysepal.readthedocs.io/en/latest/tutorials/create_asset.html
+   */
+  private async testSepalViz(): Promise<void> {
+    const step = async (label: string, fn: () => Promise<unknown> | unknown) => {
+      try {
+        const result = await fn();
+        vscode.window.showInformationMessage(`[Map test] ✓ ${label}`);
+        return result;
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        vscode.window.showErrorMessage(`[Map test] ✗ ${label}: ${msg}`);
+        throw err;
+      }
+    };
+
+    await step('open()', () => this.open());
+
+    const eeAny = (await step('ensureEe()', () => ensureEe())) as any;
+
+    const assetId = 'users/wiell/forum/visualization_example';
+
+    const serialized = (await step('Serializer.toJSON()', () =>
+      eeAny.Serializer.toJSON(eeAny.Image(assetId)),
+    )) as string;
+
+    const presets: Array<{ selector: string | number; name: string }> = [
+      { selector: 'RGB', name: 'SEPAL – RGB' },
+      { selector: 'NDWI harmonics', name: 'SEPAL – NDWI harmonics (HSV)' },
+      { selector: 'NDWI', name: 'SEPAL – NDWI (continuous)' },
+      { selector: 'Classification', name: 'SEPAL – Classification (categorical)' },
+    ];
+
+    for (const { selector, name } of presets) {
+      await step(`addLayer(default: '${selector}')`, () =>
+        this.layerManager.add(
+          { serialized, visParams: { default: selector }, name, shown: true, opacity: 1.0 },
+          (m) => this.post(m),
+        ),
+      );
+    }
+  }
+
   protected override onDidDispose(): void {
     this.commandDisposable?.dispose();
     this.commandDisposable = undefined;
@@ -192,6 +241,7 @@ export class MapPanel extends EditorPanel {
       vscode.commands.registerCommand('earthengine.map.testNighttimeLights', () =>
         this.testNighttimeLights(),
       ),
+      vscode.commands.registerCommand('earthengine.map.testSepalViz', () => this.testSepalViz()),
       this,
     );
   }

@@ -82,11 +82,12 @@ export function renderOverlayLayer(index) {
   controls.appendChild(slider);
   controls.appendChild(visBtn);
 
+  const scaleBtn = document.createElement('button');
+  scaleBtn.className = 'map-btn layer-vis-btn scale-active-btn';
+  scaleBtn.title = 'Toggle scale';
+  scaleBtn.innerHTML = '<i class="fa-solid fa-ruler-horizontal"></i>';
+
   if (entry.visParams && (entry.visParams.palette || entry.visParams.bands)) {
-    const scaleBtn = document.createElement('button');
-    scaleBtn.className = 'map-btn layer-vis-btn scale-active-btn';
-    scaleBtn.title = 'Toggle scale';
-    scaleBtn.innerHTML = '<i class="fa-solid fa-ruler-horizontal"></i>';
     scaleBtn.addEventListener('click', () => {
       if (activeScaleIndex === index) {
         hideScale();
@@ -100,9 +101,13 @@ export function renderOverlayLayer(index) {
         }
       });
     });
-    controls.appendChild(scaleBtn);
+  } else {
+    // No scale data — hide the button but keep it in the layout so all rows
+    // have identical controls width and the eye button stays aligned.
+    scaleBtn.style.visibility = 'hidden';
   }
 
+  controls.appendChild(scaleBtn);
   row.appendChild(nameEl);
   row.appendChild(controls);
   layersList.appendChild(row);
