@@ -31,15 +31,18 @@ Every editor panel is a `.ts` module plus three sibling files, all bundled as pl
 - `{name}Panel.css` — styles.
 - `{name}Panel.webview.js` — browser-side script.
 
-The `.ts` imports the three files and injects them:
+The `.ts` imports Handlebars and the three sibling files, compiles the template once at module level, and renders it per-call:
 
 ```ts
-import { renderTemplate } from '../../shared/index.js';
+import Handlebars from 'handlebars';
 import template from './{name}Panel.hbs';
 import style from './{name}Panel.css';
 import script from './{name}Panel.webview.js';
 
-panel.webview.html = renderTemplate(template, { style, script /*, ...values */ });
+const render = Handlebars.compile(template);
+
+// inside the panel function:
+panel.webview.html = render({ style, script /*, ...values */ });
 ```
 
 The rules each sibling follows (theme variables, escaping, the `init-data` bridge, etc.) are in the `hbs`, `css`, and `javascript` instruction files.
