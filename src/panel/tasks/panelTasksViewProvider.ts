@@ -77,6 +77,9 @@ export class PanelTasksViewProvider implements vscode.WebviewViewProvider {
     // Reload on profile change
     const authListener = this.authService.onDidChangeAuth((profile) => {
       if (!profile) {
+        this.resolvedProject = undefined;
+        this.allOps = [];
+        this.view?.webview.postMessage({ type: 'unauthenticated' });
         return;
       }
       this.resolvedProject = profile.project;
