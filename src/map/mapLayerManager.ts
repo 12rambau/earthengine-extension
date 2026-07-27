@@ -58,6 +58,7 @@ export class MapLayerManager {
         shown: payload.shown,
         opacity: payload.opacity,
         layerIndex,
+        visParams: payload.visParams,
       },
     });
   }
