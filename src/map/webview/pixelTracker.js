@@ -6,7 +6,14 @@
 
 import { map } from './mapInstance.js';
 import { overlays } from './overlays.js';
-import { scaleBarEl, activeScaleIndex, setPointer, resetScaleLabels } from './scaleBar.js';
+import {
+  scaleBarEl,
+  activeScaleIndex,
+  setPointer,
+  resetScaleLabels,
+  highlightCategory,
+  clearCategoryHighlight,
+} from './scaleBar.js';
 
 // ==================================================================
 // PIXEL → SCALE TRACKING
@@ -83,6 +90,7 @@ export function updateScaleFromMap(latlng) {
       }
       resetScaleLabels(row, i);
     });
+    clearCategoryHighlight();
     return;
   }
   const entry = overlays[activeScaleIndex];
@@ -94,6 +102,27 @@ export function updateScaleFromMap(latlng) {
   const palette = vp.palette || null;
   const minArr = Array.isArray(vp.min) ? vp.min : [vp.min != null ? vp.min : 0];
   const maxArr = Array.isArray(vp.max) ? vp.max : [vp.max != null ? vp.max : 1];
+
+  // Categorical: find the nearest palette entry and highlight the matching swatch.
+  const isCategorical = Array.isArray(vp.values) && vp.values.length > 0;
+  if (isCategorical && palette) {
+    let bestIdx = 0;
+    let bestDist = Infinity;
+    for (let pi = 0; pi < palette.length; pi++) {
+      const hex = palette[pi].startsWith('#') ? palette[pi].slice(1) : palette[pi];
+      const len = hex.length === 3 ? 1 : 2;
+      const pr = parseInt(hex.slice(0, len).padStart(2, hex[0]), 16);
+      const pg = parseInt(hex.slice(len, len * 2).padStart(2, hex[len]), 16);
+      const pb = parseInt(hex.slice(len * 2, len * 3).padStart(2, hex[len * 2]), 16);
+      const dist = (rgba[0] - pr) ** 2 + (rgba[1] - pg) ** 2 + (rgba[2] - pb) ** 2;
+      if (dist < bestDist) {
+        bestDist = dist;
+        bestIdx = pi;
+      }
+    }
+    highlightCategory(bestIdx);
+    return;
+  }
 
   if (palette && bands.length <= 1 && rows[0]) {
     // Find the palette entry whose RGB is closest to the sampled pixel and use

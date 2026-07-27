@@ -308,6 +308,11 @@
         "icon": "$(beaker)"
       },
       {
+        "command": "earthengine.map.testSepalViz",
+        "title": "Earth Engine: Test – SEPAL Visualization Presets",
+        "icon": "$(beaker)"
+      },
+      {
         "command": "earthengine.openExportTasksPanel",
         "title": "Earth Engine: Open Export Tasks",
         "icon": "$(open-preview)"

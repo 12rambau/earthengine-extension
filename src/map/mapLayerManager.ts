@@ -6,8 +6,9 @@
  * for downstream use (pixel inspection), and notifies the WebView.
  */
 
-import { ensureEe, getMapIdUrl } from '../shared/eeSession.js';
+import { ensureEe, getMapIdUrl, computeValue } from '../shared/eeSession.js';
 import { EeLayer } from './eeLayer.js';
+import { parseSepalVisualizations, resolveSepalViz, selectSepalViz } from '../shared/sepalViz.js';
 
 /** Shape of an `addLayer` command payload received from the bridge server. */
 export interface AddLayerPayload {
@@ -48,7 +49,58 @@ export class MapLayerManager {
 
     const ee = await ensureEe();
     const image = ee.Deserializer.fromJSON(payload.serialized);
-    const url = await getMapIdUrl(image, payload.visParams ?? {});
+
+    const rawVisParams = payload.visParams ?? {};
+    const hasDefault = 'default' in rawVisParams;
+    // If explicit vis-params (min/max/bands/etc.) are present, skip SEPAL lookup.
+    const hasExplicitViz = !hasDefault && Object.keys(rawVisParams).length > 0;
+
+    let resolvedImage: unknown = image;
+    // Strip the non-EE `default` key so it is never forwarded to visualize().
+    let resolvedVisParams: Record<string, unknown> = hasDefault ? {} : rawVisParams;
+    let displayVisParams: Record<string, unknown> | undefined;
+
+    if (!hasExplicitViz) {
+      // Either {default: <selector>} or {} — try to resolve a SEPAL viz preset
+      // from the image's stored properties.
+      try {
+        const props = await computeValue<Record<string, unknown>>((image as any).toDictionary());
+        const vizs = parseSepalVisualizations(props ?? {});
+        if (vizs.length > 0) {
+          const selector = hasDefault ? (rawVisParams['default'] as string | number) : 0;
+          const viz = selectSepalViz(vizs, selector);
+          if (viz) {
+            const resolved = resolveSepalViz(viz, image, ee);
+            resolvedImage = resolved.image;
+            resolvedVisParams = resolved.visParams;
+            displayVisParams = resolved.displayVisParams;
+          } else if (hasDefault) {
+            throw new Error(
+              `SEPAL visualization preset '${rawVisParams['default']}' not found. ` +
+                `Available: ${vizs.map((v) => v.name).join(', ')}`,
+            );
+          }
+        } else if (hasDefault) {
+          throw new Error(
+            `No SEPAL visualization presets found on this image ` +
+              `(requested default: '${rawVisParams['default']}').`,
+          );
+        }
+      } catch (err) {
+        if (hasDefault) {
+          // An explicit default was requested — propagate the error so the
+          // caller's existing error-reporting path can surface it to the user.
+          throw err;
+        }
+        // No explicit default — silently fall through to EE's default rendering.
+        console.log(
+          '[MapLayerManager] SEPAL viz resolution failed (non-fatal):',
+          err instanceof Error ? err.message : String(err),
+        );
+      }
+    }
+
+    const url = await getMapIdUrl(resolvedImage, resolvedVisParams);
 
     postMessage({
       type: 'addTileLayer',
@@ -58,7 +110,10 @@ export class MapLayerManager {
         shown: payload.shown,
         opacity: payload.opacity,
         layerIndex,
-        visParams: payload.visParams,
+        // Use displayVisParams when present (e.g. HSV — the rendered image is
+        // already RGB but we still want to show the original band ranges in the
+        // scale bar).
+        visParams: displayVisParams ?? resolvedVisParams,
       },
     });
   }

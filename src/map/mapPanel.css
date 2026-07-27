@@ -98,6 +98,34 @@ body {
   box-shadow: 0 1px 3px var(--vscode-widget-shadow);
   font-variant-numeric: tabular-nums;
 }
+.scale-category-row {
+  display: none;
+}
+.scale-cat-wrap {
+  display: flex;
+  overflow: visible;
+  gap: 0;
+  cursor: pointer;
+}
+.scale-cat-segment {
+  height: 100%;
+  position: relative;
+  transition: opacity 0.1s;
+}
+.scale-cat-segment:first-child {
+  border-radius: 2px 0 0 2px;
+}
+.scale-cat-segment:last-child {
+  border-radius: 0 2px 2px 0;
+}
+.scale-cat-active {
+  z-index: 1;
+}
+.scale-cat-pointer {
+  left: 50%;
+  transform: translateX(-50%);
+  transition: left 0.1s ease-out;
+}
 
 /* ==================================================================
    MAP CONTROLS

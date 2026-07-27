@@ -48,6 +48,127 @@ function paletteGradient(palette) {
 }
 
 // ------------------------------------------------------------------
+// Categorical legend
+// ------------------------------------------------------------------
+
+/**
+ * Builds a horizontal segmented colour bar for categorical data.
+ * Each category gets an equal-width segment; hovering shows a tooltip
+ * with the label and value.
+ *
+ * @param {string[]} palette
+ * @param {string[]} labels
+ * @param {number[]} values
+ */
+function buildCategoricalLegend(palette, labels, values) {
+  const row = document.createElement('div');
+  row.className = 'scale-row';
+
+  const lbl = document.createElement('span');
+  lbl.className = 'scale-label';
+  lbl.textContent = '';
+  row.appendChild(lbl);
+
+  const wrap = document.createElement('div');
+  wrap.className = 'scale-gradient-wrap scale-cat-wrap';
+
+  // Store labels for tooltip lookup
+  const catLabels = [];
+  for (let i = 0; i < palette.length; i++) {
+    const seg = document.createElement('div');
+    seg.className = 'scale-cat-segment';
+    seg.style.background = palette[i].startsWith('#') ? palette[i] : '#' + palette[i];
+    seg.style.width = 100 / palette.length + '%';
+    seg.dataset.index = String(i);
+
+    const name = (labels && labels[i]) || 'Class ' + i;
+    const val = values && values[i] != null ? ' (' + values[i] + ')' : '';
+    catLabels.push(name + val);
+    seg.dataset.catLabel = name + val;
+
+    seg.addEventListener('mouseenter', () => {
+      // Position the shared pointer at the centre of this segment
+      const pct = ((i + 0.5) / palette.length) * 100;
+      pointer.style.left = pct + '%';
+      pointer.style.display = 'block';
+      tooltip.style.display = 'block';
+      tooltip.textContent = catLabels[i];
+      maxEl.textContent = catLabels[i];
+    });
+    seg.addEventListener('mouseleave', () => {
+      pointer.style.display = 'none';
+      tooltip.style.display = 'none';
+      maxEl.textContent = palette.length + ' classes';
+    });
+
+    wrap.appendChild(seg);
+  }
+
+  // Single pointer bar + tooltip on the wrapper — moves between segments
+  const pointer = document.createElement('div');
+  pointer.className = 'scale-pointer scale-cat-pointer';
+  const tooltip = document.createElement('div');
+  tooltip.className = 'scale-tooltip';
+  pointer.appendChild(tooltip);
+  wrap.appendChild(pointer);
+
+  row.appendChild(wrap);
+
+  const maxEl = document.createElement('span');
+  maxEl.className = 'scale-max';
+  maxEl.textContent = palette.length + ' classes';
+  row.appendChild(maxEl);
+
+  scaleBarEl.appendChild(row);
+}
+
+/**
+ * Highlights the category segment at `index` and shows its tooltip.
+ *
+ * @param {number} index
+ */
+export function highlightCategory(index) {
+  const segments = scaleBarEl.querySelectorAll('.scale-cat-segment');
+  const pointer = scaleBarEl.querySelector('.scale-cat-pointer');
+  const tooltip = pointer ? pointer.querySelector('.scale-tooltip') : null;
+  const maxEl = scaleBarEl.querySelector('.scale-max');
+  const n = segments.length;
+  if (!pointer || !tooltip || n === 0) {
+    return;
+  }
+  const pct = ((index + 0.5) / n) * 100;
+  pointer.style.left = pct + '%';
+  pointer.style.display = 'block';
+  tooltip.style.display = 'block';
+  // Read the label from the segment's stored text
+  const seg = segments[index];
+  if (seg) {
+    const label = seg.dataset.catLabel || 'Class ' + index;
+    tooltip.textContent = label;
+    if (maxEl) {
+      maxEl.textContent = label;
+    }
+  }
+}
+
+/** Removes the hover highlight from all category segments. */
+export function clearCategoryHighlight() {
+  const pointer = scaleBarEl.querySelector('.scale-cat-pointer');
+  if (pointer) {
+    pointer.style.display = 'none';
+    const tooltip = pointer.querySelector('.scale-tooltip');
+    if (tooltip) {
+      tooltip.style.display = 'none';
+    }
+  }
+  const maxEl = scaleBarEl.querySelector('.scale-max');
+  const count = scaleBarEl.querySelectorAll('.scale-cat-segment').length;
+  if (maxEl && count > 0) {
+    maxEl.textContent = count + ' classes';
+  }
+}
+
+// ------------------------------------------------------------------
 // Public API
 // ------------------------------------------------------------------
 
@@ -63,10 +184,13 @@ export function showScale(index) {
   const palette = vp.palette || null;
   const minArr = Array.isArray(vp.min) ? vp.min : [vp.min != null ? vp.min : 0];
   const maxArr = Array.isArray(vp.max) ? vp.max : [vp.max != null ? vp.max : 1];
+  const isCategorical = Array.isArray(vp.values) && vp.values.length > 0;
 
   scaleBarEl.innerHTML = '';
 
-  if (palette && bands.length <= 1) {
+  if (isCategorical) {
+    buildCategoricalLegend(palette || [], vp.labels || [], vp.values);
+  } else if (palette && bands.length <= 1) {
     scaleBarEl.appendChild(
       buildScaleRow(bands[0] || 'b0', minArr[0], maxArr[0], paletteGradient(palette)),
     );

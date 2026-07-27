@@ -105,6 +105,19 @@ export class MapPanel extends EditorPanel {
     this.panel?.webview.postMessage(msg);
   }
 
+  /** Runs `fn`, shows a success/error notification, and re-throws on failure. */
+  private async step<T>(label: string, fn: () => Promise<T> | T): Promise<T> {
+    try {
+      const result = await fn();
+      vscode.window.showInformationMessage(`[Map test] \u2713 ${label}`);
+      return result;
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      vscode.window.showErrorMessage(`[Map test] \u2717 ${label}: ${msg}`);
+      throw err;
+    }
+  }
+
   /**
    * Hardcoded test layer — NOAA DMSP-OLS nighttime lights linear fit.
    * Classic front-page Earth Engine example (stable since ~2010).
@@ -114,23 +127,11 @@ export class MapPanel extends EditorPanel {
    *   Viz:        scale→red/blue  offset→green
    */
   private async testNighttimeLights(): Promise<void> {
-    const step = async (label: string, fn: () => Promise<unknown> | unknown) => {
-      try {
-        const result = await fn();
-        vscode.window.showInformationMessage(`[Map test] ✓ ${label}`);
-        return result;
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : String(err);
-        vscode.window.showErrorMessage(`[Map test] ✗ ${label}: ${msg}`);
-        throw err;
-      }
-    };
+    await this.step('open()', () => this.open());
 
-    await step('open()', () => this.open());
+    const eeAny = (await this.step('ensureEe()', () => ensureEe())) as any;
 
-    const eeAny = (await step('ensureEe()', () => ensureEe())) as any;
-
-    const image = await step('build expression', () => {
+    const image = await this.step('build expression', () => {
       const createTimeBand = (img: any) => {
         const year = eeAny.Date(img.get('system:time_start')).get('year').subtract(1991);
         return eeAny.Image(year).byte().addBands(img);
@@ -146,11 +147,11 @@ export class MapPanel extends EditorPanel {
         .clip(france);
     });
 
-    const serialized = (await step('Serializer.toJSON()', () =>
+    const serialized = (await this.step('Serializer.toJSON()', () =>
       eeAny.Serializer.toJSON(image),
     )) as string;
 
-    await step('handleAddLayer()', () =>
+    await this.step('handleAddLayer()', () =>
       this.layerManager.add(
         {
           serialized,
@@ -169,6 +170,43 @@ export class MapPanel extends EditorPanel {
         type: 'setCenter',
         data: { lat: 46.5, lon: 2.5, zoom: 5 },
       });
+    }
+  }
+
+  /**
+   * Hardcoded test layer — SEPAL visualization example asset.
+   * Tests the SEPAL viz preset resolution: adds the same asset four times,
+   * each with a different `default` selector to exercise every preset type
+   * (rgb, hsv, continuous, categorical) stored on the asset.
+   *
+   *   Asset: users/wiell/forum/visualization_example
+   *   Reference: https://pysepal.readthedocs.io/en/latest/tutorials/create_asset.html
+   */
+  private async testSepalViz(): Promise<void> {
+    await this.step('open()', () => this.open());
+
+    const eeAny = (await this.step('ensureEe()', () => ensureEe())) as any;
+
+    const assetId = 'users/wiell/forum/visualization_example';
+
+    const serialized = (await this.step('Serializer.toJSON()', () =>
+      eeAny.Serializer.toJSON(eeAny.Image(assetId)),
+    )) as string;
+
+    const presets: Array<{ selector: string | number; name: string }> = [
+      { selector: 'RGB', name: 'SEPAL \u2013 RGB' },
+      { selector: 'NDWI harmonics', name: 'SEPAL \u2013 NDWI harmonics (HSV)' },
+      { selector: 'NDWI', name: 'SEPAL \u2013 NDWI (continuous)' },
+      { selector: 'Classification', name: 'SEPAL \u2013 Classification (categorical)' },
+    ];
+
+    for (const { selector, name } of presets) {
+      await this.step(`addLayer(default: '${selector}')`, () =>
+        this.layerManager.add(
+          { serialized, visParams: { default: selector }, name, shown: true, opacity: 1.0 },
+          (m) => this.post(m),
+        ),
+      );
     }
   }
 
@@ -192,6 +230,7 @@ export class MapPanel extends EditorPanel {
       vscode.commands.registerCommand('earthengine.map.testNighttimeLights', () =>
         this.testNighttimeLights(),
       ),
+      vscode.commands.registerCommand('earthengine.map.testSepalViz', () => this.testSepalViz()),
       this,
     );
   }
