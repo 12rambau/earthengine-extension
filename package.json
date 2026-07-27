@@ -390,6 +390,11 @@
           "group": "navigation"
         },
         {
+          "command": "earthengine.signOut",
+          "when": "view == earthengine.profiles",
+          "group": "navigation"
+        },
+        {
           "command": "earthengine.openMap",
           "when": "view == earthengine.profiles",
           "group": "navigation"
