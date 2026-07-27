@@ -6,12 +6,8 @@
 
 import * as vscode from 'vscode';
 import { EEAsset, getAsset } from '../../sidebar/assets/eeApiClient.js';
-import {
-  formatBytes,
-  formatDate,
-  renderPropertiesTable,
-  webviewBaseStyle,
-} from '../../shared/index.js';
+import { formatBytes, renderPropertiesTable, webviewBaseStyle } from '../../shared/index.js';
+import dayjs from 'dayjs';
 import { openImagePreview } from '../imagePreview/index.js';
 import { openImageCollectionPreview } from '../imageCollectionPreview/index.js';
 import { openFeatureCollectionPreview } from '../featureCollectionPreview/index.js';
@@ -96,7 +92,9 @@ function openGenericPreview(asset: EEAsset): void {
     baseStyle: webviewBaseStyle(),
     title: asset.id || asset.name,
     assetType: asset.type,
-    updated: formatDate(asset.updateTime),
+    updated: asset.updateTime
+      ? dayjs.utc(asset.updateTime).format('YYYY-MM-DD HH:mm:ss [UTC]')
+      : 'N/A',
     size: formatBytes(asset.sizeBytes),
     propertiesTable: renderPropertiesTable(asset.properties),
   });

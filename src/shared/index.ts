@@ -11,7 +11,6 @@ export { getRequest, httpRequest, postForm, postJson, fetchJson, fetchHtml } fro
 export {
   escapeHtml,
   formatBytes,
-  formatDate,
   renderPropertiesTable,
   webviewBaseStyle,
 } from './webviewUtils.js';
