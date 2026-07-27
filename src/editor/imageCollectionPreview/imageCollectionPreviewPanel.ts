@@ -14,12 +14,18 @@
 import * as vscode from 'vscode';
 import { marked } from 'marked';
 import { EEAsset, EEBand, listAssets, getAsset } from '../../sidebar/assets/eeApiClient.js';
-import { escapeHtml, formatBytes, formatDate } from '../../shared/webviewUtils.js';
-import { renderTemplate } from '../../shared/index.js';
+import { escapeHtml } from '../../shared/index.js';
+import { filesize } from 'filesize';
+import dayjs from 'dayjs';
 import { ensureEe, getThumbUrl } from '../../shared/eeSession.js';
+import Handlebars from 'handlebars';
 import template from './imageCollectionPreviewPanel.hbs';
 import imagesTableTemplate from './imagesTable.hbs';
 import bandsTableTemplate from './bandsTable.hbs';
+
+const render = Handlebars.compile(template);
+const renderImagesTable = Handlebars.compile(imagesTableTemplate);
+const renderBandsTable = Handlebars.compile(bandsTableTemplate);
 import style from './imageCollectionPreviewPanel.css';
 import script from './imageCollectionPreviewPanel.webview.js';
 
@@ -144,10 +150,16 @@ function buildHtml(asset: EEAsset, childImages: EEAsset[], bands: EEBand[]): str
   const nonce = getNonce();
   const title = asset.id || asset.name.split('/').pop() || 'ImageCollection';
   const assetId = asset.name;
-  const startDate = formatDate(asset.startTime);
-  const endDate = formatDate(asset.endTime);
-  const fileSize = formatBytes(asset.sizeBytes);
-  const lastModified = formatDate(asset.updateTime);
+  const startDate = asset.startTime
+    ? dayjs.utc(asset.startTime).format('YYYY-MM-DD HH:mm:ss [UTC]')
+    : 'N/A';
+  const endDate = asset.endTime
+    ? dayjs.utc(asset.endTime).format('YYYY-MM-DD HH:mm:ss [UTC]')
+    : 'N/A';
+  const fileSize = asset.sizeBytes ? filesize(asset.sizeBytes) : 'N/A';
+  const lastModified = asset.updateTime
+    ? dayjs.utc(asset.updateTime).format('YYYY-MM-DD HH:mm:ss [UTC]')
+    : 'N/A';
   const imageCount = childImages.length;
 
   const description = asset.properties?.['description']
@@ -158,7 +170,7 @@ function buildHtml(asset: EEAsset, childImages: EEAsset[], bands: EEBand[]): str
   const bandsTableHtml = buildBandsTable(bands);
   const propsHtml = buildPropertiesRows(asset.properties);
 
-  return renderTemplate(template, {
+  return render({
     nonce,
     style,
     script,
@@ -195,10 +207,14 @@ function buildImagesTable(images: EEAsset[]): string {
   const rows = images
     .map((img) => {
       const shortId = (img.id || img.name).split('/').pop() || '';
-      const lastMod = formatDate(img.updateTime);
-      const size = formatBytes(img.sizeBytes);
-      const start = formatDate(img.startTime);
-      const end = formatDate(img.endTime);
+      const lastMod = img.updateTime
+        ? dayjs.utc(img.updateTime).format('YYYY-MM-DD HH:mm:ss [UTC]')
+        : 'N/A';
+      const size = img.sizeBytes ? filesize(img.sizeBytes) : 'N/A';
+      const start = img.startTime
+        ? dayjs.utc(img.startTime).format('YYYY-MM-DD HH:mm:ss [UTC]')
+        : 'N/A';
+      const end = img.endTime ? dayjs.utc(img.endTime).format('YYYY-MM-DD HH:mm:ss [UTC]') : 'N/A';
       const bandCount = img.bands?.length ?? '\u2014';
       const fullName = escapeHtml(img.name);
       const dots = `<span class="action-dots">${ACTION_DOT}${ACTION_DOT}</span>`;
@@ -219,7 +235,7 @@ function buildImagesTable(images: EEAsset[]): string {
     })
     .join('');
 
-  return renderTemplate(imagesTableTemplate, { rows });
+  return renderImagesTable({ rows });
 }
 
 // ==================================================================
@@ -251,7 +267,7 @@ function buildBandsTable(bands: EEBand[]): string {
     })
     .join('');
 
-  return renderTemplate(bandsTableTemplate, { rows });
+  return renderBandsTable({ rows });
 }
 
 // ==================================================================

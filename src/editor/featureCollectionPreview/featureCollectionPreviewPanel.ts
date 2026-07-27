@@ -14,10 +14,14 @@
 import * as vscode from 'vscode';
 import { marked } from 'marked';
 import { EEAsset, listFeatures } from '../../sidebar/assets/eeApiClient.js';
-import { escapeHtml, formatBytes, formatDate } from '../../shared/webviewUtils.js';
-import { renderTemplate } from '../../shared/index.js';
+import { escapeHtml } from '../../shared/index.js';
+import { filesize } from 'filesize';
+import dayjs from 'dayjs';
 import { ensureEe, getThumbUrl } from '../../shared/eeSession.js';
+import Handlebars from 'handlebars';
 import template from './featureCollectionPreviewPanel.hbs';
+
+const render = Handlebars.compile(template);
 import style from './featureCollectionPreviewPanel.css';
 import script from './featureCollectionPreviewPanel.webview.js';
 
@@ -135,10 +139,16 @@ function buildHtml(
   const nonce = getNonce();
   const title = asset.id || asset.name.split('/').pop() || 'Table';
   const assetId = asset.name;
-  const startDate = formatDate(asset.startTime);
-  const endDate = formatDate(asset.endTime);
-  const fileSize = formatBytes(asset.sizeBytes);
-  const lastModified = formatDate(asset.updateTime);
+  const startDate = asset.startTime
+    ? dayjs.utc(asset.startTime).format('YYYY-MM-DD HH:mm:ss [UTC]')
+    : 'N/A';
+  const endDate = asset.endTime
+    ? dayjs.utc(asset.endTime).format('YYYY-MM-DD HH:mm:ss [UTC]')
+    : 'N/A';
+  const fileSize = asset.sizeBytes ? filesize(asset.sizeBytes) : 'N/A';
+  const lastModified = asset.updateTime
+    ? dayjs.utc(asset.updateTime).format('YYYY-MM-DD HH:mm:ss [UTC]')
+    : 'N/A';
   const featureCount = asset.featureCount
     ? parseInt(asset.featureCount, 10).toLocaleString()
     : 'N/A';
@@ -160,7 +170,7 @@ function buildHtml(
   // Properties (non-system)
   const propsHtml = buildPropertiesRows(asset.properties);
 
-  return renderTemplate(template, {
+  return render({
     nonce,
     style,
     script,

@@ -17,8 +17,10 @@ import {
 } from '../../sidebar/tasks/tasksApiClient.js';
 import { AuthService } from '../../auth/index.js';
 import { openAssetPreview } from '../assets/assetPreviewPanel.js';
-import { renderTemplate } from '../../shared/index.js';
+import Handlebars from 'handlebars';
 import template from './tasksPanel.hbs';
+
+const render = Handlebars.compile(template);
 import style from './tasksPanel.css';
 import script from './tasksPanel.webview.js';
 
@@ -240,5 +242,5 @@ export async function openTasksPanel(
 
 function getHtml(filter: TaskFilter, savedPrefs: TaskPrefs): string {
   const initJson = JSON.stringify({ ...savedPrefs, filter }).replace(/</g, '\\u003c');
-  return renderTemplate(template, { initJson, style, script });
+  return render({ initJson, style, script });
 }

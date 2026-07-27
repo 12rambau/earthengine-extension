@@ -10,9 +10,12 @@
 import * as vscode from 'vscode';
 import { marked } from 'marked';
 import { StacCollection } from '../../sidebar/dataset/stacClient.js';
-import { renderTemplate } from '../../shared/index.js';
+import Handlebars from 'handlebars';
 import template from './datasetPanel.hbs';
 import bandsTableTemplate from './datasetPanelBandsTable.hbs';
+
+const render = Handlebars.compile(template);
+const renderBandsTable = Handlebars.compile(bandsTableTemplate);
 import style from './datasetPanel.css';
 import script from './datasetPanel.webview.js';
 
@@ -74,7 +77,7 @@ function buildHtml(c: StacCollection, webview: vscode.Webview): string {
 
   const bandsTable =
     bands.length > 0
-      ? renderTemplate(bandsTableTemplate, {
+      ? renderBandsTable({
           rows: bands
             .map(
               (b) => `
@@ -142,7 +145,7 @@ function buildHtml(c: StacCollection, webview: vscode.Webview): string {
     `script-src 'nonce-${nonce}'`,
   ].join('; ');
 
-  return renderTemplate(template, {
+  return render({
     csp,
     style,
     script,

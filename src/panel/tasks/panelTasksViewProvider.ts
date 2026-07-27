@@ -7,6 +7,7 @@
  */
 
 import * as vscode from 'vscode';
+import Handlebars from 'handlebars';
 import {
   listOperationsPage,
   Operation,
@@ -19,7 +20,6 @@ import {
 } from '../../sidebar/tasks/tasksApiClient.js';
 import { AuthService } from '../../auth/index.js';
 import { openAssetPreview } from '../../editor/assets/assetPreviewPanel.js';
-import { renderTemplate } from '../../shared/index.js';
 import template from './panelTasksView.hbs';
 import style from './panelTasksView.css';
 import script from './panelTasksView.webview.js';
@@ -27,6 +27,7 @@ import script from './panelTasksView.webview.js';
 type TaskFilter = 'export' | 'import';
 
 const TERMINAL_STATES = new Set(['SUCCEEDED', 'FAILED', 'CANCELLED']);
+const render = Handlebars.compile(template);
 
 /** Reads the configured max items from the extension settings. */
 function getMaxTasks(): number {
@@ -264,8 +265,8 @@ export class PanelTasksViewProvider implements vscode.WebviewViewProvider {
       `style-src 'unsafe-inline'`,
       `script-src 'nonce-${nonce}'`,
     ].join('; ');
-    const initJson = JSON.stringify({ filter: this.filter }).replace(/</g, '\u003c');
-    return renderTemplate(template, { csp, nonce, initJson, style, script });
+    const initJson = JSON.stringify({ filter: this.filter }).replace(/</g, '\\u003c');
+    return render({ csp, nonce, initJson, style, script });
   }
 
   dispose(): void {
