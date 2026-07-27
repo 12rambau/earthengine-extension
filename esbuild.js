@@ -12,10 +12,12 @@ const production = process.argv.includes('--production');
 const watch = process.argv.includes('--watch');
 
 /**
- * WebView client scripts (`*.webview.js`) are inlined into panel HTML, so
- * they are bundled as plain text instead of being parsed as modules.
- * The `.js` loader cannot be overridden globally without breaking normal
- * module resolution, hence this targeted plugin.
+ * WebView client scripts (`*.webview.js`) are inlined into panel HTML as text.
+ * Each entry point may import component modules from a sibling `webview/`
+ * folder, so we run a nested esbuild bundle (IIFE, browser platform) before
+ * returning the result as text.  The `metafile` is used to tell the outer
+ * watcher about every input file so that changes to component modules also
+ * trigger a rebuild.
  *
  * @type {import('esbuild').Plugin}
  */
@@ -23,10 +25,25 @@ const webviewScriptTextPlugin = {
   name: 'webview-script-text',
 
   setup(build) {
-    build.onLoad({ filter: /\.webview\.js$/ }, async (args) => ({
-      contents: await fs.promises.readFile(args.path, 'utf8'),
-      loader: 'text',
-    }));
+    build.onLoad({ filter: /\.webview\.js$/ }, async (args) => {
+      const result = await esbuild.build({
+        entryPoints: [args.path],
+        bundle: true,
+        format: 'iife',
+        platform: 'browser',
+        write: false,
+        minify: production,
+        sourcemap: false,
+        metafile: true,
+      });
+      return {
+        contents: result.outputFiles[0].text,
+        loader: 'text',
+        // Propagate all bundled inputs so the outer watcher re-runs when any
+        // component file changes.
+        watchFiles: Object.keys(result.metafile.inputs),
+      };
+    });
   },
 };
 

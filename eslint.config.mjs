@@ -30,17 +30,35 @@ export default [
     },
   },
   {
-    // WebView client scripts: classic browser scripts inlined into panel HTML
+    // WebView entry points: classic-looking scripts that are now ES module entry
+    // points bundled to IIFE by the webview-script-text esbuild plugin.
     files: ['src/**/*.webview.js'],
 
     languageOptions: {
       ecmaVersion: 2022,
-      sourceType: 'script',
+      sourceType: 'module',
     },
 
     rules: {
       curly: 'warn',
       // `== null` / `!= null` intentionally cover both null and undefined
+      eqeqeq: ['warn', 'always', { null: 'ignore' }],
+      'no-throw-literal': 'warn',
+      semi: 'warn',
+    },
+  },
+  {
+    // WebView component modules: ES modules imported by *.webview.js entry points
+    // and bundled by the nested esbuild step inside webview-script-text.
+    files: ['src/**/webview/**/*.js'],
+
+    languageOptions: {
+      ecmaVersion: 2022,
+      sourceType: 'module',
+    },
+
+    rules: {
+      curly: 'warn',
       eqeqeq: ['warn', 'always', { null: 'ignore' }],
       'no-throw-literal': 'warn',
       semi: 'warn',
