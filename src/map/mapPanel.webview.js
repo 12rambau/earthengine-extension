@@ -49,7 +49,6 @@ window.addEventListener('message', (e) => {
       crossOrigin: 'anonymous',
     });
     addNativeOverlay(tileLayer, d.name || 'Layer');
-    const index = overlays.length;
     overlays.push({
       tileLayer,
       name: d.name || 'Layer',
@@ -58,7 +57,7 @@ window.addEventListener('message', (e) => {
       visParams: d.visParams || null,
       layerIndex: d.layerIndex,
     });
-    renderOverlayLayer(index);
+    renderOverlayLayer(d.layerIndex);
     if (d.shown !== false) {
       tileLayer.addTo(map);
     }
