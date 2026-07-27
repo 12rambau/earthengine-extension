@@ -16,9 +16,11 @@ import * as vscode from 'vscode';
 import { marked } from 'marked';
 import { EEAsset, EEBand } from '../../sidebar/assets/eeApiClient.js';
 import { escapeHtml, formatBytes, formatDate } from '../../shared/webviewUtils.js';
-import { renderTemplate } from '../../shared/index.js';
 import { ensureEe, evaluate, getThumbUrl } from '../../shared/eeSession.js';
+import Handlebars from 'handlebars';
 import template from './imagePreviewPanel.hbs';
+
+const render = Handlebars.compile(template);
 import style from './imagePreviewPanel.css';
 import script from './imagePreviewPanel.webview.js';
 
@@ -185,7 +187,7 @@ function buildImageHtml(asset: EEAsset, webview: vscode.Webview): string {
 
   const propsHtml = buildPropertiesRows(asset.properties);
 
-  return renderTemplate(template, {
+  return render({
     nonce,
     style,
     script,

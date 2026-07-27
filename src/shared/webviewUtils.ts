@@ -1,29 +1,10 @@
 /**
  * @module webviewUtils
- * HTML/WebView helpers shared across editor panels: Handlebars template
- * rendering, HTML escaping, value formatting (bytes, dates, asset types), a
- * properties-table renderer, the base stylesheet, and inline SVG icons.
+ * HTML/WebView helpers shared across editor panels: HTML escaping, value
+ * formatting (bytes, dates), a properties-table renderer, and the base stylesheet.
  */
 
-import Handlebars from 'handlebars';
 import baseStyle from './webviewBase.css';
-
-/** Compiled-template cache — templates are module-level string constants. */
-const compiledTemplates = new Map<string, Handlebars.TemplateDelegate>();
-
-/**
- * Render a WebView Handlebars template. `{{key}}` values are
- * HTML-escaped by Handlebars; trusted HTML/CSS/JSON fragments must use
- * `{{{key}}}` (triple-stash) in the template.
- */
-export function renderTemplate(template: string, values: Record<string, unknown>): string {
-  let render = compiledTemplates.get(template);
-  if (!render) {
-    render = Handlebars.compile(template);
-    compiledTemplates.set(template, render);
-  }
-  return render(values);
-}
 
 /**
  * Escape HTML special characters for safe rendering in WebViews.

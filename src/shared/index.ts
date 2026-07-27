@@ -5,7 +5,6 @@
 
 export { getRequest, httpRequest, postForm, postJson, fetchJson, fetchHtml } from './httpClient.js';
 export {
-  renderTemplate,
   escapeHtml,
   formatBytes,
   formatDate,

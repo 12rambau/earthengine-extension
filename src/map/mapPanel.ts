@@ -13,8 +13,10 @@ import { MapBridgeServer, MapCommand } from './mapBridgeServer.js';
 import { ensureEe } from '../shared/eeSession.js';
 import { MapLayerManager } from './mapLayerManager.js';
 import { MapInspector } from './mapInspector.js';
-import { renderTemplate } from '../shared/index.js';
+import Handlebars from 'handlebars';
 import template from './mapPanel.hbs';
+
+const render = Handlebars.compile(template);
 import style from './mapPanel.css';
 import script from './mapPanel.webview.js';
 
@@ -50,7 +52,7 @@ export class MapPanel extends EditorPanel {
     } // Already wired
 
     const cfg = vscode.workspace.getConfiguration('earthengine.map');
-    panel.webview.html = renderTemplate(template, {
+    panel.webview.html = render({
       style,
       script,
       initJson: JSON.stringify({

@@ -15,9 +15,11 @@ import {
 import { openImagePreview } from '../imagePreview/index.js';
 import { openImageCollectionPreview } from '../imageCollectionPreview/index.js';
 import { openFeatureCollectionPreview } from '../featureCollectionPreview/index.js';
-import { renderTemplate } from '../../shared/index.js';
 import { getAssetInfo } from '../../shared/eeSession.js';
+import Handlebars from 'handlebars';
 import template from './assetPreviewPanel.hbs';
+
+const render = Handlebars.compile(template);
 
 // ==================================================================
 // PUBLIC API
@@ -90,7 +92,7 @@ function openGenericPreview(asset: EEAsset): void {
     { enableScripts: false },
   );
 
-  panel.webview.html = renderTemplate(template, {
+  panel.webview.html = render({
     baseStyle: webviewBaseStyle(),
     title: asset.id || asset.name,
     assetType: asset.type,

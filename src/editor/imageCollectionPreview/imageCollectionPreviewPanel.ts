@@ -15,11 +15,15 @@ import * as vscode from 'vscode';
 import { marked } from 'marked';
 import { EEAsset, EEBand, listAssets, getAsset } from '../../sidebar/assets/eeApiClient.js';
 import { escapeHtml, formatBytes, formatDate } from '../../shared/webviewUtils.js';
-import { renderTemplate } from '../../shared/index.js';
 import { ensureEe, getThumbUrl } from '../../shared/eeSession.js';
+import Handlebars from 'handlebars';
 import template from './imageCollectionPreviewPanel.hbs';
 import imagesTableTemplate from './imagesTable.hbs';
 import bandsTableTemplate from './bandsTable.hbs';
+
+const render = Handlebars.compile(template);
+const renderImagesTable = Handlebars.compile(imagesTableTemplate);
+const renderBandsTable = Handlebars.compile(bandsTableTemplate);
 import style from './imageCollectionPreviewPanel.css';
 import script from './imageCollectionPreviewPanel.webview.js';
 
@@ -158,7 +162,7 @@ function buildHtml(asset: EEAsset, childImages: EEAsset[], bands: EEBand[]): str
   const bandsTableHtml = buildBandsTable(bands);
   const propsHtml = buildPropertiesRows(asset.properties);
 
-  return renderTemplate(template, {
+  return render({
     nonce,
     style,
     script,
@@ -219,7 +223,7 @@ function buildImagesTable(images: EEAsset[]): string {
     })
     .join('');
 
-  return renderTemplate(imagesTableTemplate, { rows });
+  return renderImagesTable({ rows });
 }
 
 // ==================================================================
@@ -251,7 +255,7 @@ function buildBandsTable(bands: EEBand[]): string {
     })
     .join('');
 
-  return renderTemplate(bandsTableTemplate, { rows });
+  return renderBandsTable({ rows });
 }
 
 // ==================================================================

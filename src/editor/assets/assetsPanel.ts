@@ -14,8 +14,10 @@ import * as vscode from 'vscode';
 import { listAssets, EEAsset } from '../../sidebar/assets/eeApiClient.js';
 import { AuthService } from '../../auth/index.js';
 import { openAssetPreview } from './assetPreviewPanel.js';
-import { renderTemplate } from '../../shared/index.js';
+import Handlebars from 'handlebars';
 import template from './assetsPanel.hbs';
+
+const render = Handlebars.compile(template);
 import style from './assetsPanel.css';
 import script from './assetsPanel.webview.js';
 
@@ -168,5 +170,5 @@ export async function openAssetsPanel(
 
 function getHtml(savedPrefs: AssetPrefs): string {
   const initJson = JSON.stringify(savedPrefs).replace(/</g, '\\u003c');
-  return renderTemplate(template, { initJson, style, script });
+  return render({ initJson, style, script });
 }
