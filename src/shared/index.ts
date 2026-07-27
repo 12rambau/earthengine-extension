@@ -9,9 +9,6 @@ export {
   escapeHtml,
   formatBytes,
   formatDate,
-  formatAssetType,
   renderPropertiesTable,
   webviewBaseStyle,
-  SVG_ICONS,
-  assetTypeIcon,
 } from './webviewUtils.js';
