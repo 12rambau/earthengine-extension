@@ -96,7 +96,7 @@ function openGenericPreview(asset: EEAsset): void {
     updated: asset.updateTime
       ? dayjs.utc(asset.updateTime).format('YYYY-MM-DD HH:mm:ss [UTC]')
       : 'N/A',
-    size: asset.sizeBytes ? filesize(parseInt(asset.sizeBytes, 10)) : 'N/A',
+    size: asset.sizeBytes ? filesize(asset.sizeBytes) : 'N/A',
     propertiesTable: renderPropertiesTable(asset.properties),
   });
 }
