@@ -108,6 +108,17 @@ export function renderOverlayLayer(index) {
   }
 
   controls.appendChild(scaleBtn);
+
+  // Cog button — opens the visualization editor
+  const cogBtn = document.createElement('button');
+  cogBtn.className = 'map-btn layer-vis-btn';
+  cogBtn.title = 'Edit visualization';
+  cogBtn.innerHTML = '<i class="fa-solid fa-gear"></i>';
+  cogBtn.addEventListener('click', () => {
+    document.dispatchEvent(new CustomEvent('openVizEditor', { detail: { layerIndex: index } }));
+  });
+  controls.appendChild(cogBtn);
+
   row.appendChild(nameEl);
   row.appendChild(controls);
   layersList.appendChild(row);

@@ -6,7 +6,7 @@
  * for downstream use (pixel inspection), and notifies the WebView.
  */
 
-import { ensureEe, getMapIdUrl, computeValue } from '../shared/eeSession.js';
+import { ensureEe, getMapIdUrl, computeValue, evaluate } from '../shared/eeSession.js';
 import { EeLayer } from './eeLayer.js';
 import { parseSepalVisualizations, resolveSepalViz, selectSepalViz } from '../shared/sepalViz.js';
 
@@ -45,7 +45,8 @@ export class MapLayerManager {
    */
   async add(payload: AddLayerPayload, postMessage: (msg: unknown) => void): Promise<void> {
     const layerIndex = this.layerCount++;
-    this._layers.set(layerIndex, new EeLayer(layerIndex, payload.serialized, payload.name));
+    const eeLayer = new EeLayer(layerIndex, payload.serialized, payload.name);
+    this._layers.set(layerIndex, eeLayer);
 
     const ee = await ensureEe();
     const image = ee.Deserializer.fromJSON(payload.serialized);
@@ -102,6 +103,9 @@ export class MapLayerManager {
 
     const url = await getMapIdUrl(resolvedImage, resolvedVisParams);
 
+    const finalVisParams = displayVisParams ?? resolvedVisParams;
+    eeLayer.visParams = finalVisParams;
+
     postMessage({
       type: 'addTileLayer',
       data: {
@@ -110,10 +114,7 @@ export class MapLayerManager {
         shown: payload.shown,
         opacity: payload.opacity,
         layerIndex,
-        // Use displayVisParams when present (e.g. HSV — the rendered image is
-        // already RGB but we still want to show the original band ranges in the
-        // scale bar).
-        visParams: displayVisParams ?? resolvedVisParams,
+        visParams: finalVisParams,
       },
     });
   }
@@ -122,5 +123,162 @@ export class MapLayerManager {
   clear(): void {
     this._layers.clear();
     this.layerCount = 0;
+  }
+
+  // ── Visualization editor helpers ─────────────────────────────
+
+  /** Returns band names for the image at `layerIndex`. */
+  async getBandNames(layerIndex: number): Promise<string[]> {
+    const layer = this._layers.get(layerIndex);
+    if (!layer) {
+      return [];
+    }
+    try {
+      const ee = await ensureEe();
+      const image = ee.Deserializer.fromJSON(layer.serialized);
+      return await computeValue<string[]>((image as any).bandNames());
+    } catch {
+      return [];
+    }
+  }
+
+  /** Computes min/max per band for the image at `layerIndex`. */
+  async computeMinMax(layerIndex: number): Promise<Record<string, { min: number; max: number }>> {
+    const layer = this._layers.get(layerIndex);
+    if (!layer) {
+      return {};
+    }
+    const ee = await ensureEe();
+    const image = ee.Deserializer.fromJSON(layer.serialized);
+    const reduced = (image as any).reduceRegion({
+      reducer: ee.Reducer.minMax(),
+      bestEffort: true,
+      maxPixels: 1e8,
+    });
+    const values = await evaluate<Record<string, number>>(reduced);
+    const result: Record<string, { min: number; max: number }> = {};
+    if (values) {
+      for (const [key, val] of Object.entries(values)) {
+        const m = key.match(/^(.+)_(min|max)$/);
+        if (m) {
+          if (!result[m[1]]) {
+            result[m[1]] = { min: 0, max: 0 };
+          }
+          result[m[1]][m[2] as 'min' | 'max'] = val;
+        }
+      }
+    }
+    return result;
+  }
+
+  /** Returns parsed SEPAL visualization presets for the image at `layerIndex`. */
+  async getPresets(
+    layerIndex: number,
+  ): Promise<Array<{ index: number; name: string; type: string }>> {
+    const layer = this._layers.get(layerIndex);
+    if (!layer) {
+      return [];
+    }
+    try {
+      const ee = await ensureEe();
+      const image = ee.Deserializer.fromJSON(layer.serialized);
+      const props = await computeValue<Record<string, unknown>>((image as any).toDictionary());
+      return parseSepalVisualizations(props ?? {}).map((v) => ({
+        index: v.index,
+        name: v.name,
+        type: v.type,
+      }));
+    } catch {
+      return [];
+    }
+  }
+
+  /**
+   * Re-renders the layer at `layerIndex` with new visualisation parameters.
+   * Supports both raw EE vis-params and SEPAL-preset selection.
+   */
+  async updateLayer(
+    layerIndex: number,
+    config: Record<string, unknown>,
+    postMessage: (msg: unknown) => void,
+  ): Promise<void> {
+    const layer = this._layers.get(layerIndex);
+    if (!layer) {
+      throw new Error(`Layer ${layerIndex} not found`);
+    }
+    const ee = await ensureEe();
+    const image = ee.Deserializer.fromJSON(layer.serialized);
+
+    let resolvedImage: unknown = image;
+    let resolvedVisParams: Record<string, unknown> = {};
+    let displayVisParams: Record<string, unknown> | undefined;
+
+    // Preset selection
+    if (config.preset) {
+      const preset = config.preset as { index: number; name: string; type: string };
+      const props = await computeValue<Record<string, unknown>>((image as any).toDictionary());
+      const vizs = parseSepalVisualizations(props ?? {});
+      const viz = selectSepalViz(vizs, preset.name);
+      if (viz) {
+        const resolved = resolveSepalViz(viz, image, ee);
+        resolvedImage = resolved.image;
+        resolvedVisParams = resolved.visParams;
+        displayVisParams = resolved.displayVisParams;
+      }
+    } else {
+      // Custom viz config
+      const vizType = config.vizType as string;
+      const bands = (config.bands as string[]) || [];
+      const min = config.min as number[];
+      const max = config.max as number[];
+
+      if (vizType === 'rgb') {
+        resolvedVisParams = { bands, min, max };
+        if (config.gamma) {
+          resolvedVisParams.gamma = config.gamma;
+        }
+      } else if (vizType === 'hsv') {
+        const viz = {
+          index: -1,
+          name: 'Custom HSV',
+          type: 'hsv' as const,
+          bands,
+          min,
+          max,
+        };
+        const resolved = resolveSepalViz(viz, image, ee);
+        resolvedImage = resolved.image;
+        resolvedVisParams = resolved.visParams;
+        displayVisParams = resolved.displayVisParams;
+      } else if (vizType === 'continuous') {
+        resolvedVisParams = { bands, min: min?.[0], max: max?.[0] };
+        if (config.palette) {
+          resolvedVisParams.palette = config.palette;
+        }
+      } else if (vizType === 'categorical') {
+        const viz = {
+          index: -1,
+          name: 'Custom Classification',
+          type: 'categorical' as const,
+          bands,
+          values: config.values as number[],
+          labels: config.labels as string[],
+          palette: config.palette as string[],
+        };
+        const resolved = resolveSepalViz(viz, image, ee);
+        resolvedImage = resolved.image;
+        resolvedVisParams = resolved.visParams;
+        displayVisParams = resolved.displayVisParams;
+      }
+    }
+
+    const url = await getMapIdUrl(resolvedImage, resolvedVisParams);
+    const finalVisParams = displayVisParams ?? resolvedVisParams;
+    layer.visParams = finalVisParams;
+
+    postMessage({
+      type: 'replaceTileLayer',
+      data: { layerIndex, url, visParams: finalVisParams },
+    });
   }
 }
