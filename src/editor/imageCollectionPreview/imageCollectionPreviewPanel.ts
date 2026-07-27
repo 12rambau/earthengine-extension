@@ -14,7 +14,7 @@
 import * as vscode from 'vscode';
 import { marked } from 'marked';
 import { EEAsset, EEBand, listAssets, getAsset } from '../../sidebar/assets/eeApiClient.js';
-import { escapeHtml, formatBytes, formatDate } from '../../shared/webviewUtils.js';
+import { escapeHtml, formatBytes, formatDate } from '../../shared/index.js';
 import { ensureEe, getThumbUrl } from '../../shared/eeSession.js';
 import Handlebars from 'handlebars';
 import template from './imageCollectionPreviewPanel.hbs';

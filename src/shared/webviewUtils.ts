@@ -4,6 +4,7 @@
  * formatting (bytes, dates), a properties-table renderer, and the base stylesheet.
  */
 
+import dayjs from 'dayjs';
 import baseStyle from './webviewBase.css';
 
 /**
@@ -38,16 +39,10 @@ export function formatBytes(bytes?: string): string {
 }
 
 /**
- * Format ISO date string into readable form.
+ * Format ISO date string into readable UTC form.
  */
 export function formatDate(d?: string): string {
-  if (!d) {
-    return 'N/A';
-  }
-  return new Date(d)
-    .toISOString()
-    .replace('T', ' ')
-    .replace(/\.\d+Z/, ' UTC');
+  return d ? dayjs.utc(d).format('YYYY-MM-DD HH:mm:ss [UTC]') : 'N/A';
 }
 
 /**

@@ -11,7 +11,7 @@ import {
   formatDate,
   renderPropertiesTable,
   webviewBaseStyle,
-} from '../../shared/webviewUtils.js';
+} from '../../shared/index.js';
 import { openImagePreview } from '../imagePreview/index.js';
 import { openImageCollectionPreview } from '../imageCollectionPreview/index.js';
 import { openFeatureCollectionPreview } from '../featureCollectionPreview/index.js';
