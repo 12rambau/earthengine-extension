@@ -43,6 +43,25 @@ export function renderOverlayLayer(index) {
   row.className = 'layer-row';
   row.dataset.index = index;
 
+  const nameEl = document.createElement('span');
+  nameEl.className = 'layer-name';
+  nameEl.textContent = entry.name;
+  nameEl.title = entry.name;
+
+  const controls = document.createElement('div');
+  controls.className = 'layer-controls';
+
+  const slider = document.createElement('input');
+  slider.type = 'range';
+  slider.className = 'layer-opacity';
+  slider.min = '0';
+  slider.max = '10';
+  slider.value = String(Math.round(entry.opacity * 10));
+  slider.addEventListener('input', () => {
+    entry.opacity = Number(slider.value) / 10;
+    entry.tileLayer.setOpacity(entry.opacity);
+  });
+
   const visBtn = document.createElement('button');
   visBtn.className = 'map-btn layer-vis-btn' + (entry.visible ? ' active' : '');
   visBtn.title = 'Toggle visibility';
@@ -60,31 +79,14 @@ export function renderOverlayLayer(index) {
     }
   });
 
-  const slider = document.createElement('input');
-  slider.type = 'range';
-  slider.className = 'layer-opacity';
-  slider.min = '0';
-  slider.max = '10';
-  slider.value = String(Math.round(entry.opacity * 10));
-  slider.addEventListener('input', () => {
-    entry.opacity = Number(slider.value) / 10;
-    entry.tileLayer.setOpacity(entry.opacity);
-  });
-
-  const nameEl = document.createElement('span');
-  nameEl.className = 'layer-name';
-  nameEl.textContent = entry.name;
-  nameEl.title = entry.name;
-
-  row.appendChild(visBtn);
-  row.appendChild(slider);
-  row.appendChild(nameEl);
+  controls.appendChild(slider);
+  controls.appendChild(visBtn);
 
   if (entry.visParams && (entry.visParams.palette || entry.visParams.bands)) {
     const scaleBtn = document.createElement('button');
     scaleBtn.className = 'map-btn layer-vis-btn scale-active-btn';
     scaleBtn.title = 'Toggle scale';
-    scaleBtn.innerHTML = '<i class="fa-solid fa-sliders"></i>';
+    scaleBtn.innerHTML = '<i class="fa-solid fa-ruler-horizontal"></i>';
     scaleBtn.addEventListener('click', () => {
       if (activeScaleIndex === index) {
         hideScale();
@@ -98,8 +100,10 @@ export function renderOverlayLayer(index) {
         }
       });
     });
-    row.appendChild(scaleBtn);
+    controls.appendChild(scaleBtn);
   }
 
+  row.appendChild(nameEl);
+  row.appendChild(controls);
   layersList.appendChild(row);
 }

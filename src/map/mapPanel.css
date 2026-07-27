@@ -196,6 +196,7 @@ body {
   display: flex;
   align-items: center;
   gap: 6px;
+  min-width: 0;
 }
 .layer-row:last-child {
   border-bottom: none;
@@ -219,11 +220,19 @@ body {
 }
 .layer-name {
   flex: 1;
+  min-width: 0;
   font-size: 11px;
   color: var(--vscode-foreground);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+.layer-controls {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  margin-left: auto;
 }
 .layer-opacity {
   width: 60px;
