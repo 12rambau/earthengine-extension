@@ -332,7 +332,12 @@
         "icon": "$(refresh)"
       },
       {
-        "command": "earthengine.panelTasksOpenEditor",
+        "command": "earthengine.panelTasksOpenExportEditor",
+        "title": "Open in Editor",
+        "icon": "$(open-preview)"
+      },
+      {
+        "command": "earthengine.panelTasksOpenImportEditor",
         "title": "Open in Editor",
         "icon": "$(open-preview)"
       },
@@ -460,8 +465,13 @@
           "group": "navigation@1"
         },
         {
-          "command": "earthengine.panelTasksOpenEditor",
-          "when": "view == earthengine.panelTasks.export || view == earthengine.panelTasks.import",
+          "command": "earthengine.panelTasksOpenExportEditor",
+          "when": "view == earthengine.panelTasks.export",
+          "group": "navigation@1"
+        },
+        {
+          "command": "earthengine.panelTasksOpenImportEditor",
+          "when": "view == earthengine.panelTasks.import",
           "group": "navigation@1"
         }
       ],

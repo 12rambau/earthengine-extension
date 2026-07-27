@@ -48,8 +48,12 @@ export class PanelTasksSection extends SidebarSection {
       this.importViewProvider?.refresh();
     });
 
-    this.registerCommand('earthengine.panelTasksOpenEditor', () => {
+    this.registerCommand('earthengine.panelTasksOpenExportEditor', () => {
       openTasksPanel(this.authService, 'export', context);
+    });
+
+    this.registerCommand('earthengine.panelTasksOpenImportEditor', () => {
+      openTasksPanel(this.authService, 'import', context);
     });
 
     this.registerCommand('earthengine.panelFilterTasksByStatus', async () => {
