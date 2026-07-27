@@ -1,7 +1,7 @@
 /**
  * @module webviewUtils
- * HTML/WebView helpers shared across editor panels: HTML escaping, value
- * formatting (bytes, dates), a properties-table renderer, and the base stylesheet.
+ * HTML/WebView helpers shared across editor panels: HTML escaping,
+ * a properties-table renderer, and the base stylesheet.
  */
 
 import baseStyle from './webviewBase.css';
