@@ -9,6 +9,7 @@ import { initBasemap, addNativeOverlay } from './webview/basemap.js';
 import { initControls } from './webview/controls.js';
 import { overlays } from './webview/overlays.js';
 import { renderOverlayLayer } from './webview/layersPanel.js';
+import { activeScaleIndex, showScale, hideScale } from './webview/scaleBar.js';
 import { initInspector, handleInspectResult } from './webview/inspector.js';
 import { initVizEditor, handleVizEditorData, handleVizMinMax } from './webview/vizEditor.js';
 import './webview/statusBar.js';
@@ -102,6 +103,14 @@ window.addEventListener('message', (e) => {
       entry.visParams = d.visParams;
       if (entry.visible) {
         entry.tileLayer.addTo(map);
+      }
+      const arrayIdx = overlays.indexOf(entry);
+      if (activeScaleIndex === arrayIdx) {
+        if (entry.visParams && (entry.visParams.palette || entry.visParams.bands)) {
+          showScale(arrayIdx);
+        } else {
+          hideScale();
+        }
       }
     }
   }
