@@ -226,6 +226,8 @@ export class PanelTasksViewProvider implements vscode.WebviewViewProvider {
         if (token) {
           await cancelOperation(msg.name, token);
           this.view?.webview.postMessage({ type: 'cancelled', name: msg.name });
+        } else {
+          vscode.window.showErrorMessage('Not authenticated. Please sign in to cancel operations.');
         }
       } catch (err) {
         const m = err instanceof Error ? err.message : String(err);
@@ -236,6 +238,8 @@ export class PanelTasksViewProvider implements vscode.WebviewViewProvider {
         const token = await this.authService.getToken();
         if (token) {
           await openAssetPreview(msg.assetName, token);
+        } else {
+          vscode.window.showErrorMessage('Not authenticated. Please sign in to preview assets.');
         }
       } catch (err) {
         const m = err instanceof Error ? err.message : String(err);
