@@ -137,22 +137,31 @@
       ],
       "panel": [
         {
-          "id": "earthengine-panel",
-          "title": "Earth Engine",
+          "id": "earthengine-panel-export",
+          "title": "EE Export",
+          "icon": "resources/earthengine.svg"
+        },
+        {
+          "id": "earthengine-panel-import",
+          "title": "EE Import",
           "icon": "resources/earthengine.svg"
         }
       ]
     },
     "views": {
-      "earthengine-panel": [
+      "earthengine-panel-export": [
         {
+          "type": "webview",
           "id": "earthengine.panelTasks.export",
-          "name": "Export Tasks",
+          "name": "Tasks",
           "icon": "$(cloud-download)"
-        },
+        }
+      ],
+      "earthengine-panel-import": [
         {
+          "type": "webview",
           "id": "earthengine.panelTasks.import",
-          "name": "Import Tasks",
+          "name": "Tasks",
           "icon": "$(cloud-upload)"
         }
       ],
@@ -328,6 +337,11 @@
         "icon": "$(open-preview)"
       },
       {
+        "command": "earthengine.panelFilterTasksByStatus",
+        "title": "Filter by Status",
+        "icon": "$(filter)"
+      },
+      {
         "command": "earthengine.refreshDatasets",
         "title": "Earth Engine: Refresh Datasets",
         "icon": "$(refresh)"
@@ -436,7 +450,7 @@
           "group": "navigation"
         },
         {
-          "command": "earthengine.filterTasksByStatus",
+          "command": "earthengine.panelFilterTasksByStatus",
           "when": "view == earthengine.panelTasks.export || view == earthengine.panelTasks.import",
           "group": "navigation@0"
         },
@@ -448,7 +462,7 @@
         {
           "command": "earthengine.panelTasksOpenEditor",
           "when": "view == earthengine.panelTasks.export || view == earthengine.panelTasks.import",
-          "group": "navigation@2"
+          "group": "navigation@1"
         }
       ],
       "view/item/context": [
