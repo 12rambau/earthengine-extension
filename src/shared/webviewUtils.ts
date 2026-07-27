@@ -18,26 +18,6 @@ export function escapeHtml(str: string): string {
 }
 
 /**
- * Format bytes into human-readable size.
- */
-export function formatBytes(bytes?: string): string {
-  if (!bytes) {
-    return 'N/A';
-  }
-  const n = parseInt(bytes, 10);
-  if (n < 1024) {
-    return n + ' B';
-  }
-  if (n < 1024 * 1024) {
-    return (n / 1024).toFixed(1) + ' KB';
-  }
-  if (n < 1024 * 1024 * 1024) {
-    return (n / (1024 * 1024)).toFixed(1) + ' MB';
-  }
-  return (n / (1024 * 1024 * 1024)).toFixed(2) + ' GB';
-}
-
-/**
  * Render a key/value properties object as an HTML table.
  */
 export function renderPropertiesTable(props?: Record<string, unknown>): string {

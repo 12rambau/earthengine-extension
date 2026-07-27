@@ -14,7 +14,8 @@
 import * as vscode from 'vscode';
 import { marked } from 'marked';
 import { EEAsset, EEBand, listAssets, getAsset } from '../../sidebar/assets/eeApiClient.js';
-import { escapeHtml, formatBytes } from '../../shared/index.js';
+import { escapeHtml } from '../../shared/index.js';
+import { filesize } from 'filesize';
 import dayjs from 'dayjs';
 import { ensureEe, getThumbUrl } from '../../shared/eeSession.js';
 import Handlebars from 'handlebars';
@@ -155,7 +156,7 @@ function buildHtml(asset: EEAsset, childImages: EEAsset[], bands: EEBand[]): str
   const endDate = asset.endTime
     ? dayjs.utc(asset.endTime).format('YYYY-MM-DD HH:mm:ss [UTC]')
     : 'N/A';
-  const fileSize = formatBytes(asset.sizeBytes);
+  const fileSize = asset.sizeBytes ? filesize(parseInt(asset.sizeBytes, 10)) : 'N/A';
   const lastModified = asset.updateTime
     ? dayjs.utc(asset.updateTime).format('YYYY-MM-DD HH:mm:ss [UTC]')
     : 'N/A';
@@ -209,7 +210,7 @@ function buildImagesTable(images: EEAsset[]): string {
       const lastMod = img.updateTime
         ? dayjs.utc(img.updateTime).format('YYYY-MM-DD HH:mm:ss [UTC]')
         : 'N/A';
-      const size = formatBytes(img.sizeBytes);
+      const size = img.sizeBytes ? filesize(parseInt(img.sizeBytes, 10)) : 'N/A';
       const start = img.startTime
         ? dayjs.utc(img.startTime).format('YYYY-MM-DD HH:mm:ss [UTC]')
         : 'N/A';

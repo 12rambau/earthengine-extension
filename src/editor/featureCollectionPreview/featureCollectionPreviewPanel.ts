@@ -14,7 +14,8 @@
 import * as vscode from 'vscode';
 import { marked } from 'marked';
 import { EEAsset, listFeatures } from '../../sidebar/assets/eeApiClient.js';
-import { escapeHtml, formatBytes } from '../../shared/index.js';
+import { escapeHtml } from '../../shared/index.js';
+import { filesize } from 'filesize';
 import dayjs from 'dayjs';
 import { ensureEe, getThumbUrl } from '../../shared/eeSession.js';
 import Handlebars from 'handlebars';
@@ -144,7 +145,7 @@ function buildHtml(
   const endDate = asset.endTime
     ? dayjs.utc(asset.endTime).format('YYYY-MM-DD HH:mm:ss [UTC]')
     : 'N/A';
-  const fileSize = formatBytes(asset.sizeBytes);
+  const fileSize = asset.sizeBytes ? filesize(parseInt(asset.sizeBytes, 10)) : 'N/A';
   const lastModified = asset.updateTime
     ? dayjs.utc(asset.updateTime).format('YYYY-MM-DD HH:mm:ss [UTC]')
     : 'N/A';

@@ -569,6 +569,7 @@
     "@google/earthengine": "^1.7.36",
     "conventional-commits-filter": "^6.0.1",
     "dayjs": "^1.11.21",
+    "filesize": "^11.0.22",
     "handlebars": "^4.7.9",
     "marked": "^4.3.0"
   }

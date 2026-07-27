@@ -15,7 +15,8 @@
 import * as vscode from 'vscode';
 import { marked } from 'marked';
 import { EEAsset, EEBand } from '../../sidebar/assets/eeApiClient.js';
-import { escapeHtml, formatBytes } from '../../shared/index.js';
+import { escapeHtml } from '../../shared/index.js';
+import { filesize } from 'filesize';
 import dayjs from 'dayjs';
 import { ensureEe, evaluate, getThumbUrl } from '../../shared/eeSession.js';
 import Handlebars from 'handlebars';
@@ -159,7 +160,7 @@ function buildImageHtml(asset: EEAsset, webview: vscode.Webview): string {
   const endDate = asset.endTime
     ? dayjs.utc(asset.endTime).format('YYYY-MM-DD HH:mm:ss [UTC]')
     : 'N/A';
-  const fileSize = formatBytes(asset.sizeBytes);
+  const fileSize = asset.sizeBytes ? filesize(parseInt(asset.sizeBytes, 10)) : 'N/A';
   const lastModified = asset.updateTime
     ? dayjs.utc(asset.updateTime).format('YYYY-MM-DD HH:mm:ss [UTC]')
     : 'N/A';
