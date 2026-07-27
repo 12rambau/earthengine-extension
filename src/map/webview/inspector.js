@@ -14,6 +14,10 @@ let _vscode;
 let inspectorActive = false;
 let inspectorMarker = null;
 
+/** Coordinates of the most recent inspect request. Used to discard stale responses. */
+let _pendingLat = null;
+let _pendingLng = null;
+
 const inspectorToggleBtn = document.getElementById('inspector-toggle');
 const inspectorPanel = document.getElementById('inspector-panel');
 const inspectorContent = document.getElementById('inspector-content');
@@ -46,6 +50,9 @@ export function initInspector(vscode) {
  * @param {{ lat: number, lng: number, scale: number, results: Array }} d
  */
 export function handleInspectResult(d) {
+  if (d.lat !== _pendingLat || d.lng !== _pendingLng) {
+    return; // stale response — a newer click has superseded this one
+  }
   let html =
     '<p class="inspector-coords">\u{1F4CD} ' +
     d.lng.toFixed(4) +
@@ -116,5 +123,7 @@ map.on('click', (e) => {
   inspectorContent.innerHTML =
     '<p class="inspector-loading"><i class="fa-solid fa-spinner fa-spin"></i> Loading\u2026</p>';
 
+  _pendingLat = lat;
+  _pendingLng = lng;
   _vscode.postMessage({ type: 'inspect', data: { lat, lng, zoom: map.getZoom() } });
 });
