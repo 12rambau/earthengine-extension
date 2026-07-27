@@ -62,7 +62,7 @@ The extension reaches Earth Engine two different ways, and the split is delibera
 - Our own direct-`https` REST client hits the same endpoints fine **inside** the extension host, so it is not Google sending bad headers or a strict-parser issue with these endpoints.
 - Toggling `http.proxySupport` (`off`/`on`/`fallback`/`override`, with a window reload each time) did **not** change it, so `@vscode/proxy-agent` is not (solely) the cause.
 
-Root cause is still open (escalated to EE API experts). Until it's resolved: **keep metadata on the REST client**, use the EE JS client only for computation. There is a temporary probe (`probeEeGetAsset`, marked `TEMP PROBE`) in `editor/assets/assetPreviewPanel.ts` that logs `ee.data.getAsset` success/failure to the Debug Console — handy for retesting fixes; remove it once resolved.
+Root cause is still open (escalated to EE API experts). Until it's resolved: **keep metadata on the REST client**, use the EE JS client only for computation.
 
 **Cost:** bundling the EE client adds ~7.7 MB minified (~18 MB dev) to `dist/extension.js` — the Google Closure library it carries. Accepted for the computation-readability win.
 
