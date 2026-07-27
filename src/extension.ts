@@ -20,6 +20,7 @@ import { AssetsSection } from './sidebar/assets/index.js';
 import { TasksSection } from './sidebar/tasks/index.js';
 import { DatasetSection } from './sidebar/dataset/index.js';
 import { DocsSection } from './sidebar/docs/index.js';
+import { PanelTasksSection } from './panel/tasks/index.js';
 import { MapPanel } from './map/index.js';
 
 /** All registered sections — disposed on deactivation. */
@@ -57,6 +58,14 @@ export function activate(context: vscode.ExtensionContext) {
   docs.register(context);
 
   sections.push(profiles, assets, tasks, dataset, docs);
+
+  // ==================================================================
+  // PANEL SECTIONS
+  // ==================================================================
+  // Task trees in the bottom panel area (next to the terminal).
+  const panelTasks = new PanelTasksSection(authService);
+  panelTasks.register(context);
+  sections.push(panelTasks);
 
   // ==================================================================
   // MAP PANEL

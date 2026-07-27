@@ -89,13 +89,51 @@ export class MapPanel extends EditorPanel {
       this.panel.webview.postMessage(cmd);
     });
 
-    // WebView → extension host messages (inspector clicks).
+    // WebView → extension host messages (inspector clicks, viz editor).
     this.messageDisposable = panel.webview.onDidReceiveMessage(async (msg) => {
       if (msg.type === 'inspect') {
         const d = msg.data as { lat: number; lng: number; zoom: number };
         await this.inspector.inspect(d.lat, d.lng, d.zoom, this.layerManager.layers, (m) =>
           this.post(m),
         );
+      } else if (msg.type === 'openVizEditor') {
+        const { layerIndex } = msg.data as { layerIndex: number };
+        // Fetch band names and presets independently — one failure should not
+        // prevent the editor from opening.
+        const [bands, presets] = await Promise.all([
+          this.layerManager.getBandNames(layerIndex).catch(() => [] as string[]),
+          this.layerManager
+            .getPresets(layerIndex)
+            .catch(() => [] as Array<{ index: number; name: string; type: string }>),
+        ]);
+        const layer = this.layerManager.layers.get(layerIndex);
+        this.post({
+          type: 'vizEditorData',
+          data: {
+            layerIndex,
+            bands,
+            presets,
+            currentVisParams: layer?.visParams ?? {},
+          },
+        });
+      } else if (msg.type === 'computeMinMax') {
+        const { layerIndex } = msg.data as { layerIndex: number };
+        try {
+          const minMax = await this.layerManager.computeMinMax(layerIndex);
+          this.post({ type: 'vizMinMax', data: { layerIndex, minMax } });
+        } catch {
+          this.post({ type: 'vizMinMax', data: { layerIndex, minMax: null } });
+        }
+      } else if (msg.type === 'updateViz') {
+        const d = msg.data as Record<string, unknown>;
+        const layerIndex = d.layerIndex as number;
+        try {
+          await this.layerManager.updateLayer(layerIndex, d, (m) => this.post(m));
+        } catch (err) {
+          vscode.window.showErrorMessage(
+            `[Map] Viz update failed: ${err instanceof Error ? err.message : String(err)}`,
+          );
+        }
       }
     });
   }

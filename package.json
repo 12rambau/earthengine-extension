@@ -137,22 +137,31 @@
       ],
       "panel": [
         {
-          "id": "earthengine-panel",
-          "title": "Earth Engine",
+          "id": "earthengine-panel-export",
+          "title": "EE Export",
+          "icon": "resources/earthengine.svg"
+        },
+        {
+          "id": "earthengine-panel-import",
+          "title": "EE Import",
           "icon": "resources/earthengine.svg"
         }
       ]
     },
     "views": {
-      "earthengine-panel": [
+      "earthengine-panel-export": [
         {
+          "type": "webview",
           "id": "earthengine.panelTasks.export",
-          "name": "Export Tasks",
+          "name": "Tasks",
           "icon": "$(cloud-download)"
-        },
+        }
+      ],
+      "earthengine-panel-import": [
         {
+          "type": "webview",
           "id": "earthengine.panelTasks.import",
-          "name": "Import Tasks",
+          "name": "Tasks",
           "icon": "$(cloud-upload)"
         }
       ],
@@ -328,9 +337,19 @@
         "icon": "$(refresh)"
       },
       {
-        "command": "earthengine.panelTasksOpenEditor",
+        "command": "earthengine.panelTasksOpenExportEditor",
         "title": "Open in Editor",
         "icon": "$(open-preview)"
+      },
+      {
+        "command": "earthengine.panelTasksOpenImportEditor",
+        "title": "Open in Editor",
+        "icon": "$(open-preview)"
+      },
+      {
+        "command": "earthengine.panelFilterTasksByStatus",
+        "title": "Filter by Status",
+        "icon": "$(filter)"
       },
       {
         "command": "earthengine.refreshDatasets",
@@ -441,7 +460,7 @@
           "group": "navigation"
         },
         {
-          "command": "earthengine.filterTasksByStatus",
+          "command": "earthengine.panelFilterTasksByStatus",
           "when": "view == earthengine.panelTasks.export || view == earthengine.panelTasks.import",
           "group": "navigation@0"
         },
@@ -451,9 +470,14 @@
           "group": "navigation@1"
         },
         {
-          "command": "earthengine.panelTasksOpenEditor",
-          "when": "view == earthengine.panelTasks.export || view == earthengine.panelTasks.import",
-          "group": "navigation@2"
+          "command": "earthengine.panelTasksOpenExportEditor",
+          "when": "view == earthengine.panelTasks.export",
+          "group": "navigation@1"
+        },
+        {
+          "command": "earthengine.panelTasksOpenImportEditor",
+          "when": "view == earthengine.panelTasks.import",
+          "group": "navigation@1"
         }
       ],
       "view/item/context": [
@@ -568,6 +592,7 @@
   "dependencies": {
     "@google/earthengine": "^1.7.36",
     "conventional-commits-filter": "^6.0.1",
+    "d3-scale-chromatic": "^3.1.0",
     "dayjs": "^1.11.21",
     "filesize": "^11.0.22",
     "handlebars": "^4.7.9",
