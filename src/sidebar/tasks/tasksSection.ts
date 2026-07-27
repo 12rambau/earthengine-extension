@@ -39,14 +39,6 @@ export class TasksSection extends SidebarSection {
       this.importProvider.refresh();
     });
 
-    // ==================================================================
-    // BOTTOM PANEL: EXPORT & IMPORT TASK TREES
-    // ==================================================================
-    const panelExportProvider = new TasksTreeDataProvider(this.authService, 'export');
-    const panelImportProvider = new TasksTreeDataProvider(this.authService, 'import');
-    this.createTreeView('earthengine.panelTasks.export', panelExportProvider);
-    this.createTreeView('earthengine.panelTasks.import', panelImportProvider);
-
     this.registerCommand('earthengine.filterTasksByStatus', async () => {
       const current = this.exportProvider.getStatusFilter();
       const items = TASK_STATES.map((state) => ({
@@ -58,13 +50,11 @@ export class TasksSection extends SidebarSection {
         placeHolder: 'Select statuses to show (leave empty to show all)',
       });
       if (picked === undefined) {
-        return; // cancelled
+        return;
       }
       const states = new Set(picked.map((p) => p.label));
       this.exportProvider.setStatusFilter(states);
       this.importProvider.setStatusFilter(states);
-      panelExportProvider.setStatusFilter(states);
-      panelImportProvider.setStatusFilter(states);
     });
 
     this.registerCommand('earthengine.searchTasks', async () => {
@@ -130,15 +120,6 @@ export class TasksSection extends SidebarSection {
 
     this.registerCommand('earthengine.openImportTasksPanel', () => {
       openTasksPanel(this.authService, 'import', context);
-    });
-
-    this.registerCommand('earthengine.panelTasksRefresh', () => {
-      panelExportProvider.refresh();
-      panelImportProvider.refresh();
-    });
-
-    this.registerCommand('earthengine.panelTasksOpenEditor', () => {
-      openTasksPanel(this.authService, 'export', context);
     });
 
     context.subscriptions.push(this);
