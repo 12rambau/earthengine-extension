@@ -58,7 +58,7 @@ export class PanelTasksViewProvider implements vscode.WebviewViewProvider {
   ): void {
     this.view = webviewView;
     webviewView.webview.options = { enableScripts: true };
-    webviewView.webview.html = this.getHtml();
+    webviewView.webview.html = this.getHtml(webviewView.webview);
 
     // Listen for messages from the webview
     webviewView.webview.onDidReceiveMessage(
@@ -257,9 +257,15 @@ export class PanelTasksViewProvider implements vscode.WebviewViewProvider {
   // HTML
   // ==================================================================
 
-  private getHtml(): string {
-    const initJson = JSON.stringify({ filter: this.filter }).replace(/</g, '\\u003c');
-    return renderTemplate(template, { initJson, style, script });
+  private getHtml(webview: vscode.Webview): string {
+    const nonce = getNonce();
+    const csp = [
+      `default-src 'none'`,
+      `style-src 'unsafe-inline'`,
+      `script-src 'nonce-${nonce}'`,
+    ].join('; ');
+    const initJson = JSON.stringify({ filter: this.filter }).replace(/</g, '\u003c');
+    return renderTemplate(template, { csp, nonce, initJson, style, script });
   }
 
   dispose(): void {
@@ -268,4 +274,13 @@ export class PanelTasksViewProvider implements vscode.WebviewViewProvider {
     }
     this.disposables.forEach((d) => d.dispose());
   }
+}
+
+function getNonce(): string {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  let nonce = '';
+  for (let i = 0; i < 32; i++) {
+    nonce += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return nonce;
 }
