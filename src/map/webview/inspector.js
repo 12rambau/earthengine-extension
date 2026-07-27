@@ -27,9 +27,7 @@ function setInspectorActive(active) {
   inspectorActive = active;
   inspectorToggleBtn.classList.toggle('active', active);
   map.getContainer().style.cursor = active ? 'crosshair' : '';
-  if (active) {
-    inspectorPanel.classList.add('visible');
-  }
+  inspectorPanel.classList.toggle('visible', active);
 }
 
 /**
