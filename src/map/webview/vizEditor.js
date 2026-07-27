@@ -18,6 +18,7 @@ let _overlay = null; // The overlay div element
 let _currentLayerIndex = -1;
 let _bands = [];
 let _presets = [];
+let _pendingComputeBtn = null;
 
 // ==================================================================
 // INIT
@@ -63,13 +64,13 @@ export function handleVizEditorData(data) {
  * @param {{ layerIndex: number, minMax: Object }} data
  */
 export function handleVizMinMax(data) {
+  if (_pendingComputeBtn) {
+    _pendingComputeBtn.textContent = 'Compute min/max';
+    _pendingComputeBtn.disabled = false;
+    _pendingComputeBtn = null;
+  }
   if (data.layerIndex !== _currentLayerIndex) {
     return;
-  }
-  const btn = _overlay.querySelector('.viz-compute-btn');
-  if (btn) {
-    btn.textContent = 'Compute';
-    btn.disabled = false;
   }
   if (!data.minMax) {
     return;
@@ -390,6 +391,7 @@ function buildComputeBtn() {
   btn.className = 'viz-btn viz-btn-secondary viz-compute-btn';
   btn.textContent = 'Compute min/max';
   btn.addEventListener('click', () => {
+    _pendingComputeBtn = btn;
     btn.textContent = 'Computing\u2026';
     btn.disabled = true;
     _vscode.postMessage({ type: 'computeMinMax', data: { layerIndex: _currentLayerIndex } });
