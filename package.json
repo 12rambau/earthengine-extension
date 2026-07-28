@@ -149,22 +149,6 @@
       ]
     },
     "views": {
-      "earthengine-panel-export": [
-        {
-          "type": "webview",
-          "id": "earthengine.panelTasks.export",
-          "name": "Tasks",
-          "icon": "$(cloud-download)"
-        }
-      ],
-      "earthengine-panel-import": [
-        {
-          "type": "webview",
-          "id": "earthengine.panelTasks.import",
-          "name": "Tasks",
-          "icon": "$(cloud-upload)"
-        }
-      ],
       "earthengine": [
         {
           "id": "earthengine.profiles",
@@ -189,6 +173,22 @@
         {
           "id": "earthengine.dataset",
           "name": "Dataset"
+        }
+      ],
+      "earthengine-panel-export": [
+        {
+          "type": "webview",
+          "id": "earthengine.panelTasks.export",
+          "name": "Tasks",
+          "icon": "$(cloud-download)"
+        }
+      ],
+      "earthengine-panel-import": [
+        {
+          "type": "webview",
+          "id": "earthengine.panelTasks.import",
+          "name": "Tasks",
+          "icon": "$(cloud-upload)"
         }
       ]
     },
@@ -222,14 +222,9 @@
         "icon": "$(trash)"
       },
       {
-        "command": "earthengine.refreshDocs",
-        "title": "Earth Engine: Refresh API Docs",
-        "icon": "$(refresh)"
-      },
-      {
-        "command": "earthengine.searchDocs",
-        "title": "Earth Engine: Search API Docs",
-        "icon": "$(search)"
+        "command": "earthengine.newScript",
+        "title": "New Python Script",
+        "icon": "$(file-code)"
       },
       {
         "command": "earthengine.refreshAssets",
@@ -282,6 +277,16 @@
         "icon": "$(files)"
       },
       {
+        "command": "earthengine.refreshDocs",
+        "title": "Earth Engine: Refresh API Docs",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "earthengine.searchDocs",
+        "title": "Earth Engine: Search API Docs",
+        "icon": "$(search)"
+      },
+      {
         "command": "earthengine.refreshTasks",
         "title": "Earth Engine: Refresh Tasks",
         "icon": "$(refresh)"
@@ -300,26 +305,6 @@
         "command": "earthengine.cancelTask",
         "title": "Cancel Task",
         "icon": "$(close)"
-      },
-      {
-        "command": "earthengine.newScript",
-        "title": "New Python Script",
-        "icon": "$(file-code)"
-      },
-      {
-        "command": "earthengine.openMap",
-        "title": "Open Map View",
-        "icon": "$(map)"
-      },
-      {
-        "command": "earthengine.map.testNighttimeLights",
-        "title": "Earth Engine: Test – Nighttime Lights Trend",
-        "icon": "$(beaker)"
-      },
-      {
-        "command": "earthengine.map.testSepalViz",
-        "title": "Earth Engine: Test – SEPAL Visualization Presets",
-        "icon": "$(beaker)"
       },
       {
         "command": "earthengine.openExportTasksPanel",
@@ -375,6 +360,21 @@
         "command": "earthengine.openDatasetPanel",
         "title": "Open Details",
         "icon": "$(open-preview)"
+      },
+      {
+        "command": "earthengine.openMap",
+        "title": "Open Map View",
+        "icon": "$(map)"
+      },
+      {
+        "command": "earthengine.map.testNighttimeLights",
+        "title": "Earth Engine: Test – Nighttime Lights Trend",
+        "icon": "$(beaker)"
+      },
+      {
+        "command": "earthengine.map.testSepalViz",
+        "title": "Earth Engine: Test – SEPAL Visualization Presets",
+        "icon": "$(beaker)"
       }
     ],
     "menus": {
@@ -386,6 +386,11 @@
         },
         {
           "command": "earthengine.addServiceAccount",
+          "when": "view == earthengine.profiles",
+          "group": "navigation"
+        },
+        {
+          "command": "earthengine.signOut",
           "when": "view == earthengine.profiles",
           "group": "navigation"
         },
@@ -450,16 +455,6 @@
           "group": "navigation"
         },
         {
-          "command": "earthengine.searchDatasets",
-          "when": "view == earthengine.dataset",
-          "group": "navigation"
-        },
-        {
-          "command": "earthengine.refreshDatasets",
-          "when": "view == earthengine.dataset",
-          "group": "navigation"
-        },
-        {
           "command": "earthengine.panelFilterTasksByStatus",
           "when": "view == earthengine.panelTasks.export || view == earthengine.panelTasks.import",
           "group": "navigation@0"
@@ -478,6 +473,16 @@
           "command": "earthengine.panelTasksOpenImportEditor",
           "when": "view == earthengine.panelTasks.import",
           "group": "navigation@1"
+        },
+        {
+          "command": "earthengine.searchDatasets",
+          "when": "view == earthengine.dataset",
+          "group": "navigation"
+        },
+        {
+          "command": "earthengine.refreshDatasets",
+          "when": "view == earthengine.dataset",
+          "group": "navigation"
         }
       ],
       "view/item/context": [
