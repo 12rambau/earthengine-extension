@@ -381,12 +381,6 @@ export class TasksTreeDataProvider implements vscode.TreeDataProvider<TaskTreeIt
     }
   }
 
-  /** Returns the currently loaded operations filtered for this tree's type. */
-  getFilteredOperations(): Operation[] {
-    const filterFn = this.filter === 'export' ? isExportTask : isImportTask;
-    return this.loadedTasks.filter(filterFn);
-  }
-
   dispose(): void {
     if (this.autoRefreshTimer) {
       clearInterval(this.autoRefreshTimer);
