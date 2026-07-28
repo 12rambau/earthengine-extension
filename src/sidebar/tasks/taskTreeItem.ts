@@ -9,7 +9,6 @@ import {
   Operation,
   getTaskState,
   getElapsedTime,
-  getPhaseLabel,
   formatRuntimeLine,
   isExportTask,
   isImportTask,
@@ -86,7 +85,9 @@ export class TaskTreeItem extends vscode.TreeItem {
       tooltip.appendMarkdown(`**Asset name:** \`${meta.destinationUris[0]}\`  \n`);
     }
     tooltip.appendMarkdown(`**ID:** \`${operationId}\`  \n`);
-    tooltip.appendMarkdown(`**Phase:** **${getPhaseLabel(state)}**  \n`);
+    tooltip.appendMarkdown(
+      `**Phase:** **${state.charAt(0).toUpperCase() + state.slice(1).toLowerCase()}**  \n`,
+    );
 
     const runtime = formatRuntimeLine(operation);
     if (runtime) {
