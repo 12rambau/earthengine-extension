@@ -7,7 +7,13 @@
  * and elapsed-time formatting.
  */
 
+import dayjs from 'dayjs';
+import duration from 'dayjs/plugin/duration';
+import relativeTime from 'dayjs/plugin/relativeTime';
 import { httpRequest } from '../../shared/httpClient.js';
+
+dayjs.extend(duration);
+dayjs.extend(relativeTime);
 
 // ==================================================================
 // CONSTANTS
@@ -131,27 +137,18 @@ export function getTaskState(op: Operation): string {
   return op.metadata?.state || (op.done ? 'SUCCEEDED' : 'PENDING');
 }
 
-/** Computes a compact elapsed time string (e.g. "11s", "5m", "2h15m"). */
+/** Computes a compact elapsed time string (e.g. "a few seconds", "5 minutes", "2 hours"). */
 export function getElapsedTime(op: Operation): string {
   const start = op.metadata?.startTime || op.metadata?.createTime;
   if (!start) {
     return '';
   }
-  const end = op.metadata?.endTime || new Date().toISOString();
-  const ms = new Date(end).getTime() - new Date(start).getTime();
+  const end = op.metadata?.endTime ? dayjs(op.metadata.endTime) : dayjs();
+  const ms = end.diff(start);
   if (ms < 0) {
     return '';
   }
-  const secs = Math.floor(ms / 1000);
-  if (secs < 60) {
-    return `${secs}s`;
-  }
-  const minutes = Math.floor(secs / 60);
-  if (minutes < 60) {
-    return `${minutes}m`;
-  }
-  const hours = Math.floor(minutes / 60);
-  return `${hours}h${minutes % 60}m`;
+  return dayjs.duration(ms).humanize();
 }
 
 /** Returns a human-readable phase label (e.g. "Completed", "Failed"). */
