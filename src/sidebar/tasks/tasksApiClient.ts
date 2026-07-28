@@ -160,42 +160,18 @@ export function getPhaseLabel(state: string): string {
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
-/** Formats a runtime string with duration and local start time (e.g. "11s (started 2026-07-22 10:49:00 +0200)"). */
+/** Formats a runtime string with duration and local start time (e.g. "42s (started 2026-07-22 10:49:00 +0200)"). */
 export function formatRuntimeLine(op: Operation): string {
   const startIso = op.metadata?.startTime;
   if (!startIso) {
     return '';
   }
-  const endIso = op.metadata?.endTime || new Date().toISOString();
-  const ms = new Date(endIso).getTime() - new Date(startIso).getTime();
+  const start = dayjs(startIso);
+  const end = op.metadata?.endTime ? dayjs(op.metadata.endTime) : dayjs();
+  const ms = end.diff(start);
   if (ms < 0) {
     return '';
   }
-
-  const secs = Math.floor(ms / 1000);
-  let duration: string;
-  if (secs < 60) {
-    duration = `${secs}s`;
-  } else {
-    const mins = Math.floor(secs / 60);
-    if (mins < 60) {
-      duration = `${mins}m`;
-    } else {
-      duration = `${Math.floor(mins / 60)}h${mins % 60}m`;
-    }
-  }
-
-  const d = new Date(startIso);
-  const offset = -d.getTimezoneOffset();
-  const sign = offset >= 0 ? '+' : '-';
-  const oh = Math.floor(Math.abs(offset) / 60)
-    .toString()
-    .padStart(2, '0');
-  const om = (Math.abs(offset) % 60).toString().padStart(2, '0');
-  const pad = (n: number) => n.toString().padStart(2, '0');
-  const started =
-    `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ` +
-    `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())} ${sign}${oh}${om}`;
-
-  return `${duration} (started ${started})`;
+  const dur = ms < 60_000 ? `${Math.floor(ms / 1000)}s` : dayjs.duration(ms).humanize();
+  return `${dur} (started ${start.format('YYYY-MM-DD HH:mm:ss ZZ')})`;
 }
