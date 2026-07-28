@@ -13,7 +13,6 @@ import { AuthService } from '../../auth/index.js';
 import { TasksTreeDataProvider, TASK_STATES } from './tasksTreeDataProvider.js';
 import { TaskTreeItem } from './taskTreeItem.js';
 import { cancelOperation } from './tasksApiClient.js';
-import type { Operation } from './tasksApiClient.js';
 import { openTasksPanel } from '../../editor/tasks/index.js';
 
 // ==================================================================
@@ -31,8 +30,8 @@ export class TasksSection extends SidebarSection {
   }
 
   register(context: vscode.ExtensionContext): void {
-    const exportTreeView = this.createTreeView('earthengine.tasks.export', this.exportProvider);
-    const importTreeView = this.createTreeView('earthengine.tasks.import', this.importProvider);
+    this.createTreeView('earthengine.tasks.export', this.exportProvider);
+    this.createTreeView('earthengine.tasks.import', this.importProvider);
 
     this.registerCommand('earthengine.refreshTasks', () => {
       this.exportProvider.refresh();
@@ -55,47 +54,6 @@ export class TasksSection extends SidebarSection {
       const states = new Set(picked.map((p) => p.label));
       this.exportProvider.setStatusFilter(states);
       this.importProvider.setStatusFilter(states);
-    });
-
-    this.registerCommand('earthengine.searchTasks', async () => {
-      const exportOps = this.exportProvider.getFilteredOperations();
-      const importOps = this.importProvider.getFilteredOperations();
-
-      type QuickPickTask = vscode.QuickPickItem & {
-        operation: Operation;
-        treeView: vscode.TreeView<TaskTreeItem>;
-      };
-
-      const items: QuickPickTask[] = [
-        ...exportOps.map((op) => ({
-          label: op.metadata?.description || op.name.split('/').pop() || 'Unknown',
-          description: `$(export) ${op.metadata?.state ?? 'UNKNOWN'}`,
-          operation: op,
-          treeView: exportTreeView,
-        })),
-        ...importOps.map((op) => ({
-          label: op.metadata?.description || op.name.split('/').pop() || 'Unknown',
-          description: `$(import) ${op.metadata?.state ?? 'UNKNOWN'}`,
-          operation: op,
-          treeView: importTreeView,
-        })),
-      ];
-
-      if (items.length === 0) {
-        vscode.window.showInformationMessage('No tasks loaded yet. Refresh the task views first.');
-        return;
-      }
-
-      const picked = await vscode.window.showQuickPick(items, {
-        placeHolder: 'Search tasks…',
-        matchOnDescription: true,
-      });
-
-      if (!picked) {
-        return;
-      }
-      const item = new TaskTreeItem(picked.operation);
-      await picked.treeView.reveal(item, { select: true, focus: true });
     });
 
     this.registerCommand('earthengine.cancelTask', async (item: TaskTreeItem) => {

@@ -7,7 +7,13 @@
  * and elapsed-time formatting.
  */
 
+import dayjs from 'dayjs';
+import duration from 'dayjs/plugin/duration';
+import relativeTime from 'dayjs/plugin/relativeTime';
 import { httpRequest } from '../../shared/httpClient.js';
+
+dayjs.extend(duration);
+dayjs.extend(relativeTime);
 
 // ==================================================================
 // CONSTANTS
@@ -131,85 +137,26 @@ export function getTaskState(op: Operation): string {
   return op.metadata?.state || (op.done ? 'SUCCEEDED' : 'PENDING');
 }
 
-/** Computes a compact elapsed time string (e.g. "11s", "5m", "2h15m"). */
+/** Computes a compact elapsed time string (e.g. "42s", "5 minutes", "2 hours"). */
 export function getElapsedTime(op: Operation): string {
-  const start = op.metadata?.startTime || op.metadata?.createTime;
-  if (!start) {
-    return '';
-  }
-  const end = op.metadata?.endTime || new Date().toISOString();
-  const ms = new Date(end).getTime() - new Date(start).getTime();
-  if (ms < 0) {
-    return '';
-  }
-  const secs = Math.floor(ms / 1000);
-  if (secs < 60) {
-    return `${secs}s`;
-  }
-  const minutes = Math.floor(secs / 60);
-  if (minutes < 60) {
-    return `${minutes}m`;
-  }
-  const hours = Math.floor(minutes / 60);
-  return `${hours}h${minutes % 60}m`;
+  const start = op.metadata?.startTime ?? op.metadata?.createTime;
+  const ms = start
+    ? (op.metadata?.endTime ? dayjs(op.metadata.endTime) : dayjs()).diff(start)
+    : null;
+  return ms !== null
+    ? ms < 60_000
+      ? `${Math.floor(ms / 1000)}s`
+      : dayjs.duration(ms).humanize()
+    : '';
 }
 
-/** Returns a human-readable phase label (e.g. "Completed", "Failed"). */
-export function getPhaseLabel(state: string): string {
-  switch (state.toUpperCase()) {
-    case 'SUCCEEDED':
-      return 'Completed';
-    case 'FAILED':
-      return 'Failed';
-    case 'RUNNING':
-      return 'Running';
-    case 'PENDING':
-      return 'Pending';
-    case 'CANCELLING':
-      return 'Cancelling';
-    case 'CANCELLED':
-      return 'Cancelled';
-    default:
-      return state;
-  }
-}
-
-/** Formats a runtime string with duration and local start time (e.g. "11s (started 2026-07-22 10:49:00 +0200)"). */
+/** Formats a runtime string with duration and local start time (e.g. "42s (started 2026-07-22 10:49:00 +0200)"). */
 export function formatRuntimeLine(op: Operation): string {
   const startIso = op.metadata?.startTime;
-  if (!startIso) {
-    return '';
-  }
-  const endIso = op.metadata?.endTime || new Date().toISOString();
-  const ms = new Date(endIso).getTime() - new Date(startIso).getTime();
-  if (ms < 0) {
-    return '';
-  }
-
-  const secs = Math.floor(ms / 1000);
-  let duration: string;
-  if (secs < 60) {
-    duration = `${secs}s`;
-  } else {
-    const mins = Math.floor(secs / 60);
-    if (mins < 60) {
-      duration = `${mins}m`;
-    } else {
-      duration = `${Math.floor(mins / 60)}h${mins % 60}m`;
-    }
-  }
-
-  const d = new Date(startIso);
-  const offset = -d.getTimezoneOffset();
-  const sign = offset >= 0 ? '+' : '-';
-  const oh = Math.floor(Math.abs(offset) / 60)
-    .toString()
-    .padStart(2, '0');
-  const om = (Math.abs(offset) % 60).toString().padStart(2, '0');
-  const pad = (n: number) => n.toString().padStart(2, '0');
-  const started =
-    `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ` +
-    `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())} ${sign}${oh}${om}`;
-
-  return `${duration} (started ${started})`;
+  const ms = startIso
+    ? (op.metadata?.endTime ? dayjs(op.metadata.endTime) : dayjs()).diff(startIso)
+    : null;
+  const dur =
+    ms !== null ? (ms < 60_000 ? `${Math.floor(ms / 1000)}s` : dayjs.duration(ms).humanize()) : '';
+  return dur ? `${dur} (started ${dayjs(startIso).format('YYYY-MM-DD HH:mm:ss ZZ')})` : '';
 }
