@@ -10,6 +10,7 @@
 import * as vscode from 'vscode';
 import { DocsTreeItem } from './docsTreeItem.js';
 import { fetchApiDocs, getDocUrl, clearDocsCache } from './apiDocsParser.js';
+import { AuthService } from '../../auth/index.js';
 
 // ==================================================================
 // INTERNAL TYPES
@@ -39,11 +40,25 @@ export class DocsTreeDataProvider implements vscode.TreeDataProvider<DocsTreeIte
   private loaded = false;
   private itemCache = new Map<string, DocsTreeItem>();
 
+  constructor(private readonly authService: AuthService) {
+    authService.onDidChangeAuth(() => {
+      clearDocsCache();
+      this.refresh();
+    });
+  }
+
   getTreeItem(element: DocsTreeItem): vscode.TreeItem {
     return element;
   }
 
   async getChildren(element?: DocsTreeItem): Promise<DocsTreeItem[]> {
+    if (!this.authService.isAuthenticated) {
+      const item = new DocsTreeItem('Not authenticated', '', vscode.TreeItemCollapsibleState.None);
+      item.iconPath = new vscode.ThemeIcon('error', new vscode.ThemeColor('errorForeground'));
+      item.command = { command: 'earthengine.signIn', title: 'Sign In' };
+      return [item];
+    }
+
     if (!this.loaded && !this.loading) {
       this.loading = true;
       try {

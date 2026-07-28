@@ -1,13 +1,14 @@
 /**
  * @module apiDocsParser
- * HTML parser for the Earth Engine API documentation page.
+ * Earth Engine API docs fetcher — backed by ee.data.getAlgorithms().
  *
- * Fetches the public EE API docs HTML, extracts each `ee.*` entry
- * (name, description, usage, return type, arguments), and caches
- * the result in memory. Used by the Docs tree data provider.
+ * Retrieves the full algorithm registry (name, description, return type,
+ * arguments) via the EE algorithms REST endpoint and caches the result
+ * in memory. Requires an authenticated EE session.
  */
 
-import { fetchHtml } from '../../shared/httpClient.js';
+import ee from '@google/earthengine';
+import { ensureEe } from '../../shared/eeSession.js';
 
 // ==================================================================
 // CONSTANTS
@@ -18,7 +19,7 @@ const API_DOCS_URL = 'https://developers.google.com/earth-engine/api_docs';
 // INTERFACES
 // ==================================================================
 /** Parsed representation of a single API doc entry. */
-interface ApiEntry {
+export interface ApiEntry {
   name: string;
   id: string;
   description: string;
@@ -27,72 +28,71 @@ interface ApiEntry {
   args: { name: string; type: string; details: string }[];
 }
 
+/** Shape of one entry in the algorithms registry returned by the EE client. */
+interface AlgorithmSignature {
+  description?: string;
+  returns?: string;
+  deprecated?: string;
+  args?: { name: string; type: string; optional?: boolean; description?: string }[];
+}
+
 // ==================================================================
 // CACHE
 // ==================================================================
 let cachedEntries: ApiEntry[] | undefined;
 
-/** Clears the in-memory docs cache so the next fetch re-downloads. */
+/** Clears the in-memory docs cache so the next call re-fetches. */
 export function clearDocsCache() {
   cachedEntries = undefined;
 }
 
 // ==================================================================
-// FETCH & PARSE
+// FETCH & CONVERT
 // ==================================================================
-/** Fetches and parses the API docs HTML, returning cached results on repeat calls. */
+/** Fetches the algorithm registry via ee.data.getAlgorithms() and converts it to ApiEntry[]. */
 export async function fetchApiDocs(): Promise<ApiEntry[]> {
   if (cachedEntries) {
     return cachedEntries;
   }
 
-  const html = await fetchHtml(API_DOCS_URL);
-  cachedEntries = parseApiDocs(html);
-  return cachedEntries;
-}
+  await ensureEe();
 
-/** Parses raw HTML into structured API entries by splitting on `<h2>` tags. */
-function parseApiDocs(html: string): ApiEntry[] {
-  const entries: ApiEntry[] = [];
-
-  // Split by h2 tags that contain ee.* entries
-  const h2Regex = /<h2[^>]*data-text="(ee\.[^"]+)"[^>]*>.*?<\/h2>/g;
-  const matches = [...html.matchAll(h2Regex)];
-
-  for (let i = 0; i < matches.length; i++) {
-    const name = matches[i][1];
-    const id = name.toLowerCase().replace(/\./g, '');
-    const startIdx = matches[i].index! + matches[i][0].length;
-    const endIdx = i + 1 < matches.length ? matches[i + 1].index! : html.length;
-    const section = html.substring(startIdx, endIdx);
-
-    // Extract description (first <p> after h2)
-    const descMatch = section.match(/<p>(.*?)<\/p>/s);
-    const description = descMatch ? descMatch[1].replace(/<[^>]+>/g, '').trim() : '';
-
-    // Extract usage and returns from first table
-    const usageMatch = section.match(/<code[^>]*>(.*?)<\/code>.*?<\/td>\s*<td>(.*?)<\/td>/s);
-    const usage = usageMatch ? usageMatch[1].replace(/<[^>]+>/g, '').trim() : '';
-    const returns = usageMatch ? usageMatch[2].replace(/<[^>]+>/g, '').trim() : '';
-
-    // Extract arguments from details table
-    const args: ApiEntry['args'] = [];
-    const argsTableMatch = section.match(/<table class="details">(.*?)<\/table>/s);
-    if (argsTableMatch) {
-      const rowRegex = /<tr><td>(.*?)<\/td><td>(.*?)<\/td><td>(.*?)<\/td><\/tr>/gs;
-      for (const row of argsTableMatch[1].matchAll(rowRegex)) {
-        args.push({
-          name: row[1].replace(/<[^>]+>/g, '').trim(),
-          type: row[2].replace(/<[^>]+>/g, '').trim(),
-          details: row[3].replace(/<[^>]+>/g, '').trim(),
-        });
+  return new Promise((resolve, reject) => {
+    // getAlgorithms is patched in eeSession to use httpRequest directly,
+    // bypassing the xmlhttprequest transport bug in the extension host.
+    // getAlgorithms is patched in eeSession to use httpRequest directly,
+    // bypassing the xmlhttprequest transport bug in the extension host.
+    const getAlgorithms = (ee.data as Record<string, unknown>)['getAlgorithms'] as (
+      callback: (registry: unknown, err?: string) => void,
+    ) => void;
+    getAlgorithms((registry: unknown, err?: string) => {
+      if (err) {
+        reject(new Error(err));
+        return;
       }
-    }
 
-    entries.push({ name, id, description, usage, returns, args });
-  }
+      cachedEntries = Object.entries(registry as Record<string, AlgorithmSignature>)
+        .filter(([, sig]) => !sig.deprecated)
+        .map(([key, sig]) => {
+          const name = key.startsWith('ee.') ? key : `ee.${key}`;
+          const args = (sig.args ?? []).map((a) => ({
+            name: a.name,
+            type: a.type,
+            details: a.description ?? '',
+          }));
+          return {
+            name,
+            id: name.toLowerCase().replace(/\./g, ''),
+            description: sig.description ?? '',
+            usage: `${name}(${args.map((a) => a.name).join(', ')})`,
+            returns: sig.returns ?? '',
+            args,
+          };
+        });
 
-  return entries;
+      resolve(cachedEntries);
+    });
+  });
 }
 
 /** Builds the canonical documentation URL for a given API name. */

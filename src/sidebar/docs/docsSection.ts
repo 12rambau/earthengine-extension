@@ -8,6 +8,7 @@
 
 import * as vscode from 'vscode';
 import { SidebarSection } from '../../shared/baseComponents.js';
+import { AuthService } from '../../auth/index.js';
 import { DocsTreeDataProvider } from './docsTreeDataProvider.js';
 
 // ==================================================================
@@ -17,9 +18,9 @@ import { DocsTreeDataProvider } from './docsTreeDataProvider.js';
 export class DocsSection extends SidebarSection {
   private provider: DocsTreeDataProvider;
 
-  constructor() {
+  constructor(private readonly authService: AuthService) {
     super();
-    this.provider = new DocsTreeDataProvider();
+    this.provider = new DocsTreeDataProvider(authService);
   }
 
   register(context: vscode.ExtensionContext): void {
