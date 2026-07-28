@@ -137,7 +137,7 @@ export function getTaskState(op: Operation): string {
   return op.metadata?.state || (op.done ? 'SUCCEEDED' : 'PENDING');
 }
 
-/** Computes a compact elapsed time string (e.g. "a few seconds", "5 minutes", "2 hours"). */
+/** Computes a compact elapsed time string (e.g. "42s", "5 minutes", "2 hours"). */
 export function getElapsedTime(op: Operation): string {
   const start = op.metadata?.startTime || op.metadata?.createTime;
   if (!start) {
@@ -147,6 +147,9 @@ export function getElapsedTime(op: Operation): string {
   const ms = end.diff(start);
   if (ms < 0) {
     return '';
+  }
+  if (ms < 60_000) {
+    return `${Math.floor(ms / 1000)}s`;
   }
   return dayjs.duration(ms).humanize();
 }
