@@ -26,22 +26,15 @@ const STATE_COLORS: Partial<Record<string, vscode.ThemeColor>> = {
   CANCELLED: new vscode.ThemeColor('disabledForeground'),
 };
 
-function getTypeIconId(op: Operation): string {
-  const type = (op.metadata?.type || '').toUpperCase();
-  if (type.startsWith('INGEST') || type.startsWith('IMPORT')) {
-    return 'cloud-upload';
-  }
-  if (type === 'EXPORT_IMAGE' || type === 'EXPORT_VIDEO') {
-    return 'file-media';
-  }
-  if (type === 'EXPORT_TABLE' || type === 'EXPORT_FEATURES') {
-    return 'table';
-  }
-  if (type.startsWith('EXPORT')) {
-    return 'cloud-download';
-  }
-  return 'symbol-misc';
-}
+const TYPE_ICONS: [string, string][] = [
+  ['INGEST', 'cloud-upload'],
+  ['IMPORT', 'cloud-upload'],
+  ['EXPORT_IMAGE', 'file-media'],
+  ['EXPORT_VIDEO', 'file-media'],
+  ['EXPORT_TABLE', 'table'],
+  ['EXPORT_FEATURES', 'table'],
+  ['EXPORT', 'cloud-download'],
+];
 
 // ==================================================================
 // TASKTREEITEM
@@ -64,7 +57,10 @@ export class TaskTreeItem extends vscode.TreeItem {
         ? new vscode.ThemeIcon('loading~spin', color)
         : new vscode.ThemeIcon('loading~spin');
     } else {
-      const iconId = getTypeIconId(operation);
+      const iconId =
+        TYPE_ICONS.find(([p]) =>
+          (operation.metadata?.type ?? '').toUpperCase().startsWith(p),
+        )?.[1] ?? 'symbol-misc';
       this.iconPath = color ? new vscode.ThemeIcon(iconId, color) : new vscode.ThemeIcon(iconId);
     }
 
