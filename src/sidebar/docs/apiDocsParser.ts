@@ -60,12 +60,13 @@ export async function fetchApiDocs(): Promise<ApiEntry[]> {
   return new Promise((resolve, reject) => {
     // getAlgorithms is patched in eeSession to use httpRequest directly,
     // bypassing the xmlhttprequest transport bug in the extension host.
-    // getAlgorithms is patched in eeSession to use httpRequest directly,
-    // bypassing the xmlhttprequest transport bug in the extension host.
+    const timer = setTimeout(() => reject(new Error('getAlgorithms timed out after 30s')), 30_000);
+
     const getAlgorithms = (ee.data as Record<string, unknown>)['getAlgorithms'] as (
       callback: (registry: unknown, err?: string) => void,
     ) => void;
     getAlgorithms((registry: unknown, err?: string) => {
+      clearTimeout(timer);
       if (err) {
         reject(new Error(err));
         return;
