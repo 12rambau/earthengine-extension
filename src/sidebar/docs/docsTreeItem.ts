@@ -50,10 +50,6 @@ export class DocsTreeItem extends vscode.TreeItem {
         tooltip.appendMarkdown('\n');
       }
 
-      if (docUrl) {
-        tooltip.appendMarkdown(`---\n\n[Open in docs ↗](${docUrl})\n`);
-      }
-
       this.tooltip = tooltip;
     }
 
