@@ -53,6 +53,7 @@ The extension reaches Earth Engine two different ways, and the split is delibera
 
 - **Computation → the `@google/earthengine` JS client**, via `src/shared/eeSession.ts`. Use it to build and evaluate server-side graphs: `ee.Image`/`ee.ImageCollection`/`ee.Reducer`, `getThumbURL`, `reduceRegion().evaluate()`, etc. This is what the preview panels use for thumbnails and band min/max, and it reads like the Python/JS EE API instead of hand-built request JSON. `eeSession` owns the singleton client: it registers a token refresher wired to `AuthService`, initializes lazily per project, and re-initializes on profile change. Auth is injected via `setAuthToken` — the client never sees the refresh token or private key.
 - **Metadata CRUD → the REST client** (`src/shared/httpClient.ts` + `sidebar/assets/eeApiClient.ts`, `sidebar/tasks/tasksApiClient.ts`). `listAssets`, `getAsset`, `listFeatures`, `listOperations`, delete/move/copy, etc. go through hand-rolled `https` calls. These are already readable one-liners and, importantly, they **work reliably in the extension host** (see below).
+- **Exception — `ee.data.getAlgorithms()`** is patched in `eeSession.ts` to use `httpRequest` directly, bypassing the broken `xmlhttprequest` transport. It works reliably in the extension host and is used by `sidebar/docs/apiDocsParser.ts` to retrieve the full API algorithm registry (descriptions, arguments, return types) without HTML scraping. This is the only `ee.data.*` call that is safe to use for metadata retrieval.
 
 **Known issue — `ee.data.*` fails in the extension host.** The JS client's metadata calls (`ee.data.getAsset`, and by extension `listAssets`/`listOperations`) throw `Invalid JSON: Error: Parse Error: JS Exception` (a Node HTTP-layer error surfaced at `TLSSocket.socketOnData`) when run in the VS Code extension host. What we established while investigating:
 
@@ -62,7 +63,7 @@ The extension reaches Earth Engine two different ways, and the split is delibera
 - Our own direct-`https` REST client hits the same endpoints fine **inside** the extension host, so it is not Google sending bad headers or a strict-parser issue with these endpoints.
 - Toggling `http.proxySupport` (`off`/`on`/`fallback`/`override`, with a window reload each time) did **not** change it, so `@vscode/proxy-agent` is not (solely) the cause.
 
-Root cause is still open (escalated to EE API experts). Until it's resolved: **keep metadata on the REST client**, use the EE JS client only for computation.
+Root cause is still open (escalated to EE API experts). Until it's resolved: **keep metadata on the REST client**, use the EE JS client only for computation — except for `ee.data.getAlgorithms()` which is explicitly patched (see exception above).
 
 **Cost:** bundling the EE client adds ~7.7 MB minified (~18 MB dev) to `dist/extension.js` — the Google Closure library it carries. Accepted for the computation-readability win.
 
