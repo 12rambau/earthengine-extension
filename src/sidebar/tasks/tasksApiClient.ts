@@ -151,24 +151,10 @@ export function getElapsedTime(op: Operation): string {
   return dayjs.duration(ms).humanize();
 }
 
-/** Returns a human-readable phase label (e.g. "Completed", "Failed"). */
+/** Returns a human-readable phase label (e.g. "Running", "Failed"). */
 export function getPhaseLabel(state: string): string {
-  switch (state.toUpperCase()) {
-    case 'SUCCEEDED':
-      return 'Completed';
-    case 'FAILED':
-      return 'Failed';
-    case 'RUNNING':
-      return 'Running';
-    case 'PENDING':
-      return 'Pending';
-    case 'CANCELLING':
-      return 'Cancelling';
-    case 'CANCELLED':
-      return 'Cancelled';
-    default:
-      return state;
-  }
+  const s = state.toLowerCase();
+  return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
 /** Formats a runtime string with duration and local start time (e.g. "11s (started 2026-07-22 10:49:00 +0200)"). */
