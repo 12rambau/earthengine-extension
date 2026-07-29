@@ -18,6 +18,14 @@ import {
 
 type CollectionMetadata = { type: string; title: string; description: string; keywords: string[] };
 
+/** Sentinel value stored when a metadata fetch times out or fails. */
+const METADATA_FALLBACK: CollectionMetadata = {
+  type: 'unknown',
+  title: '',
+  description: '',
+  keywords: [],
+};
+
 // ==================================================================
 // HELPERS
 // ==================================================================
@@ -306,12 +314,6 @@ export class DatasetTreeDataProvider implements vscode.TreeDataProvider<DatasetT
 
   /** Resolves gee:type for datasets in batches of 10 so icons appear progressively. */
   private async resolveTypesInBackground(hrefs: string[]): Promise<void> {
-    const FALLBACK: CollectionMetadata = {
-      type: 'unknown',
-      title: '',
-      description: '',
-      keywords: [],
-    };
     const batchSize = 10;
     for (let i = 0; i < hrefs.length; i += batchSize) {
       const batch = hrefs.slice(i, i + batchSize);
@@ -322,7 +324,7 @@ export class DatasetTreeDataProvider implements vscode.TreeDataProvider<DatasetT
             this.metadataCache.set(href, meta);
           } catch {
             // Timed out or unreachable — store fallback so the spinner clears
-            this.metadataCache.set(href, FALLBACK);
+            this.metadataCache.set(href, METADATA_FALLBACK);
           }
         }),
       );
@@ -443,18 +445,12 @@ export class DatasetTreeDataProvider implements vscode.TreeDataProvider<DatasetT
         // Fetch metadata now if not yet cached so the revealed tree item
         // has a proper icon, tooltip and label instead of a spinner.
         (async () => {
-          const FALLBACK: CollectionMetadata = {
-            type: 'unknown',
-            title: '',
-            description: '',
-            keywords: [],
-          };
           let meta = this.metadataCache.get(selected.href);
           if (!meta) {
             try {
               meta = await fetchCollectionMetadata(selected.href);
             } catch {
-              meta = FALLBACK;
+              meta = METADATA_FALLBACK;
             }
             this.metadataCache.set(selected.href, meta);
           }
