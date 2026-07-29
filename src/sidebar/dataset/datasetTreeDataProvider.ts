@@ -10,8 +10,46 @@
 import * as vscode from 'vscode';
 import { fetchRootCatalog, fetchProviderCatalog, fetchCollectionMetadata } from './stacClient.js';
 import { DatasetTreeItem } from './datasetTreeItem.js';
+import {
+  fetchCommunityThemes,
+  CommunityDatasetEntry,
+  CommunityThemesMap,
+} from './communityClient.js';
 
-type CollectionMetadata = { type: string; description: string; keywords: string[] };
+type CollectionMetadata = { type: string; title: string; description: string; keywords: string[] };
+
+/** Sentinel value stored when a metadata fetch times out or fails. */
+const METADATA_FALLBACK: CollectionMetadata = {
+  type: 'unknown',
+  title: '',
+  description: '',
+  keywords: [],
+};
+
+// ==================================================================
+// HELPERS
+// ==================================================================
+/** Creates a DatasetTreeItem from a community catalog entry. */
+function makeCommunityDatasetItem(entry: CommunityDatasetEntry): DatasetTreeItem {
+  const tags = entry.tags
+    .split(',')
+    .map((t) => t.trim())
+    .filter(Boolean);
+  return new DatasetTreeItem(
+    entry.title,
+    'communityDataset',
+    '',
+    entry.id,
+    entry.type,
+    false,
+    undefined,
+    entry.thematic_group,
+    tags,
+    entry.docs,
+    entry.thumbnail,
+    entry,
+  );
+}
 
 // ==================================================================
 // PUBLISHER / COMMUNITY CATALOGS
@@ -37,7 +75,8 @@ const PUBLISHER_CATALOGS = [
   { name: 'WeatherNext', id: 'gcp-public-data-weathernext' },
 ];
 
-const COMMUNITY_CATALOGS = [{ name: 'Awesome GEE Community Catalog', id: 'sat-io' }];
+/** Lowercase set of publisher STAC IDs for filtering the root catalog. */
+const PUBLISHER_ID_SET = new Set(PUBLISHER_CATALOGS.map((p) => p.id.toLowerCase()));
 
 // ==================================================================
 // DATASETTREEDATAPROVIDER
@@ -48,13 +87,14 @@ export class DatasetTreeDataProvider implements vscode.TreeDataProvider<DatasetT
   readonly onDidChangeTreeData = this._onDidChangeTreeData.event;
 
   private providers: { id: string; title: string; href: string }[] | undefined;
-  private typeCache = new Map<string, string>();
   private metadataCache = new Map<string, CollectionMetadata>();
   private leafParentMap = new Map<string, string>();
   private loadingProviders = new Set<string>();
   private providerChildren = new Map<string, { id: string; title: string; href: string }[]>();
   private providerLoadingState = new Set<string>();
   private expandedNodes = new Set<string>();
+  private communityThemes: CommunityThemesMap | undefined;
+  private communityLoading = false;
 
   getTreeItem(element: DatasetTreeItem): vscode.TreeItem {
     return element;
@@ -76,7 +116,13 @@ export class DatasetTreeDataProvider implements vscode.TreeDataProvider<DatasetT
       element.nodeType === 'provider' &&
       this.providers?.some((p) => p.href === element.stacHref)
     ) {
-      return new DatasetTreeItem('Google', 'category', 'google');
+      const stacEntry = this.providers!.find((p) => p.href === element.stacHref);
+      const isPublisher = stacEntry && PUBLISHER_ID_SET.has(stacEntry.title.toLowerCase());
+      return new DatasetTreeItem(
+        isPublisher ? 'Publishers' : 'Google',
+        'category',
+        isPublisher ? 'publishers' : 'google',
+      );
     }
     return undefined;
   }
@@ -95,32 +141,10 @@ export class DatasetTreeDataProvider implements vscode.TreeDataProvider<DatasetT
         return this.getGoogleProviders();
       }
       if (element.stacHref === 'publishers') {
-        return PUBLISHER_CATALOGS.map(
-          (p) =>
-            new DatasetTreeItem(
-              p.name,
-              'provider',
-              '',
-              undefined,
-              undefined,
-              false,
-              `https://developers.google.com/earth-engine/datasets/publisher/${p.id}`,
-            ),
-        );
+        return this.getPublisherProviders();
       }
       if (element.stacHref === 'community') {
-        return COMMUNITY_CATALOGS.map(
-          (c) =>
-            new DatasetTreeItem(
-              c.name,
-              'provider',
-              '',
-              undefined,
-              undefined,
-              false,
-              `https://developers.google.com/earth-engine/datasets/community/${c.id}`,
-            ),
-        );
+        return this.getCommunityThemeItems();
       }
       return [];
     }
@@ -129,13 +153,20 @@ export class DatasetTreeDataProvider implements vscode.TreeDataProvider<DatasetT
       const cached = this.providerChildren.get(element.stacHref);
 
       if (cached) {
+        // Start metadata resolution the first time the tree accesses this provider's
+        // children — covers both manual expansion and expansion triggered by reveal().
+        const uncached = cached.filter((d) => !this.metadataCache.has(d.href));
+        if (uncached.length > 0 && !this.loadingProviders.has(element.stacHref)) {
+          this.loadingProviders.add(element.stacHref);
+          void this.resolveTypesInBackground(uncached.map((d) => d.href));
+        }
         return cached.map((d) => {
           const eeId = d.id.replace(/_/g, '/');
           const parts = d.id.split('_');
           const shortName = parts.length > 1 ? parts.slice(1).join('_') : d.id;
           const meta = this.metadataCache.get(d.href);
           return new DatasetTreeItem(
-            shortName,
+            meta?.title || shortName,
             'dataset',
             d.href,
             eeId,
@@ -154,6 +185,10 @@ export class DatasetTreeDataProvider implements vscode.TreeDataProvider<DatasetT
       }
 
       return [new DatasetTreeItem('Loading...', 'dataset', '', undefined, undefined, true)];
+    }
+
+    if (element.nodeType === 'communityTheme') {
+      return (this.communityThemes?.get(element.stacHref) ?? []).map(makeCommunityDatasetItem);
     }
 
     return [];
@@ -187,7 +222,36 @@ export class DatasetTreeDataProvider implements vscode.TreeDataProvider<DatasetT
     this._onDidChangeTreeData.fire(item);
   }
 
-  /** Fetches and caches the Google providers from the STAC root catalog. */
+  /** Returns community theme items, kicking off a background load on first call. */
+  private getCommunityThemeItems(): DatasetTreeItem[] {
+    if (this.communityThemes) {
+      return [...this.communityThemes.keys()]
+        .sort()
+        .map((theme) =>
+          this.applyExpandedIcon(new DatasetTreeItem(theme, 'communityTheme', theme)),
+        );
+    }
+    if (!this.communityLoading) {
+      this.communityLoading = true;
+      this.loadCommunityInBackground();
+    }
+    return [new DatasetTreeItem('Loading...', 'dataset', '', undefined, undefined, true)];
+  }
+
+  /** Fetches the community catalog in the background, then refreshes the tree. */
+  private async loadCommunityInBackground(): Promise<void> {
+    try {
+      this.communityThemes = await fetchCommunityThemes();
+    } catch (err) {
+      vscode.window.showErrorMessage(
+        `Failed to load community catalog: ${err instanceof Error ? err.message : String(err)}`,
+      );
+      this.communityLoading = false;
+    }
+    this._onDidChangeTreeData.fire();
+  }
+
+  /** Fetches and caches the Google providers from the STAC root catalog, excluding publishers. */
   private async getGoogleProviders(): Promise<DatasetTreeItem[]> {
     if (!this.providers) {
       try {
@@ -197,9 +261,32 @@ export class DatasetTreeDataProvider implements vscode.TreeDataProvider<DatasetT
         return [];
       }
     }
-    return this.providers.map((p) =>
-      this.applyExpandedIcon(new DatasetTreeItem(p.title, 'provider', p.href)),
-    );
+    return this.providers
+      .filter((p) => !PUBLISHER_ID_SET.has(p.title.toLowerCase()))
+      .map((p) => this.applyExpandedIcon(new DatasetTreeItem(p.title, 'provider', p.href)));
+  }
+
+  /**
+   * Returns publisher provider items derived from the STAC root catalog.
+   * Matches each entry in PUBLISHER_CATALOGS against the root catalog by
+   * case-insensitive ID to obtain the real STAC href.
+   */
+  private async getPublisherProviders(): Promise<DatasetTreeItem[]> {
+    if (!this.providers) {
+      try {
+        this.providers = await fetchRootCatalog();
+      } catch {
+        vscode.window.showErrorMessage('Failed to load publisher catalog');
+        return [];
+      }
+    }
+    return PUBLISHER_CATALOGS.flatMap((p) => {
+      const stacEntry = this.providers!.find((e) => e.title.toLowerCase() === p.id.toLowerCase());
+      if (!stacEntry) {
+        return [];
+      }
+      return [this.applyExpandedIcon(new DatasetTreeItem(p.name, 'provider', stacEntry.href))];
+    });
   }
 
   /** Loads datasets for a provider in the background, then refreshes the tree. */
@@ -229,16 +316,19 @@ export class DatasetTreeDataProvider implements vscode.TreeDataProvider<DatasetT
     const batchSize = 10;
     for (let i = 0; i < hrefs.length; i += batchSize) {
       const batch = hrefs.slice(i, i + batchSize);
-      const results = await Promise.allSettled(
+      await Promise.allSettled(
         batch.map(async (href) => {
-          const meta = await fetchCollectionMetadata(href);
-          this.metadataCache.set(href, meta);
+          try {
+            const meta = await fetchCollectionMetadata(href);
+            this.metadataCache.set(href, meta);
+          } catch {
+            // Timed out or unreachable — store fallback so the spinner clears
+            this.metadataCache.set(href, METADATA_FALLBACK);
+          }
         }),
       );
       // Refresh after each batch so icons update progressively
-      if (results.some((r) => r.status === 'fulfilled')) {
-        this._onDidChangeTreeData.fire();
-      }
+      this._onDidChangeTreeData.fire();
     }
   }
 
@@ -248,79 +338,146 @@ export class DatasetTreeDataProvider implements vscode.TreeDataProvider<DatasetT
     this.providerChildren.clear();
     this.providerLoadingState.clear();
     this.loadingProviders.clear();
-    this.typeCache.clear();
+    this.communityThemes = undefined;
+    this.communityLoading = false;
     this.metadataCache.clear();
     this.leafParentMap.clear();
     this._onDidChangeTreeData.fire();
   }
 
-  /** Opens a QuickPick search across all datasets in the catalog, returning the selected item. */
+  /**
+   * Opens an incremental QuickPick search that shows immediately with cached
+   * data and loads remaining providers lazily in the background, indicating
+   * progress via the QuickPick's built-in busy spinner.
+   */
   async searchDatasets(): Promise<DatasetTreeItem | undefined> {
     if (!this.providers) {
-      this.providers = await fetchRootCatalog();
+      try {
+        this.providers = await fetchRootCatalog();
+      } catch {
+        vscode.window.showErrorMessage('Failed to load dataset catalog');
+        return undefined;
+      }
     }
 
-    // Collect all datasets across all providers
-    const allItems: {
-      label: string;
-      datasetId: string;
+    type SearchItem = vscode.QuickPickItem & {
       href: string;
-      provider: string;
+      datasetId: string;
       providerHref: string;
-    }[] = [];
+    };
 
-    await vscode.window.withProgress(
-      { location: vscode.ProgressLocation.Notification, title: 'Loading dataset index...' },
-      async () => {
-        const results = await Promise.all(
-          this.providers!.map(async (p) => {
-            try {
-              const datasets = await fetchProviderCatalog(p.href);
-              return datasets.map((d) => ({
-                label: `${p.title}/${d.title}`,
-                datasetId: d.id.replace(/_/g, '/'),
-                href: d.href,
-                provider: p.title,
-                providerHref: p.href,
-              }));
-            } catch {
-              return [];
-            }
-          }),
-        );
-        for (const batch of results) {
-          allItems.push(...batch);
+    const qp = vscode.window.createQuickPick<SearchItem>();
+    qp.placeholder = 'Search datasets...';
+    qp.matchOnDescription = true;
+
+    /** Rebuilds QuickPick items from all currently cached provider children. */
+    const rebuildItems = () => {
+      const items: SearchItem[] = [];
+      for (const [provHref, datasets] of this.providerChildren) {
+        for (const d of datasets) {
+          const eeId = d.id.replace(/_/g, '/');
+          const meta = this.metadataCache.get(d.href);
+          items.push({
+            label: meta?.title || d.title,
+            description: eeId,
+            href: d.href,
+            datasetId: eeId,
+            providerHref: provHref,
+          });
         }
-      },
-    );
-    allItems.forEach((item) => this.leafParentMap.set(item.href, item.providerHref));
+      }
+      qp.items = items;
+    };
 
-    const picked = await vscode.window.showQuickPick(
-      allItems.map((item) => ({
-        label: item.label,
-        description: item.datasetId,
-        item,
-      })),
-      { placeHolder: 'Search datasets...', matchOnDescription: true },
-    );
+    // Show immediately with whatever is already cached from tree expansion
+    rebuildItems();
+    qp.show();
 
-    if (picked) {
-      const dId = picked.item.datasetId.replace(/\//g, '_');
-      const parts = dId.split('_');
-      const shortName = parts.length > 1 ? parts.slice(1).join('_') : dId;
-      const meta = this.metadataCache.get(picked.item.href);
-      return new DatasetTreeItem(
-        shortName,
-        'dataset',
-        picked.item.href,
-        picked.item.datasetId,
-        meta?.type,
-        undefined,
-        undefined,
-        meta?.description,
-        meta?.keywords,
-      );
-    }
-    return undefined;
+    // Providers not yet fetched
+    const unloaded = this.providers.filter((p) => !this.providerChildren.has(p.href));
+
+    return new Promise((resolve) => {
+      let disposed = false;
+
+      if (unloaded.length > 0) {
+        qp.busy = true;
+        (async () => {
+          const batchSize = 5;
+          for (let i = 0; i < unloaded.length; i += batchSize) {
+            if (disposed) {
+              break;
+            }
+            const batch = unloaded.slice(i, i + batchSize);
+            await Promise.allSettled(
+              batch.map(async (p) => {
+                try {
+                  const datasets = await fetchProviderCatalog(p.href);
+                  this.providerChildren.set(p.href, datasets);
+                  datasets.forEach((d) => this.leafParentMap.set(d.href, p.href));
+                } catch {
+                  // skip unreachable providers
+                }
+              }),
+            );
+            if (!disposed) {
+              rebuildItems();
+            }
+          }
+          if (!disposed) {
+            qp.busy = false;
+          }
+        })();
+      }
+
+      qp.onDidAccept(() => {
+        if (disposed) {
+          return;
+        }
+        disposed = true;
+        const [selected] = qp.selectedItems;
+        qp.dispose();
+        if (!selected) {
+          resolve(undefined);
+          return;
+        }
+        // Fetch metadata now if not yet cached so the revealed tree item
+        // has a proper icon, tooltip and label instead of a spinner.
+        (async () => {
+          let meta = this.metadataCache.get(selected.href);
+          if (!meta) {
+            try {
+              meta = await fetchCollectionMetadata(selected.href);
+            } catch {
+              meta = METADATA_FALLBACK;
+            }
+            this.metadataCache.set(selected.href, meta);
+          }
+          const dId = selected.datasetId.replace(/\//g, '_');
+          const parts = dId.split('_');
+          const shortName = parts.length > 1 ? parts.slice(1).join('_') : dId;
+          resolve(
+            new DatasetTreeItem(
+              meta.title || shortName,
+              'dataset',
+              selected.href,
+              selected.datasetId,
+              meta.type,
+              undefined,
+              undefined,
+              meta.description,
+              meta.keywords,
+            ),
+          );
+        })();
+      });
+
+      qp.onDidHide(() => {
+        if (!disposed) {
+          disposed = true;
+          resolve(undefined);
+        }
+        qp.dispose();
+      });
+    });
   }
 }

@@ -65,9 +65,19 @@ export interface StacCollection {
 // ==================================================================
 // API FUNCTIONS
 // ==================================================================
+/** Rejects after `ms` milliseconds so hung STAC requests don't spin forever. */
+function withTimeout<T>(promise: Promise<T>, ms = 10_000): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) =>
+      setTimeout(() => reject(new Error(`STAC request timed out after ${ms}ms`)), ms),
+    ),
+  ]);
+}
+
 /** Fetches the top-level STAC catalog and returns child (provider) entries. */
 export async function fetchRootCatalog(): Promise<{ id: string; title: string; href: string }[]> {
-  const catalog = await fetchJson<StacCatalog>(STAC_ROOT);
+  const catalog = await withTimeout(fetchJson<StacCatalog>(STAC_ROOT));
   return catalog.links
     .filter((l) => l.rel === 'child')
     .map((l) => ({ id: l.title || '', title: l.title || '', href: l.href }));
@@ -77,29 +87,27 @@ export async function fetchRootCatalog(): Promise<{ id: string; title: string; h
 export async function fetchProviderCatalog(
   href: string,
 ): Promise<{ id: string; title: string; href: string }[]> {
-  const catalog = await fetchJson<StacCatalog>(href);
+  const catalog = await withTimeout(fetchJson<StacCatalog>(href));
   return catalog.links
     .filter((l) => l.rel === 'child')
     .map((l) => ({ id: l.title || '', title: l.title || '', href: l.href }));
 }
 
-/** Fetches only the `gee:type` field from a STAC collection. */
-export async function fetchCollectionType(href: string): Promise<string> {
-  const collection = await fetchJson<{ 'gee:type'?: string }>(href);
-  return collection['gee:type'] || 'unknown';
-}
-
 /** Fetches type, description, and keywords from a STAC collection. */
 export async function fetchCollectionMetadata(
   href: string,
-): Promise<{ type: string; description: string; keywords: string[] }> {
-  const collection = await fetchJson<{
-    'gee:type'?: string;
-    description?: string;
-    keywords?: string[];
-  }>(href);
+): Promise<{ type: string; title: string; description: string; keywords: string[] }> {
+  const collection = await withTimeout(
+    fetchJson<{
+      'gee:type'?: string;
+      title?: string;
+      description?: string;
+      keywords?: string[];
+    }>(href),
+  );
   return {
     type: collection['gee:type'] || 'unknown',
+    title: collection.title || '',
     description: collection.description || '',
     keywords: collection.keywords || [],
   };

@@ -363,13 +363,19 @@
       },
       {
         "command": "earthengine.map.testNighttimeLights",
-        "title": "Earth Engine: Test – Nighttime Lights Trend",
+        "title": "Earth Engine: Test \u2013 Nighttime Lights Trend",
         "icon": "$(beaker)"
       },
       {
         "command": "earthengine.map.testSepalViz",
-        "title": "Earth Engine: Test – SEPAL Visualization Presets",
+        "title": "Earth Engine: Test \u2013 SEPAL Visualization Presets",
         "icon": "$(beaker)"
+      },
+      {
+        "command": "earthengine.openCommunityDatasetPanel",
+        "title": "Open Details",
+        "icon": "$(open-preview)",
+        "category": "Earth Engine"
       }
     ],
     "menus": {
@@ -539,6 +545,16 @@
         {
           "command": "earthengine.copyDatasetId",
           "when": "viewItem == dataset-item",
+          "group": "inline"
+        },
+        {
+          "command": "earthengine.openCommunityDatasetPanel",
+          "when": "viewItem == dataset-community-item",
+          "group": "inline"
+        },
+        {
+          "command": "earthengine.copyDatasetId",
+          "when": "viewItem == dataset-community-item",
           "group": "inline"
         }
       ]
