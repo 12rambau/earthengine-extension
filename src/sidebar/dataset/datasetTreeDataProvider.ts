@@ -87,7 +87,6 @@ export class DatasetTreeDataProvider implements vscode.TreeDataProvider<DatasetT
   readonly onDidChangeTreeData = this._onDidChangeTreeData.event;
 
   private providers: { id: string; title: string; href: string }[] | undefined;
-  private typeCache = new Map<string, string>();
   private metadataCache = new Map<string, CollectionMetadata>();
   private leafParentMap = new Map<string, string>();
   private loadingProviders = new Set<string>();
@@ -341,7 +340,6 @@ export class DatasetTreeDataProvider implements vscode.TreeDataProvider<DatasetT
     this.loadingProviders.clear();
     this.communityThemes = undefined;
     this.communityLoading = false;
-    this.typeCache.clear();
     this.metadataCache.clear();
     this.leafParentMap.clear();
     this._onDidChangeTreeData.fire();
