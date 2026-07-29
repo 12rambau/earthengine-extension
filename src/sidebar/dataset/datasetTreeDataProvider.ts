@@ -16,7 +16,7 @@ import {
   CommunityThemesMap,
 } from './communityClient.js';
 
-type CollectionMetadata = { type: string; description: string; keywords: string[] };
+type CollectionMetadata = { type: string; title: string; description: string; keywords: string[] };
 
 // ==================================================================
 // HELPERS
@@ -67,6 +67,9 @@ const PUBLISHER_CATALOGS = [
   { name: 'WeatherNext', id: 'gcp-public-data-weathernext' },
 ];
 
+/** Lowercase set of publisher STAC IDs for filtering the root catalog. */
+const PUBLISHER_ID_SET = new Set(PUBLISHER_CATALOGS.map((p) => p.id.toLowerCase()));
+
 // ==================================================================
 // DATASETTREEDATAPROVIDER
 // ==================================================================
@@ -106,7 +109,13 @@ export class DatasetTreeDataProvider implements vscode.TreeDataProvider<DatasetT
       element.nodeType === 'provider' &&
       this.providers?.some((p) => p.href === element.stacHref)
     ) {
-      return new DatasetTreeItem('Google', 'category', 'google');
+      const stacEntry = this.providers!.find((p) => p.href === element.stacHref);
+      const isPublisher = stacEntry && PUBLISHER_ID_SET.has(stacEntry.title.toLowerCase());
+      return new DatasetTreeItem(
+        isPublisher ? 'Publishers' : 'Google',
+        'category',
+        isPublisher ? 'publishers' : 'google',
+      );
     }
     return undefined;
   }
@@ -125,18 +134,7 @@ export class DatasetTreeDataProvider implements vscode.TreeDataProvider<DatasetT
         return this.getGoogleProviders();
       }
       if (element.stacHref === 'publishers') {
-        return PUBLISHER_CATALOGS.map(
-          (p) =>
-            new DatasetTreeItem(
-              p.name,
-              'provider',
-              '',
-              undefined,
-              undefined,
-              false,
-              `https://developers.google.com/earth-engine/datasets/publisher/${p.id}`,
-            ),
-        );
+        return this.getPublisherProviders();
       }
       if (element.stacHref === 'community') {
         return this.getCommunityThemeItems();
@@ -154,7 +152,7 @@ export class DatasetTreeDataProvider implements vscode.TreeDataProvider<DatasetT
           const shortName = parts.length > 1 ? parts.slice(1).join('_') : d.id;
           const meta = this.metadataCache.get(d.href);
           return new DatasetTreeItem(
-            shortName,
+            meta?.title || shortName,
             'dataset',
             d.href,
             eeId,
@@ -239,7 +237,7 @@ export class DatasetTreeDataProvider implements vscode.TreeDataProvider<DatasetT
     this._onDidChangeTreeData.fire();
   }
 
-  /** Fetches and caches the Google providers from the STAC root catalog. */
+  /** Fetches and caches the Google providers from the STAC root catalog, excluding publishers. */
   private async getGoogleProviders(): Promise<DatasetTreeItem[]> {
     if (!this.providers) {
       try {
@@ -249,9 +247,32 @@ export class DatasetTreeDataProvider implements vscode.TreeDataProvider<DatasetT
         return [];
       }
     }
-    return this.providers.map((p) =>
-      this.applyExpandedIcon(new DatasetTreeItem(p.title, 'provider', p.href)),
-    );
+    return this.providers
+      .filter((p) => !PUBLISHER_ID_SET.has(p.title.toLowerCase()))
+      .map((p) => this.applyExpandedIcon(new DatasetTreeItem(p.title, 'provider', p.href)));
+  }
+
+  /**
+   * Returns publisher provider items derived from the STAC root catalog.
+   * Matches each entry in PUBLISHER_CATALOGS against the root catalog by
+   * case-insensitive ID to obtain the real STAC href.
+   */
+  private async getPublisherProviders(): Promise<DatasetTreeItem[]> {
+    if (!this.providers) {
+      try {
+        this.providers = await fetchRootCatalog();
+      } catch {
+        vscode.window.showErrorMessage('Failed to load publisher catalog');
+        return [];
+      }
+    }
+    return PUBLISHER_CATALOGS.flatMap((p) => {
+      const stacEntry = this.providers!.find((e) => e.title.toLowerCase() === p.id.toLowerCase());
+      if (!stacEntry) {
+        return [];
+      }
+      return [this.applyExpandedIcon(new DatasetTreeItem(p.name, 'provider', stacEntry.href))];
+    });
   }
 
   /** Loads datasets for a provider in the background, then refreshes the tree. */

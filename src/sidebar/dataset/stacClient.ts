@@ -92,14 +92,16 @@ export async function fetchCollectionType(href: string): Promise<string> {
 /** Fetches type, description, and keywords from a STAC collection. */
 export async function fetchCollectionMetadata(
   href: string,
-): Promise<{ type: string; description: string; keywords: string[] }> {
+): Promise<{ type: string; title: string; description: string; keywords: string[] }> {
   const collection = await fetchJson<{
     'gee:type'?: string;
+    title?: string;
     description?: string;
     keywords?: string[];
   }>(href);
   return {
     type: collection['gee:type'] || 'unknown',
+    title: collection.title || '',
     description: collection.description || '',
     keywords: collection.keywords || [],
   };
