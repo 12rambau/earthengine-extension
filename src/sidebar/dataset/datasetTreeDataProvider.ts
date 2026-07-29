@@ -8,7 +8,13 @@
  */
 
 import * as vscode from 'vscode';
-import { fetchRootCatalog, fetchProviderCatalog, fetchCollectionMetadata } from './stacClient.js';
+import {
+  fetchRootCatalog,
+  fetchProviderCatalog,
+  fetchCollectionMetadata,
+  fetchPublisherProviders,
+  PublisherEntry,
+} from './stacClient.js';
 import { DatasetTreeItem } from './datasetTreeItem.js';
 import {
   fetchCommunityThemes,
@@ -52,33 +58,6 @@ function makeCommunityDatasetItem(entry: CommunityDatasetEntry): DatasetTreeItem
 }
 
 // ==================================================================
-// PUBLISHER / COMMUNITY CATALOGS
-// ==================================================================
-const PUBLISHER_CATALOGS = [
-  { name: 'BirdLife International', id: 'ee-kbas-in-gee' },
-  { name: 'Canadian Forest Earth Observation Products', id: 'gcpm041u-lemur' },
-  { name: 'Continuous Global Mangrove Dynamics', id: 'mangrovedatahub2' },
-  { name: 'Environmental Defense Fund - MethaneSAT', id: 'edf-methanesat-ee' },
-  { name: 'Forest Data Partnership', id: 'forestdatapartnership' },
-  { name: 'Global Pasture Watch', id: 'global-pasture-watch' },
-  { name: 'Land and Carbon Lab', id: 'landandcarbon' },
-  { name: 'Large Scale Hydrology Lab', id: 'pml_evapotranspiration' },
-  { name: 'MapBiomas', id: 'mapbiomas-public' },
-  { name: 'National Ecological Observatory Network', id: 'neon-prod-earthengine' },
-  { name: 'Nature Trace', id: 'nature-trace' },
-  { name: 'OpenET', id: 'openet' },
-  { name: 'Overture Maps', id: 'overture-maps' },
-  { name: 'Oya', id: 'global-precipitation-nowcast' },
-  { name: 'Planet', id: 'planet-nicfi' },
-  { name: 'The Malaria Atlas Project', id: 'malariaatlasproject' },
-  { name: 'USDA Forest Services', id: 'gtac-data-publish' },
-  { name: 'WeatherNext', id: 'gcp-public-data-weathernext' },
-];
-
-/** Lowercase set of publisher STAC IDs for filtering the root catalog. */
-const PUBLISHER_ID_SET = new Set(PUBLISHER_CATALOGS.map((p) => p.id.toLowerCase()));
-
-// ==================================================================
 // DATASETTREEDATAPROVIDER
 // ==================================================================
 /** Provides a three-level dataset tree: category → provider → datasets. */
@@ -95,6 +74,11 @@ export class DatasetTreeDataProvider implements vscode.TreeDataProvider<DatasetT
   private expandedNodes = new Set<string>();
   private communityThemes: CommunityThemesMap | undefined;
   private communityLoading = false;
+  /** Publishers identified dynamically from STAC `gee:publisher` field. */
+  private publisherProviders: PublisherEntry[] | undefined;
+  private publishersLoading = false;
+  /** Set of publisher hrefs for O(1) filtering in getGoogleProviders(). */
+  private publisherHrefSet = new Set<string>();
 
   getTreeItem(element: DatasetTreeItem): vscode.TreeItem {
     return element;
@@ -116,8 +100,7 @@ export class DatasetTreeDataProvider implements vscode.TreeDataProvider<DatasetT
       element.nodeType === 'provider' &&
       this.providers?.some((p) => p.href === element.stacHref)
     ) {
-      const stacEntry = this.providers!.find((p) => p.href === element.stacHref);
-      const isPublisher = stacEntry && PUBLISHER_ID_SET.has(stacEntry.title.toLowerCase());
+      const isPublisher = this.publisherHrefSet.has(element.stacHref);
       return new DatasetTreeItem(
         isPublisher ? 'Publishers' : 'Google',
         'category',
@@ -261,32 +244,52 @@ export class DatasetTreeDataProvider implements vscode.TreeDataProvider<DatasetT
         return [];
       }
     }
+    // Trigger publisher identification if not yet started; show spinner until done.
+    if (!this.publisherProviders && !this.publishersLoading) {
+      this.publishersLoading = true;
+      void this.loadPublishersInBackground();
+    }
+    if (!this.publisherProviders) {
+      return [new DatasetTreeItem('Loading...', 'dataset', '', undefined, undefined, true)];
+    }
     return this.providers
-      .filter((p) => !PUBLISHER_ID_SET.has(p.title.toLowerCase()))
+      .filter((p) => !this.publisherHrefSet.has(p.href))
       .map((p) => this.applyExpandedIcon(new DatasetTreeItem(p.title, 'provider', p.href)));
   }
 
   /**
-   * Returns publisher provider items derived from the STAC root catalog.
-   * Matches each entry in PUBLISHER_CATALOGS against the root catalog by
-   * case-insensitive ID to obtain the real STAC href.
+   * Returns publisher provider items identified dynamically from the STAC catalog.
+   * Each sub-catalog is inspected for `gee:publisher.type === "PUBLISHER"` and its
+   * `title` field is used as the display name — no hardcoded dictionary needed.
    */
-  private async getPublisherProviders(): Promise<DatasetTreeItem[]> {
-    if (!this.providers) {
-      try {
-        this.providers = await fetchRootCatalog();
-      } catch {
-        vscode.window.showErrorMessage('Failed to load publisher catalog');
-        return [];
-      }
+  private getPublisherProviders(): DatasetTreeItem[] {
+    if (this.publisherProviders) {
+      return this.publisherProviders.map((p) =>
+        this.applyExpandedIcon(new DatasetTreeItem(p.title, 'provider', p.href)),
+      );
     }
-    return PUBLISHER_CATALOGS.flatMap((p) => {
-      const stacEntry = this.providers!.find((e) => e.title.toLowerCase() === p.id.toLowerCase());
-      if (!stacEntry) {
-        return [];
+    if (!this.publishersLoading) {
+      this.publishersLoading = true;
+      void this.loadPublishersInBackground();
+    }
+    return [new DatasetTreeItem('Loading...', 'dataset', '', undefined, undefined, true)];
+  }
+
+  /** Batch-fetches all STAC root sub-catalogs to identify publishers via `gee:publisher`. */
+  private async loadPublishersInBackground(): Promise<void> {
+    try {
+      if (!this.providers) {
+        this.providers = await fetchRootCatalog();
       }
-      return [this.applyExpandedIcon(new DatasetTreeItem(p.name, 'provider', stacEntry.href))];
-    });
+      this.publisherProviders = await fetchPublisherProviders(this.providers);
+      this.publisherHrefSet = new Set(this.publisherProviders.map((p) => p.href));
+    } catch (err) {
+      vscode.window.showErrorMessage(
+        `Failed to load publisher catalog: ${err instanceof Error ? err.message : String(err)}`,
+      );
+      this.publishersLoading = false;
+    }
+    this._onDidChangeTreeData.fire();
   }
 
   /** Loads datasets for a provider in the background, then refreshes the tree. */
@@ -340,6 +343,9 @@ export class DatasetTreeDataProvider implements vscode.TreeDataProvider<DatasetT
     this.loadingProviders.clear();
     this.communityThemes = undefined;
     this.communityLoading = false;
+    this.publisherProviders = undefined;
+    this.publishersLoading = false;
+    this.publisherHrefSet.clear();
     this.metadataCache.clear();
     this.leafParentMap.clear();
     this._onDidChangeTreeData.fire();

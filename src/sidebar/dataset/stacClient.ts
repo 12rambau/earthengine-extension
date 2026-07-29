@@ -75,6 +75,12 @@ function withTimeout<T>(promise: Promise<T>, ms = 10_000): Promise<T> {
   ]);
 }
 
+/** A publisher entry derived dynamically from the STAC catalog. */
+export interface PublisherEntry {
+  title: string;
+  href: string;
+}
+
 /** Fetches the top-level STAC catalog and returns child (provider) entries. */
 export async function fetchRootCatalog(): Promise<{ id: string; title: string; href: string }[]> {
   const catalog = await withTimeout(fetchJson<StacCatalog>(STAC_ROOT));
@@ -116,6 +122,34 @@ export async function fetchCollectionMetadata(
 /** Fetches the full STAC collection metadata for a dataset. */
 export async function fetchCollection(href: string): Promise<StacCollection> {
   return fetchJson<StacCollection>(href);
+}
+
+/**
+ * Identifies publisher sub-catalogs from a list of STAC root entries.
+ * Batch-fetches each sub-catalog (5 s timeout) and keeps only those that
+ * carry `"gee:publisher": { "type": "PUBLISHER" }`.
+ */
+export async function fetchPublisherProviders(
+  allProviders: { href: string }[],
+): Promise<PublisherEntry[]> {
+  const results = await Promise.allSettled(
+    allProviders.map(async ({ href }) => {
+      const catalog = await withTimeout(
+        fetchJson<{ title?: string; 'gee:publisher'?: { type?: string } }>(href),
+        5_000,
+      );
+      if (catalog['gee:publisher']?.type !== 'PUBLISHER') {
+        return null;
+      }
+      return { title: catalog.title || href, href };
+    }),
+  );
+  return results
+    .filter(
+      (r): r is PromiseFulfilledResult<PublisherEntry> =>
+        r.status === 'fulfilled' && r.value !== null,
+    )
+    .map((r) => r.value);
 }
 
 /** Builds the Google Earth Engine catalog page URL for a given dataset ID. */
