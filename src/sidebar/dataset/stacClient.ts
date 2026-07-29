@@ -93,12 +93,6 @@ export async function fetchProviderCatalog(
     .map((l) => ({ id: l.title || '', title: l.title || '', href: l.href }));
 }
 
-/** Fetches only the `gee:type` field from a STAC collection. */
-export async function fetchCollectionType(href: string): Promise<string> {
-  const collection = await fetchJson<{ 'gee:type'?: string }>(href);
-  return collection['gee:type'] || 'unknown';
-}
-
 /** Fetches type, description, and keywords from a STAC collection. */
 export async function fetchCollectionMetadata(
   href: string,
