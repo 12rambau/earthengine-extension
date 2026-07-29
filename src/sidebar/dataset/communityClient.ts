@@ -12,6 +12,16 @@ import { fetchJson } from '../../shared/httpClient.js';
 const COMMUNITY_JSON_URL =
   'https://raw.githubusercontent.com/samapriya/awesome-gee-community-datasets/master/community_datasets.json';
 
+/** Rejects after `ms` milliseconds so a stalled request never blocks indefinitely. */
+function withTimeout<T>(promise: Promise<T>, ms = 15_000): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) =>
+      setTimeout(() => reject(new Error(`Request timed out after ${ms}ms`)), ms),
+    ),
+  ]);
+}
+
 // ==================================================================
 // INTERFACES
 // ==================================================================
@@ -41,7 +51,7 @@ export type CommunityThemesMap = Map<string, CommunityDatasetEntry[]>;
  * docs page; only the first entry per page is kept.
  */
 export async function fetchCommunityThemes(): Promise<CommunityThemesMap> {
-  const data = await fetchJson<CommunityDatasetEntry[]>(COMMUNITY_JSON_URL);
+  const data = await withTimeout(fetchJson<CommunityDatasetEntry[]>(COMMUNITY_JSON_URL));
 
   const seen = new Set<string>();
   const themes = new Map<string, CommunityDatasetEntry[]>();
