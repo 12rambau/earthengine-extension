@@ -1,6 +1,6 @@
 /**
  * @module editor/dataset
- * Barrel for the STAC dataset detail panel.
+ * Barrel for the dataset detail panels (STAC and community catalog).
  */
 
-export { createDatasetPanel } from './datasetPanel.js';
+export { createDatasetPanel, createCommunityDatasetPanel } from './datasetPanel.js';

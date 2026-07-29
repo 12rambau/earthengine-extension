@@ -10,8 +10,38 @@
 import * as vscode from 'vscode';
 import { fetchRootCatalog, fetchProviderCatalog, fetchCollectionMetadata } from './stacClient.js';
 import { DatasetTreeItem } from './datasetTreeItem.js';
+import {
+  fetchCommunityThemes,
+  CommunityDatasetEntry,
+  CommunityThemesMap,
+} from './communityClient.js';
 
 type CollectionMetadata = { type: string; description: string; keywords: string[] };
+
+// ==================================================================
+// HELPERS
+// ==================================================================
+/** Creates a DatasetTreeItem from a community catalog entry. */
+function makeCommunityDatasetItem(entry: CommunityDatasetEntry): DatasetTreeItem {
+  const tags = entry.tags
+    .split(',')
+    .map((t) => t.trim())
+    .filter(Boolean);
+  return new DatasetTreeItem(
+    entry.title,
+    'communityDataset',
+    '',
+    entry.id,
+    entry.type,
+    false,
+    undefined,
+    entry.thematic_group,
+    tags,
+    entry.docs,
+    entry.thumbnail,
+    entry,
+  );
+}
 
 // ==================================================================
 // PUBLISHER / COMMUNITY CATALOGS
@@ -37,8 +67,6 @@ const PUBLISHER_CATALOGS = [
   { name: 'WeatherNext', id: 'gcp-public-data-weathernext' },
 ];
 
-const COMMUNITY_CATALOGS = [{ name: 'Awesome GEE Community Catalog', id: 'sat-io' }];
-
 // ==================================================================
 // DATASETTREEDATAPROVIDER
 // ==================================================================
@@ -55,6 +83,8 @@ export class DatasetTreeDataProvider implements vscode.TreeDataProvider<DatasetT
   private providerChildren = new Map<string, { id: string; title: string; href: string }[]>();
   private providerLoadingState = new Set<string>();
   private expandedNodes = new Set<string>();
+  private communityThemes: CommunityThemesMap | undefined;
+  private communityLoading = false;
 
   getTreeItem(element: DatasetTreeItem): vscode.TreeItem {
     return element;
@@ -109,18 +139,7 @@ export class DatasetTreeDataProvider implements vscode.TreeDataProvider<DatasetT
         );
       }
       if (element.stacHref === 'community') {
-        return COMMUNITY_CATALOGS.map(
-          (c) =>
-            new DatasetTreeItem(
-              c.name,
-              'provider',
-              '',
-              undefined,
-              undefined,
-              false,
-              `https://developers.google.com/earth-engine/datasets/community/${c.id}`,
-            ),
-        );
+        return this.getCommunityThemeItems();
       }
       return [];
     }
@@ -156,6 +175,10 @@ export class DatasetTreeDataProvider implements vscode.TreeDataProvider<DatasetT
       return [new DatasetTreeItem('Loading...', 'dataset', '', undefined, undefined, true)];
     }
 
+    if (element.nodeType === 'communityTheme') {
+      return (this.communityThemes?.get(element.stacHref) ?? []).map(makeCommunityDatasetItem);
+    }
+
     return [];
   }
 
@@ -185,6 +208,35 @@ export class DatasetTreeDataProvider implements vscode.TreeDataProvider<DatasetT
           : new vscode.ThemeIcon('folder-library');
     }
     this._onDidChangeTreeData.fire(item);
+  }
+
+  /** Returns community theme items, kicking off a background load on first call. */
+  private getCommunityThemeItems(): DatasetTreeItem[] {
+    if (this.communityThemes) {
+      return [...this.communityThemes.keys()]
+        .sort()
+        .map((theme) =>
+          this.applyExpandedIcon(new DatasetTreeItem(theme, 'communityTheme', theme)),
+        );
+    }
+    if (!this.communityLoading) {
+      this.communityLoading = true;
+      this.loadCommunityInBackground();
+    }
+    return [new DatasetTreeItem('Loading...', 'dataset', '', undefined, undefined, true)];
+  }
+
+  /** Fetches the community catalog in the background, then refreshes the tree. */
+  private async loadCommunityInBackground(): Promise<void> {
+    try {
+      this.communityThemes = await fetchCommunityThemes();
+    } catch (err) {
+      vscode.window.showErrorMessage(
+        `Failed to load community catalog: ${err instanceof Error ? err.message : String(err)}`,
+      );
+      this.communityLoading = false;
+    }
+    this._onDidChangeTreeData.fire();
   }
 
   /** Fetches and caches the Google providers from the STAC root catalog. */
@@ -248,6 +300,8 @@ export class DatasetTreeDataProvider implements vscode.TreeDataProvider<DatasetT
     this.providerChildren.clear();
     this.providerLoadingState.clear();
     this.loadingProviders.clear();
+    this.communityThemes = undefined;
+    this.communityLoading = false;
     this.typeCache.clear();
     this.metadataCache.clear();
     this.leafParentMap.clear();

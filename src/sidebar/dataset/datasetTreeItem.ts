@@ -5,9 +5,10 @@
  */
 
 import * as vscode from 'vscode';
+import { CommunityDatasetEntry } from './communityClient.js';
 
 /** Kind of node a `DatasetTreeItem` represents. */
-export type NodeType = 'category' | 'provider' | 'dataset';
+export type NodeType = 'category' | 'provider' | 'dataset' | 'communityTheme' | 'communityDataset';
 
 // ==================================================================
 // CONSTANTS
@@ -28,11 +29,14 @@ export class DatasetTreeItem extends vscode.TreeItem {
     public readonly nodeType: NodeType,
     public readonly stacHref: string,
     public readonly datasetId?: string,
-    geeType?: string,
+    public readonly geeType?: string,
     loading?: boolean,
     public readonly externalUrl?: string,
     description?: string,
     keywords?: string[],
+    public readonly docsUrl?: string,
+    public readonly thumbnailUrl?: string,
+    public readonly communityEntry?: CommunityDatasetEntry,
   ) {
     super(label);
 
@@ -59,6 +63,30 @@ export class DatasetTreeItem extends vscode.TreeItem {
           arguments: [vscode.Uri.parse(externalUrl)],
         };
       }
+    } else if (nodeType === 'communityTheme') {
+      this.collapsibleState = vscode.TreeItemCollapsibleState.Collapsed;
+      this.iconPath = new vscode.ThemeIcon('folder-library');
+      this.contextValue = 'dataset-community-theme';
+      this.id = `ct:${stacHref}`;
+    } else if (nodeType === 'communityDataset') {
+      this.collapsibleState = vscode.TreeItemCollapsibleState.None;
+      this.iconPath = geeType
+        ? TYPE_ICONS[geeType] || new vscode.ThemeIcon('file')
+        : new vscode.ThemeIcon('file');
+      this.contextValue = 'dataset-community-item';
+      this.id = `cd:${docsUrl}`;
+      const communityTooltip = new vscode.MarkdownString('', true);
+      communityTooltip.isTrusted = true;
+      communityTooltip.appendMarkdown(
+        `**${(geeType || 'unknown').replace(/_/g, ' ')}** — \`${datasetId || label}\`\n\n`,
+      );
+      if (description) {
+        communityTooltip.appendMarkdown(`${description}\n\n`);
+      }
+      if (keywords && keywords.length > 0) {
+        communityTooltip.appendMarkdown(keywords.map((k) => `\`${k}\``).join(' ') + '\n');
+      }
+      this.tooltip = communityTooltip;
     } else {
       this.collapsibleState = vscode.TreeItemCollapsibleState.None;
       this.iconPath = geeType
@@ -66,9 +94,6 @@ export class DatasetTreeItem extends vscode.TreeItem {
         : new vscode.ThemeIcon('loading~spin');
       this.contextValue = 'dataset-item';
       this.id = `ds:${stacHref}`;
-      if (datasetId) {
-        this.description = datasetId;
-      }
       if (geeType) {
         const tooltip = new vscode.MarkdownString('', true);
         tooltip.isTrusted = true;

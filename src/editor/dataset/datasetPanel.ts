@@ -10,6 +10,7 @@
 import * as vscode from 'vscode';
 import { marked } from 'marked';
 import { StacCollection } from '../../sidebar/dataset/stacClient.js';
+import { CommunityDatasetEntry } from '../../sidebar/dataset/communityClient.js';
 import Handlebars from 'handlebars';
 import template from './datasetPanel.hbs';
 import bandsTableTemplate from './datasetPanelBandsTable.hbs';
@@ -26,6 +27,7 @@ import script from './datasetPanel.webview.js';
 export function createDatasetPanel(
   collection: StacCollection,
   extensionUri: vscode.Uri,
+  extraTabs?: { id: string; label: string; content: string }[],
 ): vscode.WebviewPanel {
   const panel = vscode.window.createWebviewPanel(
     'earthengine.datasetDetail',
@@ -34,7 +36,7 @@ export function createDatasetPanel(
     { enableScripts: true },
   );
 
-  panel.webview.html = buildHtml(collection, panel.webview);
+  panel.webview.html = buildHtml(collection, panel.webview, extraTabs);
 
   // The webview posts the snippet text back so we can write it to the clipboard.
   panel.webview.onDidReceiveMessage((msg) => {
@@ -47,10 +49,50 @@ export function createDatasetPanel(
   return panel;
 }
 
+/**
+ * Creates and displays a WebView panel for a community catalog dataset.
+ * Renders the raw markdown as the description tab and adds a Properties
+ * tab with all structured fields from the catalog JSON entry.
+ */
+export function createCommunityDatasetPanel(
+  entry: CommunityDatasetEntry,
+  markdown: string,
+  extensionUri: vscode.Uri,
+): vscode.WebviewPanel {
+  const collection: StacCollection = {
+    type: 'Collection',
+    id: entry.id,
+    title: entry.title,
+    description: markdown,
+    keywords: [],
+    'gee:type': entry.type,
+    extent: {
+      spatial: { bbox: [[-180, -90, 180, 90]] },
+      temporal: { interval: [['', '']] },
+    },
+    providers: [],
+    summaries: {},
+    links: [
+      { rel: 'alternate', href: entry.docs },
+      ...(entry.thumbnail ? [{ rel: 'preview' as const, href: entry.thumbnail }] : []),
+    ],
+  };
+  const propertiesTab = {
+    id: 'properties',
+    label: 'Properties',
+    content: buildCommunityPropertiesHtml(entry),
+  };
+  return createDatasetPanel(collection, extensionUri, [propertiesTab]);
+}
+
 // ==================================================================
 // HTML BUILDER
 // ==================================================================
-function buildHtml(c: StacCollection, webview: vscode.Webview): string {
+function buildHtml(
+  c: StacCollection,
+  webview: vscode.Webview,
+  extraTabs?: { id: string; label: string; content: string }[],
+): string {
   const temporal = c.extent?.temporal?.interval?.[0];
   const startDate = temporal?.[0] || 'N/A';
   const endDate = temporal?.[1] || 'Ongoing';
@@ -66,7 +108,10 @@ function buildHtml(c: StacCollection, webview: vscode.Webview): string {
     : '';
 
   const datasetSlug = c.id.replace(/\//g, '_');
-  const catalogUrl = `https://developers.google.com/earth-engine/datasets/catalog/${datasetSlug}`;
+  const alternateLinkHref = c.links?.find((l) => l.rel === 'alternate')?.href;
+  const catalogUrl =
+    alternateLinkHref ??
+    `https://developers.google.com/earth-engine/datasets/catalog/${datasetSlug}`;
 
   const snippet =
     geeType === 'image_collection'
@@ -116,6 +161,7 @@ function buildHtml(c: StacCollection, webview: vscode.Webview): string {
   // Build the tab set from whichever sections actually have content.
   const tabs = [
     { id: 'description', label: 'Description', content: `<div class="md">${description}</div>` },
+    ...(extraTabs ?? []),
     { id: 'bands', label: 'Bands', content: bandsTable },
   ].filter((t) => t.content.trim());
 
@@ -166,6 +212,42 @@ function buildHtml(c: StacCollection, webview: vscode.Webview): string {
 // ==================================================================
 // HELPERS
 // ==================================================================
+/** Builds a structured properties table for a community catalog entry. */
+function buildCommunityPropertiesHtml(entry: CommunityDatasetEntry): string {
+  const rows: [string, string][] = [
+    ['Type', `<code>${escapeHtml(entry.type)}</code>`],
+    ['Earth Engine ID', `<code>${escapeHtml(entry.id)}</code>`],
+  ];
+  if (entry.provider) {
+    rows.push(['Provider', escapeHtml(entry.provider)]);
+  }
+  if (entry.license) {
+    rows.push(['License', escapeHtml(entry.license)]);
+  }
+  if (entry.thematic_group) {
+    rows.push(['Thematic Group', escapeHtml(entry.thematic_group)]);
+  }
+  if (entry.tags) {
+    const pills = entry.tags
+      .split(',')
+      .map((t) => `<span class="tag">${escapeHtml(t.trim())}</span>`)
+      .join(' ');
+    rows.push(['Tags', pills]);
+  }
+  if (entry.sample_code) {
+    rows.push([
+      'Sample Code',
+      `<a href="${escapeHtml(entry.sample_code)}">Open in Code Editor ↗</a>`,
+    ]);
+  }
+  rows.push(['Documentation', `<a href="${escapeHtml(entry.docs)}">Community Catalog ↗</a>`]);
+  return (
+    `<table>` +
+    rows.map(([k, v]) => `<tr><th style="width:140px">${k}</th><td>${v}</td></tr>`).join('') +
+    `</table>`
+  );
+}
+
 function escapeHtml(str: string): string {
   return str
     .replace(/&/g, '&amp;')

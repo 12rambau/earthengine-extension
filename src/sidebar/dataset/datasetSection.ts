@@ -12,7 +12,8 @@ import { SidebarSection } from '../../shared/baseComponents.js';
 import { DatasetTreeDataProvider } from './datasetTreeDataProvider.js';
 import { DatasetTreeItem } from './datasetTreeItem.js';
 import { fetchCollection, getDatasetPageUrl } from './stacClient.js';
-import { createDatasetPanel } from '../../editor/dataset/index.js';
+import { fetchHtml } from '../../shared/httpClient.js';
+import { createDatasetPanel, createCommunityDatasetPanel } from '../../editor/dataset/index.js';
 
 // ==================================================================
 // DATASETSECTION
@@ -69,6 +70,24 @@ export class DatasetSection extends SidebarSection {
       if (item.datasetId) {
         vscode.env.clipboard.writeText(item.datasetId);
         vscode.window.showInformationMessage(`Copied: ${item.datasetId}`);
+      }
+    });
+
+    this.registerCommand('earthengine.openCommunityDatasetPanel', async (item: DatasetTreeItem) => {
+      if (item.nodeType !== 'communityDataset' || !item.communityEntry) {
+        return;
+      }
+      // Derive the markdown slug from the docs URL:
+      // https://gee-community-catalog.org/projects/hrsl/ → hrsl
+      const slug = item.communityEntry.docs.replace(/^.*\/projects\//, '').replace(/\/$/, '');
+      const markdownUrl = `https://raw.githubusercontent.com/samapriya/awesome-gee-community-datasets/master/docs/projects/${slug}.md`;
+      try {
+        const markdown = await fetchHtml(markdownUrl);
+        createCommunityDatasetPanel(item.communityEntry, markdown, context.extensionUri);
+      } catch (err) {
+        vscode.window.showErrorMessage(
+          `Failed to load community dataset: ${err instanceof Error ? err.message : String(err)}`,
+        );
       }
     });
 
