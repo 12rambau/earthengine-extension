@@ -80,38 +80,182 @@ export class AssetsSection extends SidebarSection {
         return;
       }
 
-      // Determine the parent path (selected folder or project root)
       const profile = this.authService.currentProfile!;
-      let parent: string;
+      const projectRoot = `projects/${profile.project}`;
+
+      // The locked prefix the user cannot delete.
+      let basePath: string;
       if (item && item.isContainer && item.asset.type === 'FOLDER') {
-        parent = item.asset.name;
+        basePath = item.asset.name + '/';
       } else {
-        parent = `projects/${profile.project}`;
+        basePath = `${projectRoot}/assets/`;
       }
 
-      // Prompt for folder name (inline, like the files explorer)
-      const folderName = await vscode.window.showInputBox({
-        prompt: `New folder in ${parent.split('/').pop() || parent}`,
-        placeHolder: 'folder-name',
-        validateInput: (value) => {
-          if (!value) {
-            return 'Folder name is required';
-          }
-          if (/[^a-zA-Z0-9_-]/.test(value)) {
-            return 'Only letters, numbers, hyphens and underscores allowed';
-          }
-          return null;
-        },
+      // Cache of folder children (full paths) keyed by full parent path.
+      const folderCache = new Map<string, string[]>();
+      const loadChildren = async (dir: string): Promise<string[]> => {
+        if (folderCache.has(dir)) {
+          return folderCache.get(dir)!;
+        }
+        try {
+          const { listAllAssets } = await import('./eeApiClient.js');
+          const listParent = dir === `${projectRoot}/assets` ? projectRoot : dir;
+          const children = await listAllAssets(listParent, token);
+          // Store FULL paths so labels match the QuickPick value for fuzzy filtering.
+          const paths = children.filter((a) => a.type === 'FOLDER').map((a) => a.name);
+          folderCache.set(dir, paths);
+          return paths;
+        } catch {
+          folderCache.set(dir, []);
+          return [];
+        }
+      };
+
+      const quickPick = vscode.window.createQuickPick();
+      quickPick.title = 'Create Folder';
+      quickPick.placeholder = 'Navigate with Enter, then type a new name';
+      quickPick.value = basePath;
+
+      /** Updates items with full-path labels so VS Code fuzzy matching works. */
+      const refreshItems = (dir: string) => {
+        const paths = folderCache.get(dir) || [];
+        quickPick.items = paths.map((p) => ({
+          label: p,
+          description: p.split('/').pop() || p,
+        }));
+      };
+
+      // Pre-load the initial directory.
+      const initDir = basePath.replace(/\/$/, '');
+      quickPick.busy = true;
+      await loadChildren(initDir);
+      quickPick.busy = false;
+      refreshItems(initDir);
+      quickPick.show();
+
+      // Enforce the locked prefix and lazy-load children.
+      quickPick.onDidChangeValue((value) => {
+        if (!value.startsWith(basePath)) {
+          quickPick.value = basePath;
+          return;
+        }
+
+        // Determine which directory to show children for.
+        const lastSlash = value.lastIndexOf('/');
+        const dir = lastSlash >= 0 ? value.slice(0, lastSlash) : initDir;
+
+        if (folderCache.has(dir)) {
+          refreshItems(dir);
+        } else if (dir.startsWith(`${projectRoot}/assets`)) {
+          quickPick.busy = true;
+          loadChildren(dir).then(() => {
+            quickPick.busy = false;
+            const currentSlash = quickPick.value.lastIndexOf('/');
+            const currentDir = currentSlash >= 0 ? quickPick.value.slice(0, currentSlash) : initDir;
+            if (currentDir === dir) {
+              refreshItems(dir);
+            }
+          });
+        }
       });
 
-      if (!folderName) {
+      const result = await new Promise<string | undefined>((resolve) => {
+        let resolved = false;
+        let justNavigated = false;
+
+        // Clicking an item auto-completes the path (navigation).
+        quickPick.onDidChangeSelection((selection) => {
+          if (selection.length === 0) {
+            return;
+          }
+          const selected = selection[0];
+          const newValue = selected.label + '/';
+          quickPick.value = newValue;
+          // Prevent the accept that fires right after a click.
+          justNavigated = true;
+          setTimeout(() => {
+            justNavigated = false;
+          }, 200);
+
+          const newDir = selected.label;
+          if (!folderCache.has(newDir)) {
+            quickPick.busy = true;
+            loadChildren(newDir).then(() => {
+              quickPick.busy = false;
+              refreshItems(newDir);
+            });
+          } else {
+            refreshItems(newDir);
+          }
+        });
+
+        // Enter validates — creates the folder at the typed path.
+        quickPick.onDidAccept(() => {
+          if (justNavigated) {
+            return;
+          }
+          const value = quickPick.value.replace(/\/+$/, '');
+          if (value && value !== initDir) {
+            resolved = true;
+            quickPick.hide();
+            resolve(value);
+          }
+        });
+
+        quickPick.onDidHide(() => {
+          quickPick.dispose();
+          if (!resolved) {
+            resolve(undefined);
+          }
+        });
+      });
+
+      if (!result) {
         return;
       }
 
+      // Extract relative path after projects/{project}/assets/.
+      const assetsPrefix = `${projectRoot}/assets/`;
+      const relativePath = result.startsWith(assetsPrefix)
+        ? result.slice(assetsPrefix.length)
+        : result;
+
+      if (!relativePath) {
+        return;
+      }
+
+      // Validate all segments.
+      const segments = relativePath.split('/').filter(Boolean);
+      for (const seg of segments) {
+        if (/[^a-zA-Z0-9_-]/.test(seg) || !seg) {
+          vscode.window.showErrorMessage(
+            `Invalid segment "${seg}" — only letters, numbers, hyphens and underscores allowed.`,
+          );
+          return;
+        }
+      }
+
+      // Create all intermediate folders (mkdir -p behavior).
+      // Skip segments that already exist as assets.
       try {
-        await createFolder(parent, folderName, token);
-        vscode.window.showInformationMessage(`Folder "${folderName}" created.`);
-        // Refresh the parent so the new folder appears
+        const { getAsset } = await import('./eeApiClient.js');
+        let currentPath = '';
+        for (const segment of segments) {
+          currentPath = currentPath ? `${currentPath}/${segment}` : segment;
+          const fullName = `${projectRoot}/assets/${currentPath}`;
+          // Check if this segment already exists.
+          let exists = false;
+          try {
+            await getAsset(fullName, token);
+            exists = true;
+          } catch {
+            // Does not exist — will be created.
+          }
+          if (!exists) {
+            await createFolder(projectRoot, currentPath, token);
+          }
+        }
+        vscode.window.showInformationMessage(`Folder "${segments.join('/')}" created.`);
         if (item) {
           this.provider.refreshFolder(item.asset.name);
         } else {
