@@ -8,6 +8,7 @@
 
 import * as vscode from 'vscode';
 import { AuthService } from '../../auth/index.js';
+import { ensureEe, computeValue } from '../../shared/eeSession.js';
 import { listAssets, EEAsset } from './eeApiClient.js';
 import { AssetTreeItem, TYPE_ICONS } from './assetTreeItem.js';
 
@@ -176,6 +177,63 @@ export class AssetsTreeDataProvider implements vscode.TreeDataProvider<AssetTree
       item.iconPath = TYPE_ICONS[item.asset.type] || new vscode.ThemeIcon('folder');
     }
     this._onDidChangeTreeData.fire(item);
+  }
+
+  /**
+   * Lazily resolves the tooltip for a tree item by fetching full asset metadata
+   * (including description) on hover, without slowing down the initial tree load.
+   */
+  async resolveTreeItem(
+    item: vscode.TreeItem,
+    element: AssetTreeItem,
+    cancellation: vscode.CancellationToken,
+  ): Promise<vscode.TreeItem> {
+    if (element.asset.type === 'PLACEHOLDER' || element.asset.description) {
+      return item;
+    }
+    try {
+      const ee = (await ensureEe()) as any;
+      if (cancellation.isCancellationRequested) {
+        return item;
+      }
+
+      let eeObj: any;
+      switch (element.asset.type) {
+        case 'IMAGE':
+          eeObj = ee.Image(element.asset.name);
+          break;
+        case 'IMAGE_COLLECTION':
+          eeObj = ee.ImageCollection(element.asset.name);
+          break;
+        case 'TABLE':
+          eeObj = ee.FeatureCollection(element.asset.name);
+          break;
+        default:
+          return item;
+      }
+
+      const description = await computeValue<string>(eeObj.get('description'));
+      if (cancellation.isCancellationRequested || !description) {
+        return item;
+      }
+
+      element.asset.description = description;
+      const tooltip = new vscode.MarkdownString('', true);
+      tooltip.isTrusted = true;
+      tooltip.appendMarkdown(
+        `**${element.asset.type.toLowerCase().replace(/_/g, ' ')}** — \`${element.asset.name}\`\n\n`,
+      );
+      if (element.asset.title) {
+        tooltip.appendMarkdown(`**${element.asset.title}**\n\n`);
+      }
+      const truncated =
+        description.length > 200 ? description.slice(0, 200) + '\u2026' : description;
+      tooltip.appendText(truncated);
+      item.tooltip = tooltip;
+    } catch {
+      // Ignore — keep the basic tooltip.
+    }
+    return item;
   }
 
   /**
