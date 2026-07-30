@@ -14,6 +14,7 @@
 [![Conventional Commits](https://img.shields.io/badge/Conventional%20Commits-1.0.0-FE5196?style=flat-square&logo=conventionalcommits&logoColor=white)](https://conventionalcommits.org)
 [![code style: prettier](https://img.shields.io/badge/code%20style-prettier-F7B93E?style=flat-square&logo=prettier&logoColor=white)](https://prettier.io)
 [![ESLint](https://img.shields.io/badge/linter-ESLint-4B32C3?style=flat-square&logo=eslint&logoColor=white)](https://eslint.org)
+[![Open VSX](https://img.shields.io/open-vsx/v/12rambau/earthengine?style=flat-square&label=Open%20VSX)](https://open-vsx.org/extension/12rambau/earthengine)
 
 </div>
 

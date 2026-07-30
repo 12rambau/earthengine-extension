@@ -6,7 +6,7 @@ on:
 
 jobs:
   publish:
-    name: Publish to VS Marketplace
+    name: Publish to extension marketplaces
     runs-on: ubuntu-latest
 
     steps:
@@ -37,3 +37,11 @@ jobs:
           fi
         env:
           VSCE_PAT: ${{ secrets.VSCE_PAT }}
+
+      - name: Publish to Open VSX
+        run: |
+          if [ "${{ github.event.release.prerelease }}" = "true" ]; then
+            npx ovsx publish *.vsix --pre-release -p "${{ secrets.OVSX_PAT }}"
+          else
+            npx ovsx publish *.vsix -p "${{ secrets.OVSX_PAT }}"
+          fi
