@@ -133,8 +133,14 @@ export class AssetsSection extends SidebarSection {
       refreshItems(initDir);
       quickPick.show();
 
+      // Flag to prevent accept immediately after a navigation click.
+      let justNavigated = false;
+
       // Enforce the locked prefix and lazy-load children.
       quickPick.onDidChangeValue((value) => {
+        // Any user-initiated value change clears the navigation flag.
+        justNavigated = false;
+
         if (!value.startsWith(basePath)) {
           quickPick.value = basePath;
           return;
@@ -161,7 +167,6 @@ export class AssetsSection extends SidebarSection {
 
       const result = await new Promise<string | undefined>((resolve) => {
         let resolved = false;
-        let justNavigated = false;
 
         // Clicking an item auto-completes the path (navigation).
         quickPick.onDidChangeSelection((selection) => {
@@ -173,9 +178,6 @@ export class AssetsSection extends SidebarSection {
           quickPick.value = newValue;
           // Prevent the accept that fires right after a click.
           justNavigated = true;
-          setTimeout(() => {
-            justNavigated = false;
-          }, 200);
 
           const newDir = selected.label;
           if (!folderCache.has(newDir)) {
