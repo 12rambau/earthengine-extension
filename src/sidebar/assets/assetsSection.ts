@@ -39,6 +39,9 @@ export class AssetsSection extends SidebarSection {
       const item = await this.provider.searchAssets();
       if (item) {
         treeView.reveal(item, { select: true, focus: true, expand: true });
+        if (!item.isContainer) {
+          vscode.commands.executeCommand('earthengine.openAssetPreview', item);
+        }
       }
     });
 
