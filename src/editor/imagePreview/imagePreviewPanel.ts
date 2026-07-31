@@ -63,8 +63,10 @@ async function sendThumbnail(asset: EEAsset, panel: vscode.WebviewPanel): Promis
   try {
     const thumbUrl = await getThumbnailUrl(asset);
     panel.webview.postMessage({ type: 'thumbnail', url: thumbUrl });
-  } catch {
+  } catch (err) {
     panel.webview.postMessage({ type: 'thumbnail', url: '' });
+    const msg = err instanceof Error ? err.message : String(err);
+    vscode.window.showErrorMessage(`Failed to load thumbnail: ${msg}`);
   }
 }
 
@@ -87,8 +89,10 @@ async function sendMinMax(asset: EEAsset, panel: vscode.WebviewPanel): Promise<v
   try {
     const minMax = await computeMinMax(asset);
     panel.webview.postMessage({ type: 'minmax', data: minMax });
-  } catch {
+  } catch (err) {
     panel.webview.postMessage({ type: 'minmax', data: null });
+    const msg = err instanceof Error ? err.message : String(err);
+    vscode.window.showErrorMessage(`Failed to compute band min/max: ${msg}`);
   }
 }
 
