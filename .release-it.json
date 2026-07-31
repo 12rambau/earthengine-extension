@@ -11,6 +11,9 @@
   "npm": {
     "publish": false
   },
+  "hooks": {
+    "after:bump": "node -e \"var fs=require('fs'),c=fs.readFileSync('README.md','utf8');fs.writeFileSync('README.md',c.replace(/VS%20Code%20Marketplace-v[0-9]+\\.[0-9]+\\.[0-9]+/,'VS%20Code%20Marketplace-v${version}'));\" && git add README.md"
+  },
   "plugins": {
     "@release-it/conventional-changelog": {
       "preset": "conventionalcommits",
