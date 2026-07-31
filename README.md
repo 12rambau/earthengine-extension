@@ -6,6 +6,7 @@
 
 **Google Earth Engine directly inside your editor.**
 
+[![VS Code Marketplace](https://img.shields.io/badge/VS%20Code%20Marketplace-v0.4.1-007ACC?style=flat-square&logo=visualstudiocode&logoColor=white)](https://marketplace.visualstudio.com/items?itemName=12rambau.earthengine)
 [![License](https://img.shields.io/github/license/12rambau/earthengine-extension?style=flat-square&logo=apache&logoColor=white)](https://github.com/12rambau/earthengine-extension/blob/main/LICENSE)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![VS Code](https://img.shields.io/badge/VS%20Code-1.125+-007ACC?style=flat-square&logo=visualstudiocode&logoColor=white)](https://code.visualstudio.com/)
