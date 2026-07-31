@@ -328,6 +328,9 @@ export class AssetsTreeDataProvider implements vscode.TreeDataProvider<AssetTree
       }
 
       // Update items after each folder is processed.
+      if (cancelled) {
+        return;
+      }
       refreshItems();
 
       // Recurse into subfolders (not IMAGE_COLLECTIONs).
@@ -340,13 +343,17 @@ export class AssetsTreeDataProvider implements vscode.TreeDataProvider<AssetTree
     };
 
     // Fire-and-forget — crawl runs while the user can already interact.
-    crawl(projectRoot).then(() => {
-      if (!cancelled) {
-        quickPick.busy = false;
-        quickPick.placeholder = 'Search assets';
-        refreshItems();
-      }
-    });
+    void crawl(projectRoot)
+      .then(() => {
+        if (!cancelled) {
+          quickPick.busy = false;
+          quickPick.placeholder = 'Search assets';
+          refreshItems();
+        }
+      })
+      .catch(() => {
+        // Indexing failed — leave whatever was already discovered.
+      });
 
     return new Promise<AssetTreeItem | undefined>((resolve) => {
       let resolved = false;
