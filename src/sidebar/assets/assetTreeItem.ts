@@ -42,9 +42,28 @@ export class AssetTreeItem extends vscode.TreeItem {
       this.id = asset.name;
     }
 
-    const tooltip = new vscode.MarkdownString('', true);
-    tooltip.appendMarkdown(`**${asset.type.toLowerCase().replace('_', ' ')}** — ${asset.name}`);
-    this.tooltip = tooltip;
+    // Build tooltip with formatted header + plain-text description.
+    // For leaf assets without a description yet, leave tooltip undefined
+    // so resolveTreeItem can lazily fill it in — VS Code ignores resolved
+    // tooltip when the original is already set.
+    if (isContainer || asset.description) {
+      const tooltip = new vscode.MarkdownString('', true);
+      tooltip.isTrusted = true;
+      tooltip.appendMarkdown(
+        `**${asset.type.toLowerCase().replace(/_/g, ' ')}** — \`${asset.name}\`\n\n`,
+      );
+      if (asset.title) {
+        tooltip.appendMarkdown(`**${asset.title}**\n\n`);
+      }
+      if (asset.description) {
+        const truncated =
+          asset.description.length > 200
+            ? asset.description.slice(0, 200) + '\u2026'
+            : asset.description;
+        tooltip.appendText(truncated);
+      }
+      this.tooltip = tooltip;
+    }
 
     // Context values for menu visibility
     if (isContainer) {

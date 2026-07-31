@@ -22,6 +22,7 @@ export interface EEAsset {
   type: string;
   id?: string;
   title?: string;
+  description?: string;
   updateTime?: string;
   startTime?: string;
   endTime?: string;

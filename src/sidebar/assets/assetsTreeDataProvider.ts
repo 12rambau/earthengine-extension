@@ -8,7 +8,8 @@
 
 import * as vscode from 'vscode';
 import { AuthService } from '../../auth/index.js';
-import { listAssets, EEAsset } from './eeApiClient.js';
+import { ensureEe, computeValue } from '../../shared/eeSession.js';
+import { listAssets, listAllAssets, EEAsset } from './eeApiClient.js';
 import { AssetTreeItem, TYPE_ICONS } from './assetTreeItem.js';
 
 // ==================================================================
@@ -179,9 +180,69 @@ export class AssetsTreeDataProvider implements vscode.TreeDataProvider<AssetTree
   }
 
   /**
-   * Opens a QuickPick search across the assets already loaded into the tree,
-   * returning the selected item. Only cached (expanded) folders are searched —
-   * no additional network requests are made.
+   * Lazily resolves the tooltip for a tree item by fetching full asset metadata
+   * (including description) on hover, without slowing down the initial tree load.
+   */
+  async resolveTreeItem(
+    item: vscode.TreeItem,
+    element: AssetTreeItem,
+    cancellation: vscode.CancellationToken,
+  ): Promise<vscode.TreeItem> {
+    if (element.asset.type === 'PLACEHOLDER' || element.asset.description) {
+      return item;
+    }
+    try {
+      const ee = (await ensureEe()) as any;
+      if (cancellation.isCancellationRequested) {
+        return item;
+      }
+
+      let eeObj: any;
+      switch (element.asset.type) {
+        case 'IMAGE':
+          eeObj = ee.Image(element.asset.name);
+          break;
+        case 'IMAGE_COLLECTION':
+          eeObj = ee.ImageCollection(element.asset.name);
+          break;
+        case 'TABLE':
+          eeObj = ee.FeatureCollection(element.asset.name);
+          break;
+        default:
+          return item;
+      }
+
+      const description = await computeValue<string>(eeObj.get('description'));
+      if (cancellation.isCancellationRequested || !description) {
+        return item;
+      }
+
+      element.asset.description = description;
+      const tooltip = new vscode.MarkdownString('', true);
+      tooltip.isTrusted = true;
+      tooltip.appendMarkdown(
+        `**${element.asset.type.toLowerCase().replace(/_/g, ' ')}** — \`${element.asset.name}\`\n\n`,
+      );
+      if (element.asset.title) {
+        tooltip.appendMarkdown(`**${element.asset.title}**\n\n`);
+      }
+      const truncated =
+        description.length > 200 ? description.slice(0, 200) + '\u2026' : description;
+      tooltip.appendText(truncated);
+      item.tooltip = tooltip;
+    } catch {
+      // Ignore — keep the basic tooltip.
+    }
+    return item;
+  }
+
+  /**
+   * Progressive asset search that recursively indexes the entire project.
+   *
+   * Opens a QuickPick immediately with whatever is already cached, then
+   * crawls all FOLDER children in the background, stopping at IMAGE_COLLECTION
+   * (never listing their internal images). Items stream into the list as they
+   * are discovered. Everything loaded is kept in the shared cache.
    */
   async searchAssets(): Promise<AssetTreeItem | undefined> {
     if (!this.authService.isAuthenticated) {
@@ -189,37 +250,145 @@ export class AssetsTreeDataProvider implements vscode.TreeDataProvider<AssetTree
       return undefined;
     }
 
-    // Collect every asset that has already been loaded, de-duplicated by name.
-    const seen = new Set<string>();
-    const allAssets: EEAsset[] = [];
-    for (const assets of this.childrenCache.values()) {
+    const token = await this.authService.getToken();
+    if (!token) {
+      return undefined;
+    }
+
+    const profile = this.authService.currentProfile!;
+    const projectRoot = `projects/${profile.project}`;
+
+    // Flat index of all leaf assets found so far (IMAGE, IMAGE_COLLECTION, TABLE).
+    const searchIndex = new Map<string, EEAsset>();
+    const fetchedFolders = new Set<string>();
+
+    /** Seed the index from the existing childrenCache. */
+    for (const [, assets] of this.childrenCache) {
       for (const a of assets) {
-        if (a.type !== 'PLACEHOLDER' && !seen.has(a.name)) {
-          seen.add(a.name);
-          allAssets.push(a);
+        if (a.type !== 'PLACEHOLDER' && a.type !== 'FOLDER') {
+          searchIndex.set(a.name, a);
         }
       }
     }
 
-    if (allAssets.length === 0) {
-      vscode.window.showInformationMessage(
-        'No assets loaded yet — expand the asset tree, then search.',
-      );
-      return undefined;
-    }
+    const quickPick = vscode.window.createQuickPick<vscode.QuickPickItem & { asset: EEAsset }>();
+    quickPick.placeholder = 'Search assets — indexing project in background…';
+    quickPick.matchOnDescription = true;
+    quickPick.busy = true;
 
-    const picked = await vscode.window.showQuickPick(
-      allAssets.map((a) => ({
-        label: a.name.split('/').pop() || a.name,
-        description: a.name,
-        asset: a,
-      })),
-      { placeHolder: 'Search loaded assets...', matchOnDescription: true },
-    );
+    const refreshItems = () => {
+      const items: (vscode.QuickPickItem & { asset: EEAsset })[] = [];
+      for (const [name, asset] of searchIndex) {
+        const shortName = name.split('/').pop() || name;
+        const relativePath = name.slice(projectRoot.length + 1);
+        items.push({
+          label: `$(${iconId(asset.type)}) ${shortName}`,
+          description: relativePath,
+          asset,
+        });
+      }
+      quickPick.items = items;
+    };
 
-    if (picked) {
-      return new AssetTreeItem(picked.asset, CONTAINER_TYPES.has(picked.asset.type));
-    }
-    return undefined;
+    refreshItems();
+    quickPick.show();
+
+    // Crawl in the background — breadth-first, skip IMAGE_COLLECTION internals.
+    let cancelled = false;
+
+    const crawl = async (parent: string): Promise<void> => {
+      if (cancelled || fetchedFolders.has(parent)) {
+        return;
+      }
+      fetchedFolders.add(parent);
+
+      let assets: EEAsset[];
+      if (this.childrenCache.has(parent)) {
+        assets = this.childrenCache.get(parent)!;
+      } else {
+        try {
+          assets = await listAllAssets(parent, token);
+          this.childrenCache.set(parent, assets);
+          this.indexChildren(parent, assets);
+        } catch {
+          return;
+        }
+      }
+
+      const subFolders: string[] = [];
+      for (const a of assets) {
+        if (cancelled) {
+          return;
+        }
+        if (a.type === 'FOLDER') {
+          subFolders.push(a.name);
+        } else if (a.type !== 'PLACEHOLDER') {
+          searchIndex.set(a.name, a);
+        }
+      }
+
+      // Update items after each folder is processed.
+      if (cancelled) {
+        return;
+      }
+      refreshItems();
+
+      // Recurse into subfolders (not IMAGE_COLLECTIONs).
+      for (const folder of subFolders) {
+        if (cancelled) {
+          return;
+        }
+        await crawl(folder);
+      }
+    };
+
+    // Fire-and-forget — crawl runs while the user can already interact.
+    void crawl(projectRoot)
+      .then(() => {
+        if (!cancelled) {
+          quickPick.busy = false;
+          quickPick.placeholder = 'Search assets';
+          refreshItems();
+        }
+      })
+      .catch(() => {
+        // Indexing failed — leave whatever was already discovered.
+      });
+
+    return new Promise<AssetTreeItem | undefined>((resolve) => {
+      let resolved = false;
+      quickPick.onDidAccept(() => {
+        const selected = quickPick.selectedItems[0];
+        cancelled = true;
+        resolved = true;
+        quickPick.hide();
+        if (selected?.asset) {
+          resolve(new AssetTreeItem(selected.asset, CONTAINER_TYPES.has(selected.asset.type)));
+        } else {
+          resolve(undefined);
+        }
+      });
+      quickPick.onDidHide(() => {
+        cancelled = true;
+        quickPick.dispose();
+        if (!resolved) {
+          resolve(undefined);
+        }
+      });
+    });
+  }
+}
+
+/** Maps asset type to a codicon id for QuickPick labels. */
+function iconId(type: string): string {
+  switch (type) {
+    case 'IMAGE_COLLECTION':
+      return 'layers';
+    case 'IMAGE':
+      return 'file-media';
+    case 'TABLE':
+      return 'table';
+    default:
+      return 'file';
   }
 }
