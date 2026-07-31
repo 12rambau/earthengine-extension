@@ -2,7 +2,7 @@
   "name": "earthengine",
   "displayName": "Earth Engine",
   "description": "Google Earth Engine Code Editor functionalities brought to VS Code",
-  "version": "0.4.1",
+  "version": "0.5.0",
   "publisher": "12rambau",
   "repository": {
     "type": "git",
@@ -363,12 +363,12 @@
       },
       {
         "command": "earthengine.map.testNighttimeLights",
-        "title": "Earth Engine: Test \u2013 Nighttime Lights Trend",
+        "title": "Earth Engine: Test – Nighttime Lights Trend",
         "icon": "$(beaker)"
       },
       {
         "command": "earthengine.map.testSepalViz",
-        "title": "Earth Engine: Test \u2013 SEPAL Visualization Presets",
+        "title": "Earth Engine: Test – SEPAL Visualization Presets",
         "icon": "$(beaker)"
       },
       {
