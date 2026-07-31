@@ -1,12 +1,13 @@
 # Release Process
 
-This document describes how to release the Earth Engine VS Code Extension to the VS Code Marketplace.
+This document describes how to release the Earth Engine VS Code Extension to the VS Code Marketplace and Open VSX.
 
 The release process is automated via [`release-it`](https://github.com/release-it/release-it) locally and a GitHub Actions pipeline triggered by a GitHub Release publication.
 
 ## Prerequisites
 
 - A Personal Access Token (PAT) for Azure DevOps with **Marketplace (publish)** scope, stored as a GitHub secret named `VSCE_PAT`
+- An Open VSX token with publish access, stored as a GitHub secret named `OVSX_PAT`
 - All commits on `main` following the [Conventional Commits](https://conventionalcommits.org) spec (enforced by the `commit-msg` hook)
 
 ## Steps
@@ -41,8 +42,9 @@ Publishing the GitHub Release triggers the `.github/workflows/release.yml` pipel
 
 - Builds the `.vsix` (with `--pre-release` flag if the GitHub Release is marked as pre-release)
 - Publishes to the VS Code Marketplace using the `VSCE_PAT` secret
+- Publishes to Open VSX using the `OVSX_PAT` secret
 
-No manual `vsce` command is needed.
+No manual `vsce`/`ovsx` command is needed.
 
 ---
 
