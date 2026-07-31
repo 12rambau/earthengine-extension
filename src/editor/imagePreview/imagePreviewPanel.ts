@@ -18,7 +18,7 @@ import { EEAsset, EEBand } from '../../sidebar/assets/eeApiClient.js';
 import { escapeHtml } from '../../shared/index.js';
 import { filesize } from 'filesize';
 import dayjs from 'dayjs';
-import { ensureEe, evaluate, getThumbUrl } from '../../shared/eeSession.js';
+import { ensureEe, computeValue, getThumbUrlRest } from '../../shared/eeSession.js';
 import Handlebars from 'handlebars';
 import template from './imagePreviewPanel.hbs';
 
@@ -76,10 +76,10 @@ async function getThumbnailUrl(asset: EEAsset): Promise<string> {
   const firstBand = asset.bands?.[0]?.id;
   const image = ee.Image(asset.name);
   const visualized = image.visualize(firstBand ? { bands: [firstBand] } : {});
-  return getThumbUrl(visualized, {
-    dimensions: 256,
+  return getThumbUrlRest(visualized, {
+    dimensions: [256, 256],
     region: getRegion(ee, image, asset),
-    format: 'png',
+    format: 'PNG',
   });
 }
 
@@ -105,13 +105,15 @@ interface BandMinMax {
 async function computeMinMax(asset: EEAsset): Promise<BandMinMax> {
   const ee = await ensureEe();
   const image = ee.Image(asset.name);
+  const region = getRegion(ee, image, asset);
+
   const reduced = image.reduceRegion({
     reducer: ee.Reducer.minMax(),
-    geometry: getRegion(ee, image, asset),
+    geometry: region,
     bestEffort: true,
     maxPixels: 1e8,
   });
-  const values = await evaluate<Record<string, number> | null>(reduced);
+  const values = await computeValue<Record<string, number> | null>(reduced);
 
   const result: BandMinMax = {};
   if (values) {
