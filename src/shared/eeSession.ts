@@ -211,6 +211,45 @@ export function getThumbUrl(
   });
 }
 
+/** REST-based thumbnail URL, bypasses the xmlhttprequest transport. */
+export async function getThumbUrlRest(
+  image: unknown,
+  params: {
+    dimensions?: number[];
+    region?: unknown;
+    format?: string;
+    grid?: Record<string, unknown>;
+  },
+): Promise<string> {
+  const eeAny = (await ensureEe()) as any;
+
+  // Bake the region into the expression via clip so the REST body stays minimal
+  let finalImage = eeAny.Image(image);
+  if (params.region) {
+    finalImage = finalImage.clip(params.region);
+  }
+
+  const expression = eeAny.Serializer.encodeCloudApi(finalImage);
+  const body: Record<string, unknown> = {
+    expression,
+    fileFormat: (params.format || 'PNG').toUpperCase(),
+  };
+  if (params.grid) {
+    body.grid = params.grid;
+  } else if (params.dimensions) {
+    body.grid = { dimensions: { width: params.dimensions[0], height: params.dimensions[1] } };
+  }
+
+  const { token, project } = await getEeContext();
+  const url = `https://earthengine.googleapis.com/v1/projects/${encodeURIComponent(project)}/thumbnails?fields=name`;
+  const raw = await httpRequest(url, 'POST', token, JSON.stringify(body));
+  const parsed = JSON.parse(raw) as { name?: string };
+  if (!parsed.name) {
+    throw new Error(`Thumbnails API returned no name. Response: ${raw}`);
+  }
+  return `https://earthengine.googleapis.com/v1/${parsed.name}:getPixels`;
+}
+
 /**
  * Requests a tile URL for an EE Image expression, bypassing `ee.data.getMapId`
  * (which uses the xmlhttprequest transport known to fail in the extension host).

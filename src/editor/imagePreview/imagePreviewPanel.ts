@@ -18,7 +18,7 @@ import { EEAsset, EEBand } from '../../sidebar/assets/eeApiClient.js';
 import { escapeHtml } from '../../shared/index.js';
 import { filesize } from 'filesize';
 import dayjs from 'dayjs';
-import { ensureEe, evaluate, getThumbUrl } from '../../shared/eeSession.js';
+import { ensureEe, computeValue, getThumbUrlRest } from '../../shared/eeSession.js';
 import Handlebars from 'handlebars';
 import template from './imagePreviewPanel.hbs';
 
@@ -29,8 +29,8 @@ import script from './imagePreviewPanel.webview.js';
 // ==================================================================
 // CONSTANTS
 // ==================================================================
-/** Near-global bbox in EPSG:4326, shrunk a few degrees to avoid antimeridian issues. */
-const GLOBAL_BBOX = [-175, -85, 175, 85];
+/** Near-global extent for images without a usable footprint. */
+const GLOBAL_BBOX = [-180, -89, 180, 89];
 
 // ==================================================================
 // PUBLIC API
@@ -63,8 +63,10 @@ async function sendThumbnail(asset: EEAsset, panel: vscode.WebviewPanel): Promis
   try {
     const thumbUrl = await getThumbnailUrl(asset);
     panel.webview.postMessage({ type: 'thumbnail', url: thumbUrl });
-  } catch {
+  } catch (err) {
     panel.webview.postMessage({ type: 'thumbnail', url: '' });
+    const msg = err instanceof Error ? err.message : String(err);
+    vscode.window.showErrorMessage(`Failed to load thumbnail: ${msg}`);
   }
 }
 
@@ -72,11 +74,32 @@ async function sendThumbnail(asset: EEAsset, panel: vscode.WebviewPanel): Promis
 async function getThumbnailUrl(asset: EEAsset): Promise<string> {
   const ee = await ensureEe();
   const firstBand = asset.bands?.[0]?.id;
-  const visualized = ee.Image(asset.name).visualize(firstBand ? { bands: [firstBand] } : {});
-  return getThumbUrl(visualized, {
-    dimensions: 256,
-    region: getFootprintOrGlobal(asset),
-    format: 'png',
+  const image = ee.Image(asset.name);
+  const visualized = image.visualize(firstBand ? { bands: [firstBand] } : {});
+
+  const isGlobal = !asset.geometry || !hasFiniteCoordinates(asset.geometry);
+  if (isGlobal) {
+    // 178°×178° square centered on 0°,0° with explicit grid origin
+    return getThumbUrlRest(visualized, {
+      format: 'PNG',
+      grid: {
+        dimensions: { width: 256, height: 256 },
+        affineTransform: {
+          scaleX: 178 / 256,
+          shearX: 0,
+          translateX: -89,
+          shearY: 0,
+          scaleY: -178 / 256,
+          translateY: 89,
+        },
+        crsCode: 'EPSG:4326',
+      },
+    });
+  }
+  return getThumbUrlRest(visualized, {
+    dimensions: [256, 256],
+    region: getRegion(ee, image, asset),
+    format: 'PNG',
   });
 }
 
@@ -87,8 +110,10 @@ async function sendMinMax(asset: EEAsset, panel: vscode.WebviewPanel): Promise<v
   try {
     const minMax = await computeMinMax(asset);
     panel.webview.postMessage({ type: 'minmax', data: minMax });
-  } catch {
+  } catch (err) {
     panel.webview.postMessage({ type: 'minmax', data: null });
+    const msg = err instanceof Error ? err.message : String(err);
+    vscode.window.showErrorMessage(`Failed to compute band min/max: ${msg}`);
   }
 }
 
@@ -99,13 +124,16 @@ interface BandMinMax {
 /** Reduces the image over its footprint with ee.Reducer.minMax() and groups the result per band. */
 async function computeMinMax(asset: EEAsset): Promise<BandMinMax> {
   const ee = await ensureEe();
-  const reduced = ee.Image(asset.name).reduceRegion({
+  const image = ee.Image(asset.name);
+  const region = getRegion(ee, image, asset);
+
+  const reduced = image.reduceRegion({
     reducer: ee.Reducer.minMax(),
-    geometry: getFootprintOrGlobal(asset),
+    geometry: region,
     bestEffort: true,
     maxPixels: 1e8,
   });
-  const values = await evaluate<Record<string, number> | null>(reduced);
+  const values = await computeValue<Record<string, number> | null>(reduced);
 
   const result: BandMinMax = {};
   if (values) {
@@ -127,23 +155,31 @@ async function computeMinMax(asset: EEAsset): Promise<BandMinMax> {
 // ==================================================================
 // GEOMETRY HELPER
 // ==================================================================
-function getFootprintOrGlobal(asset: EEAsset): Record<string, unknown> {
-  if (asset.geometry) {
-    return asset.geometry as Record<string, unknown>;
+/** Returns false when any coordinate is non-finite (Infinity strings, NaN, etc.). */
+function hasFiniteCoordinates(val: unknown): boolean {
+  if (typeof val === 'number') {
+    return Number.isFinite(val);
   }
-  // Near-global rectangle in GeoJSON
-  return {
-    type: 'Polygon',
-    coordinates: [
-      [
-        [GLOBAL_BBOX[0], GLOBAL_BBOX[1]],
-        [GLOBAL_BBOX[2], GLOBAL_BBOX[1]],
-        [GLOBAL_BBOX[2], GLOBAL_BBOX[3]],
-        [GLOBAL_BBOX[0], GLOBAL_BBOX[3]],
-        [GLOBAL_BBOX[0], GLOBAL_BBOX[1]],
-      ],
-    ],
-  };
+  if (typeof val === 'string') {
+    return false;
+  }
+  if (Array.isArray(val)) {
+    return val.length > 0 && val.every(hasFiniteCoordinates);
+  }
+  if (val && typeof val === 'object') {
+    return hasFiniteCoordinates((val as Record<string, unknown>).coordinates);
+  }
+  return false;
+}
+
+/** Returns a square ee.Geometry region for the thumbnail. */
+function getRegion(ee: any, image: any, asset: EEAsset): unknown {
+  if (asset.geometry && hasFiniteCoordinates(asset.geometry)) {
+    const bounds = image.geometry().bounds();
+    const radius = bounds.perimeter(1).divide(4);
+    return bounds.centroid(1).buffer(radius).bounds();
+  }
+  return ee.Geometry.BBox(...GLOBAL_BBOX);
 }
 
 // ==================================================================
