@@ -164,7 +164,7 @@ function hasFiniteCoordinates(val: unknown): boolean {
     return false;
   }
   if (Array.isArray(val)) {
-    return val.every(hasFiniteCoordinates);
+    return val.length > 0 && val.every(hasFiniteCoordinates);
   }
   if (val && typeof val === 'object') {
     return hasFiniteCoordinates((val as Record<string, unknown>).coordinates);
