@@ -214,7 +214,12 @@ export function getThumbUrl(
 /** REST-based thumbnail URL, bypasses the xmlhttprequest transport. */
 export async function getThumbUrlRest(
   image: unknown,
-  params: { dimensions?: number[]; region?: unknown; format?: string },
+  params: {
+    dimensions?: number[];
+    region?: unknown;
+    format?: string;
+    grid?: Record<string, unknown>;
+  },
 ): Promise<string> {
   const eeAny = (await ensureEe()) as any;
 
@@ -229,7 +234,9 @@ export async function getThumbUrlRest(
     expression,
     fileFormat: (params.format || 'PNG').toUpperCase(),
   };
-  if (params.dimensions) {
+  if (params.grid) {
+    body.grid = params.grid;
+  } else if (params.dimensions) {
     body.grid = { dimensions: { width: params.dimensions[0], height: params.dimensions[1] } };
   }
 

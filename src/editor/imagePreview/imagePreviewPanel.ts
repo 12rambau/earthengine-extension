@@ -29,8 +29,8 @@ import script from './imagePreviewPanel.webview.js';
 // ==================================================================
 // CONSTANTS
 // ==================================================================
-/** Near-global bbox in EPSG:4326, shrunk a few degrees to avoid antimeridian issues. */
-const GLOBAL_BBOX = [-175, -85, 175, 85];
+/** Near-global extent for images without a usable footprint. */
+const GLOBAL_BBOX = [-180, -89, 180, 89];
 
 // ==================================================================
 // PUBLIC API
@@ -76,6 +76,26 @@ async function getThumbnailUrl(asset: EEAsset): Promise<string> {
   const firstBand = asset.bands?.[0]?.id;
   const image = ee.Image(asset.name);
   const visualized = image.visualize(firstBand ? { bands: [firstBand] } : {});
+
+  const isGlobal = !asset.geometry || !hasFiniteCoordinates(asset.geometry);
+  if (isGlobal) {
+    // 178°×178° square centered on 0°,0° with explicit grid origin
+    return getThumbUrlRest(visualized, {
+      format: 'PNG',
+      grid: {
+        dimensions: { width: 256, height: 256 },
+        affineTransform: {
+          scaleX: 178 / 256,
+          shearX: 0,
+          translateX: -89,
+          shearY: 0,
+          scaleY: -178 / 256,
+          translateY: 89,
+        },
+        crsCode: 'EPSG:4326',
+      },
+    });
+  }
   return getThumbUrlRest(visualized, {
     dimensions: [256, 256],
     region: getRegion(ee, image, asset),
@@ -152,10 +172,12 @@ function hasFiniteCoordinates(val: unknown): boolean {
   return false;
 }
 
-/** Returns an ee.Geometry rectangle for the image region. */
+/** Returns a square ee.Geometry region for the thumbnail. */
 function getRegion(ee: any, image: any, asset: EEAsset): unknown {
   if (asset.geometry && hasFiniteCoordinates(asset.geometry)) {
-    return image.geometry().bounds();
+    const bounds = image.geometry().bounds();
+    const radius = bounds.perimeter().divide(4);
+    return bounds.centroid().buffer(radius).bounds();
   }
   return ee.Geometry.BBox(...GLOBAL_BBOX);
 }
