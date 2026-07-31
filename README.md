@@ -6,9 +6,8 @@
 
 **Google Earth Engine directly inside your editor.**
 
-<a href="https://marketplace.visualstudio.com/items?itemName=12rambau.earthengine"><img src="resources/vscode-marketplace.svg" alt="VS Code Marketplace" height="48" /></a>
-&ensp;
-<a href="https://open-vsx.org/extension/12rambau/earthengine"><img src="resources/open-vsx.svg" alt="Open VSX" height="48" /></a>
+[![VS Code Marketplace](https://img.shields.io/visual-studio-marketplace/v/12rambau.earthengine?style=flat-square&logo=visualstudiocode&logoColor=white&label=VS%20Code%20Marketplace)](https://marketplace.visualstudio.com/items?itemName=12rambau.earthengine)
+[![Open VSX](https://img.shields.io/open-vsx/v/12rambau/earthengine?style=flat-square&label=Open%20VSX&logoBase64=PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDYgMTMzIj48cGF0aCBkPSJNMzAgNDQuMkw1Mi42IDVINy4zek00LjYgODguNWg0NS4zTDI3LjIgNDkuNHptNTEgMGwyMi42IDM5LjIgMjIuNi0zOS4yeiIgZmlsbD0iI2MxNjBlZiIvPjxwYXRoIGQ9Ik01Mi42IDVMMzAgNDQuMmg0NS4yek0yNy4yIDQ5LjRsMjIuNyAzOS4xIDIyLjYtMzkuMXptNTEgMEw1NS42IDg4LjVoNDUuMnoiIGZpbGw9IiNhNjBlZTUiLz48L3N2Zz4K)](https://open-vsx.org/extension/12rambau/earthengine)
 
 [![License](https://img.shields.io/github/license/12rambau/earthengine-extension?style=flat-square&logo=apache&logoColor=white)](https://github.com/12rambau/earthengine-extension/blob/main/LICENSE)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
