@@ -131,8 +131,25 @@ async function computeMinMax(asset: EEAsset): Promise<BandMinMax> {
 // ==================================================================
 // GEOMETRY HELPER
 // ==================================================================
+/** Returns false when any coordinate is non-finite (Infinity strings, NaN, etc.). */
+function hasFiniteCoordinates(val: unknown): boolean {
+  if (typeof val === 'number') {
+    return Number.isFinite(val);
+  }
+  if (typeof val === 'string') {
+    return false;
+  }
+  if (Array.isArray(val)) {
+    return val.every(hasFiniteCoordinates);
+  }
+  if (val && typeof val === 'object') {
+    return hasFiniteCoordinates((val as Record<string, unknown>).coordinates);
+  }
+  return false;
+}
+
 function getFootprintOrGlobal(asset: EEAsset): Record<string, unknown> {
-  if (asset.geometry) {
+  if (asset.geometry && hasFiniteCoordinates(asset.geometry)) {
     return asset.geometry as Record<string, unknown>;
   }
   // Near-global rectangle in GeoJSON
