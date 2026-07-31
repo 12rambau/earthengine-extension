@@ -74,10 +74,11 @@ async function sendThumbnail(asset: EEAsset, panel: vscode.WebviewPanel): Promis
 async function getThumbnailUrl(asset: EEAsset): Promise<string> {
   const ee = await ensureEe();
   const firstBand = asset.bands?.[0]?.id;
-  const visualized = ee.Image(asset.name).visualize(firstBand ? { bands: [firstBand] } : {});
+  const image = ee.Image(asset.name);
+  const visualized = image.visualize(firstBand ? { bands: [firstBand] } : {});
   return getThumbUrl(visualized, {
     dimensions: 256,
-    region: getFootprintOrGlobal(asset),
+    region: getRegion(ee, image, asset),
     format: 'png',
   });
 }
@@ -103,9 +104,10 @@ interface BandMinMax {
 /** Reduces the image over its footprint with ee.Reducer.minMax() and groups the result per band. */
 async function computeMinMax(asset: EEAsset): Promise<BandMinMax> {
   const ee = await ensureEe();
-  const reduced = ee.Image(asset.name).reduceRegion({
+  const image = ee.Image(asset.name);
+  const reduced = image.reduceRegion({
     reducer: ee.Reducer.minMax(),
-    geometry: getFootprintOrGlobal(asset),
+    geometry: getRegion(ee, image, asset),
     bestEffort: true,
     maxPixels: 1e8,
   });
@@ -148,23 +150,12 @@ function hasFiniteCoordinates(val: unknown): boolean {
   return false;
 }
 
-function getFootprintOrGlobal(asset: EEAsset): Record<string, unknown> {
+/** Returns an ee.Geometry rectangle for the image region. */
+function getRegion(ee: any, image: any, asset: EEAsset): unknown {
   if (asset.geometry && hasFiniteCoordinates(asset.geometry)) {
-    return asset.geometry as Record<string, unknown>;
+    return image.geometry().bounds();
   }
-  // Near-global rectangle in GeoJSON
-  return {
-    type: 'Polygon',
-    coordinates: [
-      [
-        [GLOBAL_BBOX[0], GLOBAL_BBOX[1]],
-        [GLOBAL_BBOX[2], GLOBAL_BBOX[1]],
-        [GLOBAL_BBOX[2], GLOBAL_BBOX[3]],
-        [GLOBAL_BBOX[0], GLOBAL_BBOX[3]],
-        [GLOBAL_BBOX[0], GLOBAL_BBOX[1]],
-      ],
-    ],
-  };
+  return ee.Geometry.BBox(...GLOBAL_BBOX);
 }
 
 // ==================================================================
