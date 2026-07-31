@@ -41,7 +41,7 @@ export async function openFeatureCollectionPreview(
 ): Promise<void> {
   const panel = vscode.window.createWebviewPanel(
     'earthengine.featureCollectionPreview',
-    `Asset details: ${asset.id || asset.name.split('/').pop() || 'Table'} (Table)`,
+    `Asset details: ${asset.id || asset.name.split('/').pop() || 'Table'}`,
     vscode.ViewColumn.One,
     { enableScripts: true, retainContextWhenHidden: true },
   );
