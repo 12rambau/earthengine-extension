@@ -218,9 +218,11 @@ export class AssetsSection extends SidebarSection {
 
       // Extract relative path after projects/{project}/assets/.
       const assetsPrefix = `${projectRoot}/assets/`;
-      const relativePath = result.startsWith(assetsPrefix)
-        ? result.slice(assetsPrefix.length)
-        : result;
+      if (!result.startsWith(assetsPrefix)) {
+        vscode.window.showErrorMessage(`Folder path must start with "${assetsPrefix}".`);
+        return;
+      }
+      const relativePath = result.slice(assetsPrefix.length);
 
       if (!relativePath) {
         return;
