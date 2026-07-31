@@ -252,8 +252,11 @@ export class AssetsSection extends SidebarSection {
           try {
             await getAsset(fullName, token);
             exists = true;
-          } catch {
-            // Does not exist — will be created.
+          } catch (e) {
+            const msg = e instanceof Error ? e.message : '';
+            if (!/HTTP 404\b|NOT_FOUND/.test(msg)) {
+              throw e;
+            }
           }
           if (!exists) {
             await createFolder(projectRoot, currentPath, token);
