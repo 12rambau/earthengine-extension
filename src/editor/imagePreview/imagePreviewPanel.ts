@@ -177,7 +177,7 @@ function getRegion(ee: any, image: any, asset: EEAsset): unknown {
   if (asset.geometry && hasFiniteCoordinates(asset.geometry)) {
     const bounds = image.geometry().bounds();
     const radius = bounds.perimeter().divide(4);
-    return bounds.centroid().buffer(radius).bounds();
+    return bounds.centroid(1).buffer(radius).bounds();
   }
   return ee.Geometry.BBox(...GLOBAL_BBOX);
 }
