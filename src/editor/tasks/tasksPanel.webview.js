@@ -428,6 +428,18 @@ window.addEventListener('message', (e) => {
 // ==================================================================
 // INIT
 // ==================================================================
+// Expose functions to inline onclick/onchange handlers (script is bundled as IIFE)
+window.refresh = refresh;
+window.changeFilter = changeFilter;
+window.changePageSize = changePageSize;
+window.togglePicker = togglePicker;
+window.toggleCol = toggleCol;
+window.sortBy = sortBy;
+window.nextPage = nextPage;
+window.prevPage = prevPage;
+window.goToPage = goToPage;
+window.cancelTask = cancelTask;
+
 buildPicker();
 renderHeader();
 document.getElementById('pageSize').value = String(pageSize);
