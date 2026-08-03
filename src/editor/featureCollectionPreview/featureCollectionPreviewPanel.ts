@@ -17,7 +17,7 @@ import { EEAsset, listFeatures } from '../../sidebar/assets/eeApiClient.js';
 import { escapeHtml } from '../../shared/index.js';
 import { filesize } from 'filesize';
 import dayjs from 'dayjs';
-import { ensureEe, getThumbUrl } from '../../shared/eeSession.js';
+import { ensureEe, getThumbUrlRest } from '../../shared/eeSession.js';
 import Handlebars from 'handlebars';
 import template from './featureCollectionPreviewPanel.hbs';
 
@@ -41,7 +41,7 @@ export async function openFeatureCollectionPreview(
 ): Promise<void> {
   const panel = vscode.window.createWebviewPanel(
     'earthengine.featureCollectionPreview',
-    `Asset details: ${asset.id || asset.name.split('/').pop() || 'Table'} (Table)`,
+    `Asset details: ${asset.id || asset.name.split('/').pop() || 'Table'}`,
     vscode.ViewColumn.One,
     { enableScripts: true, retainContextWhenHidden: true },
   );
@@ -72,20 +72,79 @@ async function sendThumbnail(asset: EEAsset, panel: vscode.WebviewPanel): Promis
   try {
     const thumbUrl = await getTableThumbnailUrl(asset);
     panel.webview.postMessage({ type: 'thumbnail', url: thumbUrl });
-  } catch {
-    panel.webview.postMessage({
-      type: 'thumbnail',
-      url: '',
-      error: 'The table size is too large to generate a thumbnail.',
-    });
+  } catch (err) {
+    panel.webview.postMessage({ type: 'thumbnail', url: '' });
+    const msg = err instanceof Error ? err.message : String(err);
+    vscode.window.showErrorMessage(`Failed to load thumbnail: ${msg}`);
   }
 }
 
-/** Paints the table's feature boundaries as dark strokes on white and requests a thumbnail. */
+/** Paints features with red fill and red border on an empty image, using the buffered bounds as region. */
 async function getTableThumbnailUrl(asset: EEAsset): Promise<string> {
   const ee = await ensureEe();
-  const boundaries = ee.Image(1).paint(ee.FeatureCollection(asset.name), 0, 1);
-  return getThumbUrl(boundaries, { dimensions: 256, format: 'png' });
+  const fc = ee.FeatureCollection(asset.name);
+  const painted = ee.Image(0).paint(fc, 1).paint(fc, 2, 1);
+  const visualized = painted.visualize({
+    palette: ['FFFFFF', 'FFCCCC', 'FF0000'],
+    min: 0,
+    max: 2,
+  });
+  return getThumbUrlRest(visualized, {
+    format: 'PNG',
+    grid: buildSquareGrid(asset.geometry),
+  });
+}
+
+/** Builds a 256×256 square grid from the asset geometry, or a global fallback. */
+function buildSquareGrid(geometry: unknown): Record<string, unknown> {
+  const bbox = extractBbox(geometry);
+  const cx = (bbox[0] + bbox[2]) / 2;
+  const cy = (bbox[1] + bbox[3]) / 2;
+  const half = Math.max(bbox[2] - bbox[0], bbox[3] - bbox[1]) / 2;
+  const x0 = cx - half;
+  const y0 = cy + half;
+  const span = half * 2;
+  return {
+    dimensions: { width: 256, height: 256 },
+    affineTransform: {
+      scaleX: span / 256,
+      shearX: 0,
+      translateX: x0,
+      shearY: 0,
+      scaleY: -span / 256,
+      translateY: y0,
+    },
+    crsCode: 'EPSG:4326',
+  };
+}
+
+/** Extracts [minX, minY, maxX, maxY] from a GeoJSON geometry, or returns a global fallback. */
+function extractBbox(geometry: unknown): [number, number, number, number] {
+  const fallback: [number, number, number, number] = [-89, -89, 89, 89];
+  if (!geometry || typeof geometry !== 'object') {
+    return fallback;
+  }
+  const coords = (geometry as Record<string, unknown>).coordinates;
+  if (!coords) {
+    return fallback;
+  }
+  const bbox: [number, number, number, number] = [Infinity, Infinity, -Infinity, -Infinity];
+  (function walk(c: unknown) {
+    if (Array.isArray(c)) {
+      if (c.length >= 2 && typeof c[0] === 'number' && typeof c[1] === 'number') {
+        if (!Number.isFinite(c[0]) || !Number.isFinite(c[1])) {
+          return;
+        }
+        bbox[0] = Math.min(bbox[0], c[0]);
+        bbox[1] = Math.min(bbox[1], c[1]);
+        bbox[2] = Math.max(bbox[2], c[0]);
+        bbox[3] = Math.max(bbox[3], c[1]);
+      } else {
+        c.forEach(walk);
+      }
+    }
+  })(coords);
+  return Number.isFinite(bbox[0]) ? bbox : fallback;
 }
 
 // ==================================================================
