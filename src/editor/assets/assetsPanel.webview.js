@@ -28,6 +28,7 @@ let isLoading = true; // true until the last streamed page arrives
 let currentPage = 0;
 let sortCol = 'shortName';
 let sortDir = 1;
+const busyAssets = new Map();
 
 const TYPE_ICONS = {
   FOLDER:
@@ -272,7 +273,9 @@ function render() {
           '</button>'
         : '<span class="name-text">' + esc(a.shortName) + '</span>';
       return (
-        '<tr>' +
+        '<tr data-asset="' +
+        esc(a.name) +
+        '">' +
         (vis('icon') ? '<td class="icon-col">' + icon + '</td>' : '') +
         (vis('shortName') ? '<td>' + nameCell + '</td>' : '') +
         (vis('type') ? '<td>' + formatType(a.type) + '</td>' : '') +
@@ -293,6 +296,10 @@ function render() {
       : '0 assets';
   document.getElementById('pageInfo').innerHTML =
     esc(countStr) + (isLoading ? ' <span class="spinner-inline"></span>' : '');
+  // Re-apply busy states after re-render
+  for (var entry of busyAssets) {
+    applyBusyState(entry[0], entry[1]);
+  }
   document.getElementById('prevBtn').disabled = currentPage === 0;
   document.getElementById('nextBtn').disabled = currentPage >= totalPages - 1;
   document.getElementById('pageNums').innerHTML = pagerHtml(currentPage, totalPages);
@@ -398,7 +405,35 @@ function preview(name) {
   vscode.postMessage({ type: 'preview', name });
 }
 function assetAction(action, name) {
+  busyAssets.set(name, action);
+  applyBusyState(name, action);
   vscode.postMessage({ type: 'action', action, name });
+}
+function applyBusyState(name, action) {
+  var row = document.querySelector('tr[data-asset="' + CSS.escape(name) + '"]');
+  if (!row) {
+    return;
+  }
+  row.classList.add('busy');
+  row.querySelectorAll('.action-btn').forEach(function (b) {
+    b.disabled = true;
+  });
+  var btn = row.querySelector('.action-btn[data-action="' + action + '"]');
+  if (btn) {
+    btn.classList.add('spinning');
+  }
+}
+function clearBusyState(name) {
+  busyAssets.delete(name);
+  var row = document.querySelector('tr[data-asset="' + CSS.escape(name) + '"]');
+  if (!row) {
+    return;
+  }
+  row.classList.remove('busy');
+  row.querySelectorAll('.action-btn').forEach(function (b) {
+    b.disabled = false;
+    b.classList.remove('spinning');
+  });
 }
 
 window.addEventListener('message', (e) => {
@@ -412,6 +447,8 @@ window.addEventListener('message', (e) => {
     render();
   } else if (msg.type === 'loading') {
     setLoading(true);
+  } else if (msg.type === 'actionDone') {
+    clearBusyState(msg.name);
   } else if (msg.type === 'error') {
     isLoading = false;
     setLoading(false);
@@ -435,6 +472,8 @@ window.prevPage = prevPage;
 window.goToPage = goToPage;
 window.preview = preview;
 window.assetAction = assetAction;
+window.applyBusyState = applyBusyState;
+window.clearBusyState = clearBusyState;
 
 buildPicker();
 renderHeader();

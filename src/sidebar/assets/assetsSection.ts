@@ -295,7 +295,11 @@ export class AssetsSection extends SidebarSection {
           return false;
         }
         try {
-          await deleteAsset(name, token);
+          const shortName = name.split('/').pop() || name;
+          await vscode.window.withProgress(
+            { location: vscode.ProgressLocation.Notification, title: `Deleting "${shortName}"…` },
+            () => deleteAsset(name, token),
+          );
           vscode.window.showInformationMessage(`Asset "${name}" deleted.`);
           this.provider.refresh();
           return true;
@@ -324,7 +328,11 @@ export class AssetsSection extends SidebarSection {
           return false;
         }
         try {
-          await moveAsset(source, destination, token);
+          const shortName = source.split('/').pop() || source;
+          await vscode.window.withProgress(
+            { location: vscode.ProgressLocation.Notification, title: `Moving "${shortName}"…` },
+            () => moveAsset(source, destination, token),
+          );
           vscode.window.showInformationMessage(`Asset moved to "${destination}".`);
           this.provider.refresh();
           return true;
@@ -353,7 +361,11 @@ export class AssetsSection extends SidebarSection {
           return false;
         }
         try {
-          await copyAsset(source, destination, token);
+          const shortName = source.split('/').pop() || source;
+          await vscode.window.withProgress(
+            { location: vscode.ProgressLocation.Notification, title: `Copying "${shortName}"…` },
+            () => copyAsset(source, destination, token),
+          );
           vscode.window.showInformationMessage(`Asset copied to "${destination}".`);
           this.provider.refresh();
           return true;

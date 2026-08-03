@@ -373,12 +373,24 @@ tr:hover {
   height: 22px;
 }
 tr:hover .action-dots,
-tr:focus-within .action-dots {
+tr:focus-within .action-dots,
+tr.busy .action-dots {
   display: none;
 }
 tr:hover .action-btns,
-tr:focus-within .action-btns {
+tr:focus-within .action-btns,
+tr.busy .action-btns {
   display: inline-flex;
+}
+tr.busy .action-btn {
+  opacity: 0.35;
+  pointer-events: none;
+}
+tr.busy .action-btn.spinning {
+  opacity: 1;
+}
+tr.busy .action-btn.spinning svg {
+  animation: spin 0.8s linear infinite;
 }
 .action-btn {
   background: none !important;

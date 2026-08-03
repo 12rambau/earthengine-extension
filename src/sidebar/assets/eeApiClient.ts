@@ -114,47 +114,154 @@ export async function listFeatures(
 
 /**
  * Deletes an asset by name.
- * Container assets (folders, image collections) must be empty.
- * @param name The full asset path (e.g. "projects/my-project/assets/my-image")
- * @param accessToken OAuth2 access token
+ * Containers (folders, image collections) are deleted recursively.
  */
 export async function deleteAsset(name: string, accessToken: string): Promise<void> {
+  const asset = await getAsset(name, accessToken);
+  if (CONTAINER_TYPES.has(asset.type)) {
+    await deleteContainerRecursive(name, accessToken);
+  } else {
+    await deleteLeaf(name, accessToken);
+  }
+}
+
+/** Deletes a single (non-container) asset. */
+async function deleteLeaf(name: string, accessToken: string): Promise<void> {
   const url = `${EE_API_BASE}/${name}`;
   await httpRequest(url, 'DELETE', accessToken);
 }
 
+// ==================================================================
+// CONTAINER HELPERS
+// ==================================================================
+const CONTAINER_TYPES = new Set(['FOLDER', 'IMAGE_COLLECTION']);
+
+/** Creates a container (FOLDER or IMAGE_COLLECTION) at the given full path. */
+async function createContainerByPath(
+  fullPath: string,
+  type: 'FOLDER' | 'IMAGE_COLLECTION',
+  accessToken: string,
+): Promise<EEAsset> {
+  const parts = fullPath.split('/');
+  const projectRoot = parts.slice(0, 2).join('/');
+  const assetId = parts.slice(3).join('/');
+  const params = new URLSearchParams({ assetId });
+  const url = `${EE_API_BASE}/${projectRoot}/assets?${params.toString()}`;
+  const body = JSON.stringify({ type });
+  const response = await httpRequest(url, 'POST', accessToken, body);
+  return JSON.parse(response) as EEAsset;
+}
+
+/** Copies properties and system times from a source asset to a destination. */
+async function copyContainerProperties(
+  source: EEAsset,
+  destinationName: string,
+  accessToken: string,
+): Promise<void> {
+  const updateFields: string[] = [];
+  const body: Record<string, unknown> = {};
+
+  if (source.properties && Object.keys(source.properties).length > 0) {
+    updateFields.push('properties');
+    body.properties = source.properties;
+  }
+  if (source.startTime) {
+    updateFields.push('startTime');
+    body.startTime = source.startTime;
+  }
+  if (source.endTime) {
+    updateFields.push('endTime');
+    body.endTime = source.endTime;
+  }
+  if (updateFields.length === 0) {
+    return;
+  }
+
+  const params = new URLSearchParams({ updateMask: updateFields.join(',') });
+  const url = `${EE_API_BASE}/${destinationName}?${params.toString()}`;
+  await httpRequest(url, 'PATCH', accessToken, JSON.stringify(body));
+}
+
+/** Recursively deletes a container and all its children (deepest first). */
+async function deleteContainerRecursive(name: string, accessToken: string): Promise<void> {
+  const children = await listAllAssets(name, accessToken);
+  for (const child of children) {
+    if (CONTAINER_TYPES.has(child.type)) {
+      await deleteContainerRecursive(child.name, accessToken);
+    } else {
+      await deleteLeaf(child.name, accessToken);
+    }
+  }
+  await deleteLeaf(name, accessToken);
+}
+
+// ==================================================================
+// MUTATING OPERATIONS
+// ==================================================================
 /**
  * Moves (renames) an asset to a new location.
- * @param sourceName The full path of the asset to move
- * @param destinationName The full destination path
- * @param accessToken OAuth2 access token
+ * Leaf assets use the :move endpoint; containers are copied recursively
+ * then the source is deleted (the API does not support moving containers).
  */
 export async function moveAsset(
   sourceName: string,
   destinationName: string,
   accessToken: string,
 ): Promise<EEAsset> {
-  const url = `${EE_API_BASE}/${sourceName}:move`;
-  const body = JSON.stringify({ destinationName });
-  const response = await httpRequest(url, 'POST', accessToken, body);
-  return JSON.parse(response) as EEAsset;
+  const asset = await getAsset(sourceName, accessToken);
+
+  if (!CONTAINER_TYPES.has(asset.type)) {
+    const url = `${EE_API_BASE}/${sourceName}:move`;
+    const body = JSON.stringify({ destinationName });
+    const response = await httpRequest(url, 'POST', accessToken, body);
+    return JSON.parse(response) as EEAsset;
+  }
+
+  const result = await copyAsset(sourceName, destinationName, accessToken);
+  await deleteContainerRecursive(sourceName, accessToken);
+  return result;
 }
 
 /**
  * Copies an asset to a new location.
- * @param sourceName The full path of the asset to copy
- * @param destinationName The full destination path
- * @param accessToken OAuth2 access token
+ * Leaf assets use the :copy endpoint; containers (folders, image collections)
+ * are created at the destination and their children copied recursively —
+ * matching the geetools `ee.Asset.copy` behaviour.
  */
 export async function copyAsset(
   sourceName: string,
   destinationName: string,
   accessToken: string,
 ): Promise<EEAsset> {
-  const url = `${EE_API_BASE}/${sourceName}:copy`;
-  const body = JSON.stringify({ destinationName });
-  const response = await httpRequest(url, 'POST', accessToken, body);
-  return JSON.parse(response) as EEAsset;
+  const asset = await getAsset(sourceName, accessToken);
+
+  if (!CONTAINER_TYPES.has(asset.type)) {
+    const url = `${EE_API_BASE}/${sourceName}:copy`;
+    const body = JSON.stringify({ destinationName });
+    const response = await httpRequest(url, 'POST', accessToken, body);
+    return JSON.parse(response) as EEAsset;
+  }
+
+  // Create the container at the destination
+  const created = await createContainerByPath(
+    destinationName,
+    asset.type as 'FOLDER' | 'IMAGE_COLLECTION',
+    accessToken,
+  );
+
+  // For image collections, preserve properties and system times
+  if (asset.type === 'IMAGE_COLLECTION') {
+    await copyContainerProperties(asset, destinationName, accessToken);
+  }
+
+  // Recursively copy children
+  const children = await listAllAssets(sourceName, accessToken);
+  for (const child of children) {
+    const relativeSuffix = child.name.substring(sourceName.length);
+    await copyAsset(child.name, destinationName + relativeSuffix, accessToken);
+  }
+
+  return created;
 }
 
 /**
@@ -168,18 +275,14 @@ export async function createFolder(
   folderName: string,
   accessToken: string,
 ): Promise<EEAsset> {
-  // The EE API expects: POST /v1/projects/{project}/assets?assetId={relative-path}
-  // Extract the project root (projects/{id}) and compute the relative assetId
   const parts = parent.split('/');
-  const projectRoot = parts.slice(0, 2).join('/'); // "projects/{project}"
+  const projectRoot = parts.slice(0, 2).join('/');
 
   let assetId: string;
   if (parts.length > 2 && parts[2] === 'assets') {
-    // Parent is "projects/{project}/assets/some/path"
     const relativePath = parts.slice(3).join('/');
     assetId = relativePath ? `${relativePath}/${folderName}` : folderName;
   } else {
-    // Parent is just "projects/{project}"
     assetId = folderName;
   }
 

@@ -124,10 +124,24 @@ export async function openAssetsPanel(
       } else if (msg.type === 'action') {
         const command = ACTION_COMMANDS[msg.action];
         if (command) {
-          const done = await vscode.commands.executeCommand<boolean>(command, msg.name);
-          if (done) {
-            await loadAndStream(currentParentPath);
-          }
+          // Fire and forget so the operation survives panel disposal
+          void (async () => {
+            try {
+              const done = await vscode.commands.executeCommand<boolean>(command, msg.name);
+              if (done && !disposed) {
+                await loadAndStream(currentParentPath);
+              }
+            } catch (err) {
+              if (!disposed) {
+                const m = err instanceof Error ? err.message : String(err);
+                panel.webview.postMessage({ type: 'error', message: m });
+              }
+            } finally {
+              if (!disposed) {
+                panel.webview.postMessage({ type: 'actionDone', name: msg.name });
+              }
+            }
+          })();
         }
       } else if (msg.type === 'savePrefs') {
         const prefs: AssetPrefs = { visibleCols: msg.visibleCols, pageSize: msg.pageSize };
@@ -153,7 +167,9 @@ export async function openAssetsPanel(
     });
   });
 
+  let disposed = false;
   panel.onDidDispose(() => {
+    disposed = true;
     generation++;
     authListener.dispose();
   });
