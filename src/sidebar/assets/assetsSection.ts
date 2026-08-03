@@ -73,11 +73,11 @@ export class AssetsSection extends SidebarSection {
       vscode.window.showInformationMessage(`Copied: ${item.asset.name}`);
     });
 
-    this.registerCommand('earthengine.createFolder', async (item?: AssetTreeItem) => {
+    this.registerCommand('earthengine.createFolder', async (item?: AssetTreeItem | string) => {
       const token = await this.authService.getToken();
       if (!token) {
         vscode.window.showErrorMessage('Not authenticated.');
-        return;
+        return false;
       }
 
       const profile = this.authService.currentProfile!;
@@ -85,7 +85,9 @@ export class AssetsSection extends SidebarSection {
 
       // The locked prefix the user cannot delete.
       let basePath: string;
-      if (item && item.isContainer && item.asset.type === 'FOLDER') {
+      if (typeof item === 'string') {
+        basePath = item + '/';
+      } else if (item && item.isContainer && item.asset.type === 'FOLDER') {
         basePath = item.asset.name + '/';
       } else {
         basePath = `${projectRoot}/assets/`;
@@ -213,19 +215,19 @@ export class AssetsSection extends SidebarSection {
       });
 
       if (!result) {
-        return;
+        return false;
       }
 
       // Extract relative path after projects/{project}/assets/.
       const assetsPrefix = `${projectRoot}/assets/`;
       if (!result.startsWith(assetsPrefix)) {
         vscode.window.showErrorMessage(`Folder path must start with "${assetsPrefix}".`);
-        return;
+        return false;
       }
       const relativePath = result.slice(assetsPrefix.length);
 
       if (!relativePath) {
-        return;
+        return false;
       }
 
       // Validate all segments.
@@ -235,7 +237,7 @@ export class AssetsSection extends SidebarSection {
           vscode.window.showErrorMessage(
             `Invalid segment "${seg}" — only letters, numbers, hyphens and underscores allowed.`,
           );
-          return;
+          return false;
         }
       }
 
@@ -263,14 +265,18 @@ export class AssetsSection extends SidebarSection {
           }
         }
         vscode.window.showInformationMessage(`Folder "${segments.join('/')}" created.`);
-        if (item) {
+        if (typeof item === 'string') {
+          // Called from the panel — refresh handled by caller
+        } else if (item) {
           this.provider.refreshFolder(item.asset.name);
         } else {
           this.provider.refresh();
         }
+        return true;
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
         vscode.window.showErrorMessage(`Failed to create folder: ${msg}`);
+        return false;
       }
     });
 

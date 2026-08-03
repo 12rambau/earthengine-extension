@@ -41,6 +41,7 @@ const ACTION_COMMANDS: Record<string, string> = {
   delete: 'earthengine.deleteAsset',
   move: 'earthengine.moveAsset',
   copy: 'earthengine.copyAsset',
+  createFolder: 'earthengine.createFolder',
 };
 
 // ==================================================================

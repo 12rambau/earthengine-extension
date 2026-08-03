@@ -47,6 +47,8 @@ const ACTION_ICONS = {
   copy: '<svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path fill-rule="evenodd" clip-rule="evenodd" d="M5.085 2C5.291 1.418 5.847 1 6.5 1H9.5C10.153 1 10.709 1.418 10.915 2H11.5C12.328 2 13 2.672 13 3.5V8.1C12.919 8.129 12.84 8.165 12.765 8.207C12.46 8.378 12.225 8.65 12.1 8.976L12 8.876V3.5C12 3.224 11.776 3 11.5 3H10.915C10.709 3.583 10.153 4 9.5 4H6.5C5.847 4 5.291 3.583 5.085 3H4.5C4.224 3 4 3.224 4 3.5V13.5C4 13.776 4.224 14 4.5 14H8V14.5C8 14.672 8.033 14.841 8.091 15H4.5C3.672 15 3 14.328 3 13.5V3.5C3 2.672 3.672 2 4.5 2H5.085ZM6.5 2C6.224 2 6 2.224 6 2.5C6 2.776 6.224 3 6.5 3H9.5C9.776 3 10 2.776 10 2.5C10 2.224 9.776 2 9.5 2H6.5Z"/><path d="M11.916 10.778C11.971 10.696 12 10.599 12 10.5C12 10.368 11.947 10.24 11.854 10.147L9.854 8.147C9.761 8.053 9.634 8 9.5 8C9.368 8 9.241 8.053 9.147 8.146L7.147 10.146C7.054 10.239 7 10.367 7 10.5C7 10.633 7.053 10.761 7.147 10.854C7.24 10.948 7.368 11 7.5 11C7.633 11 7.76 10.948 7.854 10.855L9 9.708V14.5C9 14.776 9.224 15 9.5 15C9.776 15 10 14.776 10 14.5V9.708L11.146 10.854C11.24 10.948 11.368 11 11.5 11C11.633 11 11.759 10.948 11.853 10.855C11.916 10.778 11.916 10.778 11.916 10.778Z"/><path d="M11.084 13.222C11.029 13.304 11 13.401 11 13.5C11 13.633 11.053 13.76 11.146 13.853L13.146 15.853C13.24 15.947 13.368 16 13.5 16C13.632 16 13.759 15.948 13.853 15.854L15.853 13.854C15.947 13.761 16 13.634 16 13.5C16 13.368 15.947 13.241 15.854 13.147C15.76 13.054 15.633 13 15.5 13C15.368 13 15.241 13.053 15.147 13.146L14 14.292V9.5C14 9.224 13.776 9 13.5 9C13.224 9 13 9.224 13 9.5V14.292L11.854 13.146C11.761 13.053 11.634 13 11.5 13C11.368 13 11.241 13.053 11.147 13.146C11.107 13.186 11.084 13.222 11.084 13.222Z"/></svg>',
   move: '<svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path fill-rule="evenodd" clip-rule="evenodd" d="M8.586 1C8.984 1 9.366 1.159 9.647 1.44L12.56 4.354C12.841 4.635 13 5.017 13 5.415V13C13 14.105 12.105 15 11 15H5C3.896 15 3 14.105 3 13V6H4V13C4 13.552 4.448 14 5 14H11C11.552 14 12 13.552 12 13V6H9.5C8.672 6 8 5.328 8 4.5V2H7.973C7.988 1.977 7.982 1.953 7.973 1.929C7.897 1.747 7.787 1.581 7.647 1.442L7.206 1H8.586ZM9 4.5C9 4.776 9.224 5 9.5 5H11.793L9 2.207V4.5Z"/><path d="M4.5 0C4.633 0 4.76 0.053 4.854 0.147L6.854 2.147C6.947 2.241 7 2.368 7 2.5C7 2.633 6.947 2.76 6.854 2.854C6.76 2.947 6.633 3 6.5 3C6.368 3 6.24 2.948 6.147 2.855L5 1.707V4.5C5 4.633 4.947 4.76 4.854 4.854C4.76 4.947 4.633 5 4.5 5C4.368 5 4.24 4.948 4.147 4.855C4.053 4.761 4 4.634 4 4.5V1.707L2.854 2.855C2.761 2.948 2.634 3 2.5 3C2.368 3 2.24 2.948 2.147 2.854C2.053 2.761 2 2.634 2 2.5C2 2.368 2.053 2.241 2.147 2.147L4.147 0.147C4.24 0.053 4.367 0 4.5 0Z"/></svg>',
   del: '<svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M14 2H10C10 0.897 9.103 0 8 0C6.897 0 6 0.897 6 2H2C1.724 2 1.5 2.224 1.5 2.5C1.5 2.776 1.724 3 2 3H2.54L3.349 12.708C3.456 13.994 4.55 15 5.84 15H10.159C11.449 15 12.543 13.993 12.65 12.708L13.459 3H13.999C14.275 3 14.499 2.776 14.499 2.5C14.499 2.224 14.275 2 13.999 2H14ZM8 1C8.551 1 9 1.449 9 2H7C7 1.449 7.449 1 8 1ZM11.655 12.625C11.591 13.396 10.934 14 10.16 14H5.841C5.067 14 4.41 13.396 4.346 12.625L3.544 3H12.458L11.656 12.625H11.655ZM7 5.5V11.5C7 11.776 6.776 12 6.5 12C6.224 12 6 11.776 6 11.5V5.5C6 5.224 6.224 5 6.5 5C6.776 5 7 5.224 7 5.5ZM10 5.5V11.5C10 11.776 9.776 12 9.5 12C9.224 12 9 11.776 9 11.5V5.5C9 5.224 9.224 5 9.5 5C9.776 5 10 5.224 10 5.5Z"/></svg>',
+  newFolder:
+    '<svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M2 4.5V6H5.58579C5.71839 6 5.84557 5.94732 5.93934 5.85355L7.29289 4.5L5.93934 3.14645C5.84557 3.05268 5.71839 3 5.58579 3H3.5C2.67157 3 2 3.67157 2 4.5ZM1 4.5C1 3.11929 2.11929 2 3.5 2H5.58579C5.98361 2 6.36514 2.15804 6.64645 2.43934L8.20711 4H12.5C13.8807 4 15 5.11929 15 6.5V7.25716C14.6929 7.00353 14.3578 6.78261 14 6.59971V6.5C14 5.67157 13.3284 5 12.5 5H8.20711L6.64645 6.56066C6.36514 6.84197 5.98361 7 5.58579 7H2V11.5C2 12.3284 2.67157 13 3.5 13H6.20703C6.30564 13.3486 6.43777 13.6832 6.59971 14H3.5C2.11929 14 1 12.8807 1 11.5V4.5ZM16 11.5C16 13.9853 13.9853 16 11.5 16C9.01472 16 7 13.9853 7 11.5C7 9.01472 9.01472 7 11.5 7C13.9853 7 16 9.01472 16 11.5ZM12 9C12 8.72386 11.7761 8.5 11.5 8.5C11.2239 8.5 11 8.72386 11 9V11H9C8.72386 11 8.5 11.2239 8.5 11.5C8.5 11.7761 8.72386 12 9 12H11V14C11 14.2761 11.2239 14.5 11.5 14.5C11.7761 14.5 12 14.2761 12 14V12H14C14.2761 12 14.5 11.7761 14.5 11.5C14.5 11.2239 14.2761 11 14 11H12V9Z"/></svg>',
   dot: '<svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M8 6.25a1.75 1.75 0 1 1 0 3.5 1.75 1.75 0 0 1 0-3.5z"/></svg>',
 };
 
@@ -204,7 +206,15 @@ function formatType(t) {
 
 function actionsHtml(a) {
   const btns = [];
-  if (a.type !== 'FOLDER') {
+  if (a.type === 'FOLDER') {
+    btns.push(
+      '<button class="action-btn" data-action="createFolder" title="New folder" onclick="assetAction(\'createFolder\',\'' +
+        esc(a.name) +
+        '\')">' +
+        ACTION_ICONS.newFolder +
+        '</button>',
+    );
+  } else {
     btns.push(
       '<button class="action-btn" title="Preview" onclick="preview(\'' +
         esc(a.name) +
@@ -214,21 +224,21 @@ function actionsHtml(a) {
     );
   }
   btns.push(
-    '<button class="action-btn" title="Copy asset" onclick="assetAction(\'copy\',\'' +
+    '<button class="action-btn" data-action="copy" title="Copy asset" onclick="assetAction(\'copy\',\'' +
       esc(a.name) +
       '\')">' +
       ACTION_ICONS.copy +
       '</button>',
   );
   btns.push(
-    '<button class="action-btn" title="Move asset" onclick="assetAction(\'move\',\'' +
+    '<button class="action-btn" data-action="move" title="Move asset" onclick="assetAction(\'move\',\'' +
       esc(a.name) +
       '\')">' +
       ACTION_ICONS.move +
       '</button>',
   );
   btns.push(
-    '<button class="action-btn danger" title="Delete asset" onclick="assetAction(\'delete\',\'' +
+    '<button class="action-btn danger" data-action="delete" title="Delete asset" onclick="assetAction(\'delete\',\'' +
       esc(a.name) +
       '\')">' +
       ACTION_ICONS.del +
@@ -421,6 +431,7 @@ function applyBusyState(name, action) {
   var btn = row.querySelector('.action-btn[data-action="' + action + '"]');
   if (btn) {
     btn.classList.add('spinning');
+    btn.insertAdjacentHTML('beforeend', '<span class="spinner-inline"></span>');
   }
 }
 function clearBusyState(name) {
@@ -433,6 +444,10 @@ function clearBusyState(name) {
   row.querySelectorAll('.action-btn').forEach(function (b) {
     b.disabled = false;
     b.classList.remove('spinning');
+    var sp = b.querySelector('.spinner-inline');
+    if (sp) {
+      sp.remove();
+    }
   });
 }
 

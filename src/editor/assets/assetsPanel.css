@@ -390,7 +390,7 @@ tr.busy .action-btn.spinning {
   opacity: 1;
 }
 tr.busy .action-btn.spinning svg {
-  animation: spin 0.8s linear infinite;
+  display: none;
 }
 .action-btn {
   background: none !important;
