@@ -17,7 +17,7 @@ import { EEAsset, EEBand, listAssets, getAsset } from '../../sidebar/assets/eeAp
 import { escapeHtml } from '../../shared/index.js';
 import { filesize } from 'filesize';
 import dayjs from 'dayjs';
-import { ensureEe, getThumbUrl } from '../../shared/eeSession.js';
+import { ensureEe, getThumbUrlRest } from '../../shared/eeSession.js';
 import Handlebars from 'handlebars';
 import template from './imageCollectionPreviewPanel.hbs';
 import imagesTableTemplate from './imagesTable.hbs';
@@ -36,7 +36,10 @@ import script from './imageCollectionPreviewPanel.webview.js';
 const IMAGES_PAGE_SIZE = 100;
 
 /** Max images used in the thumbnail mosaic. */
-const MOSAIC_LIMIT = 10;
+const MOSAIC_LIMIT = 4;
+
+/** Near-global extent for collections without a usable footprint. */
+const GLOBAL_BBOX = [-180, -89, 180, 89];
 
 // ==================================================================
 // ACTION ICONS (INLINE SVG)
@@ -88,7 +91,7 @@ export async function openImageCollectionPreview(
   // Handle messages from the WebView
   panel.webview.onDidReceiveMessage(async (msg: { type: string; name?: string }) => {
     if (msg.type === 'ready') {
-      sendThumbnail(asset, panel);
+      sendThumbnail(asset, bands, childImages, panel);
     } else if (msg.type === 'openImage' && msg.name) {
       const token = await getTokenSafe(accessToken);
       try {
@@ -127,20 +130,97 @@ function getTokenSafe(accessToken: string): Promise<string> {
 // ==================================================================
 // THUMBNAIL
 // ==================================================================
-async function sendThumbnail(asset: EEAsset, panel: vscode.WebviewPanel): Promise<void> {
+async function sendThumbnail(
+  asset: EEAsset,
+  bands: EEBand[],
+  childImages: EEAsset[],
+  panel: vscode.WebviewPanel,
+): Promise<void> {
   try {
-    const thumbUrl = await getCollectionThumbnailUrl(asset);
+    const thumbUrl = await getCollectionThumbnailUrl(asset, bands, childImages);
     panel.webview.postMessage({ type: 'thumbnail', url: thumbUrl });
-  } catch {
+  } catch (err) {
     panel.webview.postMessage({ type: 'thumbnail', url: '', error: 'Thumbnail not available.' });
+    const msg = err instanceof Error ? err.message : String(err);
+    vscode.window.showErrorMessage(`Failed to load collection thumbnail: ${msg}`);
   }
 }
 
 /** Mosaics the first N images of the collection and requests a 256px thumbnail URL. */
-async function getCollectionThumbnailUrl(asset: EEAsset): Promise<string> {
+async function getCollectionThumbnailUrl(
+  asset: EEAsset,
+  bands: EEBand[],
+  childImages: EEAsset[],
+): Promise<string> {
   const ee = await ensureEe();
-  const mosaic = ee.ImageCollection(asset.name).limit(MOSAIC_LIMIT).mosaic().visualize({});
-  return getThumbUrl(mosaic, { dimensions: 256, format: 'png' });
+  const mosaicImages = childImages.slice(0, MOSAIC_LIMIT);
+  const collection =
+    mosaicImages.length > 0
+      ? ee.ImageCollection(mosaicImages.map((img) => ee.Image(img.name)))
+      : ee.ImageCollection(asset.name).limit(MOSAIC_LIMIT);
+  const mosaic = collection.mosaic();
+  const firstBand = bands[0]?.id;
+  const visualized = mosaic.visualize(firstBand ? { bands: [firstBand] } : {});
+
+  const globalParams = {
+    format: 'PNG',
+    grid: {
+      dimensions: { width: 256, height: 256 },
+      affineTransform: {
+        scaleX: 360 / 256,
+        shearX: 0,
+        translateX: -180,
+        shearY: 0,
+        scaleY: -178 / 256,
+        translateY: 89,
+      },
+      crsCode: 'EPSG:4326',
+    },
+  };
+
+  const isGlobal = !asset.geometry || !hasFiniteCoordinates(asset.geometry);
+  if (isGlobal) {
+    return getThumbUrlRest(visualized, globalParams);
+  }
+  try {
+    return await getThumbUrlRest(visualized, {
+      dimensions: [256, 256],
+      region: getRegion(ee, mosaic, asset),
+      format: 'PNG',
+    });
+  } catch {
+    return getThumbUrlRest(visualized, globalParams);
+  }
+}
+
+// ==================================================================
+// GEOMETRY HELPER
+// ==================================================================
+/** Returns false when any coordinate is non-finite (Infinity strings, NaN, etc.). */
+function hasFiniteCoordinates(val: unknown): boolean {
+  if (typeof val === 'number') {
+    return Number.isFinite(val);
+  }
+  if (typeof val === 'string') {
+    return false;
+  }
+  if (Array.isArray(val)) {
+    return val.length > 0 && val.every(hasFiniteCoordinates);
+  }
+  if (val && typeof val === 'object') {
+    return hasFiniteCoordinates((val as Record<string, unknown>).coordinates);
+  }
+  return false;
+}
+
+/** Returns a square ee.Geometry region for the thumbnail. */
+function getRegion(ee: any, image: any, asset: EEAsset): unknown {
+  if (asset.geometry && hasFiniteCoordinates(asset.geometry)) {
+    const bounds = image.geometry().bounds();
+    const radius = bounds.perimeter(1).divide(4);
+    return bounds.centroid(1).buffer(radius).bounds();
+  }
+  return ee.Geometry.BBox(...GLOBAL_BBOX);
 }
 
 // ==================================================================
