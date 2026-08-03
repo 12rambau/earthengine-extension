@@ -428,8 +428,9 @@ export class AssetsSection extends SidebarSection {
         if (!value.trim()) {
           return 'Destination path is required';
         }
-        if (this.normalizeAssetPath(value) === source) {
-          return 'Destination must differ from the source';
+        const normalized = this.normalizeAssetPath(value);
+        if (normalized === source || normalized.startsWith(source + '/')) {
+          return 'Destination cannot be the source or inside it';
         }
         return null;
       },

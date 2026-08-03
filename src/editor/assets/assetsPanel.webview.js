@@ -395,7 +395,9 @@ function refresh() {
   vscode.postMessage({ type: 'refresh' });
 }
 function newFolder() {
-  vscode.postMessage({ type: 'action', action: 'createFolder', name: currentParent });
+  // At the project root, the assets subtree lives under rootPath + '/assets'
+  var parent = currentParent === rootPath ? rootPath + '/assets' : currentParent;
+  vscode.postMessage({ type: 'action', action: 'createFolder', name: parent });
 }
 function goUp() {
   if (currentParent === rootPath) {

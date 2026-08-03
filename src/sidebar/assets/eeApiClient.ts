@@ -136,6 +136,20 @@ async function deleteLeaf(name: string, accessToken: string): Promise<void> {
 // ==================================================================
 const CONTAINER_TYPES = new Set(['FOLDER', 'IMAGE_COLLECTION']);
 
+/** POSTs a create-asset request to the EE REST API. */
+async function postCreateAsset(
+  projectRoot: string,
+  assetId: string,
+  type: 'FOLDER' | 'IMAGE_COLLECTION',
+  accessToken: string,
+): Promise<EEAsset> {
+  const params = new URLSearchParams({ assetId });
+  const url = `${EE_API_BASE}/${projectRoot}/assets?${params.toString()}`;
+  const body = JSON.stringify({ type });
+  const response = await httpRequest(url, 'POST', accessToken, body);
+  return JSON.parse(response) as EEAsset;
+}
+
 /** Creates a container (FOLDER or IMAGE_COLLECTION) at the given full path. */
 async function createContainerByPath(
   fullPath: string,
@@ -143,13 +157,7 @@ async function createContainerByPath(
   accessToken: string,
 ): Promise<EEAsset> {
   const parts = fullPath.split('/');
-  const projectRoot = parts.slice(0, 2).join('/');
-  const assetId = parts.slice(3).join('/');
-  const params = new URLSearchParams({ assetId });
-  const url = `${EE_API_BASE}/${projectRoot}/assets?${params.toString()}`;
-  const body = JSON.stringify({ type });
-  const response = await httpRequest(url, 'POST', accessToken, body);
-  return JSON.parse(response) as EEAsset;
+  return postCreateAsset(parts.slice(0, 2).join('/'), parts.slice(3).join('/'), type, accessToken);
 }
 
 /** Copies properties and system times from a source asset to a destination. */
@@ -195,6 +203,41 @@ async function deleteContainerRecursive(name: string, accessToken: string): Prom
   await deleteLeaf(name, accessToken);
 }
 
+/** Internal recursive copy implementation; caller is responsible for fetching the asset. */
+async function copyAssetImpl(
+  asset: EEAsset,
+  destinationName: string,
+  accessToken: string,
+): Promise<EEAsset> {
+  if (!CONTAINER_TYPES.has(asset.type)) {
+    const url = `${EE_API_BASE}/${asset.name}:copy`;
+    const body = JSON.stringify({ destinationName });
+    const response = await httpRequest(url, 'POST', accessToken, body);
+    return JSON.parse(response) as EEAsset;
+  }
+
+  const created = await createContainerByPath(
+    destinationName,
+    asset.type as 'FOLDER' | 'IMAGE_COLLECTION',
+    accessToken,
+  );
+
+  if (asset.type === 'IMAGE_COLLECTION') {
+    await copyContainerProperties(asset, destinationName, accessToken);
+  }
+
+  const children = await listAllAssets(asset.name, accessToken);
+  for (const child of children) {
+    const relativeSuffix = child.name.substring(asset.name.length);
+    // IMAGE_COLLECTION children need properties; listAllAssets doesn't return them
+    const childAsset =
+      child.type === 'IMAGE_COLLECTION' ? await getAsset(child.name, accessToken) : child;
+    await copyAssetImpl(childAsset, destinationName + relativeSuffix, accessToken);
+  }
+
+  return created;
+}
+
 // ==================================================================
 // MUTATING OPERATIONS
 // ==================================================================
@@ -208,6 +251,10 @@ export async function moveAsset(
   destinationName: string,
   accessToken: string,
 ): Promise<EEAsset> {
+  if (destinationName === sourceName || destinationName.startsWith(sourceName + '/')) {
+    throw new Error(`Cannot move "${sourceName}" into itself or a descendant.`);
+  }
+
   const asset = await getAsset(sourceName, accessToken);
 
   if (!CONTAINER_TYPES.has(asset.type)) {
@@ -217,7 +264,7 @@ export async function moveAsset(
     return JSON.parse(response) as EEAsset;
   }
 
-  const result = await copyAsset(sourceName, destinationName, accessToken);
+  const result = await copyAssetImpl(asset, destinationName, accessToken);
   await deleteContainerRecursive(sourceName, accessToken);
   return result;
 }
@@ -233,35 +280,11 @@ export async function copyAsset(
   destinationName: string,
   accessToken: string,
 ): Promise<EEAsset> {
+  if (destinationName === sourceName || destinationName.startsWith(sourceName + '/')) {
+    throw new Error(`Cannot copy "${sourceName}" into itself or a descendant.`);
+  }
   const asset = await getAsset(sourceName, accessToken);
-
-  if (!CONTAINER_TYPES.has(asset.type)) {
-    const url = `${EE_API_BASE}/${sourceName}:copy`;
-    const body = JSON.stringify({ destinationName });
-    const response = await httpRequest(url, 'POST', accessToken, body);
-    return JSON.parse(response) as EEAsset;
-  }
-
-  // Create the container at the destination
-  const created = await createContainerByPath(
-    destinationName,
-    asset.type as 'FOLDER' | 'IMAGE_COLLECTION',
-    accessToken,
-  );
-
-  // For image collections, preserve properties and system times
-  if (asset.type === 'IMAGE_COLLECTION') {
-    await copyContainerProperties(asset, destinationName, accessToken);
-  }
-
-  // Recursively copy children
-  const children = await listAllAssets(sourceName, accessToken);
-  for (const child of children) {
-    const relativeSuffix = child.name.substring(sourceName.length);
-    await copyAsset(child.name, destinationName + relativeSuffix, accessToken);
-  }
-
-  return created;
+  return copyAssetImpl(asset, destinationName, accessToken);
 }
 
 /**
@@ -286,9 +309,5 @@ export async function createFolder(
     assetId = folderName;
   }
 
-  const params = new URLSearchParams({ assetId });
-  const url = `${EE_API_BASE}/${projectRoot}/assets?${params.toString()}`;
-  const body = JSON.stringify({ type: 'FOLDER' });
-  const response = await httpRequest(url, 'POST', accessToken, body);
-  return JSON.parse(response) as EEAsset;
+  return postCreateAsset(projectRoot, assetId, 'FOLDER', accessToken);
 }
