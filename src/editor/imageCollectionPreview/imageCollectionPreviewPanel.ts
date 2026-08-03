@@ -36,7 +36,7 @@ import script from './imageCollectionPreviewPanel.webview.js';
 const IMAGES_PAGE_SIZE = 100;
 
 /** Max images used in the thumbnail mosaic. */
-const MOSAIC_LIMIT = 5;
+const MOSAIC_LIMIT = 4;
 
 /** Near-global extent for collections without a usable footprint. */
 const GLOBAL_BBOX = [-180, -89, 180, 89];
@@ -91,7 +91,7 @@ export async function openImageCollectionPreview(
   // Handle messages from the WebView
   panel.webview.onDidReceiveMessage(async (msg: { type: string; name?: string }) => {
     if (msg.type === 'ready') {
-      sendThumbnail(asset, panel);
+      sendThumbnail(asset, bands, panel);
     } else if (msg.type === 'openImage' && msg.name) {
       const token = await getTokenSafe(accessToken);
       try {
@@ -130,9 +130,13 @@ function getTokenSafe(accessToken: string): Promise<string> {
 // ==================================================================
 // THUMBNAIL
 // ==================================================================
-async function sendThumbnail(asset: EEAsset, panel: vscode.WebviewPanel): Promise<void> {
+async function sendThumbnail(
+  asset: EEAsset,
+  bands: EEBand[],
+  panel: vscode.WebviewPanel,
+): Promise<void> {
   try {
-    const thumbUrl = await getCollectionThumbnailUrl(asset);
+    const thumbUrl = await getCollectionThumbnailUrl(asset, bands);
     panel.webview.postMessage({ type: 'thumbnail', url: thumbUrl });
   } catch (err) {
     panel.webview.postMessage({ type: 'thumbnail', url: '', error: 'Thumbnail not available.' });
@@ -142,11 +146,11 @@ async function sendThumbnail(asset: EEAsset, panel: vscode.WebviewPanel): Promis
 }
 
 /** Mosaics the first N images of the collection and requests a 256px thumbnail URL. */
-async function getCollectionThumbnailUrl(asset: EEAsset): Promise<string> {
+async function getCollectionThumbnailUrl(asset: EEAsset, bands: EEBand[]): Promise<string> {
   const ee = await ensureEe();
   const collection = ee.ImageCollection(asset.name).limit(MOSAIC_LIMIT);
   const mosaic = collection.mosaic();
-  const firstBand = asset.bands?.[0]?.id;
+  const firstBand = bands[0]?.id;
   const visualized = mosaic.visualize(firstBand ? { bands: [firstBand] } : {});
 
   const isGlobal = !asset.geometry || !hasFiniteCoordinates(asset.geometry);
@@ -156,9 +160,9 @@ async function getCollectionThumbnailUrl(asset: EEAsset): Promise<string> {
       grid: {
         dimensions: { width: 256, height: 256 },
         affineTransform: {
-          scaleX: 178 / 256,
+          scaleX: 360 / 256,
           shearX: 0,
-          translateX: -89,
+          translateX: -180,
           shearY: 0,
           scaleY: -178 / 256,
           translateY: 89,
