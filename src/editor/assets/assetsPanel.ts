@@ -41,6 +41,7 @@ const ACTION_COMMANDS: Record<string, string> = {
   delete: 'earthengine.deleteAsset',
   move: 'earthengine.moveAsset',
   copy: 'earthengine.copyAsset',
+  createFolder: 'earthengine.createFolder',
 };
 
 // ==================================================================
@@ -62,7 +63,13 @@ export async function openAssetsPanel(
     'earthengine.assetsPanel',
     'Asset Manager',
     vscode.ViewColumn.One,
-    { enableScripts: true, retainContextWhenHidden: true },
+    {
+      enableScripts: true,
+      retainContextWhenHidden: true,
+      localResourceRoots: [
+        vscode.Uri.joinPath(context.extensionUri, 'node_modules', '@vscode', 'codicons', 'dist'),
+      ],
+    },
   );
 
   let rootPath = `projects/${profile.project}`;
@@ -124,10 +131,24 @@ export async function openAssetsPanel(
       } else if (msg.type === 'action') {
         const command = ACTION_COMMANDS[msg.action];
         if (command) {
-          const done = await vscode.commands.executeCommand<boolean>(command, msg.name);
-          if (done) {
-            await loadAndStream(currentParentPath);
-          }
+          // Fire and forget so the operation survives panel disposal
+          void (async () => {
+            try {
+              const done = await vscode.commands.executeCommand<boolean>(command, msg.name);
+              if (done && !disposed) {
+                await loadAndStream(currentParentPath);
+              }
+            } catch (err) {
+              if (!disposed) {
+                const m = err instanceof Error ? err.message : String(err);
+                panel.webview.postMessage({ type: 'error', message: m });
+              }
+            } finally {
+              if (!disposed) {
+                panel.webview.postMessage({ type: 'actionDone', name: msg.name });
+              }
+            }
+          })();
         }
       } else if (msg.type === 'savePrefs') {
         const prefs: AssetPrefs = { visibleCols: msg.visibleCols, pageSize: msg.pageSize };
@@ -153,13 +174,15 @@ export async function openAssetsPanel(
     });
   });
 
+  let disposed = false;
   panel.onDidDispose(() => {
+    disposed = true;
     generation++;
     authListener.dispose();
   });
 
   // Initial load
-  panel.webview.html = getHtml(savedPrefs);
+  panel.webview.html = getHtml(savedPrefs, panel.webview, context.extensionUri);
   try {
     await loadAndStream(rootPath);
   } catch (err) {
@@ -168,7 +191,14 @@ export async function openAssetsPanel(
   }
 }
 
-function getHtml(savedPrefs: AssetPrefs): string {
+function getHtml(
+  savedPrefs: AssetPrefs,
+  webview: vscode.Webview,
+  extensionUri: vscode.Uri,
+): string {
   const initJson = JSON.stringify(savedPrefs).replace(/</g, '\\u003c');
-  return render({ initJson, style, script });
+  const codiconsUri = webview.asWebviewUri(
+    vscode.Uri.joinPath(extensionUri, 'node_modules', '@vscode', 'codicons', 'dist', 'codicon.css'),
+  );
+  return render({ initJson, style, script, codiconsUri });
 }

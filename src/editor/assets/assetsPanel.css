@@ -336,9 +336,10 @@ tr:hover {
   padding: 3px 4px;
   text-align: center;
 }
-.icon-col svg {
+.icon-col .codicon {
   display: block;
   margin: auto;
+  font-size: 16px;
 }
 .id-cell {
   font-family: var(--vscode-editor-font-family, monospace);
@@ -373,12 +374,30 @@ tr:hover {
   height: 22px;
 }
 tr:hover .action-dots,
-tr:focus-within .action-dots {
+tr:focus-within .action-dots,
+tr.busy .action-dots {
   display: none;
 }
 tr:hover .action-btns,
-tr:focus-within .action-btns {
+tr:focus-within .action-btns,
+tr.busy .action-btns {
   display: inline-flex;
+}
+tr.busy .action-btn {
+  opacity: 0.35;
+  pointer-events: none;
+}
+tr.busy .action-btn.spinning {
+  opacity: 1;
+}
+tr.busy .action-btn.spinning .codicon {
+  display: none;
+}
+.action-btn .codicon {
+  font-size: 14px;
+}
+.action-dot .codicon {
+  font-size: 14px;
 }
 .action-btn {
   background: none !important;
