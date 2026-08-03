@@ -91,7 +91,7 @@ export async function openImageCollectionPreview(
   // Handle messages from the WebView
   panel.webview.onDidReceiveMessage(async (msg: { type: string; name?: string }) => {
     if (msg.type === 'ready') {
-      sendThumbnail(asset, bands, panel);
+      sendThumbnail(asset, bands, childImages, panel);
     } else if (msg.type === 'openImage' && msg.name) {
       const token = await getTokenSafe(accessToken);
       try {
@@ -133,10 +133,11 @@ function getTokenSafe(accessToken: string): Promise<string> {
 async function sendThumbnail(
   asset: EEAsset,
   bands: EEBand[],
+  childImages: EEAsset[],
   panel: vscode.WebviewPanel,
 ): Promise<void> {
   try {
-    const thumbUrl = await getCollectionThumbnailUrl(asset, bands);
+    const thumbUrl = await getCollectionThumbnailUrl(asset, bands, childImages);
     panel.webview.postMessage({ type: 'thumbnail', url: thumbUrl });
   } catch (err) {
     panel.webview.postMessage({ type: 'thumbnail', url: '', error: 'Thumbnail not available.' });
@@ -146,36 +147,50 @@ async function sendThumbnail(
 }
 
 /** Mosaics the first N images of the collection and requests a 256px thumbnail URL. */
-async function getCollectionThumbnailUrl(asset: EEAsset, bands: EEBand[]): Promise<string> {
+async function getCollectionThumbnailUrl(
+  asset: EEAsset,
+  bands: EEBand[],
+  childImages: EEAsset[],
+): Promise<string> {
   const ee = await ensureEe();
-  const collection = ee.ImageCollection(asset.name).limit(MOSAIC_LIMIT);
+  const mosaicImages = childImages.slice(0, MOSAIC_LIMIT);
+  const collection =
+    mosaicImages.length > 0
+      ? ee.ImageCollection(mosaicImages.map((img) => ee.Image(img.name)))
+      : ee.ImageCollection(asset.name).limit(MOSAIC_LIMIT);
   const mosaic = collection.mosaic();
   const firstBand = bands[0]?.id;
   const visualized = mosaic.visualize(firstBand ? { bands: [firstBand] } : {});
 
+  const globalParams = {
+    format: 'PNG',
+    grid: {
+      dimensions: { width: 256, height: 256 },
+      affineTransform: {
+        scaleX: 360 / 256,
+        shearX: 0,
+        translateX: -180,
+        shearY: 0,
+        scaleY: -178 / 256,
+        translateY: 89,
+      },
+      crsCode: 'EPSG:4326',
+    },
+  };
+
   const isGlobal = !asset.geometry || !hasFiniteCoordinates(asset.geometry);
   if (isGlobal) {
-    return getThumbUrlRest(visualized, {
-      format: 'PNG',
-      grid: {
-        dimensions: { width: 256, height: 256 },
-        affineTransform: {
-          scaleX: 360 / 256,
-          shearX: 0,
-          translateX: -180,
-          shearY: 0,
-          scaleY: -178 / 256,
-          translateY: 89,
-        },
-        crsCode: 'EPSG:4326',
-      },
-    });
+    return getThumbUrlRest(visualized, globalParams);
   }
-  return getThumbUrlRest(visualized, {
-    dimensions: [256, 256],
-    region: getRegion(ee, mosaic, asset),
-    format: 'PNG',
-  });
+  try {
+    return await getThumbUrlRest(visualized, {
+      dimensions: [256, 256],
+      region: getRegion(ee, mosaic, asset),
+      format: 'PNG',
+    });
+  } catch {
+    return getThumbUrlRest(visualized, globalParams);
+  }
 }
 
 // ==================================================================
