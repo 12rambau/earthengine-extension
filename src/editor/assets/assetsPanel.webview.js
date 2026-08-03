@@ -399,6 +399,9 @@ function refresh() {
   setLoading(true);
   vscode.postMessage({ type: 'refresh' });
 }
+function newFolder() {
+  vscode.postMessage({ type: 'action', action: 'createFolder', name: currentParent });
+}
 function goUp() {
   if (currentParent === rootPath) {
     return;
@@ -476,6 +479,7 @@ window.addEventListener('message', (e) => {
 // ==================================================================
 // Expose functions to inline onclick/onchange handlers (script is bundled as IIFE)
 window.refresh = refresh;
+window.newFolder = newFolder;
 window.goUp = goUp;
 window.changePageSize = changePageSize;
 window.togglePicker = togglePicker;
