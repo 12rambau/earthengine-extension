@@ -336,9 +336,10 @@ tr:hover {
   padding: 3px 4px;
   text-align: center;
 }
-.icon-col svg {
+.icon-col .codicon {
   display: block;
   margin: auto;
+  font-size: 16px;
 }
 .id-cell {
   font-family: var(--vscode-editor-font-family, monospace);
@@ -389,8 +390,14 @@ tr.busy .action-btn {
 tr.busy .action-btn.spinning {
   opacity: 1;
 }
-tr.busy .action-btn.spinning svg {
+tr.busy .action-btn.spinning .codicon {
   display: none;
+}
+.action-btn .codicon {
+  font-size: 14px;
+}
+.action-dot .codicon {
+  font-size: 14px;
 }
 .action-btn {
   background: none !important;

@@ -63,7 +63,13 @@ export async function openAssetsPanel(
     'earthengine.assetsPanel',
     'Asset Manager',
     vscode.ViewColumn.One,
-    { enableScripts: true, retainContextWhenHidden: true },
+    {
+      enableScripts: true,
+      retainContextWhenHidden: true,
+      localResourceRoots: [
+        vscode.Uri.joinPath(context.extensionUri, 'node_modules', '@vscode', 'codicons', 'dist'),
+      ],
+    },
   );
 
   let rootPath = `projects/${profile.project}`;
@@ -176,7 +182,7 @@ export async function openAssetsPanel(
   });
 
   // Initial load
-  panel.webview.html = getHtml(savedPrefs);
+  panel.webview.html = getHtml(savedPrefs, panel.webview, context.extensionUri);
   try {
     await loadAndStream(rootPath);
   } catch (err) {
@@ -185,7 +191,14 @@ export async function openAssetsPanel(
   }
 }
 
-function getHtml(savedPrefs: AssetPrefs): string {
+function getHtml(
+  savedPrefs: AssetPrefs,
+  webview: vscode.Webview,
+  extensionUri: vscode.Uri,
+): string {
   const initJson = JSON.stringify(savedPrefs).replace(/</g, '\\u003c');
-  return render({ initJson, style, script });
+  const codiconsUri = webview.asWebviewUri(
+    vscode.Uri.joinPath(extensionUri, 'node_modules', '@vscode', 'codicons', 'dist', 'codicon.css'),
+  );
+  return render({ initJson, style, script, codiconsUri });
 }
