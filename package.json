@@ -37,6 +37,13 @@
           "maximum": 1000,
           "description": "Maximum number of tasks to display in the sidebar and panel tree views."
         },
+        "earthengine.tasks.scanLimit": {
+          "type": "number",
+          "default": 1000,
+          "minimum": 100,
+          "maximum": 5000,
+          "description": "Maximum number of operations to fetch from the API when loading or refreshing tasks."
+        },
         "earthengine.map.darkBasemap": {
           "type": "string",
           "default": "CartoDB.DarkMatter",

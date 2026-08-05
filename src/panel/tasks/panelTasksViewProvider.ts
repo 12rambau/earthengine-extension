@@ -34,6 +34,11 @@ function getMaxTasks(): number {
   return vscode.workspace.getConfiguration('earthengine.tasks').get<number>('maxItems', 100);
 }
 
+/** Reads the configured scan limit from the extension settings. */
+function getMaxScan(): number {
+  return vscode.workspace.getConfiguration('earthengine.tasks').get<number>('scanLimit', 1_000);
+}
+
 // ==================================================================
 // PANELTASKSVIEWPROVIDER
 // ==================================================================
@@ -163,8 +168,8 @@ export class PanelTasksViewProvider implements vscode.WebviewViewProvider {
       this.resolvedProject = result.project;
       this.allOps.push(...result.operations);
       pageToken = result.nextPageToken;
-      this.sendData(!!pageToken && this.allOps.length < 1_000);
-    } while (pageToken && this.allOps.length < 1_000);
+      this.sendData(!!pageToken && this.allOps.length < getMaxScan());
+    } while (pageToken && this.allOps.length < getMaxScan());
   }
 
   private async refreshIncremental(): Promise<void> {
@@ -196,7 +201,7 @@ export class PanelTasksViewProvider implements vscode.WebviewViewProvider {
       }
       fetched += result.operations.length;
       pageToken = result.nextPageToken;
-    } while (!foundOverlap && pageToken && fetched < 1_000);
+    } while (!foundOverlap && pageToken && fetched < getMaxScan());
 
     if (newOps.length > 0) {
       this.allOps.unshift(...newOps);

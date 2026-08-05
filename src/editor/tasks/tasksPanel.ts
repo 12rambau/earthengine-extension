@@ -32,6 +32,11 @@ type TaskFilter = 'export' | 'import';
 /** Opens a WebView panel listing tasks of the given filter type. */
 const PREFS_KEY = 'earthengine.tasks.prefs';
 
+/** Reads the configured scan limit from the extension settings. */
+function getMaxScan(): number {
+  return vscode.workspace.getConfiguration('earthengine.tasks').get<number>('scanLimit', 1_000);
+}
+
 interface TaskPrefs {
   visibleCols?: string[];
   pageSize?: number;
@@ -97,8 +102,8 @@ export async function openTasksPanel(
       resolvedProject = result.project;
       allOps.push(...result.operations);
       pageToken = result.nextPageToken;
-      sendData(!!(pageToken && allOps.length < 1_000), silent);
-    } while (pageToken && allOps.length < 1_000);
+      sendData(!!(pageToken && allOps.length < getMaxScan()), silent);
+    } while (pageToken && allOps.length < getMaxScan());
   }
 
   /**
@@ -139,7 +144,7 @@ export async function openTasksPanel(
 
       fetched += result.operations.length;
       pageToken = result.nextPageToken;
-    } while (!foundOverlap && pageToken && fetched < 1_000);
+    } while (!foundOverlap && pageToken && fetched < getMaxScan());
 
     // Step 2: Insert new tasks at the front
     if (newOps.length > 0) {

@@ -29,6 +29,11 @@ function getMaxTasks(): number {
   return vscode.workspace.getConfiguration('earthengine.tasks').get<number>('maxItems', 100);
 }
 
+/** Reads the configured scan limit from the extension settings. */
+function getMaxScan(): number {
+  return vscode.workspace.getConfiguration('earthengine.tasks').get<number>('scanLimit', 1_000);
+}
+
 const TERMINAL_STATES = new Set(['SUCCEEDED', 'FAILED', 'CANCELLED']);
 
 /** All possible task states from the EE REST API. */
@@ -213,7 +218,7 @@ export class TasksTreeDataProvider implements vscode.TreeDataProvider<TaskTreeIt
     const filterFn = this.filter === 'export' ? isExportTask : isImportTask;
     let pageToken: string | undefined = startToken;
 
-    while (pageToken && this.loadedTasks.length < 1_000) {
+    while (pageToken && this.loadedTasks.length < getMaxScan()) {
       try {
         const result = await listOperationsPage(this.resolvedProject!, token, 100, pageToken);
         this.resolvedProject = result.project;
@@ -285,7 +290,7 @@ export class TasksTreeDataProvider implements vscode.TreeDataProvider<TaskTreeIt
 
         fetched += result.operations.length;
         pageToken = result.nextPageToken;
-      } while (!foundOverlap && pageToken && fetched < 1_000);
+      } while (!foundOverlap && pageToken && fetched < getMaxScan());
 
       // Insert new tasks at the front
       if (newOps.length > 0) {
