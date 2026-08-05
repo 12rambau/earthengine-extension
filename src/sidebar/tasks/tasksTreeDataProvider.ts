@@ -200,12 +200,11 @@ export class TasksTreeDataProvider implements vscode.TreeDataProvider<TaskTreeIt
 
   /** Returns true if we haven't filled the max matching items yet. */
   private needsMoreMatches(): boolean {
-    if (!this.statusFilter) {
-      return false; // Without status filter, first 100 is enough
-    }
     const filterFn = this.filter === 'export' ? isExportTask : isImportTask;
     let matching = this.loadedTasks.filter(filterFn);
-    matching = matching.filter((op) => this.statusFilter!.has(getTaskState(op)));
+    if (this.statusFilter) {
+      matching = matching.filter((op) => this.statusFilter!.has(getTaskState(op)));
+    }
     return matching.length < getMaxTasks();
   }
 
@@ -213,21 +212,16 @@ export class TasksTreeDataProvider implements vscode.TreeDataProvider<TaskTreeIt
   private async loadMoreInBackground(token: string, startToken: string): Promise<void> {
     const filterFn = this.filter === 'export' ? isExportTask : isImportTask;
     let pageToken: string | undefined = startToken;
-    const maxPages = 5; // Cap at 5 extra pages (500 more tasks scanned)
-    let pages = 0;
 
-    while (pageToken && pages < maxPages) {
+    while (pageToken && this.loadedTasks.length < 1_000) {
       try {
         const result = await listOperationsPage(this.resolvedProject!, token, 100, pageToken);
         this.resolvedProject = result.project;
         this.loadedTasks.push(...result.operations);
         pageToken = result.nextPageToken;
-        pages++;
 
-        // Update tree without spinner
         this._onDidChangeTreeData.fire();
 
-        // Check if we have enough matches now
         let matching = this.loadedTasks.filter(filterFn);
         if (this.statusFilter) {
           matching = matching.filter((op) => this.statusFilter!.has(getTaskState(op)));
