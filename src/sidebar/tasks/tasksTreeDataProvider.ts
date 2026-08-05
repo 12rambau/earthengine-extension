@@ -217,10 +217,16 @@ export class TasksTreeDataProvider implements vscode.TreeDataProvider<TaskTreeIt
   private async loadMoreInBackground(token: string, startToken: string): Promise<void> {
     const filterFn = this.filter === 'export' ? isExportTask : isImportTask;
     let pageToken: string | undefined = startToken;
+    const scanLimit = getMaxScan();
 
-    while (pageToken && this.loadedTasks.length < getMaxScan()) {
+    while (pageToken && this.loadedTasks.length < scanLimit) {
       try {
-        const result = await listOperationsPage(this.resolvedProject!, token, 100, pageToken);
+        const result = await listOperationsPage(
+          this.resolvedProject!,
+          token,
+          Math.min(100, scanLimit - this.loadedTasks.length),
+          pageToken,
+        );
         this.resolvedProject = result.project;
         this.loadedTasks.push(...result.operations);
         pageToken = result.nextPageToken;
@@ -275,9 +281,15 @@ export class TasksTreeDataProvider implements vscode.TreeDataProvider<TaskTreeIt
       let pageToken: string | undefined;
       let fetched = 0;
 
+      const scanLimit = getMaxScan();
       // Fetch batches of 25 until we find an operation we already know
       do {
-        const result = await listOperationsPage(this.resolvedProject!, token, 25, pageToken);
+        const result = await listOperationsPage(
+          this.resolvedProject!,
+          token,
+          Math.min(25, scanLimit - fetched),
+          pageToken,
+        );
         this.resolvedProject = result.project;
 
         for (const op of result.operations) {
@@ -290,7 +302,7 @@ export class TasksTreeDataProvider implements vscode.TreeDataProvider<TaskTreeIt
 
         fetched += result.operations.length;
         pageToken = result.nextPageToken;
-      } while (!foundOverlap && pageToken && fetched < getMaxScan());
+      } while (!foundOverlap && pageToken && fetched < scanLimit);
 
       // Insert new tasks at the front
       if (newOps.length > 0) {
@@ -352,9 +364,15 @@ export class TasksTreeDataProvider implements vscode.TreeDataProvider<TaskTreeIt
     }
 
     // Fetch more pages to try to fill the slots
+    const scanLimit = getMaxScan();
     let pageToken: string | undefined = this.lastPageToken;
-    while (matching.length < getMaxTasks() && pageToken) {
-      const result = await listOperationsPage(this.resolvedProject!, token, 100, pageToken);
+    while (matching.length < getMaxTasks() && pageToken && this.loadedTasks.length < scanLimit) {
+      const result = await listOperationsPage(
+        this.resolvedProject!,
+        token,
+        Math.min(100, scanLimit - this.loadedTasks.length),
+        pageToken,
+      );
       this.resolvedProject = result.project;
       this.loadedTasks.push(...result.operations);
       pageToken = result.nextPageToken;

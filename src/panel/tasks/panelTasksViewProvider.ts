@@ -163,13 +163,19 @@ export class PanelTasksViewProvider implements vscode.WebviewViewProvider {
     const project = this.resolvedProject || profile.project;
     this.allOps = [];
     let pageToken: string | undefined;
+    const scanLimit = getMaxScan();
     do {
-      const result = await listOperationsPage(project, token, 100, pageToken);
+      const result = await listOperationsPage(
+        project,
+        token,
+        Math.min(100, scanLimit - this.allOps.length),
+        pageToken,
+      );
       this.resolvedProject = result.project;
       this.allOps.push(...result.operations);
       pageToken = result.nextPageToken;
-      this.sendData(!!pageToken && this.allOps.length < getMaxScan());
-    } while (pageToken && this.allOps.length < getMaxScan());
+      this.sendData(!!pageToken && this.allOps.length < scanLimit);
+    } while (pageToken && this.allOps.length < scanLimit);
   }
 
   private async refreshIncremental(): Promise<void> {
@@ -188,9 +194,15 @@ export class PanelTasksViewProvider implements vscode.WebviewViewProvider {
     let foundOverlap = false;
     let pageToken: string | undefined;
     let fetched = 0;
+    const scanLimit = getMaxScan();
 
     do {
-      const result = await listOperationsPage(this.resolvedProject!, token, 25, pageToken);
+      const result = await listOperationsPage(
+        this.resolvedProject!,
+        token,
+        Math.min(25, scanLimit - fetched),
+        pageToken,
+      );
       this.resolvedProject = result.project;
       for (const op of result.operations) {
         if (existingNames.has(op.name)) {
@@ -201,7 +213,7 @@ export class PanelTasksViewProvider implements vscode.WebviewViewProvider {
       }
       fetched += result.operations.length;
       pageToken = result.nextPageToken;
-    } while (!foundOverlap && pageToken && fetched < getMaxScan());
+    } while (!foundOverlap && pageToken && fetched < scanLimit);
 
     if (newOps.length > 0) {
       this.allOps.unshift(...newOps);

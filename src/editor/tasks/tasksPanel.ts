@@ -97,13 +97,19 @@ export async function openTasksPanel(
     }
     allOps = [];
     let pageToken: string | undefined;
+    const scanLimit = getMaxScan();
     do {
-      const result = await listOperationsPage(resolvedProject, t, 100, pageToken);
+      const result = await listOperationsPage(
+        resolvedProject,
+        t,
+        Math.min(100, scanLimit - allOps.length),
+        pageToken,
+      );
       resolvedProject = result.project;
       allOps.push(...result.operations);
       pageToken = result.nextPageToken;
-      sendData(!!(pageToken && allOps.length < getMaxScan()), silent);
-    } while (pageToken && allOps.length < getMaxScan());
+      sendData(!!(pageToken && allOps.length < scanLimit), silent);
+    } while (pageToken && allOps.length < scanLimit);
   }
 
   /**
@@ -129,9 +135,15 @@ export async function openTasksPanel(
     let pageToken: string | undefined;
     let fetched = 0;
 
+    const scanLimit = getMaxScan();
     // Step 1: Fetch batches of 25 until we overlap with known tasks
     do {
-      const result = await listOperationsPage(resolvedProject, t, 25, pageToken);
+      const result = await listOperationsPage(
+        resolvedProject,
+        t,
+        Math.min(25, scanLimit - fetched),
+        pageToken,
+      );
       resolvedProject = result.project;
 
       for (const op of result.operations) {
@@ -144,7 +156,7 @@ export async function openTasksPanel(
 
       fetched += result.operations.length;
       pageToken = result.nextPageToken;
-    } while (!foundOverlap && pageToken && fetched < getMaxScan());
+    } while (!foundOverlap && pageToken && fetched < scanLimit);
 
     // Step 2: Insert new tasks at the front
     if (newOps.length > 0) {
