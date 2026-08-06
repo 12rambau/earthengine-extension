@@ -88,8 +88,10 @@
   }
 
   function previewAsset(uri) {
-    const m = uri.match(/\/v1\/(projects\/[^/]+\/assets\/.+)/);
-    if (m) vscode.postMessage({ type: 'preview', assetName: m[1] });
+    // EE returns ?asset=projects/... (code.earthengine.google.com) or /v1/projects/... (googleapis.com)
+    const m = uri.match(/asset=(projects\/[^&\s]+)/) ||
+              uri.match(/\/v1\/(projects\/[^/]+\/assets\/.+)/);
+    if (m) vscode.postMessage({ type: 'preview', assetName: decodeURIComponent(m[1]) });
   }
 
   function refresh() {
@@ -149,7 +151,7 @@
 </div>
 
 <!-- TABLE -->
-<div class="table-wrap" class:loading={isLoading}>
+<div class="table-wrap" class:loading={isLoading && allTasks.length === 0}>
   <table>
     <thead>
       <tr>
@@ -200,16 +202,25 @@
           {#if visibleCols.has('priority')}<td style="text-align:center">{t.priority ?? ''}</td>{/if}
           {#if visibleCols.has('computeUsage')}<td class="compute">{t.computeUsage != null ? t.computeUsage.toFixed(1) + ' EECU·s' : ''}</td>{/if}
           {#if visibleCols.has('actions')}
+            {@const hasCancel = t.state === 'RUNNING' || t.state === 'PENDING'}
+            {@const hasPreview = t.state === 'SUCCEEDED' && t.destinationUris?.length > 0}
             <td class="actions-cell">
-              {#if t.state === 'RUNNING' || t.state === 'PENDING'}
-                <button class="action-btn danger" title="Cancel task" onclick={() => cancelTask(t.name)}>
-                  {@html saved.icons.cancel}
-                </button>
-              {/if}
-              {#if t.state === 'SUCCEEDED' && t.destinationUris?.length > 0}
-                <button class="action-btn" title="Preview asset" onclick={() => previewAsset(t.destinationUris[0])}>
-                  {@html saved.icons.preview}
-                </button>
+              {#if hasCancel || hasPreview}
+                <span class="action-dots">
+                  <span class="action-dot"><i class="codicon codicon-circle-small-filled"></i></span>
+                </span>
+                <span class="action-btns">
+                  {#if hasCancel}
+                    <button class="action-btn danger" title="Cancel task" onclick={() => cancelTask(t.name)}>
+                      <i class="codicon codicon-stop-circle"></i>
+                    </button>
+                  {/if}
+                  {#if hasPreview}
+                    <button class="action-btn" title="Preview asset" onclick={() => previewAsset(t.destinationUris[0])}>
+                      <i class="codicon codicon-open-preview"></i>
+                    </button>
+                  {/if}
+                </span>
               {/if}
             </td>
           {/if}

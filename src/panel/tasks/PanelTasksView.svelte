@@ -49,8 +49,9 @@
   }
 
   function assetNameFromUri(uri) {
-    const m = uri.match(/\/v1\/(projects\/[^/]+\/assets\/.+)/);
-    return m ? m[1] : null;
+    const m = uri.match(/asset=(projects\/[^&\s]+)/) ||
+              uri.match(/\/v1\/(projects\/[^/]+\/assets\/.+)/);
+    return m ? decodeURIComponent(m[1]) : null;
   }
 
   // ----------------------------------------------------------------
