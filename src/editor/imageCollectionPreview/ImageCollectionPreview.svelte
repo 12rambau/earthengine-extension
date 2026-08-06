@@ -1,6 +1,6 @@
 <!-- ImageCollectionPreview: tabs, thumbnail, per-image open/delete actions -->
 <script>
-  import { vscode, getInitData } from '../../webview/shared/vscode.ts';
+  import { vscode, getInitData } from '../../shared/vscode.ts';
 
   const data = getInitData();
 

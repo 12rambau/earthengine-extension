@@ -1,8 +1,8 @@
 <!-- TasksPanel: sortable/paginated task table with filter toggle and column picker -->
 <script>
-  import { vscode, getInitData } from '../../webview/shared/vscode.ts';
-  import Pagination from '../../webview/shared/Pagination.svelte';
-  import ColumnPicker from '../../webview/shared/ColumnPicker.svelte';
+  import { vscode, getInitData } from '../../shared/vscode.ts';
+  import Pagination from '../../shared/Pagination.svelte';
+  import ColumnPicker from '../../shared/ColumnPicker.svelte';
 
   const saved = getInitData();
 

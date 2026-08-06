@@ -1,6 +1,6 @@
 <!-- PanelTasksView: compact task list with live updates and row actions -->
 <script>
-  import { vscode } from '../../webview/shared/vscode.ts';
+  import { vscode } from '../../shared/vscode.ts';
 
   const STATE_SYMBOLS = {
     PENDING: '◌',

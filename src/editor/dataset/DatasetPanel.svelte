@@ -1,6 +1,6 @@
 <!-- DatasetPanel: snippet copy + dynamic tab switching -->
 <script>
-  import { vscode, getInitData } from '../../webview/shared/vscode.ts';
+  import { vscode, getInitData } from '../../shared/vscode.ts';
 
   const data = getInitData();
 
