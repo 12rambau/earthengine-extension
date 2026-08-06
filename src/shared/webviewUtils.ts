@@ -1,10 +1,8 @@
 /**
  * @module webviewUtils
- * HTML/WebView helpers shared across editor panels: HTML escaping,
- * a properties-table renderer, and the base stylesheet.
+ * HTML/WebView helpers shared across editor panels: HTML escaping and
+ * a properties-table renderer.
  */
-
-import baseStyle from './webviewBase.css';
 
 /**
  * Escape HTML special characters for safe rendering in WebViews.
@@ -32,12 +30,4 @@ export function renderPropertiesTable(props?: Record<string, unknown>): string {
     )
     .join('');
   return `<table class="props-table"><thead><tr><th>Property</th><th>Value</th></tr></thead><tbody>${rows}</tbody></table>`;
-}
-
-/**
- * Base CSS for WebView panels using VS Code theme variables.
- * Sourced from `webviewBase.css` (bundled as text by esbuild).
- */
-export function webviewBaseStyle(): string {
-  return baseStyle;
 }
