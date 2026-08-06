@@ -457,6 +457,20 @@
     .col-picker-wrap {
       position: relative;
     }
+    .col-picker-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .col-picker-btn.active {
+      background: var(--vscode-button-background) !important;
+      color: var(--vscode-button-foreground) !important;
+      border-color: transparent !important;
+    }
+    .col-picker-chevron {
+      font-size: 0.75em;
+      opacity: 0.7;
+    }
     .col-picker {
       position: absolute;
       right: 0;

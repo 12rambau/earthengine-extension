@@ -50,8 +50,8 @@
   </span>
   <button class="page-nav" disabled={currentPage >= totalPages - 1} onclick={() => currentPage++}>▶</button>
   <select class="page-size" value={pageSize} onchange={handlePageSize}>
-    <option value="25">25</option>
-    <option value="50">50</option>
-    <option value="100">100</option>
+    <option value={25}>25</option>
+    <option value={50}>50</option>
+    <option value={100}>100</option>
   </select>
 </div>

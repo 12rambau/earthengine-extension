@@ -125,29 +125,30 @@
   });
 </script>
 
-<div class="toolbar">
-  <div class="filter-toggle" id="filterToggle">
-    <label class:active={currentFilter === 'export'}>
-      <input type="radio" name="filter" checked={currentFilter === 'export'} onchange={() => changeFilter('export')} />
-      Export
-    </label>
-    <label class:active={currentFilter === 'import'}>
-      <input type="radio" name="filter" checked={currentFilter === 'import'} onchange={() => changeFilter('import')} />
-      Import
-    </label>
-    <span class="toggle-slider" style:left={currentFilter === 'export' ? '0' : '50%'} style:width="50%"></span>
+<!-- TOOLBAR -->
+<div class="topbar">
+  <div class="topbar-left">
+    <!-- Filter toggle -->
+    <div class="toggle-switch">
+      <input type="radio" id="filter-export" name="filter" checked={currentFilter === 'export'} onchange={() => changeFilter('export')} />
+      <label for="filter-export">Export</label>
+      <input type="radio" id="filter-import" name="filter" checked={currentFilter === 'import'} onchange={() => changeFilter('import')} />
+      <label for="filter-import">Import</label>
+      <span class="slider" style:left={currentFilter === 'export' ? '0' : '50%'} style:width="50%"></span>
+    </div>
+
+    <!-- Refresh button -->
+    <button class="btn-primary" class:loading={isRefreshing} disabled={isRefreshing} onclick={refresh}>
+      <span class="refresh-icon">↻</span>
+      {isRefreshing ? 'Refreshing…' : 'Refresh'}
+    </button>
   </div>
 
-  <span class="page-info">{rangeText}</span>
-
-  <button class="refresh-btn" class:loading={isRefreshing} disabled={isRefreshing} onclick={refresh}>
-    <span class="refresh-icon">↻</span>
-    <span>{isRefreshing ? 'Refreshing…' : 'Refresh'}</span>
-  </button>
-
+  <!-- Column picker anchored to the right of the toolbar -->
   <ColumnPicker columns={ALL_COLS} bind:visibleCols onchange={saveState} />
 </div>
 
+<!-- TABLE -->
 <div class="table-wrap" class:loading={isLoading}>
   <table>
     <thead>
@@ -218,7 +219,11 @@
   </table>
 </div>
 
-<Pagination bind:currentPage {totalPages} bind:pageSize onPageSizeChange={saveState} />
+<!-- FOOTER: count left, pagination right -->
+<div class="footer">
+  <span class="page-info">{rangeText}{#if isLoading} <span class="spinner-inline"></span>{/if}</span>
+  <Pagination bind:currentPage {totalPages} bind:pageSize onPageSizeChange={saveState} />
+</div>
 
 <style>
   :global {
@@ -240,6 +245,12 @@
       color: var(--vscode-foreground);
       background: var(--vscode-editor-background);
       padding: 12px 16px 8px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    #app {
+      flex: 1 1 0;
       display: flex;
       flex-direction: column;
       overflow: hidden;
@@ -279,6 +290,23 @@
       min-height: 120px;
       border: 1px solid var(--vscode-panel-border);
       border-radius: 3px;
+    }
+
+    /* ==================================================================
+       FOOTER
+       ================================================================== */
+    .footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-top: 6px;
+      gap: 8px;
+      flex-shrink: 0;
+      flex-wrap: wrap;
+    }
+    /* Pagination sits inside the footer — remove its own justify-content */
+    .footer .pagination {
+      padding-top: 0;
     }
 
     /* ==================================================================
@@ -363,6 +391,7 @@
       overflow: hidden;
       border: 1px solid var(--vscode-input-border);
       position: relative;
+      flex-shrink: 0;
     }
     .toggle-switch input {
       display: none;
@@ -383,9 +412,7 @@
       bottom: 0;
       border-radius: 3px;
       background: var(--vscode-button-background);
-      transition:
-        left 0.2s,
-        width 0.2s;
+      transition: left 0.2s, width 0.2s;
     }
     .toggle-switch input:checked + label {
       color: var(--vscode-button-foreground);
@@ -445,6 +472,20 @@
        ================================================================== */
     .col-picker-wrap {
       position: relative;
+    }
+    .col-picker-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .col-picker-btn.active {
+      background: var(--vscode-button-background) !important;
+      color: var(--vscode-button-foreground) !important;
+      border-color: transparent !important;
+    }
+    .col-picker-chevron {
+      font-size: 0.75em;
+      opacity: 0.7;
     }
     .col-picker {
       position: absolute;

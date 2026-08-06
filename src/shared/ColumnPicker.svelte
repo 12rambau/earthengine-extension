@@ -28,7 +28,9 @@
 <svelte:document onclick={() => open = false} />
 
 <div class="col-picker-wrap">
-  <button class="col-picker-btn" title="Choose columns" onclick={handleClick}>⚙</button>
+  <button class="col-picker-btn" class:active={open} onclick={handleClick}>
+    Columns <span class="col-picker-chevron">{open ? '▴' : '▾'}</span>
+  </button>
   {#if open}
     <!-- svelte-ignore a11y_click_events_have_key_events -->
     <!-- svelte-ignore a11y_no_static_element_interactions -->
