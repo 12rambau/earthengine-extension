@@ -18,10 +18,6 @@ import { escapeHtml } from '../../shared/index.js';
 import { filesize } from 'filesize';
 import dayjs from 'dayjs';
 import { ensureEe, getThumbUrlRest } from '../../shared/eeSession.js';
-import Handlebars from 'handlebars';
-import template from './featureCollectionPreviewPanel.hbs';
-
-const render = Handlebars.compile(template);
 import style from './featureCollectionPreviewPanel.css';
 import script from './featureCollectionPreviewPanel.webview.js';
 
@@ -220,19 +216,12 @@ function buildHtml(
   // Columns inferred from first feature
   const columns = inferColumns(features);
 
-  // Features table
+  // Build tab content HTML
   const featuresTableHtml = buildFeaturesTable(features, columns);
-
-  // Columns tab
   const columnsTableHtml = buildColumnsTable(columns);
-
-  // Properties (non-system)
   const propsHtml = buildPropertiesRows(asset.properties);
 
-  return render({
-    nonce,
-    style,
-    script,
+  const initData = JSON.stringify({
     title,
     assetId,
     startDate,
@@ -247,6 +236,24 @@ function buildHtml(
     columnsTableHtml,
     propsHtml,
   });
+
+  return `<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; img-src https: data:; style-src 'nonce-${nonce}'; script-src 'nonce-${nonce}';"
+    />
+    <style nonce="${nonce}">${style}</style>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script id="init-data" type="application/json" nonce="${nonce}">${initData}</script>
+    <script nonce="${nonce}">${script}</script>
+  </body>
+</html>`;
 }
 
 // ==================================================================

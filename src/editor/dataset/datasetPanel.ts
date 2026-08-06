@@ -11,12 +11,6 @@ import * as vscode from 'vscode';
 import { marked } from 'marked';
 import { StacCollection } from '../../sidebar/dataset/stacClient.js';
 import { CommunityDatasetEntry } from '../../sidebar/dataset/communityClient.js';
-import Handlebars from 'handlebars';
-import template from './datasetPanel.hbs';
-import bandsTableTemplate from './datasetPanelBandsTable.hbs';
-
-const render = Handlebars.compile(template);
-const renderBandsTable = Handlebars.compile(bandsTableTemplate);
 import style from './datasetPanel.css';
 import script from './datasetPanel.webview.js';
 
@@ -103,8 +97,8 @@ function buildHtml(
   const geeType = c['gee:type'] || 'unknown';
 
   const previewLink = c.links?.find((l) => l.rel === 'preview');
-  const previewImg = previewLink
-    ? `<img src="${previewLink.href}" alt="preview" style="max-width:280px; border-radius:4px; margin-bottom:16px;" />`
+  const previewImgHtml = previewLink
+    ? `<div><img src="${previewLink.href}" alt="preview" style="max-width:280px; border-radius:4px; margin-bottom:16px;" /></div>`
     : '';
 
   const datasetSlug = c.id.replace(/\//g, '_');
@@ -122,66 +116,30 @@ function buildHtml(
 
   const bandsTable =
     bands.length > 0
-      ? renderBandsTable({
-          rows: bands
-            .map(
-              (b) => `
-					<tr>
-						<td><code>${b.name}</code></td>
-						<td>${b.description || ''}</td>
-						<td>${b['gee:wavelength'] || ''}</td>
-						<td>${b.gsd ? b.gsd + 'm' : ''}</td>
-					</tr>
-				`,
-            )
-            .join(''),
-        })
+      ? `<table><thead><tr><th>Name</th><th>Description</th><th>Wavelength</th><th>GSD</th></tr></thead><tbody>${bands
+          .map(
+            (b) =>
+              `<tr><td><code>${b.name}</code></td><td>${b.description || ''}</td><td>${b['gee:wavelength'] || ''}</td><td>${b.gsd ? b.gsd + 'm' : ''}</td></tr>`,
+          )
+          .join('')}</tbody></table>`
       : '';
 
   const tagsHtml =
     keywords.length > 0
-      ? `
-		<div class="tags">
-			<strong>Tags</strong>
-			<div class="pills">
-				${keywords.map((k) => `<span class="tag">${escapeHtml(k)}</span>`).join('')}
-			</div>
-		</div>
-	`
+      ? `<div class="tags"><strong>Tags</strong><div class="pills">${keywords.map((k) => `<span class="tag">${escapeHtml(k)}</span>`).join('')}</div></div>`
       : '';
 
   const providersHtml = providers
     .map((p) => (p.url ? `<a href="${p.url}">${escapeHtml(p.name)}</a>` : escapeHtml(p.name)))
     .join(', ');
 
-  // Rendered by marked. Inline scripts/handlers in the output are inert thanks
-  // to the strict CSP below (script-src is nonce-only).
   const description = marked.parse(c.description || '', { async: false });
 
-  // Build the tab set from whichever sections actually have content.
   const tabs = [
     { id: 'description', label: 'Description', content: `<div class="md">${description}</div>` },
     ...(extraTabs ?? []),
     { id: 'bands', label: 'Bands', content: bandsTable },
   ].filter((t) => t.content.trim());
-
-  const tabButtons = tabs
-    .map(
-      (t, i) =>
-        `<button class="tab${i === 0 ? ' active' : ''}" data-tab="${t.id}">${t.label}</button>`,
-    )
-    .join('');
-
-  const tabPanels = tabs
-    .map(
-      (t, i) =>
-        `<div class="tab-panel${i === 0 ? ' active' : ''}" id="panel-${t.id}">${t.content}</div>`,
-    )
-    .join('');
-
-  const tabsHtml = tabs.length
-    ? `<div class="tabs" role="tablist">${tabButtons}</div><div class="tab-panels">${tabPanels}</div>`
-    : '';
 
   const nonce = getNonce();
   const csp = [
@@ -191,12 +149,9 @@ function buildHtml(
     `script-src 'nonce-${nonce}'`,
   ].join('; ');
 
-  return render({
-    csp,
-    style,
-    script,
+  const initData = JSON.stringify({
     title: c.title || c.id,
-    previewImgHtml: previewImg ? `<div>${previewImg}</div>` : '',
+    previewImgHtml,
     startDate,
     endDate,
     geeType,
@@ -204,9 +159,23 @@ function buildHtml(
     catalogUrl,
     tagsHtml,
     snippet,
-    tabsHtml,
-    nonce,
+    tabs,
   });
+
+  return `<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="Content-Security-Policy" content="${csp}" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <style>${style}</style>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script id="init-data" type="application/json" nonce="${nonce}">${initData}</script>
+    <script nonce="${nonce}">${script}</script>
+  </body>
+</html>`;
 }
 
 // ==================================================================

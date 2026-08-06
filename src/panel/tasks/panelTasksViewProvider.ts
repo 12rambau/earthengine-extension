@@ -7,7 +7,6 @@
  */
 
 import * as vscode from 'vscode';
-import Handlebars from 'handlebars';
 import {
   listOperationsPage,
   Operation,
@@ -20,14 +19,12 @@ import {
 } from '../../sidebar/tasks/tasksApiClient.js';
 import { AuthService } from '../../auth/index.js';
 import { openAssetPreview } from '../../editor/assets/assetPreviewPanel.js';
-import template from './panelTasksView.hbs';
 import style from './panelTasksView.css';
 import script from './panelTasksView.webview.js';
 
 type TaskFilter = 'export' | 'import';
 
 const TERMINAL_STATES = new Set(['SUCCEEDED', 'FAILED', 'CANCELLED']);
-const render = Handlebars.compile(template);
 
 /** Reads the configured max items from the extension settings. */
 function getMaxTasks(): number {
@@ -283,7 +280,20 @@ export class PanelTasksViewProvider implements vscode.WebviewViewProvider {
       `script-src 'nonce-${nonce}'`,
     ].join('; ');
     const initJson = JSON.stringify({ filter: this.filter }).replace(/</g, '\\u003c');
-    return render({ csp, nonce, initJson, style, script });
+    return `<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="Content-Security-Policy" content="${csp}" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <style>${style}</style>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script id="init-data" type="application/json" nonce="${nonce}">${initJson}</script>
+    <script nonce="${nonce}">${script}</script>
+  </body>
+</html>`;
   }
 
   dispose(): void {

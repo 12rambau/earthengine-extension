@@ -18,14 +18,6 @@ import { escapeHtml } from '../../shared/index.js';
 import { filesize } from 'filesize';
 import dayjs from 'dayjs';
 import { ensureEe, getThumbUrlRest } from '../../shared/eeSession.js';
-import Handlebars from 'handlebars';
-import template from './imageCollectionPreviewPanel.hbs';
-import imagesTableTemplate from './imagesTable.hbs';
-import bandsTableTemplate from './bandsTable.hbs';
-
-const render = Handlebars.compile(template);
-const renderImagesTable = Handlebars.compile(imagesTableTemplate);
-const renderBandsTable = Handlebars.compile(bandsTableTemplate);
 import style from './imageCollectionPreviewPanel.css';
 import script from './imageCollectionPreviewPanel.webview.js';
 
@@ -48,8 +40,6 @@ const ICON_PREVIEW =
   '<svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M13.5 1H4.5C3.122 1 2 2.122 2 3.5V6.276C2.319 6.162 2.653 6.089 3 6.05V3.499C3 2.672 3.673 1.999 4.5 1.999H8.5V13.385L9.557 14.442C9.714 14.591 9.831 14.786 9.907 14.999H13.5C14.878 14.999 16 13.877 16 12.499V3.5C16 2.122 14.878 1 13.5 1ZM15 12.5C15 13.327 14.327 14 13.5 14H9.5V2H13.5C14.327 2 15 2.673 15 3.5V12.5ZM6.29 12.59C6.74 12.01 7 11.28 7 10.5C7 8.57 5.43 7 3.5 7C1.57 7 0 8.57 0 10.5C0 12.43 1.57 14 3.5 14C4.28 14 5.01 13.74 5.59 13.29L8.15 15.85C8.24 15.95 8.37 16 8.5 16C8.63 16 8.76 15.95 8.85 15.85C9.05 15.66 9.05 15.34 8.85 15.15L6.29 12.59ZM5.5 12C5.36 12.19 5.19 12.36 5 12.5C4.59 12.81 4.06 13 3.5 13C2.12 13 1 11.88 1 10.5C1 9.12 2.12 8 3.5 8C4.88 8 6 9.12 6 10.5C6 11.06 5.81 11.59 5.5 12Z"/></svg>';
 const ICON_DELETE =
   '<svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M14 2H10C10 .897 9.103 0 8 0 6.897 0 6 .897 6 2H2c-.276 0-.5.224-.5.5s.224.5.5.5h.54l.809 9.708C3.456 13.994 4.55 15 5.84 15h4.319c1.29 0 2.384-.993 2.491-2.292L13.459 3H14c.276 0 .5-.224.5-.5S14.276 2 14 2zM8 1c.551 0 1 .449 1 1H7c0-.551.449-1 1-1zm3.655 11.625C11.591 13.396 10.934 14 10.16 14H5.841c-.774 0-1.431-.604-1.495-1.375L3.544 3h8.914l-.803 9.625zM7 5.5v6c0 .276-.224.5-.5.5S6 11.776 6 11.5v-6c0-.276.224-.5.5-.5s.5.224.5.5zm3 0v6c0 .276-.224.5-.5.5S9 11.776 9 11.5v-6c0-.276.224-.5.5-.5s.5.224.5.5z"/></svg>';
-const ACTION_DOT =
-  '<span class="action-dot"><svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M8 6.25a1.75 1.75 0 1 1 0 3.5 1.75 1.75 0 0 1 0-3.5z"/></svg></span>';
 
 // ==================================================================
 // PUBLIC API
@@ -246,14 +236,23 @@ function buildHtml(asset: EEAsset, childImages: EEAsset[], bands: EEBand[]): str
     ? String(asset.properties['description'])
     : '';
 
-  const imagesTableHtml = buildImagesTable(childImages);
-  const bandsTableHtml = buildBandsTable(bands);
+  // Structured image data for the Svelte {#each}
+  const imagesData = childImages.map((img) => ({
+    name: img.name,
+    shortId: (img.id || img.name).split('/').pop() || '',
+    lastModified: img.updateTime
+      ? dayjs.utc(img.updateTime).format('YYYY-MM-DD HH:mm:ss [UTC]')
+      : 'N/A',
+    size: img.sizeBytes ? filesize(img.sizeBytes) : 'N/A',
+    startDate: img.startTime ? dayjs.utc(img.startTime).format('YYYY-MM-DD HH:mm:ss [UTC]') : 'N/A',
+    endDate: img.endTime ? dayjs.utc(img.endTime).format('YYYY-MM-DD HH:mm:ss [UTC]') : 'N/A',
+    bandCount: img.bands?.length ?? '\u2014',
+  }));
+
+  const bandsHtml = buildBandsTable(bands);
   const propsHtml = buildPropertiesRows(asset.properties);
 
-  return render({
-    nonce,
-    style,
-    script,
+  const initData = JSON.stringify({
     title,
     assetId,
     startDate,
@@ -264,58 +263,36 @@ function buildHtml(asset: EEAsset, childImages: EEAsset[], bands: EEBand[]): str
     descriptionHtml: description
       ? `<div class="description-text">${marked(description)}</div>`
       : '<p class="empty-state">No description.</p>',
-    imagesNote:
-      childImages.length > 0
-        ? `<p class="note">Limited to the first ${IMAGES_PAGE_SIZE} images.</p>`
-        : '',
-    imagesTable: imagesTableHtml,
-    bandsNote:
-      bands.length > 0 ? '<p class="note">Bands from the first image in the collection.</p>' : '',
-    bandsTable: bandsTableHtml,
+    images: imagesData,
+    imagesPageSize: IMAGES_PAGE_SIZE,
+    bandsHtml:
+      (bands.length > 0
+        ? '<p class="note">Bands from the first image in the collection.</p>'
+        : '') + bandsHtml,
     propsHtml,
+    previewIconSvg: ICON_PREVIEW,
+    deleteIconSvg: ICON_DELETE,
+    actionDotSvg:
+      '<svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M8 6.25a1.75 1.75 0 1 1 0 3.5 1.75 1.75 0 0 1 0-3.5z"/></svg>',
   });
-}
 
-// ==================================================================
-// IMAGES TABLE
-// ==================================================================
-function buildImagesTable(images: EEAsset[]): string {
-  if (images.length === 0) {
-    return '<p class="empty-state">No images found.</p>';
-  }
-
-  const rows = images
-    .map((img) => {
-      const shortId = (img.id || img.name).split('/').pop() || '';
-      const lastMod = img.updateTime
-        ? dayjs.utc(img.updateTime).format('YYYY-MM-DD HH:mm:ss [UTC]')
-        : 'N/A';
-      const size = img.sizeBytes ? filesize(img.sizeBytes) : 'N/A';
-      const start = img.startTime
-        ? dayjs.utc(img.startTime).format('YYYY-MM-DD HH:mm:ss [UTC]')
-        : 'N/A';
-      const end = img.endTime ? dayjs.utc(img.endTime).format('YYYY-MM-DD HH:mm:ss [UTC]') : 'N/A';
-      const bandCount = img.bands?.length ?? '\u2014';
-      const fullName = escapeHtml(img.name);
-      const dots = `<span class="action-dots">${ACTION_DOT}${ACTION_DOT}</span>`;
-      const btns =
-        `<span class="action-btns">` +
-        `<button class="action-btn" title="Open preview" data-action="open" data-name="${fullName}">${ICON_PREVIEW}</button>` +
-        `<button class="action-btn danger" title="Delete image" data-action="delete" data-name="${fullName}">${ICON_DELETE}</button>` +
-        `</span>`;
-      return `<tr data-name="${fullName}">
-        <td class="img-id" title="${fullName}">${escapeHtml(shortId)}</td>
-        <td>${lastMod}</td>
-        <td>${size}</td>
-        <td>${start}</td>
-        <td>${end}</td>
-        <td>${bandCount}</td>
-        <td class="actions-cell">${dots}${btns}</td>
-      </tr>`;
-    })
-    .join('');
-
-  return renderImagesTable({ rows });
+  return `<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; img-src https: data:; style-src 'nonce-${nonce}'; script-src 'nonce-${nonce}';"
+    />
+    <style nonce="${nonce}">${style}</style>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script id="init-data" type="application/json" nonce="${nonce}">${initData}</script>
+    <script nonce="${nonce}">${script}</script>
+  </body>
+</html>`;
 }
 
 // ==================================================================
@@ -347,7 +324,7 @@ function buildBandsTable(bands: EEBand[]): string {
     })
     .join('');
 
-  return renderBandsTable({ rows });
+  return `<table class="bands-table"><thead><tr><th>Index</th><th>Name</th><th>Type</th><th>Dimensions</th><th>CRS</th><th>Nominal Scale</th></tr></thead><tbody>${rows}</tbody></table>`;
 }
 
 // ==================================================================

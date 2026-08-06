@@ -19,10 +19,6 @@ import { escapeHtml } from '../../shared/index.js';
 import { filesize } from 'filesize';
 import dayjs from 'dayjs';
 import { ensureEe, computeValue, getThumbUrlRest } from '../../shared/eeSession.js';
-import Handlebars from 'handlebars';
-import template from './imagePreviewPanel.hbs';
-
-const render = Handlebars.compile(template);
 import style from './imagePreviewPanel.css';
 import script from './imagePreviewPanel.webview.js';
 
@@ -206,35 +202,21 @@ function buildImageHtml(asset: EEAsset, webview: vscode.Webview): string {
     ? String(asset.properties['description'])
     : '';
 
-  const bandsRowsHtml = bands
-    .map((b, i) => {
-      const dims = b.grid?.dimensions
-        ? `${b.grid.dimensions.width}x${b.grid.dimensions.height} px`
-        : 'N/A';
-      const crs = b.grid?.crsCode || 'N/A';
-      const scale = b.grid?.affineTransform?.scaleX
-        ? `${Math.abs(b.grid.affineTransform.scaleX).toFixed(8).replace(/0+$/, '').replace(/\.$/, '')}`
-        : 'N/A';
-      const dtype = b.dataType?.precision || 'N/A';
-      return `<tr>
-        <td>${i}</td>
-        <td>${escapeHtml(b.id)}</td>
-        <td>${dtype}</td>
-        <td>${dims}</td>
-        <td>${crs}</td>
-        <td>${scale}</td>
-        <td class="minmax" data-band="${escapeHtml(b.id)}"><span class="spinner"></span></td>
-        <td class="minmax" data-band="${escapeHtml(b.id)}"><span class="spinner"></span></td>
-      </tr>`;
-    })
-    .join('');
+  const bandsData = bands.map((b) => {
+    const dims = b.grid?.dimensions
+      ? `${b.grid.dimensions.width}x${b.grid.dimensions.height} px`
+      : 'N/A';
+    const crs = b.grid?.crsCode || 'N/A';
+    const scale = b.grid?.affineTransform?.scaleX
+      ? `${Math.abs(b.grid.affineTransform.scaleX).toFixed(8).replace(/0+$/, '').replace(/\.$/, '')}`
+      : 'N/A';
+    const dtype = b.dataType?.precision || 'N/A';
+    return { id: b.id, dtype, dims, crs, scale };
+  });
 
-  const propsHtml = buildPropertiesRows(asset.properties);
+  const propsHtml = buildPropertiesTable(asset.properties);
 
-  return render({
-    nonce,
-    style,
-    script,
+  const initData = JSON.stringify({
     title,
     assetId,
     startDate,
@@ -245,9 +227,27 @@ function buildImageHtml(asset: EEAsset, webview: vscode.Webview): string {
     descriptionHtml: description
       ? `<div class="description-text">${marked(description)}</div>`
       : '<p class="description-text">No description.</p>',
-    bandsRows: bandsRowsHtml,
-    propsRows: propsHtml,
+    bands: bandsData,
+    propsHtml,
   });
+
+  return `<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; img-src https: data:; style-src 'nonce-${nonce}'; script-src 'nonce-${nonce}';"
+    />
+    <style nonce="${nonce}">${style}</style>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script id="init-data" type="application/json" nonce="${nonce}">${initData}</script>
+    <script nonce="${nonce}">${script}</script>
+  </body>
+</html>`;
 }
 
 // ==================================================================
@@ -257,9 +257,9 @@ function buildImageHtml(asset: EEAsset, webview: vscode.Webview): string {
 const EXCLUDED_PROP_PREFIXES = ['system:'];
 const EXCLUDED_PROP_KEYS = new Set(['description']);
 
-function buildPropertiesRows(props?: Record<string, unknown>): string {
+function buildPropertiesTable(props?: Record<string, unknown>): string {
   if (!props || Object.keys(props).length === 0) {
-    return '<tr><td colspan="2"><em>No properties</em></td></tr>';
+    return '<table class="props-table"><tbody><tr><td colspan="2"><em>No properties</em></td></tr></tbody></table>';
   }
   const entries = Object.entries(props)
     .filter(
@@ -267,11 +267,12 @@ function buildPropertiesRows(props?: Record<string, unknown>): string {
     )
     .sort(([a], [b]) => a.localeCompare(b));
   if (entries.length === 0) {
-    return '<tr><td colspan="2"><em>No properties</em></td></tr>';
+    return '<table class="props-table"><tbody><tr><td colspan="2"><em>No properties</em></td></tr></tbody></table>';
   }
-  return entries
+  const rows = entries
     .map(([k, v]) => `<tr><td>${escapeHtml(k)}</td><td>${escapeHtml(String(v ?? ''))}</td></tr>`)
     .join('');
+  return `<table class="props-table"><thead><tr><th>Property</th><th>Value</th></tr></thead><tbody>${rows}</tbody></table>`;
 }
 
 // ==================================================================

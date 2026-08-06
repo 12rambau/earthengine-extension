@@ -6,6 +6,7 @@
  */
 
 const esbuild = require('esbuild');
+const sveltePlugin = require('esbuild-svelte');
 const fs = require('fs');
 
 const production = process.argv.includes('--production');
@@ -25,7 +26,7 @@ const webviewScriptTextPlugin = {
   name: 'webview-script-text',
 
   setup(build) {
-    build.onLoad({ filter: /\.webview\.js$/ }, async (args) => {
+    build.onLoad({ filter: /\.webview\.[jt]s$/ }, async (args) => {
       const result = await esbuild.build({
         entryPoints: [args.path],
         bundle: true,
@@ -35,6 +36,7 @@ const webviewScriptTextPlugin = {
         minify: production,
         sourcemap: false,
         metafile: true,
+        plugins: [sveltePlugin({ compilerOptions: { css: 'injected' } })],
       });
       return {
         contents: result.outputFiles[0].text,
