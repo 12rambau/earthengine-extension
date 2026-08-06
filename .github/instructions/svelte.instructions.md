@@ -14,7 +14,7 @@ Each root `.svelte` file is imported by a host `.ts` file as a text string:
 import script from './MyPanel.svelte';
 ```
 
-The `webview-script-text` esbuild plugin intercepts this import, generates a virtual `mount()` bootstrap, bundles the component tree (including all Svelte imports and `src/shared/*.svelte` dependencies) into a single IIFE, and returns the result as text. The host injects that text into a `<script>` tag in the WebView HTML shell. **No separate `.webview.js` bootstrap file is needed or should be created.**
+The `webview-script-text` esbuild plugin intercepts this import, generates a virtual `mount()` bootstrap, bundles the component tree (including all Svelte imports and `src/shared/*.svelte` dependencies) into a single IIFE, and returns the result as text. The host injects that text into a `<script>` tag in the WebView HTML shell.
 
 ## File structure
 

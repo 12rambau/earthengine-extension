@@ -6,7 +6,7 @@ applyTo: '**'
 
 Architecture and cross-cutting rules. Per-file-type conventions (module headers, section
 banners, formatting) live in `.github/instructions/*.instructions.md` — one each for
-`typescript`, `javascript`, `css`, and `svelte`; they apply automatically by file glob.
+`typescript`, `css`, and `svelte`; they apply automatically by file glob.
 
 ## Project structure
 
@@ -36,7 +36,7 @@ The `.ts` imports the compiled Svelte component as a string via the esbuild `web
 import script from './{Name}Panel.svelte';
 ```
 
-The rules each file follows (theme variables, the `init-data` bridge, etc.) are in the `svelte`, `css`, and `javascript` instruction files.
+The rules each file follows (theme variables, the `init-data` bridge, etc.) are in the `svelte` and `css` instruction files.
 
 ## Talking to Earth Engine (two layers, on purpose)
 

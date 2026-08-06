@@ -14,13 +14,11 @@ const production = process.argv.includes('--production');
 const watch = process.argv.includes('--watch');
 
 /**
- * Svelte root components and vanilla `*.webview.js` scripts are each bundled
- * into a self-contained IIFE and returned as a text string so the host can
- * inline them in the WebView HTML shell.
+ * Svelte root components are bundled into a self-contained IIFE and returned
+ * as a text string so the host can inline them in the WebView HTML shell.
  *
- * Svelte entry: a virtual bootstrap (`mount(App, ...)`) is generated on-the-fly
- * so the component file itself needs no bootstrap wrapper.
- * Vanilla entry: bundled as-is (used by the map panel).
+ * A virtual bootstrap (`mount(App, ...)`) is generated on-the-fly so the
+ * component file itself needs no bootstrap wrapper.
  *
  * @type {import('esbuild').Plugin}
  */
