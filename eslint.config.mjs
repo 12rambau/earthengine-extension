@@ -1,4 +1,6 @@
 import typescriptEslint from 'typescript-eslint';
+import sveltePlugin from 'eslint-plugin-svelte';
+import svelteParser from 'svelte-eslint-parser';
 
 export default [
   {
@@ -61,6 +63,27 @@ export default [
       curly: 'warn',
       eqeqeq: ['warn', 'always', { null: 'ignore' }],
       'no-throw-literal': 'warn',
+      semi: 'warn',
+    },
+  },
+  {
+    files: ['**/*.svelte'],
+
+    plugins: {
+      svelte: sveltePlugin,
+    },
+
+    languageOptions: {
+      parser: svelteParser,
+      parserOptions: {
+        parser: typescriptEslint.parser,
+      },
+    },
+
+    rules: {
+      ...sveltePlugin.configs.recommended.rules,
+      curly: 'warn',
+      eqeqeq: 'warn',
       semi: 'warn',
     },
   },

@@ -583,6 +583,10 @@
     "release": "release-it",
     "prepare": "husky"
   },
+  "lint-staged": {
+    "*.{ts,svelte}": "eslint --fix",
+    "*.{ts,svelte,json,css,hbs}": "prettier --write"
+  },
   "devDependencies": {
     "@commitlint/cli": "^21.2.1",
     "@commitlint/config-conventional": "^21.2.0",
@@ -596,12 +600,14 @@
     "esbuild": "^0.28.1",
     "esbuild-svelte": "^0.9.5",
     "eslint": "^10.5.0",
+    "eslint-plugin-svelte": "^3.22.0",
     "husky": "^9.1.7",
     "lint-staged": "^17.1.1",
     "npm-run-all": "^4.1.5",
     "prettier": "^3.9.6",
     "release-it": "^20.2.1",
     "svelte": "^5.56.8",
+    "svelte-eslint-parser": "^1.8.0",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.61.1"
   },
