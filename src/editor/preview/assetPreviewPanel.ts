@@ -6,16 +6,13 @@
 
 import * as vscode from 'vscode';
 import { EEAsset, getAsset } from '../../sidebar/assets/eeApiClient.js';
-import { renderPropertiesTable, webviewBaseStyle } from '../../shared/index.js';
+import { renderPropertiesTable } from '../../shared/index.js';
 import { filesize } from 'filesize';
 import dayjs from 'dayjs';
 import { openImagePreview } from './imagePreview/imagePreviewPanel.js';
 import { openImageCollectionPreview } from './imageCollectionPreview/imageCollectionPreviewPanel.js';
 import { openFeatureCollectionPreview } from './featureCollectionPreview/featureCollectionPreviewPanel.js';
-import Handlebars from 'handlebars';
-import template from './assetPreviewPanel.hbs';
-
-const render = Handlebars.compile(template);
+import script from './assetPreviewPanel.svelte';
 
 // ==================================================================
 // PUBLIC API
@@ -47,11 +44,11 @@ function openGenericPreview(asset: EEAsset): void {
     'earthengine.assetPreview',
     asset.id || asset.name.split('/').pop() || 'Asset',
     vscode.ViewColumn.One,
-    { enableScripts: false },
+    { enableScripts: true },
   );
 
-  panel.webview.html = render({
-    baseStyle: webviewBaseStyle(),
+  const nonce = getNonce();
+  const initJson = JSON.stringify({
     title: asset.id || asset.name,
     assetType: asset.type,
     updated: asset.updateTime
@@ -59,5 +56,28 @@ function openGenericPreview(asset: EEAsset): void {
       : 'N/A',
     size: asset.sizeBytes ? filesize(asset.sizeBytes) : 'N/A',
     propertiesTable: renderPropertiesTable(asset.properties),
-  });
+  }).replace(/</g, '\\u003c');
+
+  panel.webview.html = `<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'nonce-${nonce}';" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  </head>
+  <body>
+    <div id="app"></div>
+    <script id="init-data" type="application/json" nonce="${nonce}">${initJson}</script>
+    <script nonce="${nonce}">${script}</script>
+  </body>
+</html>`;
+}
+
+function getNonce(): string {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  let nonce = '';
+  for (let i = 0; i < 32; i++) {
+    nonce += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return nonce;
 }

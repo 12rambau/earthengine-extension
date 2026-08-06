@@ -87,8 +87,7 @@
         <span class="task-actions">
           {#if task.state === 'RUNNING' || task.state === 'PENDING'}
             <button type="button" class="danger" title="Cancel" onclick={() => cancel(task.name)}><i class="codicon codicon-stop-circle"></i></button>
-          {/if}
-          {#if getPreviewAsset(task)}
+          {:else if getPreviewAsset(task)}
             <button type="button" title="Preview" onclick={() => preview(getPreviewAsset(task))}><i class="codicon codicon-open-preview"></i></button>
           {/if}
         </span>
@@ -221,8 +220,9 @@
        ================================================================== */
     .task-actions {
       flex-shrink: 0;
+      width: 26px;
       display: flex;
-      gap: 2px;
+      justify-content: center;
       visibility: hidden;
     }
     .task-row:hover .task-actions {
@@ -246,6 +246,7 @@
     .task-actions button.danger:hover {
       color: var(--vscode-testing-iconFailed);
     }
+
 
     /* ==================================================================
        EMPTY STATE
