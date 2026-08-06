@@ -32,6 +32,11 @@ type TaskFilter = 'export' | 'import';
 /** Opens a WebView panel listing tasks of the given filter type. */
 const PREFS_KEY = 'earthengine.tasks.prefs';
 
+/** Reads the configured scan limit from the extension settings. */
+function getMaxScan(): number {
+  return vscode.workspace.getConfiguration('earthengine.tasks').get<number>('scanLimit', 1_000);
+}
+
 interface TaskPrefs {
   visibleCols?: string[];
   pageSize?: number;
@@ -92,13 +97,19 @@ export async function openTasksPanel(
     }
     allOps = [];
     let pageToken: string | undefined;
+    const scanLimit = getMaxScan();
     do {
-      const result = await listOperationsPage(resolvedProject, t, 100, pageToken);
+      const result = await listOperationsPage(
+        resolvedProject,
+        t,
+        Math.min(100, scanLimit - allOps.length),
+        pageToken,
+      );
       resolvedProject = result.project;
       allOps.push(...result.operations);
       pageToken = result.nextPageToken;
-      sendData(!!(pageToken && allOps.length < 1_000), silent);
-    } while (pageToken && allOps.length < 1_000);
+      sendData(!!(pageToken && allOps.length < scanLimit), silent);
+    } while (pageToken && allOps.length < scanLimit);
   }
 
   /**
@@ -124,9 +135,15 @@ export async function openTasksPanel(
     let pageToken: string | undefined;
     let fetched = 0;
 
+    const scanLimit = getMaxScan();
     // Step 1: Fetch batches of 25 until we overlap with known tasks
     do {
-      const result = await listOperationsPage(resolvedProject, t, 25, pageToken);
+      const result = await listOperationsPage(
+        resolvedProject,
+        t,
+        Math.min(25, scanLimit - fetched),
+        pageToken,
+      );
       resolvedProject = result.project;
 
       for (const op of result.operations) {
@@ -139,7 +156,7 @@ export async function openTasksPanel(
 
       fetched += result.operations.length;
       pageToken = result.nextPageToken;
-    } while (!foundOverlap && pageToken && fetched < 1_000);
+    } while (!foundOverlap && pageToken && fetched < scanLimit);
 
     // Step 2: Insert new tasks at the front
     if (newOps.length > 0) {

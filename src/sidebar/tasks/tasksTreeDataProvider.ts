@@ -29,6 +29,11 @@ function getMaxTasks(): number {
   return vscode.workspace.getConfiguration('earthengine.tasks').get<number>('maxItems', 100);
 }
 
+/** Reads the configured scan limit from the extension settings. */
+function getMaxScan(): number {
+  return vscode.workspace.getConfiguration('earthengine.tasks').get<number>('scanLimit', 1_000);
+}
+
 const TERMINAL_STATES = new Set(['SUCCEEDED', 'FAILED', 'CANCELLED']);
 
 /** All possible task states from the EE REST API. */
@@ -200,12 +205,11 @@ export class TasksTreeDataProvider implements vscode.TreeDataProvider<TaskTreeIt
 
   /** Returns true if we haven't filled the max matching items yet. */
   private needsMoreMatches(): boolean {
-    if (!this.statusFilter) {
-      return false; // Without status filter, first 100 is enough
-    }
     const filterFn = this.filter === 'export' ? isExportTask : isImportTask;
     let matching = this.loadedTasks.filter(filterFn);
-    matching = matching.filter((op) => this.statusFilter!.has(getTaskState(op)));
+    if (this.statusFilter) {
+      matching = matching.filter((op) => this.statusFilter!.has(getTaskState(op)));
+    }
     return matching.length < getMaxTasks();
   }
 
@@ -213,21 +217,22 @@ export class TasksTreeDataProvider implements vscode.TreeDataProvider<TaskTreeIt
   private async loadMoreInBackground(token: string, startToken: string): Promise<void> {
     const filterFn = this.filter === 'export' ? isExportTask : isImportTask;
     let pageToken: string | undefined = startToken;
-    const maxPages = 5; // Cap at 5 extra pages (500 more tasks scanned)
-    let pages = 0;
+    const scanLimit = getMaxScan();
 
-    while (pageToken && pages < maxPages) {
+    while (pageToken && this.loadedTasks.length < scanLimit) {
       try {
-        const result = await listOperationsPage(this.resolvedProject!, token, 100, pageToken);
+        const result = await listOperationsPage(
+          this.resolvedProject!,
+          token,
+          Math.min(100, scanLimit - this.loadedTasks.length),
+          pageToken,
+        );
         this.resolvedProject = result.project;
         this.loadedTasks.push(...result.operations);
         pageToken = result.nextPageToken;
-        pages++;
 
-        // Update tree without spinner
         this._onDidChangeTreeData.fire();
 
-        // Check if we have enough matches now
         let matching = this.loadedTasks.filter(filterFn);
         if (this.statusFilter) {
           matching = matching.filter((op) => this.statusFilter!.has(getTaskState(op)));
@@ -276,9 +281,15 @@ export class TasksTreeDataProvider implements vscode.TreeDataProvider<TaskTreeIt
       let pageToken: string | undefined;
       let fetched = 0;
 
+      const scanLimit = getMaxScan();
       // Fetch batches of 25 until we find an operation we already know
       do {
-        const result = await listOperationsPage(this.resolvedProject!, token, 25, pageToken);
+        const result = await listOperationsPage(
+          this.resolvedProject!,
+          token,
+          Math.min(25, scanLimit - fetched),
+          pageToken,
+        );
         this.resolvedProject = result.project;
 
         for (const op of result.operations) {
@@ -291,7 +302,7 @@ export class TasksTreeDataProvider implements vscode.TreeDataProvider<TaskTreeIt
 
         fetched += result.operations.length;
         pageToken = result.nextPageToken;
-      } while (!foundOverlap && pageToken && fetched < 1_000);
+      } while (!foundOverlap && pageToken && fetched < scanLimit);
 
       // Insert new tasks at the front
       if (newOps.length > 0) {
@@ -353,9 +364,15 @@ export class TasksTreeDataProvider implements vscode.TreeDataProvider<TaskTreeIt
     }
 
     // Fetch more pages to try to fill the slots
+    const scanLimit = getMaxScan();
     let pageToken: string | undefined = this.lastPageToken;
-    while (matching.length < getMaxTasks() && pageToken) {
-      const result = await listOperationsPage(this.resolvedProject!, token, 100, pageToken);
+    while (matching.length < getMaxTasks() && pageToken && this.loadedTasks.length < scanLimit) {
+      const result = await listOperationsPage(
+        this.resolvedProject!,
+        token,
+        Math.min(100, scanLimit - this.loadedTasks.length),
+        pageToken,
+      );
       this.resolvedProject = result.project;
       this.loadedTasks.push(...result.operations);
       pageToken = result.nextPageToken;
