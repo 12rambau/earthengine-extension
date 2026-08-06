@@ -13,11 +13,11 @@
 
 import * as vscode from 'vscode';
 import { marked } from 'marked';
-import { EEAsset, listFeatures } from '../../sidebar/assets/eeApiClient.js';
-import { escapeHtml } from '../../shared/index.js';
+import { EEAsset, listFeatures } from '../../../sidebar/assets/eeApiClient.js';
+import { escapeHtml } from '../../../shared/index.js';
 import { filesize } from 'filesize';
 import dayjs from 'dayjs';
-import { ensureEe, getThumbUrlRest } from '../../shared/eeSession.js';
+import { ensureEe, getThumbUrlRest } from '../../../shared/eeSession.js';
 
 import script from './FeatureCollectionPreview.svelte';
 

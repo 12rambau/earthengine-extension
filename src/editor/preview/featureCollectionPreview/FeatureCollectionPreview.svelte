@@ -1,6 +1,6 @@
 <!-- FeatureCollectionPreview: tab switching + async thumbnail loading -->
 <script>
-  import { vscode, getInitData } from '../../shared/vscode.ts';
+  import { vscode, getInitData } from '../../../shared/vscode.ts';
 
   const data = getInitData();
 

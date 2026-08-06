@@ -1,6 +1,6 @@
 <!-- ImagePreview: tabs, async thumbnail + per-band min/max -->
 <script>
-  import { vscode, getInitData } from '../../shared/vscode.ts';
+  import { vscode, getInitData } from '../../../shared/vscode.ts';
 
   const data = getInitData();
 

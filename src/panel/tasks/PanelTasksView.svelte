@@ -2,13 +2,13 @@
 <script>
   import { vscode } from '../../shared/vscode.ts';
 
-  const STATE_SYMBOLS = {
-    PENDING: '◌',
-    RUNNING: '◎',
-    CANCELLING: '◎',
-    SUCCEEDED: '✓',
-    FAILED: '✗',
-    CANCELLED: '⊘',
+  const STATE_ICONS = {
+    PENDING: 'codicon codicon-circle-outline',
+    RUNNING: 'codicon codicon-sync',
+    CANCELLING: 'codicon codicon-sync',
+    SUCCEEDED: 'codicon codicon-check',
+    FAILED: 'codicon codicon-error',
+    CANCELLED: 'codicon codicon-circle-slash',
   };
 
   // ----------------------------------------------------------------
@@ -81,15 +81,15 @@
   {:else}
     {#each tasks as task (task.name)}
       <li class="task-row" title={task.id || ''}>
-        <span class={stateClass(task.state)}>{STATE_SYMBOLS[task.state] || '?'}</span>
+        <span class={stateClass(task.state)}><i class={STATE_ICONS[task.state] || 'codicon codicon-question'}></i></span>
         <span class="task-name">{task.description || task.id || ''}</span>
         <span class="task-elapsed">{task.elapsed || ''}</span>
         <span class="task-actions">
           {#if task.state === 'RUNNING' || task.state === 'PENDING'}
-            <button type="button" class="danger" title="Cancel" onclick={() => cancel(task.name)}>✗</button>
+            <button type="button" class="danger" title="Cancel" onclick={() => cancel(task.name)}><i class="codicon codicon-stop-circle"></i></button>
           {/if}
           {#if getPreviewAsset(task)}
-            <button type="button" title="Preview" onclick={() => preview(getPreviewAsset(task))}>⧉</button>
+            <button type="button" title="Preview" onclick={() => preview(getPreviewAsset(task))}><i class="codicon codicon-open-preview"></i></button>
           {/if}
         </span>
       </li>
@@ -111,6 +111,7 @@
     html,
     body {
       height: 100%;
+      overflow: hidden;
       margin: 0;
     }
     body {
@@ -123,12 +124,20 @@
       flex-direction: column;
       overflow: hidden;
     }
+    #app {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
 
     /* ==================================================================
        TASK LIST
        ================================================================== */
     .task-list {
       flex: 1;
+      min-height: 0;
       overflow-y: auto;
       padding: 0;
       margin: 0;
@@ -161,15 +170,9 @@
       align-items: center;
       justify-content: center;
     }
-    .state-icon.running,
-    .state-icon.cancelling {
-      /* hide the text symbol, show spinner instead */
-      font-size: 0;
-      border: 1.5px solid var(--vscode-progressBar-background);
-      border-top-color: transparent;
-      border-radius: 50%;
-      width: 10px;
-      height: 10px;
+    .state-icon.running i,
+    .state-icon.cancelling i {
+      display: inline-block;
       animation: spin 0.8s linear infinite;
     }
     @keyframes spin {

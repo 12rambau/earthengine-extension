@@ -40,7 +40,7 @@
 
 <!-- CONTROLS -->
 <div class="pagination">
-  <button class="page-nav" disabled={currentPage === 0} onclick={() => currentPage--}><i class="codicon codicon-triangle-left"></i></button>
+  <button class="page-nav" aria-label="Previous page" disabled={currentPage === 0} onclick={() => currentPage--}><i class="codicon codicon-triangle-left"></i></button>
   <span class="page-nums">
     {#each pages() as item}
       {#if item.type === 'ellipsis'}
@@ -56,7 +56,7 @@
       {/if}
     {/each}
   </span>
-  <button class="page-nav" disabled={currentPage >= totalPages - 1} onclick={() => currentPage++}><i class="codicon codicon-triangle-right"></i></button>
+  <button class="page-nav" aria-label="Next page" disabled={currentPage >= totalPages - 1} onclick={() => currentPage++}><i class="codicon codicon-triangle-right"></i></button>
 
   <div class="size-wrap" bind:this={sizeWrap}>
     <button

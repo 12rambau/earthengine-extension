@@ -13,12 +13,12 @@
 
 import * as vscode from 'vscode';
 import { marked } from 'marked';
-import { EEAsset, EEBand, listAssets, getAsset } from '../../sidebar/assets/eeApiClient.js';
-import { escapeHtml } from '../../shared/index.js';
+import { EEAsset, EEBand, listAssets, getAsset } from '../../../sidebar/assets/eeApiClient.js';
+import { escapeHtml } from '../../../shared/index.js';
 import { filesize } from 'filesize';
 import dayjs from 'dayjs';
-import { ensureEe, getThumbUrlRest } from '../../shared/eeSession.js';
-import { getExtensionUri } from '../../shared/extensionContext.js';
+import { ensureEe, getThumbUrlRest } from '../../../shared/eeSession.js';
+import { getExtensionUri } from '../../../shared/extensionContext.js';
 
 import script from './ImageCollectionPreview.svelte';
 
@@ -75,7 +75,7 @@ export async function openImageCollectionPreview(
     } else if (msg.type === 'openImage' && msg.name) {
       const token = await getTokenSafe(accessToken);
       try {
-        const { openAssetPreview } = await import('../assets/assetPreviewPanel.js');
+        const { openAssetPreview } = await import('../assetPreviewPanel.js');
         await openAssetPreview(msg.name, token);
       } catch (err) {
         const errMsg = err instanceof Error ? err.message : String(err);
@@ -89,7 +89,7 @@ export async function openImageCollectionPreview(
       );
       if (confirm === 'Delete') {
         try {
-          const { deleteAsset } = await import('../../sidebar/assets/eeApiClient.js');
+          const { deleteAsset } = await import('../../../sidebar/assets/eeApiClient.js');
           await deleteAsset(msg.name, accessToken);
           vscode.window.showInformationMessage(`Image "${msg.name}" deleted.`);
           panel.webview.postMessage({ type: 'imageDeleted', name: msg.name });

@@ -14,11 +14,11 @@
 
 import * as vscode from 'vscode';
 import { marked } from 'marked';
-import { EEAsset, EEBand } from '../../sidebar/assets/eeApiClient.js';
-import { escapeHtml } from '../../shared/index.js';
+import { EEAsset, EEBand } from '../../../sidebar/assets/eeApiClient.js';
+import { escapeHtml } from '../../../shared/index.js';
 import { filesize } from 'filesize';
 import dayjs from 'dayjs';
-import { ensureEe, computeValue, getThumbUrlRest } from '../../shared/eeSession.js';
+import { ensureEe, computeValue, getThumbUrlRest } from '../../../shared/eeSession.js';
 
 import script from './ImagePreview.svelte';
 

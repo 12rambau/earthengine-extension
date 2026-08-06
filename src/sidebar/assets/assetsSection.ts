@@ -12,7 +12,7 @@ import { AuthService } from '../../auth/index.js';
 import { AssetsTreeDataProvider } from './assetsTreeDataProvider.js';
 import { AssetTreeItem } from './assetTreeItem.js';
 import { copyAsset, createFolder, deleteAsset, moveAsset } from './eeApiClient.js';
-import { openAssetPreview } from '../../editor/assets/assetPreviewPanel.js';
+import { openAssetPreview } from '../../editor/preview/assetPreviewPanel.js';
 import { openAssetsPanel } from '../../editor/assets/assetsPanel.js';
 
 // ==================================================================

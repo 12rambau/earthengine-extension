@@ -13,7 +13,7 @@
 import * as vscode from 'vscode';
 import { listAssets, EEAsset } from '../../sidebar/assets/eeApiClient.js';
 import { AuthService } from '../../auth/index.js';
-import { openAssetPreview } from './assetPreviewPanel.js';
+import { openAssetPreview } from '../preview/assetPreviewPanel.js';
 
 import script from './AssetsPanel.svelte';
 

@@ -16,7 +16,7 @@ import {
   getOperation,
 } from '../../sidebar/tasks/tasksApiClient.js';
 import { AuthService } from '../../auth/index.js';
-import { openAssetPreview } from '../assets/assetPreviewPanel.js';
+import { openAssetPreview } from '../preview/assetPreviewPanel.js';
 import { getExtensionUri } from '../../shared/extensionContext.js';
 
 import script from './TasksPanel.svelte';
