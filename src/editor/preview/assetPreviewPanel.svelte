@@ -20,33 +20,33 @@
       font-family: var(--vscode-font-family, sans-serif);
       color: var(--vscode-foreground);
       background: var(--vscode-editor-background);
-      padding: 20px;
+      padding: var(--vscee-space-xxl);
       line-height: 1.5;
     }
     h1 {
       font-size: 1.4em;
-      margin-bottom: 4px;
+      margin-bottom: var(--vscee-space-xs);
     }
     h2 {
       font-size: 1.1em;
-      margin-top: 20px;
-      border-bottom: 1px solid var(--vscode-panel-border);
-      padding-bottom: 4px;
+      margin-top: var(--vscee-space-xxl);
+      border-bottom: var(--vscee-border-sm) solid var(--vscode-panel-border);
+      padding-bottom: var(--vscee-space-xs);
     }
     .badge {
       display: inline-block;
       background: var(--vscode-badge-background);
       color: var(--vscode-badge-foreground);
-      padding: 2px 8px;
-      border-radius: 12px;
+      padding: var(--vscee-space-xxs) var(--vscee-space-md);
+      border-radius: var(--vscee-radius-xl);
       font-size: 0.8em;
-      margin-right: 4px;
+      margin-right: var(--vscee-space-xs);
     }
     .meta {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 8px;
-      margin: 12px 0;
+      gap: var(--vscee-space-md);
+      margin: var(--vscee-space-lg) 0;
     }
     .meta-item strong {
       display: block;
@@ -57,21 +57,21 @@
       width: 100%;
       border-collapse: collapse;
       font-size: 0.9em;
-      margin: 8px 0;
+      margin: var(--vscee-space-md) 0;
     }
     th {
       text-align: left;
       background: var(--vscode-list-hoverBackground);
-      padding: 5px 8px;
+      padding: var(--vscee-space-sm) var(--vscee-space-md);
     }
     td {
-      padding: 5px 8px;
-      border-bottom: 1px solid var(--vscode-panel-border);
+      padding: var(--vscee-space-sm) var(--vscee-space-md);
+      border-bottom: var(--vscee-border-sm) solid var(--vscode-panel-border);
     }
     code {
       background: var(--vscode-textCodeBlock-background);
-      padding: 1px 4px;
-      border-radius: 3px;
+      padding: var(--vscee-space-xxs) var(--vscee-space-xs);
+      border-radius: var(--vscee-radius-md);
       font-size: 0.9em;
     }
     .props-table td:first-child {

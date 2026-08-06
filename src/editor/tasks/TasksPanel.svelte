@@ -255,7 +255,7 @@
       font-family: var(--vscode-font-family, sans-serif);
       color: var(--vscode-foreground);
       background: var(--vscode-editor-background);
-      padding: 12px 16px 8px;
+      padding: var(--vscee-space-lg) var(--vscee-space-xl) var(--vscee-space-md);
       display: flex;
       flex-direction: column;
       overflow: hidden;
@@ -268,10 +268,10 @@
     }
     h1 {
       font-size: 1.3em;
-      margin: 0 0 8px 0;
+      margin: 0 0 var(--vscee-space-md) 0;
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: var(--vscee-space-md);
       flex-shrink: 0;
     }
 
@@ -282,14 +282,14 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 8px;
-      margin-bottom: 6px;
+      gap: var(--vscee-space-md);
+      margin-bottom: var(--vscee-space-sm);
       flex-shrink: 0;
     }
     .topbar-left {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: var(--vscee-space-md);
     }
 
     /* ==================================================================
@@ -299,8 +299,8 @@
       flex: 1 1 0;
       overflow-y: auto;
       min-height: 120px;
-      border: 1px solid var(--vscode-panel-border);
-      border-radius: 3px;
+      border: var(--vscee-border-sm) solid var(--vscode-panel-border);
+      border-radius: var(--vscee-radius-md);
     }
 
     /* ==================================================================
@@ -310,8 +310,8 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding-top: 6px;
-      gap: 8px;
+      padding-top: var(--vscee-space-sm);
+      gap: var(--vscee-space-md);
       flex-shrink: 0;
       flex-wrap: wrap;
     }
@@ -327,15 +327,15 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding-top: 8px;
-      gap: 8px;
+      padding-top: var(--vscee-space-md);
+      gap: var(--vscee-space-md);
       flex-wrap: wrap;
       flex-shrink: 0;
     }
     .pager {
       display: flex;
       align-items: center;
-      gap: 2px;
+      gap: var(--vscee-space-xxs);
     }
     .nav-btn {
       background: transparent !important;
@@ -349,10 +349,10 @@
     .page-btn {
       min-width: 28px;
       height: 28px;
-      padding: 0 4px;
+      padding: 0 var(--vscee-space-xs);
       border-radius: 50%;
       background: transparent !important;
-      border: 1px solid transparent !important;
+      border: var(--vscee-border-sm) solid transparent !important;
       font-size: 0.82em;
       display: inline-flex;
       align-items: center;
@@ -369,7 +369,7 @@
       font-weight: 600;
     }
     .page-ellipsis {
-      padding: 0 4px;
+      padding: 0 var(--vscee-space-xs);
       opacity: 0.5;
       font-size: 0.85em;
       user-select: none;
@@ -380,9 +380,9 @@
        ================================================================== */
     .toggle-switch {
       display: inline-flex;
-      border-radius: 4px;
+      border-radius: var(--vscee-radius-md);
       overflow: hidden;
-      border: 1px solid var(--vscode-input-border);
+      border: var(--vscee-border-sm) solid var(--vscode-input-border);
       position: relative;
       flex-shrink: 0;
     }
@@ -390,7 +390,7 @@
       display: none;
     }
     .toggle-switch label {
-      padding: 4px 10px;
+      padding: var(--vscee-space-xs) var(--vscee-space-lg);
       font-size: 0.85em;
       cursor: pointer;
       position: relative;
@@ -403,7 +403,7 @@
       position: absolute;
       top: 0;
       bottom: 0;
-      border-radius: 3px;
+      border-radius: var(--vscee-radius-md);
       background: var(--vscode-button-background);
       transition: left 0.2s, width 0.2s;
     }
@@ -417,14 +417,14 @@
     .spinner-inline {
       width: 9px;
       height: 9px;
-      border: 1.5px solid currentColor;
+      border: var(--vscee-border-md) solid currentColor;
       border-top-color: transparent;
       border-radius: 50%;
       display: inline-block;
       animation: spin 0.8s linear infinite;
       opacity: 0.6;
       vertical-align: middle;
-      margin-left: 5px;
+      margin-left: var(--vscee-space-sm);
     }
 
     /* ==================================================================
@@ -434,9 +434,9 @@
     select {
       background: var(--vscode-button-secondaryBackground);
       color: var(--vscode-button-secondaryForeground);
-      border: 1px solid var(--vscode-input-border);
-      padding: 4px 8px;
-      border-radius: 4px;
+      border: var(--vscee-border-sm) solid var(--vscode-input-border);
+      padding: var(--vscee-space-xs) var(--vscee-space-md);
+      border-radius: var(--vscee-radius-md);
       cursor: pointer;
       font-size: 0.85em;
     }
@@ -473,11 +473,11 @@
       top: 0;
       z-index: 1;
       text-align: left;
-      padding: 6px 8px;
+      padding: var(--vscee-space-sm) var(--vscee-space-md);
       cursor: pointer;
       user-select: none;
       background: var(--vscode-editor-background);
-      border-bottom: 2px solid var(--vscode-panel-border);
+      border-bottom: var(--vscee-border-md) solid var(--vscode-panel-border);
       white-space: nowrap;
     }
     thead th:hover {
@@ -485,21 +485,21 @@
     }
     th .sort-arrow {
       opacity: 0.5;
-      margin-left: 4px;
+      margin-left: var(--vscee-space-xs);
     }
     th.sorted .sort-arrow {
       opacity: 1;
     }
     td {
-      padding: 5px 8px;
-      border-bottom: 1px solid var(--vscode-panel-border);
+      padding: var(--vscee-space-sm) var(--vscee-space-md);
+      border-bottom: var(--vscee-border-sm) solid var(--vscode-panel-border);
     }
     tr:hover {
       background: var(--vscode-list-hoverBackground);
     }
     .icon-col {
       width: 24px;
-      padding: 3px 4px;
+      padding: var(--vscee-space-xs) var(--vscee-space-xs);
       text-align: center;
     }
     .status {
@@ -554,7 +554,7 @@
     .spinner {
       width: 10px;
       height: 10px;
-      border: 2px solid var(--vscode-foreground);
+      border: var(--vscee-border-md) solid var(--vscode-foreground);
       border-top-color: transparent;
       border-radius: 50%;
       display: inline-block;
@@ -575,7 +575,7 @@
       opacity: 0.4;
     }
     .action-dot {
-      padding: 2px 6px;
+      padding: var(--vscee-space-xxs) var(--vscee-space-sm);
       display: inline-flex;
       align-items: center;
     }
@@ -596,8 +596,8 @@
       background: none !important;
       border: none !important;
       cursor: pointer;
-      padding: 2px 6px;
-      border-radius: 3px;
+      padding: var(--vscee-space-xxs) var(--vscee-space-sm);
+      border-radius: var(--vscee-radius-md);
       color: var(--vscode-foreground);
       opacity: 0.7;
       display: inline-flex;

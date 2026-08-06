@@ -1,0 +1,26 @@
+:root {
+  /* ==================================================================
+     SPACING  (padding · margin · gap)
+     ================================================================== */
+  --vscee-space-xxs: 2px;
+  --vscee-space-xs: 4px;
+  --vscee-space-sm: 6px;
+  --vscee-space-md: 8px;
+  --vscee-space-lg: 12px;
+  --vscee-space-xl: 16px;
+  --vscee-space-xxl: 20px;
+
+  /* ==================================================================
+     BORDER RADIUS
+     ================================================================== */
+  --vscee-radius-sm: 2px;
+  --vscee-radius-md: 4px;
+  --vscee-radius-lg: 6px;
+  --vscee-radius-xl: 12px;
+
+  /* ==================================================================
+     BORDER WIDTH
+     ================================================================== */
+  --vscee-border-sm: 1px;
+  --vscee-border-md: 2px;
+}

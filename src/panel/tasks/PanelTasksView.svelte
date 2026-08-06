@@ -118,7 +118,7 @@
       font-size: var(--vscode-editor-font-size, 13px);
       color: var(--vscode-foreground);
       background: transparent;
-      padding: 6px;
+      padding: var(--vscee-space-sm);
       display: flex;
       flex-direction: column;
       overflow: hidden;
@@ -145,10 +145,10 @@
     .task-row {
       display: flex;
       align-items: center;
-      gap: 6px;
-      padding: 3px 8px;
+      gap: var(--vscee-space-sm);
+      padding: var(--vscee-space-xs) var(--vscee-space-md);
       cursor: default;
-      border-bottom: 1px solid var(--vscode-panel-border);
+      border-bottom: var(--vscee-border-sm) solid var(--vscode-panel-border);
       white-space: nowrap;
       overflow: hidden;
     }
@@ -233,8 +233,8 @@
       border: none;
       color: var(--vscode-foreground);
       cursor: pointer;
-      padding: 1px 4px;
-      border-radius: 3px;
+      padding: var(--vscee-space-xxs) var(--vscee-space-xs);
+      border-radius: var(--vscee-radius-md);
       opacity: 0.7;
       font-family: inherit;
       font-size: 0.9em;
@@ -252,7 +252,7 @@
        EMPTY STATE
        ================================================================== */
     .empty-state {
-      padding: 16px;
+      padding: var(--vscee-space-xl);
       text-align: center;
       opacity: 0.5;
       font-style: italic;
@@ -262,7 +262,7 @@
        LOADING
        ================================================================== */
     .loading-state {
-      padding: 16px;
+      padding: var(--vscee-space-xl);
       text-align: center;
       opacity: 0.5;
     }
@@ -270,11 +270,11 @@
       display: inline-block;
       width: 12px;
       height: 12px;
-      border: 2px solid var(--vscode-foreground);
+      border: var(--vscee-border-md) solid var(--vscode-foreground);
       border-top-color: transparent;
       border-radius: 50%;
       animation: spin 0.8s linear infinite;
-      margin-right: 6px;
+      margin-right: var(--vscee-space-sm);
       vertical-align: middle;
     }
   }

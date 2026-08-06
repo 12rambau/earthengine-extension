@@ -87,12 +87,12 @@
   .size-trigger {
     display: inline-flex;
     align-items: center;
-    gap: 5px;
-    padding: 4px 8px;
+    gap: var(--vscee-space-sm);
+    padding: var(--vscee-space-xs) var(--vscee-space-md);
     background: var(--vscode-button-secondaryBackground);
     color: var(--vscode-button-secondaryForeground);
-    border: 1px solid var(--vscode-input-border);
-    border-radius: 4px;
+    border: var(--vscee-border-sm) solid var(--vscode-input-border);
+    border-radius: var(--vscee-radius-md);
     cursor: pointer;
     font-size: 0.85em;
     font-family: var(--vscode-font-family, sans-serif);
@@ -126,17 +126,17 @@
     z-index: 20;
     min-width: 80px;
     background: var(--vscode-editorWidget-background, var(--vscode-editor-background));
-    border: 1px solid var(--vscode-widget-border, var(--vscode-panel-border));
-    border-radius: 4px;
-    padding: 4px;
+    border: var(--vscee-border-sm) solid var(--vscode-widget-border, var(--vscode-panel-border));
+    border-radius: var(--vscee-radius-md);
+    padding: var(--vscee-space-xs);
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
   }
 
   .size-item {
     display: block;
     width: 100%;
-    padding: 6px 10px;
-    border-radius: 3px;
+    padding: var(--vscee-space-sm) var(--vscee-space-lg);
+    border-radius: var(--vscee-radius-md);
     background: none;
     border: none;
     cursor: pointer;

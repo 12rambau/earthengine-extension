@@ -1,8 +1,12 @@
 /**
  * @module webviewUtils
- * HTML/WebView helpers shared across editor panels: HTML escaping and
- * a properties-table renderer.
+ * HTML/WebView helpers shared across editor panels: HTML escaping,
+ * a properties-table renderer, and shared design tokens.
  */
+
+import designTokensCss from './webview.css';
+
+export const designTokens: string = designTokensCss;
 
 /**
  * Escape HTML special characters for safe rendering in WebViews.
