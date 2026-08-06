@@ -2,6 +2,10 @@
 <script>
   let { currentPage = $bindable(), totalPages, pageSize = $bindable(), onPageSizeChange } = $props();
 
+  // ----------------------------------------------------------------
+  // HELPERS
+  // ----------------------------------------------------------------
+  // Builds a sparse page list: always includes first, last, and neighbours of current.
   function pages() {
     if (totalPages <= 1) return [];
     const shown = new Set([0, totalPages - 1]);
@@ -26,6 +30,7 @@
   }
 </script>
 
+<!-- CONTROLS -->
 <div class="pagination">
   <button class="page-nav" disabled={currentPage === 0} onclick={() => currentPage--}>◀</button>
   <span class="page-nums">

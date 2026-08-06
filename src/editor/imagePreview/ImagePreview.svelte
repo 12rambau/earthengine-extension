@@ -4,18 +4,25 @@
 
   const data = getInitData();
 
-  let activeTab = $state('description');
-  let thumbnailHtml = $state(
-    '<span class="thumb-loading"><span class="spinner"></span> Loading thumbnail...</span>'
-  );
-  let minMaxData = $state(null);
-
   const tabs = [
     { id: 'description', label: 'DESCRIPTION' },
     { id: 'bands', label: 'BANDS' },
     { id: 'properties', label: 'PROPERTIES' },
   ];
 
+  // ----------------------------------------------------------------
+  // STATE
+  // ----------------------------------------------------------------
+  let activeTab = $state('description');
+  let thumbnailHtml = $state(
+    '<span class="thumb-loading"><span class="spinner"></span> Loading thumbnail...</span>'
+  );
+  // null = still loading; object = received (may have no entry for a band)
+  let minMaxData = $state(null);
+
+  // ----------------------------------------------------------------
+  // MESSAGES
+  // ----------------------------------------------------------------
   vscode.postMessage({ type: 'ready' });
 
   window.addEventListener('message', (event) => {
@@ -31,6 +38,9 @@
     }
   });
 
+  // ----------------------------------------------------------------
+  // HELPERS
+  // ----------------------------------------------------------------
   function formatNum(n) {
     if (n === null || n === undefined) return '—';
     if (Number.isInteger(n)) return String(n);
@@ -52,7 +62,9 @@
   <h1>Asset details: {data.title}</h1>
 </header>
 
+<!-- LAYOUT -->
 <div class="layout">
+  <!-- SIDEBAR -->
   <aside class="sidebar">
     <div class="thumbnail-container">
       <div class="thumbnail-placeholder">
@@ -166,7 +178,7 @@
       background: var(--vscode-editor-background);
       line-height: 1.5;
     }
-    
+
     /* ==================================================================
        TITLE BAR
        ================================================================== */
@@ -178,7 +190,7 @@
       font-size: 1.2em;
       font-weight: 500;
     }
-    
+
     /* ==================================================================
        LAYOUT
        ================================================================== */
@@ -186,7 +198,7 @@
       display: flex;
       height: calc(100vh - 52px);
     }
-    
+
     /* ==================================================================
        SIDEBAR
        ================================================================== */
@@ -246,7 +258,7 @@
       padding: 4px 6px;
       border-radius: 3px;
     }
-    
+
     /* ==================================================================
        CONTENT & TABS
        ================================================================== */
@@ -291,7 +303,7 @@
     .tab-panel.active {
       display: block;
     }
-    
+
     /* ==================================================================
        DESCRIPTION
        ================================================================== */
@@ -300,7 +312,7 @@
       white-space: pre-wrap;
       opacity: 0.85;
     }
-    
+
     /* ==================================================================
        TABLES
        ================================================================== */
@@ -331,7 +343,7 @@
       font-weight: 500;
       width: 30%;
     }
-    
+
     /* ==================================================================
        SPINNER
        ================================================================== */

@@ -6,7 +6,7 @@ applyTo: '**'
 
 Architecture and cross-cutting rules. Per-file-type conventions (module headers, section
 banners, formatting) live in `.github/instructions/*.instructions.md` — one each for
-`typescript`, `javascript`, `css`, and `hbs`; they apply automatically by file glob.
+`typescript`, `javascript`, `css`, `hbs`, and `svelte`; they apply automatically by file glob.
 
 ## Project structure
 

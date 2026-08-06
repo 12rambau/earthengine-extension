@@ -4,12 +4,6 @@
 
   const data = getInitData();
 
-  let activeTab = $state('description');
-  let thumbnailHtml = $state(
-    '<span class="thumb-loading"><span class="spinner"></span> Loading thumbnail...</span>'
-  );
-  let images = $state(data.images);
-
   const tabs = [
     { id: 'description', label: 'DESCRIPTION' },
     { id: 'images', label: 'IMAGES' },
@@ -17,6 +11,18 @@
     { id: 'properties', label: 'PROPERTIES' },
   ];
 
+  // ----------------------------------------------------------------
+  // STATE
+  // ----------------------------------------------------------------
+  let activeTab = $state('description');
+  let thumbnailHtml = $state(
+    '<span class="thumb-loading"><span class="spinner"></span> Loading thumbnail...</span>'
+  );
+  let images = $state(data.images);
+
+  // ----------------------------------------------------------------
+  // MESSAGES
+  // ----------------------------------------------------------------
   vscode.postMessage({ type: 'ready' });
 
   window.addEventListener('message', (event) => {
@@ -33,6 +39,9 @@
     }
   });
 
+  // ----------------------------------------------------------------
+  // ACTIONS
+  // ----------------------------------------------------------------
   function openImage(name) {
     vscode.postMessage({ type: 'openImage', name });
   }
@@ -46,7 +55,9 @@
   <h1>Asset details: {data.title} (ImageCollection)</h1>
 </header>
 
+<!-- LAYOUT -->
 <div class="layout">
+  <!-- SIDEBAR -->
   <aside class="sidebar">
     <div class="thumbnail-container">
       <div class="thumbnail-placeholder">
@@ -170,7 +181,7 @@
       background: var(--vscode-editor-background);
       line-height: 1.5;
     }
-    
+
     /* ==================================================================
        TITLE BAR
        ================================================================== */
@@ -182,7 +193,7 @@
       font-size: 1.2em;
       font-weight: 500;
     }
-    
+
     /* ==================================================================
        LAYOUT
        ================================================================== */
@@ -190,7 +201,7 @@
       display: flex;
       height: calc(100vh - 52px);
     }
-    
+
     /* ==================================================================
        SIDEBAR
        ================================================================== */
@@ -250,7 +261,7 @@
       padding: 4px 6px;
       border-radius: 3px;
     }
-    
+
     /* ==================================================================
        CONTENT & TABS
        ================================================================== */
@@ -305,7 +316,7 @@
       opacity: 0.6;
       margin-bottom: 12px;
     }
-    
+
     /* ==================================================================
        DESCRIPTION
        ================================================================== */
@@ -341,7 +352,7 @@
       background: none;
       padding: 0;
     }
-    
+
     /* ==================================================================
        TABLES
        ================================================================== */
@@ -392,7 +403,7 @@
       font-weight: 500;
       width: 30%;
     }
-    
+
     /* ==================================================================
        ROW ACTIONS
        ================================================================== */
@@ -445,7 +456,7 @@
     .action-btn.danger:hover {
       background: var(--vscode-inputValidation-errorBackground) !important;
     }
-    
+
     /* ==================================================================
        SPINNER
        ================================================================== */

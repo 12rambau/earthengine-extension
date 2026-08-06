@@ -4,11 +4,6 @@
 
   const data = getInitData();
 
-  let activeTab = $state('description');
-  let thumbnailHtml = $state(
-    '<span class="thumb-loading"><span class="spinner"></span> Loading thumbnail...</span>'
-  );
-
   const tabs = [
     { id: 'description', label: 'DESCRIPTION' },
     { id: 'features', label: 'FEATURES' },
@@ -16,6 +11,17 @@
     { id: 'properties', label: 'PROPERTIES' },
   ];
 
+  // ----------------------------------------------------------------
+  // STATE
+  // ----------------------------------------------------------------
+  let activeTab = $state('description');
+  let thumbnailHtml = $state(
+    '<span class="thumb-loading"><span class="spinner"></span> Loading thumbnail...</span>'
+  );
+
+  // ----------------------------------------------------------------
+  // MESSAGES
+  // ----------------------------------------------------------------
   vscode.postMessage({ type: 'ready' });
 
   window.addEventListener('message', (event) => {
@@ -35,7 +41,9 @@
   <h1>Asset details: {data.title}</h1>
 </header>
 
+<!-- LAYOUT -->
 <div class="layout">
+  <!-- SIDEBAR -->
   <aside class="sidebar">
     <div class="thumbnail-container">
       <div class="thumbnail-placeholder" id="thumbnail">
@@ -68,6 +76,7 @@
   </aside>
 
   <main class="content">
+    <!-- TABS -->
     <nav class="tabs">
       {#each tabs as tab}
         <button
@@ -114,7 +123,7 @@
       background: var(--vscode-editor-background);
       line-height: 1.5;
     }
-    
+
     /* ==================================================================
        TITLE BAR
        ================================================================== */
@@ -126,7 +135,7 @@
       font-size: 1.2em;
       font-weight: 500;
     }
-    
+
     /* ==================================================================
        LAYOUT
        ================================================================== */
@@ -134,7 +143,7 @@
       display: flex;
       height: calc(100vh - 52px);
     }
-    
+
     /* ==================================================================
        SIDEBAR
        ================================================================== */
@@ -194,7 +203,7 @@
       padding: 4px 6px;
       border-radius: 3px;
     }
-    
+
     /* ==================================================================
        CONTENT & TABS
        ================================================================== */
@@ -244,7 +253,7 @@
       opacity: 0.6;
       font-style: italic;
     }
-    
+
     /* ==================================================================
        DESCRIPTION
        ================================================================== */
@@ -284,7 +293,7 @@
       background: none;
       padding: 0;
     }
-    
+
     /* ==================================================================
        TABLES
        ================================================================== */
@@ -333,7 +342,7 @@
       font-weight: 500;
       width: 30%;
     }
-    
+
     /* ==================================================================
        SPINNER
        ================================================================== */

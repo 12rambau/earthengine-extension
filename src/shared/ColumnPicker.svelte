@@ -1,8 +1,15 @@
 <!-- ColumnPicker: toggleable dropdown for column visibility -->
 <script>
   let { columns, visibleCols = $bindable() } = $props();
+
+  // ----------------------------------------------------------------
+  // STATE
+  // ----------------------------------------------------------------
   let open = $state(false);
 
+  // ----------------------------------------------------------------
+  // ACTIONS
+  // ----------------------------------------------------------------
   function toggle(key) {
     if (visibleCols.has(key)) {
       visibleCols.delete(key);
