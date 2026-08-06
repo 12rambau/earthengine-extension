@@ -18,6 +18,7 @@ This is a VS Code extension for Google Earth Engine. Read `.github/ARCHITECTURE.
 - **One class per file**: each class in its own file, named after it, so the filesystem reveals the components (a tree data provider and its tree item are separate files). See the TypeScript instructions for details.
 - **Shared code**: HTTP utilities go in `src/shared/httpClient.ts`, HTML/WebView utilities go in `src/shared/webviewUtils.ts`. Never duplicate these.
 - **No emojis**: use VS Code ThemeIcon codicons in tree views, inline SVG in WebViews.
+- **No hardcoded SVG icons in WebViews**: the `@vscode/codicons` library is loaded in every WebView panel. Always use `<i class="codicon codicon-NAME"></i>` — never inline `<svg>` for icons.
 - **Lazy loading pattern**: tree views return spinner placeholders immediately, load in the background, then fire `_onDidChangeTreeData`. See `assetsTreeDataProvider.ts` for the canonical example.
 - **Pagination**: server-side (API pageToken) for large collections, not client-side.
 - **package.json**: be careful with JSON structure — orphan fragments are a recurring issue. Validate after edits.

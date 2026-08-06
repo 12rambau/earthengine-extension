@@ -385,24 +385,6 @@
     }
 
     /* ==================================================================
-       PAGE-SIZE SELECT
-       ================================================================== */
-    .per-page-select {
-      appearance: none;
-      -webkit-appearance: none;
-      padding-right: 20px !important;
-      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23999'/%3E%3C/svg%3E") !important;
-      background-repeat: no-repeat !important;
-      background-position: right 6px center !important;
-      background-color: var(--vscode-button-secondaryBackground) !important;
-      border: 1px solid var(--vscode-input-border) !important;
-      cursor: pointer;
-    }
-    .per-page-select:hover {
-      background-color: var(--vscode-button-secondaryHoverBackground) !important;
-    }
-
-    /* ==================================================================
        INLINE SPINNER
        ================================================================== */
     .spinner-inline {
@@ -449,61 +431,6 @@
     .page-info {
       font-size: 0.85em;
       opacity: 0.7;
-    }
-
-    /* ==================================================================
-       COLUMN PICKER
-       ================================================================== */
-    .col-picker-wrap {
-      position: relative;
-    }
-    .col-picker-btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-    }
-    .col-picker-btn.active {
-      background: var(--vscode-button-background) !important;
-      color: var(--vscode-button-foreground) !important;
-      border-color: transparent !important;
-    }
-    .col-picker-chevron {
-      font-size: 0.75em;
-      opacity: 0.7;
-    }
-    .col-picker {
-      position: absolute;
-      right: 0;
-      top: calc(100% + 4px);
-      z-index: 10;
-      background: var(--vscode-editorWidget-background, var(--vscode-editor-background));
-      border: 1px solid var(--vscode-widget-border, var(--vscode-panel-border));
-      border-radius: 4px;
-      padding: 6px 4px;
-      min-width: 160px;
-      box-shadow: 0 4px 12px var(--vscode-widget-shadow);
-    }
-    .col-item {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      padding: 4px 8px;
-      border-radius: 3px;
-      cursor: pointer;
-      font-size: 0.85em;
-      white-space: nowrap;
-      user-select: none;
-    }
-    .col-item:hover {
-      background: var(--vscode-list-hoverBackground);
-    }
-    .col-item input[type='checkbox'] {
-      cursor: pointer;
-      margin: 0;
-    }
-    .col-item.required {
-      opacity: 0.5;
-      cursor: default;
     }
 
     /* ==================================================================
