@@ -21,7 +21,7 @@ import { TasksSection } from './sidebar/tasks/index.js';
 import { DatasetSection } from './sidebar/dataset/index.js';
 import { DocsSection } from './sidebar/docs/index.js';
 import { PanelTasksSection } from './panel/tasks/index.js';
-import { MapPanel } from './map/index.js';
+import { MapPanel } from './map/mapPanel.js';
 import { setExtensionUri } from './shared/extensionContext.js';
 
 /** All registered sections — disposed on deactivation. */

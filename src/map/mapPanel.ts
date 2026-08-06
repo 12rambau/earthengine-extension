@@ -13,12 +13,8 @@ import { MapBridgeServer, MapCommand } from './mapBridgeServer.js';
 import { ensureEe } from '../shared/eeSession.js';
 import { MapLayerManager } from './mapLayerManager.js';
 import { MapInspector } from './mapInspector.js';
-import Handlebars from 'handlebars';
-import template from './mapPanel.hbs';
 
-const render = Handlebars.compile(template);
-import style from './mapPanel.css';
-import script from './mapPanel.webview.js';
+import script from './MapPanel.svelte';
 
 // ==================================================================
 // MAPPANEL
@@ -52,16 +48,30 @@ export class MapPanel extends EditorPanel {
     } // Already wired
 
     const cfg = vscode.workspace.getConfiguration('earthengine.map');
-    panel.webview.html = render({
-      style,
-      script,
-      initJson: JSON.stringify({
-        darkBasemap: cfg.get<string>('darkBasemap', 'CartoDB.DarkMatter'),
-        lightBasemap: cfg.get<string>('lightBasemap', 'CartoDB.Positron'),
-        satelliteBasemap: cfg.get<string>('satelliteBasemap', 'Esri.WorldImagery'),
-        planBasemap: cfg.get<string>('planBasemap', 'CartoDB.Voyager'),
-      }),
-    });
+    const nonce = getNonce();
+    const initData = JSON.stringify({
+      darkBasemap: cfg.get<string>('darkBasemap', 'CartoDB.DarkMatter'),
+      lightBasemap: cfg.get<string>('lightBasemap', 'CartoDB.Positron'),
+      satelliteBasemap: cfg.get<string>('satelliteBasemap', 'Esri.WorldImagery'),
+      planBasemap: cfg.get<string>('planBasemap', 'CartoDB.Voyager'),
+    }).replace(/</g, '\\u003c');
+
+    panel.webview.html = `<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/@fortawesome/fontawesome-free@6.7.2/css/all.min.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet-providers@2.0.0/leaflet-providers.js"></script>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script id="init-data" type="application/json" nonce="${nonce}">${initData}</script>
+    <script nonce="${nonce}">${script}</script>
+  </body>
+</html>`;
 
     this.commandDisposable = this.bridgeServer.onCommand(async (cmd: MapCommand) => {
       if (!this.panel) {
@@ -274,4 +284,13 @@ export class MapPanel extends EditorPanel {
       this,
     );
   }
+}
+
+function getNonce(): string {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  let nonce = '';
+  for (let i = 0; i < 32; i++) {
+    nonce += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return nonce;
 }
