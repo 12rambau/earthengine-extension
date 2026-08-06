@@ -161,7 +161,6 @@
     </div>
   </div>
   <div style="display:flex;align-items:center;gap:6px;">
-    <span class="page-info">{rangeText}{#if isLoading} <span class="spinner-inline"></span>{/if}</span>
     <ColumnPicker columns={ALL_COLS} bind:visibleCols onchange={saveState} />
   </div>
 </div>
@@ -213,24 +212,32 @@
           {#if visibleCols.has('assetId')}<td class="id-cell" title={a.assetId}>{a.assetId}</td>{/if}
           {#if visibleCols.has('actions')}
             <td class="actions-cell">
-              {#if a.type === 'FOLDER'}
-                <button class="action-btn" title="New folder" disabled={isBusy(a.name)} onclick={() => assetAction('createFolder', a.name)}>
-                  <i class="codicon codicon-new-folder"></i>
+              <span class="action-dots">
+                <span class="action-dot"><i class="codicon codicon-circle-small-filled"></i></span>
+                <span class="action-dot"><i class="codicon codicon-circle-small-filled"></i></span>
+                <span class="action-dot"><i class="codicon codicon-circle-small-filled"></i></span>
+                <span class="action-dot"><i class="codicon codicon-circle-small-filled"></i></span>
+              </span>
+              <span class="action-btns">
+                {#if a.type === 'FOLDER'}
+                  <button class="action-btn" title="New folder" disabled={isBusy(a.name)} onclick={() => assetAction('createFolder', a.name)}>
+                    <i class="codicon codicon-new-folder"></i>
+                  </button>
+                {:else}
+                  <button class="action-btn" title="Preview" disabled={isBusy(a.name)} onclick={() => preview(a.name)}>
+                    <i class="codicon codicon-open-preview"></i>
+                  </button>
+                {/if}
+                <button class="action-btn" title="Copy asset" disabled={isBusy(a.name)} onclick={() => assetAction('copy', a.name)}>
+                  <i class="codicon codicon-copy"></i>
                 </button>
-              {:else}
-                <button class="action-btn" title="Preview" disabled={isBusy(a.name)} onclick={() => preview(a.name)}>
-                  <i class="codicon codicon-preview"></i>
+                <button class="action-btn" title="Move asset" disabled={isBusy(a.name)} onclick={() => assetAction('move', a.name)}>
+                  <i class="codicon codicon-clippy"></i>
                 </button>
-              {/if}
-              <button class="action-btn" title="Copy asset" disabled={isBusy(a.name)} onclick={() => assetAction('copy', a.name)}>
-                <i class="codicon codicon-copy"></i>
-              </button>
-              <button class="action-btn" title="Move asset" disabled={isBusy(a.name)} onclick={() => assetAction('move', a.name)}>
-                <i class="codicon codicon-move"></i>
-              </button>
-              <button class="action-btn danger" title="Delete asset" disabled={isBusy(a.name)} onclick={() => assetAction('delete', a.name)}>
-                <i class="codicon codicon-trash"></i>
-              </button>
+                <button class="action-btn danger" title="Delete asset" disabled={isBusy(a.name)} onclick={() => assetAction('delete', a.name)}>
+                  <i class="codicon codicon-trash"></i>
+                </button>
+              </span>
             </td>
           {/if}
         </tr>
@@ -239,7 +246,10 @@
   </table>
 </div>
 
-<Pagination bind:currentPage {totalPages} bind:pageSize onPageSizeChange={saveState} />
+<div class="bottom-bar">
+  <span class="page-info">{rangeText}{#if isLoading} <span class="spinner-inline"></span>{/if}</span>
+  <Pagination bind:currentPage {totalPages} bind:pageSize onPageSizeChange={saveState} />
+</div>
 
 <style>
   :global {
@@ -261,6 +271,14 @@
       color: var(--vscode-foreground);
       background: var(--vscode-editor-background);
       padding: 12px 16px 8px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    /* Mount point must participate in body's flex column */
+    #app {
+      flex: 1 1 0;
+      min-height: 0;
       display: flex;
       flex-direction: column;
       overflow: hidden;
@@ -327,6 +345,17 @@
       min-height: 120px;
       border: 1px solid var(--vscode-panel-border);
       border-radius: 3px;
+    }
+
+    /* ==================================================================
+       BOTTOM BAR
+       ================================================================== */
+    .bottom-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-top: 4px;
+      flex-shrink: 0;
     }
 
     /* ==================================================================
