@@ -139,7 +139,7 @@ export function getTaskState(op: Operation): string {
 
 /** Computes a compact elapsed time string (e.g. "42s", "5 minutes", "2 hours"). */
 export function getElapsedTime(op: Operation): string {
-  const start = op.metadata?.startTime ?? op.metadata?.createTime;
+  const start = op.metadata?.startTime;
   const ms = start
     ? (op.metadata?.endTime ? dayjs(op.metadata.endTime) : dayjs()).diff(start)
     : null;
