@@ -133,15 +133,15 @@
                   <td>{img.bandCount}</td>
                   <td class="actions-cell">
                     <span class="action-dots">
-                      <span class="action-dot">{@html data.actionDotSvg}</span>
-                      <span class="action-dot">{@html data.actionDotSvg}</span>
+                      <span class="action-dot"><i class="codicon codicon-circle-small-filled"></i></span>
+                      <span class="action-dot"><i class="codicon codicon-circle-small-filled"></i></span>
                     </span>
                     <span class="action-btns">
                       <button class="action-btn" title="Open preview" onclick={() => openImage(img.name)}>
-                        {@html data.previewIconSvg}
+                        <i class="codicon codicon-open-preview"></i>
                       </button>
                       <button class="action-btn danger" title="Delete image" onclick={() => deleteImage(img.name)}>
-                        {@html data.deleteIconSvg}
+                        <i class="codicon codicon-trash"></i>
                       </button>
                     </span>
                   </td>

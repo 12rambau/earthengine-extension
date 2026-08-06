@@ -22,6 +22,7 @@ import { DatasetSection } from './sidebar/dataset/index.js';
 import { DocsSection } from './sidebar/docs/index.js';
 import { PanelTasksSection } from './panel/tasks/index.js';
 import { MapPanel } from './map/index.js';
+import { setExtensionUri } from './shared/extensionContext.js';
 
 /** All registered sections — disposed on deactivation. */
 const sections: vscode.Disposable[] = [];
@@ -31,6 +32,8 @@ const sections: vscode.Disposable[] = [];
  * Sets up the auth service, registers all sidebar sections and the map panel.
  */
 export function activate(context: vscode.ExtensionContext) {
+  setExtensionUri(context.extensionUri);
+
   // ==================================================================
   // CORE SERVICES
   // ==================================================================

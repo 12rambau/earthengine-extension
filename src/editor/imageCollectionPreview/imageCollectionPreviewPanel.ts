@@ -18,6 +18,7 @@ import { escapeHtml } from '../../shared/index.js';
 import { filesize } from 'filesize';
 import dayjs from 'dayjs';
 import { ensureEe, getThumbUrlRest } from '../../shared/eeSession.js';
+import { getExtensionUri } from '../../shared/extensionContext.js';
 
 import script from './ImageCollectionPreview.svelte';
 
@@ -32,17 +33,6 @@ const MOSAIC_LIMIT = 4;
 
 /** Near-global extent for collections without a usable footprint. */
 const GLOBAL_BBOX = [-180, -89, 180, 89];
-
-// ==================================================================
-// ACTION ICONS (INLINE SVG)
-// ==================================================================
-const ICON_PREVIEW =
-  '<svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M13.5 1H4.5C3.122 1 2 2.122 2 3.5V6.276C2.319 6.162 2.653 6.089 3 6.05V3.499C3 2.672 3.673 1.999 4.5 1.999H8.5V13.385L9.557 14.442C9.714 14.591 9.831 14.786 9.907 14.999H13.5C14.878 14.999 16 13.877 16 12.499V3.5C16 2.122 14.878 1 13.5 1ZM15 12.5C15 13.327 14.327 14 13.5 14H9.5V2H13.5C14.327 2 15 2.673 15 3.5V12.5ZM6.29 12.59C6.74 12.01 7 11.28 7 10.5C7 8.57 5.43 7 3.5 7C1.57 7 0 8.57 0 10.5C0 12.43 1.57 14 3.5 14C4.28 14 5.01 13.74 5.59 13.29L8.15 15.85C8.24 15.95 8.37 16 8.5 16C8.63 16 8.76 15.95 8.85 15.85C9.05 15.66 9.05 15.34 8.85 15.15L6.29 12.59ZM5.5 12C5.36 12.19 5.19 12.36 5 12.5C4.59 12.81 4.06 13 3.5 13C2.12 13 1 11.88 1 10.5C1 9.12 2.12 8 3.5 8C4.88 8 6 9.12 6 10.5C6 11.06 5.81 11.59 5.5 12Z"/></svg>';
-const ICON_DELETE =
-  '<svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M14 2H10C10 .897 9.103 0 8 0 6.897 0 6 .897 6 2H2c-.276 0-.5.224-.5.5s.224.5.5.5h.54l.809 9.708C3.456 13.994 4.55 15 5.84 15h4.319c1.29 0 2.384-.993 2.491-2.292L13.459 3H14c.276 0 .5-.224.5-.5S14.276 2 14 2zM8 1c.551 0 1 .449 1 1H7c0-.551.449-1 1-1zm3.655 11.625C11.591 13.396 10.934 14 10.16 14H5.841c-.774 0-1.431-.604-1.495-1.375L3.544 3h8.914l-.803 9.625zM7 5.5v6c0 .276-.224.5-.5.5S6 11.776 6 11.5v-6c0-.276.224-.5.5-.5s.5.224.5.5zm3 0v6c0 .276-.224.5-.5.5S9 11.776 9 11.5v-6c0-.276.224-.5.5-.5s.5.224.5.5z"/></svg>';
-
-// ==================================================================
-// PUBLIC API
 // ==================================================================
 /** Opens a read-only WebView showing full metadata for an IMAGE_COLLECTION asset. */
 export async function openImageCollectionPreview(
@@ -76,7 +66,7 @@ export async function openImageCollectionPreview(
     }
   }
 
-  panel.webview.html = buildHtml(asset, childImages, bands);
+  panel.webview.html = buildHtml(asset, childImages, bands, panel.webview);
 
   // Handle messages from the WebView
   panel.webview.onDidReceiveMessage(async (msg: { type: string; name?: string }) => {
@@ -216,7 +206,12 @@ function getRegion(ee: any, image: any, asset: EEAsset): unknown {
 // ==================================================================
 // HTML BUILDER
 // ==================================================================
-function buildHtml(asset: EEAsset, childImages: EEAsset[], bands: EEBand[]): string {
+function buildHtml(
+  asset: EEAsset,
+  childImages: EEAsset[],
+  bands: EEBand[],
+  webview: vscode.Webview,
+): string {
   const nonce = getNonce();
   const title = asset.id || asset.name.split('/').pop() || 'ImageCollection';
   const assetId = asset.name;
@@ -270,11 +265,18 @@ function buildHtml(asset: EEAsset, childImages: EEAsset[], bands: EEBand[]): str
         ? '<p class="note">Bands from the first image in the collection.</p>'
         : '') + bandsHtml,
     propsHtml,
-    previewIconSvg: ICON_PREVIEW,
-    deleteIconSvg: ICON_DELETE,
-    actionDotSvg:
-      '<svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M8 6.25a1.75 1.75 0 1 1 0 3.5 1.75 1.75 0 0 1 0-3.5z"/></svg>',
   });
+
+  const codiconsUri = webview.asWebviewUri(
+    vscode.Uri.joinPath(
+      getExtensionUri(),
+      'node_modules',
+      '@vscode',
+      'codicons',
+      'dist',
+      'codicon.css',
+    ),
+  );
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -283,9 +285,9 @@ function buildHtml(asset: EEAsset, childImages: EEAsset[], bands: EEBand[]): str
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'none'; img-src https: data:; style-src 'unsafe-inline'; script-src 'nonce-${nonce}';"
+      content="default-src 'none'; img-src https: data:; font-src ${webview.cspSource}; style-src 'unsafe-inline' ${webview.cspSource}; script-src 'nonce-${nonce}';"
     />
-
+    <link rel="stylesheet" href="${codiconsUri}" />
   </head>
   <body>
     <div id="app"></div>
