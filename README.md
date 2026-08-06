@@ -160,6 +160,24 @@ Map.centerObject(geometry, zoom=8)
 
 ---
 
+## Community Catalog
+
+The **Community** tier of the Dataset Catalog is powered by the
+[Awesome GEE Community Catalog](https://gee-community-catalog.org/), an open collection of
+community-contributed Earth Engine datasets curated by
+[Samapriya Roy](https://github.com/samapriya) and contributors.
+
+**License:** The catalog is distributed under the
+[Creative Commons Attribution 4.0 International (CC-BY-4.0)](https://github.com/samapriya/awesome-gee-community-datasets/blob/master/LICENSE)
+license. You are free to use, share, and adapt the catalog data as long as appropriate credit is
+given.
+
+**Citation:** If you use datasets from the community catalog in your work, please cite it as
+requested by the project maintainer. Full citation details are available on the
+[reference page](https://gee-community-catalog.org/reference/).
+
+---
+
 ## Development
 
 This project uses a **Dev Container** for a consistent development environment.
