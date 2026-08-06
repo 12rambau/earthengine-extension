@@ -18,7 +18,7 @@ Covers build/config scripts (`esbuild.js`, `*.config.js`, `.lintstagedrc.js`) an
 ## WebView client scripts (`*.webview.js`)
 
 - A browser-side **ES module entry point** inlined into panel HTML as an IIFE by the `webview-script-text` esbuild plugin (which runs a nested bundle before returning the text). Keep the `.webview.js` suffix — the plugin matches on it.
-- Must stay **valid static JavaScript** — no Handlebars placeholders inside. To receive data from the extension host, read a JSON script tag the template renders: `JSON.parse(document.getElementById('init-data').textContent)`. See `assetsPanel` for the canonical example.
+- Must stay **valid static JavaScript**. To receive data from the extension host, read a JSON script tag the template renders: `JSON.parse(document.getElementById('init-data').textContent)`. See `assetsPanel` for the canonical example.
 - Runtime values from `init-data` that components need (basemap IDs, the `vscode` handle, etc.) are read in the entry point and passed to component `init*()` functions.
 - Has its own eslint block in `eslint.config.mjs` (`sourceType: 'module'`).
 

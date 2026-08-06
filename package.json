@@ -585,7 +585,7 @@
   },
   "lint-staged": {
     "*.{ts,svelte}": "eslint --fix",
-    "*.{ts,svelte,json,css,hbs}": "prettier --write"
+    "*.{ts,svelte,json,css}": "prettier --write"
   },
   "devDependencies": {
     "@commitlint/cli": "^21.2.1",
@@ -622,7 +622,6 @@
     "d3-scale-chromatic": "^3.1.0",
     "dayjs": "^1.11.21",
     "filesize": "^11.0.22",
-    "handlebars": "^4.7.9",
     "marked": "^4.3.0"
   }
 }

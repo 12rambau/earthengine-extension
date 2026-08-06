@@ -97,7 +97,7 @@ async function main() {
     outfile: 'dist/extension.js',
     external: ['vscode'],
     // WebView templates and stylesheets are imported as plain strings
-    loader: { '.hbs': 'text', '.css': 'text' },
+    loader: { '.css': 'text' },
     logLevel: 'silent',
     plugins: [
       webviewScriptTextPlugin,

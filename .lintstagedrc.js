@@ -5,7 +5,7 @@
 module.exports = {
   'src/**/*.ts': ['prettier --write', 'eslint --max-warnings=0', () => 'tsc --noEmit'],
   'src/**/*.webview.js': ['prettier --write', 'eslint --max-warnings=0'],
-  'src/**/*.{css,hbs}': ['prettier --write'],
+  'src/**/*.css': ['prettier --write'],
   '!(*.webview).{js,mjs}': ['prettier --write'],
   '*.{json,md}': ['prettier --write'],
 };

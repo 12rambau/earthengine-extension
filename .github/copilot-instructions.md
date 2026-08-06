@@ -6,7 +6,7 @@ applyTo: '**'
 
 Architecture and cross-cutting rules. Per-file-type conventions (module headers, section
 banners, formatting) live in `.github/instructions/*.instructions.md` — one each for
-`typescript`, `javascript`, `css`, `hbs`, and `svelte`; they apply automatically by file glob.
+`typescript`, `javascript`, `css`, and `svelte`; they apply automatically by file glob.
 
 ## Project structure
 
@@ -25,28 +25,18 @@ This is a VS Code extension for Google Earth Engine. Read `.github/ARCHITECTURE.
 
 ## Anatomy of a WebView panel
 
-Every editor panel is a `.ts` module plus three sibling files, all bundled as plain strings by esbuild (`.hbs`/`.css` via the `text` loader, `.webview.js` via the `webview-script-text` plugin; type declarations in `src/templates.d.ts`):
+Every editor panel is a `.ts` module plus a Svelte component. The `.ts` file creates the WebView panel, and the Svelte component is compiled by esbuild into the HTML/CSS/JS that populates it:
 
-- `{name}Panel.ts` — creates the WebView panel and renders the template.
-- `{name}Panel.hbs` — markup.
-- `{name}Panel.css` — styles.
-- `{name}Panel.webview.js` — browser-side script.
+- `{name}Panel.ts` — creates the WebView panel and sets its HTML.
+- `{Name}Panel.svelte` — markup, styles, and client-side logic.
 
-The `.ts` imports Handlebars and the three sibling files, compiles the template once at module level, and renders it per-call:
+The `.ts` imports the compiled Svelte component as a string via the esbuild `webview-script-text` plugin:
 
 ```ts
-import Handlebars from 'handlebars';
-import template from './{name}Panel.hbs';
-import style from './{name}Panel.css';
-import script from './{name}Panel.webview.js';
-
-const render = Handlebars.compile(template);
-
-// inside the panel function:
-panel.webview.html = render({ style, script /*, ...values */ });
+import script from './{Name}Panel.svelte';
 ```
 
-The rules each sibling follows (theme variables, escaping, the `init-data` bridge, etc.) are in the `hbs`, `css`, and `javascript` instruction files.
+The rules each file follows (theme variables, the `init-data` bridge, etc.) are in the `svelte`, `css`, and `javascript` instruction files.
 
 ## Talking to Earth Engine (two layers, on purpose)
 
@@ -89,6 +79,6 @@ node esbuild.js    # build
 ## When adding a new editor panel
 
 1. Create `src/editor/{name}/{name}Panel.ts` (function or EditorPanel subclass)
-2. Create the WebView files next to it: `{name}Panel.hbs`, `{name}Panel.css`, `{name}Panel.webview.js` (see "Anatomy of a WebView panel")
+2. Create the Svelte component next to it: `{Name}Panel.svelte` (see "Anatomy of a WebView panel")
 3. Export from `src/editor/{name}/index.ts`
 4. Import and call from the relevant SidebarSection
