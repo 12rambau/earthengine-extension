@@ -8,9 +8,9 @@
  */
 
 import * as vscode from 'vscode';
-import { EditorPanel } from '../shared/baseComponents.js';
+import { EditorPanel } from '../../shared/baseComponents.js';
 import { MapBridgeServer, MapCommand } from './mapBridgeServer.js';
-import { ensureEe } from '../shared/eeSession.js';
+import { ensureEe } from '../../shared/eeSession.js';
 import { MapLayerManager } from './mapLayerManager.js';
 import { MapInspector } from './mapInspector.js';
 

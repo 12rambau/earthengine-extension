@@ -1,6 +1,6 @@
 <!-- MapPanel: Leaflet-based map with EE tile layers, inspector, scale bar and viz editor -->
 <script>
-  import { vscode, getInitData } from '../shared/vscode.ts';
+  import { vscode, getInitData } from '../../shared/vscode.ts';
   import {
     interpolateViridis, interpolateMagma, interpolatePlasma, interpolateInferno,
     interpolateCividis, interpolateTurbo, interpolateRdBu, interpolateRdYlGn,

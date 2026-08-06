@@ -6,9 +6,13 @@
  * for downstream use (pixel inspection), and notifies the WebView.
  */
 
-import { ensureEe, getMapIdUrl, computeValue, evaluate } from '../shared/eeSession.js';
+import { ensureEe, getMapIdUrl, computeValue, evaluate } from '../../shared/eeSession.js';
 import { EeLayer } from './eeLayer.js';
-import { parseSepalVisualizations, resolveSepalViz, selectSepalViz } from '../shared/sepalViz.js';
+import {
+  parseSepalVisualizations,
+  resolveSepalViz,
+  selectSepalViz,
+} from '../../shared/sepalViz.js';
 
 /** Shape of an `addLayer` command payload received from the bridge server. */
 export interface AddLayerPayload {

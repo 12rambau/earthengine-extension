@@ -6,7 +6,7 @@
  * point via `Image.reduceRegion` and sends the band values back.
  */
 
-import { computeValue, ensureEe } from '../shared/eeSession.js';
+import { computeValue, ensureEe } from '../../shared/eeSession.js';
 import { EeLayer } from './eeLayer.js';
 
 /** Band values returned for one layer after a pixel inspection. */
