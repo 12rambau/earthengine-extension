@@ -398,11 +398,6 @@
           "group": "navigation"
         },
         {
-          "command": "earthengine.signOut",
-          "when": "view == earthengine.profiles",
-          "group": "navigation"
-        },
-        {
           "command": "earthengine.openMap",
           "when": "view == earthengine.profiles",
           "group": "navigation"
@@ -489,6 +484,11 @@
         }
       ],
       "view/item/context": [
+        {
+          "command": "earthengine.signOut",
+          "when": "viewItem == profile-active",
+          "group": "inline"
+        },
         {
           "command": "earthengine.removeProfile",
           "when": "viewItem == profile-active || viewItem == profile-inactive",
