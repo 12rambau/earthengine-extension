@@ -13,13 +13,9 @@
 import * as vscode from 'vscode';
 import { listAssets, EEAsset } from '../../sidebar/assets/eeApiClient.js';
 import { AuthService } from '../../auth/index.js';
-import { openAssetPreview } from './assetPreviewPanel.js';
-import Handlebars from 'handlebars';
-import template from './assetsPanel.hbs';
+import { openAssetPreview } from '../preview/assetPreviewPanel.js';
 
-const render = Handlebars.compile(template);
-import style from './assetsPanel.css';
-import script from './assetsPanel.webview.js';
+import script from './AssetsPanel.svelte';
 
 const CONTAINER_TYPES = new Set(['FOLDER', 'IMAGE_COLLECTION']);
 
@@ -196,9 +192,32 @@ function getHtml(
   webview: vscode.Webview,
   extensionUri: vscode.Uri,
 ): string {
-  const initJson = JSON.stringify(savedPrefs).replace(/</g, '\\u003c');
+  const nonce = getNonce();
+  const initData = JSON.stringify(savedPrefs).replace(/</g, '\\u003c');
   const codiconsUri = webview.asWebviewUri(
     vscode.Uri.joinPath(extensionUri, 'node_modules', '@vscode', 'codicons', 'dist', 'codicon.css'),
   );
-  return render({ initJson, style, script, codiconsUri });
+  return `<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="${codiconsUri}" />
+
+  </head>
+  <body>
+    <div id="app"></div>
+    <script id="init-data" type="application/json" nonce="${nonce}">${initData}</script>
+    <script nonce="${nonce}">${script}</script>
+  </body>
+</html>`;
+}
+
+function getNonce(): string {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  let nonce = '';
+  for (let i = 0; i < 32; i++) {
+    nonce += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return nonce;
 }

@@ -12,7 +12,7 @@ import { SidebarSection } from '../../shared/baseComponents.js';
 import { AuthService } from '../../auth/index.js';
 import { PanelTasksViewProvider } from './panelTasksViewProvider.js';
 import { TASK_STATES } from '../../sidebar/tasks/tasksTreeDataProvider.js';
-import { openTasksPanel } from '../../editor/tasks/index.js';
+import { openTasksPanel } from '../../editor/tasks/tasksPanel.js';
 
 // ==================================================================
 // PANELTASKSSECTION

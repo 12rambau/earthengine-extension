@@ -1,4 +1,6 @@
 import typescriptEslint from 'typescript-eslint';
+import sveltePlugin from 'eslint-plugin-svelte';
+import svelteParser from 'svelte-eslint-parser';
 
 export default [
   {
@@ -29,38 +31,25 @@ export default [
       semi: 'warn',
     },
   },
+
   {
-    // WebView entry points: classic-looking scripts that are now ES module entry
-    // points bundled to IIFE by the webview-script-text esbuild plugin.
-    files: ['src/**/*.webview.js'],
+    files: ['**/*.svelte'],
+
+    plugins: {
+      svelte: sveltePlugin,
+    },
 
     languageOptions: {
-      ecmaVersion: 2022,
-      sourceType: 'module',
+      parser: svelteParser,
+      parserOptions: {
+        parser: typescriptEslint.parser,
+      },
     },
 
     rules: {
+      ...sveltePlugin.configs.recommended.rules,
       curly: 'warn',
-      // `== null` / `!= null` intentionally cover both null and undefined
-      eqeqeq: ['warn', 'always', { null: 'ignore' }],
-      'no-throw-literal': 'warn',
-      semi: 'warn',
-    },
-  },
-  {
-    // WebView component modules: ES modules imported by *.webview.js entry points
-    // and bundled by the nested esbuild step inside webview-script-text.
-    files: ['src/**/webview/**/*.js'],
-
-    languageOptions: {
-      ecmaVersion: 2022,
-      sourceType: 'module',
-    },
-
-    rules: {
-      curly: 'warn',
-      eqeqeq: ['warn', 'always', { null: 'ignore' }],
-      'no-throw-literal': 'warn',
+      eqeqeq: 'warn',
       semi: 'warn',
     },
   },

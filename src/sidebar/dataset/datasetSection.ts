@@ -13,7 +13,10 @@ import { DatasetTreeDataProvider } from './datasetTreeDataProvider.js';
 import { DatasetTreeItem } from './datasetTreeItem.js';
 import { fetchCollection, getDatasetPageUrl } from './stacClient.js';
 import { fetchHtml } from '../../shared/httpClient.js';
-import { createDatasetPanel, createCommunityDatasetPanel } from '../../editor/dataset/index.js';
+import {
+  createDatasetPanel,
+  createCommunityDatasetPanel,
+} from '../../editor/dataset/datasetPanel.js';
 
 // ==================================================================
 // DATASETSECTION

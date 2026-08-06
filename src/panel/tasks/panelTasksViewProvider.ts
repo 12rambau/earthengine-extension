@@ -7,7 +7,6 @@
  */
 
 import * as vscode from 'vscode';
-import Handlebars from 'handlebars';
 import {
   listOperationsPage,
   Operation,
@@ -19,15 +18,13 @@ import {
   isImportTask,
 } from '../../sidebar/tasks/tasksApiClient.js';
 import { AuthService } from '../../auth/index.js';
-import { openAssetPreview } from '../../editor/assets/assetPreviewPanel.js';
-import template from './panelTasksView.hbs';
-import style from './panelTasksView.css';
-import script from './panelTasksView.webview.js';
+import { openAssetPreview } from '../../editor/preview/assetPreviewPanel.js';
+
+import script from './PanelTasksView.svelte';
 
 type TaskFilter = 'export' | 'import';
 
 const TERMINAL_STATES = new Set(['SUCCEEDED', 'FAILED', 'CANCELLED']);
-const render = Handlebars.compile(template);
 
 /** Reads the configured max items from the extension settings. */
 function getMaxTasks(): number {
@@ -63,7 +60,10 @@ export class PanelTasksViewProvider implements vscode.WebviewViewProvider {
     _token: vscode.CancellationToken,
   ): void {
     this.view = webviewView;
-    webviewView.webview.options = { enableScripts: true };
+    webviewView.webview.options = {
+      enableScripts: true,
+      localResourceRoots: [vscode.Uri.joinPath(this.context.extensionUri, 'node_modules')],
+    };
     webviewView.webview.html = this.getHtml(webviewView.webview);
 
     // Listen for messages from the webview
@@ -277,13 +277,37 @@ export class PanelTasksViewProvider implements vscode.WebviewViewProvider {
 
   private getHtml(webview: vscode.Webview): string {
     const nonce = getNonce();
+    const codiconsUri = webview.asWebviewUri(
+      vscode.Uri.joinPath(
+        this.context.extensionUri,
+        'node_modules',
+        '@vscode',
+        'codicons',
+        'dist',
+        'codicon.css',
+      ),
+    );
     const csp = [
       `default-src 'none'`,
-      `style-src 'unsafe-inline'`,
+      `font-src ${webview.cspSource}`,
+      `style-src 'unsafe-inline' ${webview.cspSource}`,
       `script-src 'nonce-${nonce}'`,
     ].join('; ');
     const initJson = JSON.stringify({ filter: this.filter }).replace(/</g, '\\u003c');
-    return render({ csp, nonce, initJson, style, script });
+    return `<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="Content-Security-Policy" content="${csp}" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="${codiconsUri}" />
+  </head>
+  <body>
+    <div id="app"></div>
+    <script id="init-data" type="application/json" nonce="${nonce}">${initJson}</script>
+    <script nonce="${nonce}">${script}</script>
+  </body>
+</html>`;
   }
 
   dispose(): void {

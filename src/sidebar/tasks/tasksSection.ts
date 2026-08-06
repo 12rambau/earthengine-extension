@@ -13,7 +13,7 @@ import { AuthService } from '../../auth/index.js';
 import { TasksTreeDataProvider, TASK_STATES } from './tasksTreeDataProvider.js';
 import { TaskTreeItem } from './taskTreeItem.js';
 import { cancelOperation } from './tasksApiClient.js';
-import { openTasksPanel } from '../../editor/tasks/index.js';
+import { openTasksPanel } from '../../editor/tasks/tasksPanel.js';
 
 // ==================================================================
 // TASKSSECTION

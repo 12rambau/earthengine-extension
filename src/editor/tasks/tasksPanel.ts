@@ -16,13 +16,10 @@ import {
   getOperation,
 } from '../../sidebar/tasks/tasksApiClient.js';
 import { AuthService } from '../../auth/index.js';
-import { openAssetPreview } from '../assets/assetPreviewPanel.js';
-import Handlebars from 'handlebars';
-import template from './tasksPanel.hbs';
+import { openAssetPreview } from '../preview/assetPreviewPanel.js';
+import { getExtensionUri } from '../../shared/extensionContext.js';
 
-const render = Handlebars.compile(template);
-import style from './tasksPanel.css';
-import script from './tasksPanel.webview.js';
+import script from './TasksPanel.svelte';
 
 type TaskFilter = 'export' | 'import';
 
@@ -220,7 +217,7 @@ export async function openTasksPanel(
   });
 
   const savedPrefs = context.globalState.get<TaskPrefs>(PREFS_KEY) ?? {};
-  panel.webview.html = getHtml(filter, savedPrefs);
+  panel.webview.html = getHtml(filter, savedPrefs, panel.webview);
 
   loadAndStream(false).catch((err) => {
     const msg = err instanceof Error ? err.message : String(err);
@@ -257,7 +254,40 @@ export async function openTasksPanel(
   });
 }
 
-function getHtml(filter: TaskFilter, savedPrefs: TaskPrefs): string {
-  const initJson = JSON.stringify({ ...savedPrefs, filter }).replace(/</g, '\\u003c');
-  return render({ initJson, style, script });
+function getHtml(filter: TaskFilter, savedPrefs: TaskPrefs, webview: vscode.Webview): string {
+  const nonce = getNonce();
+  const initData = JSON.stringify({ ...savedPrefs, filter }).replace(/</g, '\\u003c');
+  const codiconsUri = webview.asWebviewUri(
+    vscode.Uri.joinPath(
+      getExtensionUri(),
+      'node_modules',
+      '@vscode',
+      'codicons',
+      'dist',
+      'codicon.css',
+    ),
+  );
+  return `<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; font-src ${webview.cspSource}; style-src 'unsafe-inline' ${webview.cspSource}; script-src 'nonce-${nonce}';" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="${codiconsUri}" />
+  </head>
+  <body>
+    <div id="app"></div>
+    <script id="init-data" type="application/json" nonce="${nonce}">${initData}</script>
+    <script nonce="${nonce}">${script}</script>
+  </body>
+</html>`;
+}
+
+function getNonce(): string {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  let nonce = '';
+  for (let i = 0; i < 32; i++) {
+    nonce += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return nonce;
 }
