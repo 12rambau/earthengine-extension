@@ -18,8 +18,8 @@ import { escapeHtml } from '../../shared/index.js';
 import { filesize } from 'filesize';
 import dayjs from 'dayjs';
 import { ensureEe, getThumbUrlRest } from '../../shared/eeSession.js';
-import style from './imageCollectionPreviewPanel.css';
-import script from './imageCollectionPreviewPanel.webview.js';
+
+import script from './ImageCollectionPreview.svelte';
 
 // ==================================================================
 // CONSTANTS
@@ -283,9 +283,9 @@ function buildHtml(asset: EEAsset, childImages: EEAsset[], bands: EEBand[]): str
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'none'; img-src https: data:; style-src 'nonce-${nonce}'; script-src 'nonce-${nonce}';"
+      content="default-src 'none'; img-src https: data:; style-src 'unsafe-inline'; script-src 'nonce-${nonce}';"
     />
-    <style nonce="${nonce}">${style}</style>
+
   </head>
   <body>
     <div id="app"></div>

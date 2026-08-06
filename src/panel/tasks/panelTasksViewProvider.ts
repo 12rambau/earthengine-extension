@@ -19,8 +19,8 @@ import {
 } from '../../sidebar/tasks/tasksApiClient.js';
 import { AuthService } from '../../auth/index.js';
 import { openAssetPreview } from '../../editor/assets/assetPreviewPanel.js';
-import style from './panelTasksView.css';
-import script from './panelTasksView.webview.js';
+
+import script from './PanelTasksView.svelte';
 
 type TaskFilter = 'export' | 'import';
 
@@ -286,7 +286,7 @@ export class PanelTasksViewProvider implements vscode.WebviewViewProvider {
     <meta charset="UTF-8" />
     <meta http-equiv="Content-Security-Policy" content="${csp}" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <style>${style}</style>
+
   </head>
   <body>
     <div id="app"></div>

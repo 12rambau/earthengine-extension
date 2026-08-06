@@ -19,8 +19,8 @@ import { escapeHtml } from '../../shared/index.js';
 import { filesize } from 'filesize';
 import dayjs from 'dayjs';
 import { ensureEe, computeValue, getThumbUrlRest } from '../../shared/eeSession.js';
-import style from './imagePreviewPanel.css';
-import script from './imagePreviewPanel.webview.js';
+
+import script from './ImagePreview.svelte';
 
 // ==================================================================
 // CONSTANTS
@@ -238,9 +238,9 @@ function buildImageHtml(asset: EEAsset, webview: vscode.Webview): string {
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'none'; img-src https: data:; style-src 'nonce-${nonce}'; script-src 'nonce-${nonce}';"
+      content="default-src 'none'; img-src https: data:; style-src 'unsafe-inline'; script-src 'nonce-${nonce}';"
     />
-    <style nonce="${nonce}">${style}</style>
+
   </head>
   <body>
     <div id="app"></div>

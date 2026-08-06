@@ -7,18 +7,20 @@
 
 const esbuild = require('esbuild');
 const sveltePlugin = require('esbuild-svelte');
+const path = require('path');
 const fs = require('fs');
 
 const production = process.argv.includes('--production');
 const watch = process.argv.includes('--watch');
 
 /**
- * WebView client scripts (`*.webview.js`) are inlined into panel HTML as text.
- * Each entry point may import component modules from a sibling `webview/`
- * folder, so we run a nested esbuild bundle (IIFE, browser platform) before
- * returning the result as text.  The `metafile` is used to tell the outer
- * watcher about every input file so that changes to component modules also
- * trigger a rebuild.
+ * Svelte root components and vanilla `*.webview.js` scripts are each bundled
+ * into a self-contained IIFE and returned as a text string so the host can
+ * inline them in the WebView HTML shell.
+ *
+ * Svelte entry: a virtual bootstrap (`mount(App, ...)`) is generated on-the-fly
+ * so the component file itself needs no bootstrap wrapper.
+ * Vanilla entry: bundled as-is (used by the map panel).
  *
  * @type {import('esbuild').Plugin}
  */
@@ -26,9 +28,23 @@ const webviewScriptTextPlugin = {
   name: 'webview-script-text',
 
   setup(build) {
-    build.onLoad({ filter: /\.webview\.[jt]s$/ }, async (args) => {
+    build.onLoad({ filter: /\.(svelte|webview\.[jt]s)$/ }, async (args) => {
+      let buildOptions;
+      if (args.path.endsWith('.svelte')) {
+        // Generate a mount bootstrap so the component file needs no wrapper.
+        const bootstrap = [
+          `import { mount } from 'svelte';`,
+          `import App from ${JSON.stringify(args.path)};`,
+          `mount(App, { target: document.getElementById('app') });`,
+        ].join('\n');
+        buildOptions = {
+          stdin: { contents: bootstrap, resolveDir: path.dirname(args.path), loader: 'js' },
+        };
+      } else {
+        buildOptions = { entryPoints: [args.path] };
+      }
       const result = await esbuild.build({
-        entryPoints: [args.path],
+        ...buildOptions,
         bundle: true,
         format: 'iife',
         platform: 'browser',

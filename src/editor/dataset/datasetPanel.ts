@@ -11,8 +11,8 @@ import * as vscode from 'vscode';
 import { marked } from 'marked';
 import { StacCollection } from '../../sidebar/dataset/stacClient.js';
 import { CommunityDatasetEntry } from '../../sidebar/dataset/communityClient.js';
-import style from './datasetPanel.css';
-import script from './datasetPanel.webview.js';
+
+import script from './DatasetPanel.svelte';
 
 // ==================================================================
 // PUBLIC API
@@ -168,7 +168,7 @@ function buildHtml(
     <meta charset="UTF-8" />
     <meta http-equiv="Content-Security-Policy" content="${csp}" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <style>${style}</style>
+
   </head>
   <body>
     <div id="app"></div>

@@ -9,9 +9,9 @@ import { EEAsset, getAsset } from '../../sidebar/assets/eeApiClient.js';
 import { renderPropertiesTable, webviewBaseStyle } from '../../shared/index.js';
 import { filesize } from 'filesize';
 import dayjs from 'dayjs';
-import { openImagePreview } from '../imagePreview/index.js';
-import { openImageCollectionPreview } from '../imageCollectionPreview/index.js';
-import { openFeatureCollectionPreview } from '../featureCollectionPreview/index.js';
+import { openImagePreview } from '../imagePreview/imagePreviewPanel.js';
+import { openImageCollectionPreview } from '../imageCollectionPreview/imageCollectionPreviewPanel.js';
+import { openFeatureCollectionPreview } from '../featureCollectionPreview/featureCollectionPreviewPanel.js';
 import Handlebars from 'handlebars';
 import template from './assetPreviewPanel.hbs';
 

@@ -17,8 +17,8 @@ import {
 } from '../../sidebar/tasks/tasksApiClient.js';
 import { AuthService } from '../../auth/index.js';
 import { openAssetPreview } from '../assets/assetPreviewPanel.js';
-import style from './tasksPanel.css';
-import script from './tasksPanel.webview.js';
+
+import script from './TasksPanel.svelte';
 
 type TaskFilter = 'export' | 'import';
 
@@ -268,7 +268,7 @@ function getHtml(filter: TaskFilter, savedPrefs: TaskPrefs): string {
     <meta charset="UTF-8" />
     <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'nonce-${nonce}';" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <style>${style}</style>
+
   </head>
   <body>
     <div id="app"></div>

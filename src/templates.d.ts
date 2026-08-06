@@ -12,6 +12,11 @@ declare module '*.css' {
   export default content;
 }
 
+declare module '*.svelte' {
+  const content: string;
+  export default content;
+}
+
 declare module '*.webview.js' {
   const content: string;
   export default content;
