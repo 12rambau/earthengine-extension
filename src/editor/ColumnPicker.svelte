@@ -99,7 +99,7 @@
     border: var(--vscee-border-sm) solid var(--vscode-widget-border, var(--vscode-panel-border));
     border-radius: var(--vscee-radius-md);
     padding: var(--vscee-space-xs);
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+    box-shadow: var(--vscee-shadow-lg);
   }
 
   .item {

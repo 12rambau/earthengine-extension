@@ -49,4 +49,13 @@
      ================================================================== */
   --vscee-font-icon-sm: 14px;
   --vscee-font-icon-md: 16px;
+
+  /* ==================================================================
+     BOX SHADOW
+     ================================================================== */
+  --vscee-shadow-xs: 0 1px 3px var(--vscode-widget-shadow); /* tooltip */
+  --vscee-shadow-sm: 0 2px 6px var(--vscode-widget-shadow); /* floating button */
+  --vscee-shadow-md: 0 2px 8px var(--vscode-widget-shadow); /* overlay panel */
+  --vscee-shadow-lg: 0 4px 16px var(--vscode-widget-shadow); /* dropdown menu */
+  --vscee-shadow-xl: 0 4px 24px var(--vscode-widget-shadow); /* modal dialog */
 }

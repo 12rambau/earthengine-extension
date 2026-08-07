@@ -1069,7 +1069,7 @@
       background: var(--vscode-editor-background); color: var(--vscode-foreground);
       font-size: var(--vscee-font-compact-xxs); padding: var(--vscee-space-xxs) var(--vscee-space-xs); border-radius: var(--vscee-radius-sm);
       white-space: nowrap; pointer-events: none; display: none;
-      box-shadow: 0 1px 3px var(--vscode-widget-shadow); font-variant-numeric: tabular-nums;
+      box-shadow: var(--vscee-shadow-xs); font-variant-numeric: tabular-nums;
     }
     .scale-cat-wrap { display: flex; overflow: visible; gap: 0; cursor: pointer; }
     .scale-cat-segment { height: 100%; position: relative; transition: opacity 0.1s; }
@@ -1088,7 +1088,7 @@
       width: 32px; height: 32px; border: none; border-radius: var(--vscee-radius-md);
       background: var(--vscode-editor-background); color: var(--vscode-foreground);
       cursor: pointer; display: flex; align-items: center; justify-content: center;
-      box-shadow: 0 2px 6px var(--vscode-widget-shadow); opacity: 0.85; transition: opacity 0.15s;
+      box-shadow: var(--vscee-shadow-sm); opacity: 0.85; transition: opacity 0.15s;
     }
     .map-btn:hover { opacity: 1; }
     .map-btn.active { background: var(--vscode-button-background); color: var(--vscode-button-foreground); }
@@ -1105,7 +1105,7 @@
     .layers-panel {
       position: absolute; top: 10px; left: 48px; z-index: 1000; width: 240px;
       background: var(--vscode-editor-background); border: var(--vscee-border-sm) solid var(--vscode-widget-border);
-      border-radius: var(--vscee-radius-md); box-shadow: 0 2px 8px var(--vscode-widget-shadow);
+      border-radius: var(--vscee-radius-md); box-shadow: var(--vscee-shadow-md);
     }
     .layers-panel-header {
       display: flex; align-items: center; justify-content: space-between;
@@ -1137,7 +1137,7 @@
     .inspector-panel {
       position: absolute; top: 10px; left: 48px; z-index: 1000; width: 220px;
       background: var(--vscode-editor-background); border: var(--vscee-border-sm) solid var(--vscode-widget-border);
-      border-radius: var(--vscee-radius-md); box-shadow: 0 2px 8px var(--vscode-widget-shadow);
+      border-radius: var(--vscee-radius-md); box-shadow: var(--vscee-shadow-md);
     }
     .inspector-panel-header {
       display: flex; align-items: center; justify-content: space-between;
@@ -1177,7 +1177,7 @@
     }
     .viz-editor-dialog {
       background: var(--vscode-editor-background); border: var(--vscee-border-sm) solid var(--vscode-widget-border);
-      border-radius: var(--vscee-radius-lg); box-shadow: 0 4px 24px var(--vscode-widget-shadow);
+      border-radius: var(--vscee-radius-lg); box-shadow: var(--vscee-shadow-xl);
       width: 420px; max-height: 80vh; display: flex; flex-direction: column; overflow: hidden;
     }
     .viz-editor-header {
