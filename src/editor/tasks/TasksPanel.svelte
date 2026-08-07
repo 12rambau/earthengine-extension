@@ -314,10 +314,9 @@
       gap: var(--vscee-space-md);
       flex-shrink: 0;
       flex-wrap: wrap;
-    }
-    /* Pagination sits inside the footer — remove its own justify-content */
-    .footer .pagination {
-      padding-top: 0;
+
+      /* Pagination sits inside the footer — remove its own justify-content */
+      .pagination { padding-top: 0; }
     }
 
     /* ==================================================================
@@ -341,10 +340,11 @@
       background: transparent;
       border-color: transparent;
       font-weight: 500;
-    }
-    .nav-btn:not(:disabled):hover {
-      background: var(--vscode-list-hoverBackground);
-      border-color: var(--vscode-input-border);
+
+      &:not(:disabled):hover {
+        background: var(--vscode-list-hoverBackground);
+        border-color: var(--vscode-input-border);
+      }
     }
     .page-btn {
       min-width: 28px;
@@ -357,16 +357,17 @@
       display: inline-flex;
       align-items: center;
       justify-content: center;
-    }
-    .page-btn:hover {
-      background: var(--vscode-list-hoverBackground);
-      border-color: var(--vscode-input-border);
-    }
-    .page-btn.active {
-      background: var(--vscode-button-background);
-      color: var(--vscode-button-foreground);
-      border-color: transparent;
-      font-weight: 600;
+
+      &:hover {
+        background: var(--vscode-list-hoverBackground);
+        border-color: var(--vscode-input-border);
+      }
+      &.active {
+        background: var(--vscode-button-background);
+        color: var(--vscode-button-foreground);
+        border-color: transparent;
+        font-weight: 600;
+      }
     }
     .page-ellipsis {
       padding: 0 var(--vscee-space-xs);
@@ -385,30 +386,29 @@
       border: var(--vscee-border-sm) solid var(--vscode-input-border);
       position: relative;
       flex-shrink: 0;
-    }
-    .toggle-switch input {
-      display: none;
-    }
-    .toggle-switch label {
-      padding: var(--vscee-space-xs) var(--vscee-space-lg);
-      font-size: var(--vscee-font-sm);
-      cursor: pointer;
-      position: relative;
-      z-index: 1;
-      color: var(--vscode-button-secondaryForeground);
-      transition: color 0.15s;
-      user-select: none;
-    }
-    .toggle-switch .slider {
-      position: absolute;
-      top: 0;
-      bottom: 0;
-      border-radius: var(--vscee-radius-md);
-      background: var(--vscode-button-background);
-      transition: left 0.2s, width 0.2s;
-    }
-    .toggle-switch input:checked + label {
-      color: var(--vscode-button-foreground);
+
+      input {
+        display: none;
+        &:checked + label { color: var(--vscode-button-foreground); }
+      }
+      label {
+        padding: var(--vscee-space-xs) var(--vscee-space-lg);
+        font-size: var(--vscee-font-sm);
+        cursor: pointer;
+        position: relative;
+        z-index: 1;
+        color: var(--vscode-button-secondaryForeground);
+        transition: color 0.15s;
+        user-select: none;
+      }
+      .slider {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        border-radius: var(--vscee-radius-md);
+        background: var(--vscode-button-background);
+        transition: left 0.2s, width 0.2s;
+      }
     }
 
     /* ==================================================================
@@ -440,20 +440,22 @@
       cursor: pointer;
       font-size: var(--vscee-font-sm);
     }
-    button:hover {
-      background: var(--vscode-button-secondaryHoverBackground);
-    }
-    button:disabled {
-      opacity: 0.4;
-      cursor: default;
+    button {
+      &:hover { background: var(--vscode-button-secondaryHoverBackground); }
+      &:disabled { opacity: 0.4; cursor: default; }
     }
     .btn-primary {
       background: var(--vscode-button-background);
       color: var(--vscode-button-foreground);
       border-color: transparent;
-    }
-    .btn-primary:hover {
-      background: var(--vscode-button-hoverBackground);
+
+      &:hover { background: var(--vscode-button-hoverBackground); }
+      &.loading {
+        opacity: 0.75;
+        cursor: default;
+
+        .refresh-icon { animation: spin 0.8s linear infinite; }
+      }
     }
     .page-info {
       font-size: var(--vscee-font-sm);
@@ -468,34 +470,32 @@
       border-collapse: collapse;
       font-size: var(--vscee-font-sm);
     }
-    thead th {
-      position: sticky;
-      top: 0;
-      z-index: 1;
-      text-align: left;
-      padding: var(--vscee-space-sm) var(--vscee-space-md);
-      cursor: pointer;
-      user-select: none;
-      background: var(--vscode-editor-background);
-      border-bottom: var(--vscee-border-md) solid var(--vscode-panel-border);
-      white-space: nowrap;
+    thead {
+      th {
+        position: sticky;
+        top: 0;
+        z-index: 1;
+        text-align: left;
+        padding: var(--vscee-space-sm) var(--vscee-space-md);
+        cursor: pointer;
+        user-select: none;
+        background: var(--vscode-editor-background);
+        border-bottom: var(--vscee-border-md) solid var(--vscode-panel-border);
+        white-space: nowrap;
+
+        &:hover { background: var(--vscode-list-hoverBackground); }
+      }
     }
-    thead th:hover {
-      background: var(--vscode-list-hoverBackground);
-    }
-    th .sort-arrow {
-      opacity: 0.5;
-      margin-left: var(--vscee-space-xs);
-    }
-    th.sorted .sort-arrow {
-      opacity: 1;
+    th {
+      .sort-arrow {
+        opacity: 0.5;
+        margin-left: var(--vscee-space-xs);
+      }
+      &.sorted .sort-arrow { opacity: 1; }
     }
     td {
       padding: var(--vscee-space-sm) var(--vscee-space-md);
       border-bottom: var(--vscee-border-sm) solid var(--vscode-panel-border);
-    }
-    tr:hover {
-      background: var(--vscode-list-hoverBackground);
     }
     .icon-col {
       width: 24px;
@@ -514,18 +514,11 @@
       height: 8px;
       border-radius: 50%;
       display: inline-block;
-    }
-    .dot.succeeded {
-      background: var(--vscode-testing-iconPassed);
-    }
-    .dot.failed {
-      background: var(--vscode-testing-iconFailed);
-    }
-    .dot.cancelled {
-      background: var(--vscode-disabledForeground);
-    }
-    .dot.pending {
-      background: var(--vscode-charts-yellow);
+
+      &.succeeded { background: var(--vscode-testing-iconPassed); }
+      &.failed { background: var(--vscode-testing-iconFailed); }
+      &.cancelled { background: var(--vscode-disabledForeground); }
+      &.pending { background: var(--vscode-charts-yellow); }
     }
 
     /* ==================================================================
@@ -536,15 +529,12 @@
         transform: rotate(360deg);
       }
     }
-    .refresh-icon {
-      display: inline-block;
-    }
+    .refresh-icon { display: inline-block; }
     .btn-primary.loading {
       opacity: 0.75;
       cursor: default;
-    }
-    .btn-primary.loading .refresh-icon {
-      animation: spin 0.8s linear infinite;
+
+      .refresh-icon { animation: spin 0.8s linear infinite; }
     }
     .table-wrap.loading {
       opacity: 0.45;
@@ -584,13 +574,16 @@
       align-items: center;
       height: 22px;
     }
-    tr:hover .action-dots,
-    tr:focus-within .action-dots {
-      display: none;
-    }
-    tr:hover .action-btns,
-    tr:focus-within .action-btns {
-      display: inline-flex;
+    tr {
+      &:hover {
+        background: var(--vscode-list-hoverBackground);
+        .action-dots { display: none; }
+        .action-btns { display: inline-flex; }
+      }
+      &:focus-within {
+        .action-dots { display: none; }
+        .action-btns { display: inline-flex; }
+      }
     }
     .action-btn {
       background: none;
@@ -602,16 +595,12 @@
       opacity: 0.7;
       display: inline-flex;
       align-items: center;
-    }
-    .action-btn:hover {
-      opacity: 1;
-      background: var(--vscode-list-hoverBackground);
-    }
-    .action-btn.danger {
-      color: var(--vscode-errorForeground);
-    }
-    .action-btn.danger:hover {
-      background: var(--vscode-inputValidation-errorBackground);
+
+      &:hover { opacity: 1; background: var(--vscode-list-hoverBackground); }
+      &.danger {
+        color: var(--vscode-errorForeground);
+        &:hover { background: var(--vscode-inputValidation-errorBackground); }
+      }
     }
 
     /* ==================================================================

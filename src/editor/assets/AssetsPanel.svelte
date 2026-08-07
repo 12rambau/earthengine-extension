@@ -320,20 +320,18 @@
       font-size: var(--vscee-font-md);
       flex-wrap: wrap;
       min-width: 0;
-    }
-    .breadcrumb button {
-      background: none;
-      border: none;
-      color: var(--vscode-textLink-foreground);
-      cursor: pointer;
-      padding: var(--vscee-space-xxs) var(--vscee-space-xs);
-      font-size: var(--vscee-font-md);
-    }
-    .breadcrumb button:hover {
-      text-decoration: underline;
-    }
-    .breadcrumb .sep {
-      opacity: 0.5;
+
+      button {
+        background: none;
+        border: none;
+        color: var(--vscode-textLink-foreground);
+        cursor: pointer;
+        padding: var(--vscee-space-xxs) var(--vscee-space-xs);
+        font-size: var(--vscee-font-md);
+
+        &:hover { text-decoration: underline; }
+      }
+      .sep { opacity: 0.5; }
     }
 
     /* ==================================================================
@@ -345,6 +343,12 @@
       min-height: 120px;
       border: var(--vscee-border-sm) solid var(--vscode-panel-border);
       border-radius: var(--vscee-radius-md);
+
+      &.loading {
+        opacity: 0.45;
+        pointer-events: none;
+        transition: opacity 0.15s;
+      }
     }
 
     /* ==================================================================
@@ -379,10 +383,11 @@
       background: transparent;
       border-color: transparent;
       font-weight: 500;
-    }
-    .nav-btn:not(:disabled):hover {
-      background: var(--vscode-list-hoverBackground);
-      border-color: var(--vscode-input-border);
+
+      &:not(:disabled):hover {
+        background: var(--vscode-list-hoverBackground);
+        border-color: var(--vscode-input-border);
+      }
     }
     .page-btn {
       min-width: 28px;
@@ -395,16 +400,17 @@
       display: inline-flex;
       align-items: center;
       justify-content: center;
-    }
-    .page-btn:hover {
-      background: var(--vscode-list-hoverBackground);
-      border-color: var(--vscode-input-border);
-    }
-    .page-btn.active {
-      background: var(--vscode-button-background);
-      color: var(--vscode-button-foreground);
-      border-color: transparent;
-      font-weight: 600;
+
+      &:hover {
+        background: var(--vscode-list-hoverBackground);
+        border-color: var(--vscode-input-border);
+      }
+      &.active {
+        background: var(--vscode-button-background);
+        color: var(--vscode-button-foreground);
+        border-color: transparent;
+        font-weight: 600;
+      }
     }
     .page-ellipsis {
       padding: 0 var(--vscee-space-xs);
@@ -442,20 +448,22 @@
       cursor: pointer;
       font-size: var(--vscee-font-sm);
     }
-    button:hover {
-      background: var(--vscode-button-secondaryHoverBackground);
-    }
-    button:disabled {
-      opacity: 0.4;
-      cursor: default;
+    button {
+      &:hover { background: var(--vscode-button-secondaryHoverBackground); }
+      &:disabled { opacity: 0.4; cursor: default; }
     }
     .btn-primary {
       background: var(--vscode-button-background);
       color: var(--vscode-button-foreground);
       border-color: transparent;
-    }
-    .btn-primary:hover {
-      background: var(--vscode-button-hoverBackground);
+
+      &:hover { background: var(--vscode-button-hoverBackground); }
+      &.loading {
+        opacity: 0.75;
+        cursor: default;
+
+        .refresh-icon { animation: spin 0.8s linear infinite; }
+      }
     }
     .page-info {
       font-size: var(--vscee-font-sm);
@@ -470,34 +478,32 @@
       border-collapse: collapse;
       font-size: var(--vscee-font-sm);
     }
-    thead th {
-      position: sticky;
-      top: 0;
-      z-index: 1;
-      text-align: left;
-      padding: var(--vscee-space-sm) var(--vscee-space-md);
-      cursor: pointer;
-      user-select: none;
-      background: var(--vscode-editor-background);
-      border-bottom: var(--vscee-border-md) solid var(--vscode-panel-border);
-      white-space: nowrap;
+    thead {
+      th {
+        position: sticky;
+        top: 0;
+        z-index: 1;
+        text-align: left;
+        padding: var(--vscee-space-sm) var(--vscee-space-md);
+        cursor: pointer;
+        user-select: none;
+        background: var(--vscode-editor-background);
+        border-bottom: var(--vscee-border-md) solid var(--vscode-panel-border);
+        white-space: nowrap;
+
+        &:hover { background: var(--vscode-list-hoverBackground); }
+      }
     }
-    thead th:hover {
-      background: var(--vscode-list-hoverBackground);
-    }
-    th .sort-arrow {
-      opacity: 0.5;
-      margin-left: var(--vscee-space-xs);
-    }
-    th.sorted .sort-arrow {
-      opacity: 1;
+    th {
+      .sort-arrow {
+        opacity: 0.5;
+        margin-left: var(--vscee-space-xs);
+      }
+      &.sorted .sort-arrow { opacity: 1; }
     }
     td {
       padding: var(--vscee-space-sm) var(--vscee-space-md);
       border-bottom: var(--vscee-border-sm) solid var(--vscode-panel-border);
-    }
-    tr:hover {
-      background: var(--vscode-list-hoverBackground);
     }
 
     /* ==================================================================
@@ -508,21 +514,7 @@
         transform: rotate(360deg);
       }
     }
-    .refresh-icon {
-      display: inline-block;
-    }
-    .btn-primary.loading {
-      opacity: 0.75;
-      cursor: default;
-    }
-    .btn-primary.loading .refresh-icon {
-      animation: spin 0.8s linear infinite;
-    }
-    .table-wrap.loading {
-      opacity: 0.45;
-      pointer-events: none;
-      transition: opacity 0.15s;
-    }
+    .refresh-icon { display: inline-block; }
 
     /* ==================================================================
        ASSET NAME & ICONS
@@ -535,9 +527,8 @@
       padding: 0;
       font-size: inherit;
       text-align: left;
-    }
-    .name-link:hover {
-      text-decoration: underline;
+
+      &:hover { text-decoration: underline; }
     }
     .name-text {
       padding: 0;
@@ -550,11 +541,12 @@
       width: 24px;
       padding: var(--vscee-space-xs) var(--vscee-space-xs);
       text-align: center;
-    }
-    .icon-col .codicon {
-      display: block;
-      margin: auto;
-      font-size: var(--vscee-font-icon-md);
+
+      .codicon {
+        display: block;
+        margin: auto;
+        font-size: var(--vscee-font-icon-md);
+      }
     }
     .id-cell {
       font-family: var(--vscode-editor-font-family, monospace);
@@ -582,37 +574,37 @@
       padding: var(--vscee-space-xxs) var(--vscee-space-sm);
       display: inline-flex;
       align-items: center;
+
+      .codicon { font-size: var(--vscee-font-icon-sm); }
     }
     .action-btns {
       display: none;
       align-items: center;
       height: 22px;
     }
-    tr:hover .action-dots,
-    tr:focus-within .action-dots,
-    tr.busy .action-dots {
-      display: none;
-    }
-    tr:hover .action-btns,
-    tr:focus-within .action-btns,
-    tr.busy .action-btns {
-      display: inline-flex;
-    }
-    tr.busy .action-btn {
-      opacity: 0.35;
-      pointer-events: none;
-    }
-    tr.busy .action-btn.spinning {
-      opacity: 1;
-    }
-    tr.busy .action-btn.spinning .codicon {
-      display: none;
-    }
-    .action-btn .codicon {
-      font-size: var(--vscee-font-icon-sm);
-    }
-    .action-dot .codicon {
-      font-size: var(--vscee-font-icon-sm);
+    tr {
+      &:hover {
+        background: var(--vscode-list-hoverBackground);
+        .action-dots { display: none; }
+        .action-btns { display: inline-flex; }
+      }
+      &:focus-within {
+        .action-dots { display: none; }
+        .action-btns { display: inline-flex; }
+      }
+      &.busy {
+        .action-dots { display: none; }
+        .action-btns { display: inline-flex; }
+        .action-btn {
+          opacity: 0.35;
+          pointer-events: none;
+
+          &.spinning {
+            opacity: 1;
+            .codicon { display: none; }
+          }
+        }
+      }
     }
     .action-btn {
       background: none;
@@ -624,16 +616,13 @@
       opacity: 0.7;
       display: inline-flex;
       align-items: center;
-    }
-    .action-btn:hover {
-      opacity: 1;
-      background: var(--vscode-list-hoverBackground);
-    }
-    .action-btn.danger {
-      color: var(--vscode-errorForeground);
-    }
-    .action-btn.danger:hover {
-      background: var(--vscode-inputValidation-errorBackground);
+
+      .codicon { font-size: var(--vscee-font-icon-sm); }
+      &:hover { opacity: 1; background: var(--vscode-list-hoverBackground); }
+      &.danger {
+        color: var(--vscode-errorForeground);
+        &:hover { background: var(--vscode-inputValidation-errorBackground); }
+      }
     }
   }
 </style>

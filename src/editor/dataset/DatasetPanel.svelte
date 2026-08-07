@@ -127,15 +127,16 @@
       border-radius: var(--vscee-radius-md);
       overflow-x: auto;
       margin: var(--vscee-space-xl) 0;
-    }
-    .snippet code {
-      flex: 1;
-      min-width: 0;
-      background: none;
-      padding: 0;
-      font-family: var(--vscode-editor-font-family, monospace);
-      font-size: var(--vscee-font-md);
-      white-space: nowrap;
+
+      code {
+        flex: 1;
+        min-width: 0;
+        background: none;
+        padding: 0;
+        font-family: var(--vscode-editor-font-family, monospace);
+        font-size: var(--vscee-font-md);
+        white-space: nowrap;
+      }
     }
     .copy-btn {
       flex: none;
@@ -147,9 +148,8 @@
       padding: var(--vscee-space-xs) var(--vscee-space-lg);
       font-size: var(--vscee-font-xs);
       font-family: var(--vscode-font-family, sans-serif);
-    }
-    .copy-btn:hover {
-      background: var(--vscode-button-secondaryHoverBackground);
+
+      &:hover { background: var(--vscode-button-secondaryHoverBackground); }
     }
 
     /* ==================================================================
@@ -197,10 +197,8 @@
       padding: var(--vscee-space-lg) var(--vscee-space-lg);
       border-radius: var(--vscee-radius-md);
       overflow-x: auto;
-    }
-    pre code {
-      background: none;
-      padding: 0;
+
+      code { background: none; padding: 0; }
     }
     a {
       color: var(--vscode-textLink-foreground);
@@ -240,21 +238,15 @@
       padding: var(--vscee-space-md) var(--vscee-space-lg);
       font-size: var(--vscee-font-md);
       font-family: inherit;
-    }
-    .tab:hover {
-      opacity: 1;
-    }
-    .tab.active {
-      opacity: 1;
-      border-bottom-color: var(--vscode-focusBorder);
-      font-weight: 600;
+
+      &:hover { opacity: 1; }
+      &.active { opacity: 1; border-bottom-color: var(--vscode-focusBorder); font-weight: 600; }
     }
     .tab-panel {
       display: none;
       padding-top: var(--vscee-space-xl);
-    }
-    .tab-panel.active {
-      display: block;
+
+      &.active { display: block; }
     }
 
     /* ==================================================================

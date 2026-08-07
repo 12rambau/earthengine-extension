@@ -68,25 +68,20 @@
     font-family: var(--vscode-font-family, sans-serif);
     line-height: 1;
     white-space: nowrap;
-  }
 
-  .trigger:hover {
-    background: var(--vscode-button-secondaryHoverBackground);
-  }
-
-  .trigger.open {
-    background: var(--vscode-button-background);
-    color: var(--vscode-button-foreground);
-    border-color: transparent;
+    &:hover { background: var(--vscode-button-secondaryHoverBackground); }
+    &.open {
+      background: var(--vscode-button-background);
+      color: var(--vscode-button-foreground);
+      border-color: transparent;
+    }
   }
 
   .chevron {
     opacity: 0.7;
     transition: transform 0.15s;
-  }
 
-  .chevron.open {
-    transform: rotate(180deg);
+    &.open { transform: rotate(180deg); }
   }
 
   .menu {
@@ -114,15 +109,14 @@
     color: var(--vscode-foreground);
     white-space: nowrap;
     user-select: none;
-  }
 
-  .item:hover {
-    background: var(--vscode-list-hoverBackground);
-  }
+    &:hover { background: var(--vscode-list-hoverBackground); }
+    &.dimmed {
+      opacity: 0.45;
+      cursor: default;
 
-  .item.dimmed {
-    opacity: 0.45;
-    cursor: default;
+      .check { cursor: default; }
+    }
   }
 
   .check {
@@ -132,9 +126,5 @@
     cursor: pointer;
     accent-color: var(--vscode-button-background);
     flex-shrink: 0;
-  }
-
-  .dimmed .check {
-    cursor: default;
   }
 </style>

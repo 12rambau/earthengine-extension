@@ -48,10 +48,12 @@
       gap: var(--vscee-space-md);
       margin: var(--vscee-space-lg) 0;
     }
-    .meta-item strong {
-      display: block;
-      font-size: var(--vscee-font-xs);
-      opacity: 0.7;
+    .meta-item {
+      strong {
+        display: block;
+        font-size: var(--vscee-font-xs);
+        opacity: 0.7;
+      }
     }
     table {
       width: 100%;
@@ -74,9 +76,8 @@
       border-radius: var(--vscee-radius-md);
       font-size: var(--vscee-font-md);
     }
-    .props-table td:first-child {
-      font-weight: 600;
-      width: 30%;
+    .props-table {
+      td:first-child { font-weight: 600; width: 30%; }
     }
     a {
       color: var(--vscode-textLink-foreground);

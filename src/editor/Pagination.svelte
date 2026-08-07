@@ -98,25 +98,20 @@
     font-family: var(--vscode-font-family, sans-serif);
     line-height: 1;
     white-space: nowrap;
-  }
 
-  .size-trigger:hover {
-    background: var(--vscode-button-secondaryHoverBackground);
-  }
-
-  .size-trigger.open {
-    background: var(--vscode-button-background);
-    color: var(--vscode-button-foreground);
-    border-color: transparent;
+    &:hover { background: var(--vscode-button-secondaryHoverBackground); }
+    &.open {
+      background: var(--vscode-button-background);
+      color: var(--vscode-button-foreground);
+      border-color: transparent;
+    }
   }
 
   .size-chevron {
     opacity: 0.7;
     transition: transform 0.15s;
-  }
 
-  .size-chevron.open {
-    transform: rotate(180deg);
+    &.open { transform: rotate(180deg); }
   }
 
   .size-menu {
@@ -145,14 +140,11 @@
     color: var(--vscode-foreground);
     text-align: left;
     white-space: nowrap;
-  }
 
-  .size-item:hover {
-    background: var(--vscode-list-hoverBackground);
-  }
-
-  .size-item.active {
-    background: var(--vscode-button-background);
-    color: var(--vscode-button-foreground);
+    &:hover { background: var(--vscode-list-hoverBackground); }
+    &.active {
+      background: var(--vscode-button-background);
+      color: var(--vscode-button-foreground);
+    }
   }
 </style>

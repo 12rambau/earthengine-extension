@@ -151,9 +151,11 @@
       border-bottom: var(--vscee-border-sm) solid var(--vscode-panel-border);
       white-space: nowrap;
       overflow: hidden;
-    }
-    .task-row:hover {
-      background: var(--vscode-list-hoverBackground);
+
+      &:hover {
+        background: var(--vscode-list-hoverBackground);
+        .task-actions { visibility: visible; }
+      }
     }
 
     /* ==================================================================
@@ -168,11 +170,12 @@
       display: inline-flex;
       align-items: center;
       justify-content: center;
-    }
-    .state-icon.running i,
-    .state-icon.cancelling i {
-      display: inline-block;
-      animation: spin 0.8s linear infinite;
+
+      &.running i,
+      &.cancelling i {
+        display: inline-block;
+        animation: spin 0.8s linear infinite;
+      }
     }
     @keyframes spin {
       to {
@@ -224,27 +227,21 @@
       display: flex;
       justify-content: center;
       visibility: hidden;
-    }
-    .task-row:hover .task-actions {
-      visibility: visible;
-    }
-    .task-actions button {
-      background: transparent;
-      border: none;
-      color: var(--vscode-foreground);
-      cursor: pointer;
-      padding: var(--vscee-space-xxs) var(--vscee-space-xs);
-      border-radius: var(--vscee-radius-md);
-      opacity: 0.7;
-      font-family: inherit;
-      font-size: var(--vscee-font-md);
-    }
-    .task-actions button:hover {
-      background: var(--vscode-list-hoverBackground);
-      opacity: 1;
-    }
-    .task-actions button.danger:hover {
-      color: var(--vscode-testing-iconFailed);
+
+      button {
+        background: transparent;
+        border: none;
+        color: var(--vscode-foreground);
+        cursor: pointer;
+        padding: var(--vscee-space-xxs) var(--vscee-space-xs);
+        border-radius: var(--vscee-radius-md);
+        opacity: 0.7;
+        font-family: inherit;
+        font-size: var(--vscee-font-md);
+
+        &:hover { background: var(--vscode-list-hoverBackground); opacity: 1; }
+        &.danger:hover { color: var(--vscode-testing-iconFailed); }
+      }
     }
 
 

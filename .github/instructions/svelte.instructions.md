@@ -138,7 +138,7 @@ The host `.ts` serialises data into a `<script id="init-data" type="application/
   </style>
   ```
 
-- Follow the same CSS conventions as `css.instructions.md`: VS Code theme variables only, section banners for grouping.
+- Follow the same CSS conventions as `css.instructions.md`: VS Code theme variables only, section banners for grouping, CSS nesting.
 - The host CSP uses `style-src 'unsafe-inline'` to allow Svelte's injected `<style>` tags.
 
 ## Shared components (`src/shared/*.svelte`)
