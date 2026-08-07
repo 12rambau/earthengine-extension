@@ -14,7 +14,7 @@
 import * as vscode from 'vscode';
 import { marked } from 'marked';
 import { EEAsset, EEBand, listAssets, getAsset } from '../../../sidebar/assets/eeApiClient.js';
-import { designTokens, escapeHtml } from '../../../shared/index.js';
+import { designTokens, codiconsCss, escapeHtml } from '../../../shared/index.js';
 import { filesize } from 'filesize';
 import dayjs from 'dayjs';
 import { ensureEe, getThumbUrlRest } from '../../../shared/eeSession.js';
@@ -267,17 +267,6 @@ function buildHtml(
     propsHtml,
   });
 
-  const codiconsUri = webview.asWebviewUri(
-    vscode.Uri.joinPath(
-      getExtensionUri(),
-      'node_modules',
-      '@vscode',
-      'codicons',
-      'dist',
-      'codicon.css',
-    ),
-  );
-
   return `<!DOCTYPE html>
 <html lang="en">
   <head>
@@ -285,9 +274,9 @@ function buildHtml(
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'none'; img-src https: data:; font-src ${webview.cspSource}; style-src 'unsafe-inline' ${webview.cspSource}; script-src 'nonce-${nonce}';"
+      content="default-src 'none'; img-src https: data:; font-src data:; style-src 'unsafe-inline'; script-src 'nonce-${nonce}';"
     />
-    <link rel="stylesheet" href="${codiconsUri}" />
+    <style>${codiconsCss}</style>
     <style>${designTokens}</style>
   </head>
   <body>

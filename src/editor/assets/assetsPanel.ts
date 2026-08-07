@@ -15,7 +15,7 @@ import { listAssets, EEAsset } from '../../sidebar/assets/eeApiClient.js';
 import { AuthService } from '../../auth/index.js';
 import { openAssetPreview } from '../preview/assetPreviewPanel.js';
 
-import { designTokens } from '../../shared/index.js';
+import { designTokens, codiconsCss } from '../../shared/index.js';
 import script from './AssetsPanel.svelte';
 
 const CONTAINER_TYPES = new Set(['FOLDER', 'IMAGE_COLLECTION']);
@@ -63,9 +63,7 @@ export async function openAssetsPanel(
     {
       enableScripts: true,
       retainContextWhenHidden: true,
-      localResourceRoots: [
-        vscode.Uri.joinPath(context.extensionUri, 'node_modules', '@vscode', 'codicons', 'dist'),
-      ],
+      localResourceRoots: [],
     },
   );
 
@@ -179,7 +177,7 @@ export async function openAssetsPanel(
   });
 
   // Initial load
-  panel.webview.html = getHtml(savedPrefs, panel.webview, context.extensionUri);
+  panel.webview.html = getHtml(savedPrefs, panel.webview);
   try {
     await loadAndStream(rootPath);
   } catch (err) {
@@ -188,22 +186,15 @@ export async function openAssetsPanel(
   }
 }
 
-function getHtml(
-  savedPrefs: AssetPrefs,
-  webview: vscode.Webview,
-  extensionUri: vscode.Uri,
-): string {
+function getHtml(savedPrefs: AssetPrefs, webview: vscode.Webview): string {
   const nonce = getNonce();
   const initData = JSON.stringify(savedPrefs).replace(/</g, '\\u003c');
-  const codiconsUri = webview.asWebviewUri(
-    vscode.Uri.joinPath(extensionUri, 'node_modules', '@vscode', 'codicons', 'dist', 'codicon.css'),
-  );
   return `<!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="stylesheet" href="${codiconsUri}" />
+    <style>${codiconsCss}</style>
     <style>${designTokens}</style>
   </head>
   <body>

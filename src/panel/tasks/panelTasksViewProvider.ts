@@ -18,7 +18,7 @@ import {
   isImportTask,
 } from '../../sidebar/tasks/tasksApiClient.js';
 import { AuthService } from '../../auth/index.js';
-import { designTokens } from '../../shared/index.js';
+import { designTokens, codiconsCss } from '../../shared/index.js';
 import { openAssetPreview } from '../../editor/preview/assetPreviewPanel.js';
 
 import script from './PanelTasksView.svelte';
@@ -63,7 +63,7 @@ export class PanelTasksViewProvider implements vscode.WebviewViewProvider {
     this.view = webviewView;
     webviewView.webview.options = {
       enableScripts: true,
-      localResourceRoots: [vscode.Uri.joinPath(this.context.extensionUri, 'node_modules')],
+      localResourceRoots: [],
     };
     webviewView.webview.html = this.getHtml(webviewView.webview);
 
@@ -278,20 +278,10 @@ export class PanelTasksViewProvider implements vscode.WebviewViewProvider {
 
   private getHtml(webview: vscode.Webview): string {
     const nonce = getNonce();
-    const codiconsUri = webview.asWebviewUri(
-      vscode.Uri.joinPath(
-        this.context.extensionUri,
-        'node_modules',
-        '@vscode',
-        'codicons',
-        'dist',
-        'codicon.css',
-      ),
-    );
     const csp = [
       `default-src 'none'`,
-      `font-src ${webview.cspSource}`,
-      `style-src 'unsafe-inline' ${webview.cspSource}`,
+      `font-src data:`,
+      `style-src 'unsafe-inline'`,
       `script-src 'nonce-${nonce}'`,
     ].join('; ');
     const initJson = JSON.stringify({ filter: this.filter }).replace(/</g, '\\u003c');
@@ -301,7 +291,7 @@ export class PanelTasksViewProvider implements vscode.WebviewViewProvider {
     <meta charset="UTF-8" />
     <meta http-equiv="Content-Security-Policy" content="${csp}" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="stylesheet" href="${codiconsUri}" />
+    <style>${codiconsCss}</style>
     <style>${designTokens}</style>
   </head>
   <body>
