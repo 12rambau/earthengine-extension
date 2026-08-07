@@ -10,7 +10,7 @@ import * as vscode from 'vscode';
 import { AuthService } from '../../auth/index.js';
 import { ensureEe, computeValue } from '../../shared/eeSession.js';
 import { listAssets, listAllAssets, EEAsset } from './eeApiClient.js';
-import { AssetTreeItem, TYPE_ICONS } from './assetTreeItem.js';
+import { AssetTreeItem, TYPE_ICONS, resolveTypeIcon } from './assetTreeItem.js';
 
 // ==================================================================
 // CONSTANTS
@@ -174,7 +174,7 @@ export class AssetsTreeDataProvider implements vscode.TreeDataProvider<AssetTree
       item.iconPath = new vscode.ThemeIcon('folder-opened');
     } else {
       this.expandedFolders.delete(item.asset.name);
-      item.iconPath = TYPE_ICONS[item.asset.type] || new vscode.ThemeIcon('folder');
+      item.iconPath = resolveTypeIcon(item.asset.type);
     }
     this._onDidChangeTreeData.fire(item);
   }

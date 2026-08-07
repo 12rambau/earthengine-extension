@@ -1,6 +1,7 @@
 <!-- AssetsPanel: sortable/paginated asset table with breadcrumb, column picker, actions -->
 <script>
   import { vscode, getInitData } from '../../shared/vscode.ts';
+  import { mdiImage, mdiImageMultiple, mdiTableMultiple } from '../../shared/icons.ts';
   import Pagination from '../Pagination.svelte';
   import ColumnPicker from '../ColumnPicker.svelte';
 
@@ -191,11 +192,11 @@
               {#if a.type === 'FOLDER'}
                 <i class="codicon codicon-folder"></i>
               {:else if a.type === 'IMAGE_COLLECTION'}
-                <i class="codicon codicon-layers" style="color:var(--vscode-charts-blue)"></i>
+                <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="var(--vscee-color-image-collection)"><path d={mdiImageMultiple}/></svg>
               {:else if a.type === 'IMAGE'}
-                <i class="codicon codicon-file-media" style="color:var(--vscode-charts-orange)"></i>
+                <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="var(--vscee-color-image)"><path d={mdiImage}/></svg>
               {:else if a.type === 'TABLE'}
-                <i class="codicon codicon-table" style="color:var(--vscode-charts-green)"></i>
+                <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="var(--vscee-color-table)"><path d={mdiTableMultiple}/></svg>
               {/if}
             </td>
           {/if}

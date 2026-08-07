@@ -58,4 +58,8 @@
   --vscee-shadow-md: 0 2px 8px var(--vscode-widget-shadow); /* overlay panel */
   --vscee-shadow-lg: 0 4px 16px var(--vscode-widget-shadow); /* dropdown menu */
   --vscee-shadow-xl: 0 4px 24px var(--vscode-widget-shadow); /* modal dialog */
+
+  /* ==================================================================
+     ASSET TYPE COLORS  (values injected at build time by esbuild.js)
+     ================================================================== */
 }
