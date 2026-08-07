@@ -14,7 +14,7 @@
 import * as vscode from 'vscode';
 import { marked } from 'marked';
 import { EEAsset, listFeatures } from '../../../sidebar/assets/eeApiClient.js';
-import { escapeHtml } from '../../../shared/index.js';
+import { designTokens, escapeHtml } from '../../../shared/index.js';
 import { filesize } from 'filesize';
 import dayjs from 'dayjs';
 import { ensureEe, getThumbUrlRest } from '../../../shared/eeSession.js';
@@ -246,7 +246,7 @@ function buildHtml(
       http-equiv="Content-Security-Policy"
       content="default-src 'none'; img-src https: data:; style-src 'unsafe-inline'; script-src 'nonce-${nonce}';"
     />
-
+    <style>${designTokens}</style>
   </head>
   <body>
     <div id="app"></div>

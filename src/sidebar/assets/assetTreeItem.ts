@@ -6,15 +6,31 @@
 
 import * as vscode from 'vscode';
 import { EEAsset } from './eeApiClient.js';
+import { getExtensionUri } from '../../shared/extensionContext.js';
 
 // ==================================================================
 // CONSTANTS
 // ==================================================================
-/** Theme icon per Earth Engine asset type. Shared with the data provider. */
+/** Returns the icon path for an Earth Engine asset type using MDI SVG files. */
+export function resolveTypeIcon(type: string): vscode.Uri | vscode.ThemeIcon {
+  const svgFile: Record<string, string> = {
+    IMAGE_COLLECTION: 'image-multiple',
+    IMAGE: 'image',
+    TABLE: 'table-multiple',
+    FOLDER: '',
+  };
+  const file = svgFile[type];
+  if (file) {
+    return vscode.Uri.joinPath(getExtensionUri(), 'resources', 'icons', `${file}.svg`);
+  }
+  return new vscode.ThemeIcon('folder');
+}
+
+/** ThemeIcon fallback kept for callers that need a ThemeIcon specifically. */
 export const TYPE_ICONS: Record<string, vscode.ThemeIcon> = {
   FOLDER: new vscode.ThemeIcon('folder'),
   IMAGE_COLLECTION: new vscode.ThemeIcon('layers', new vscode.ThemeColor('charts.blue')),
-  IMAGE: new vscode.ThemeIcon('file-media', new vscode.ThemeColor('charts.orange')),
+  IMAGE: new vscode.ThemeIcon('image', new vscode.ThemeColor('charts.orange')),
   TABLE: new vscode.ThemeIcon('table', new vscode.ThemeColor('charts.green')),
 };
 
@@ -35,7 +51,7 @@ export class AssetTreeItem extends vscode.TreeItem {
         : vscode.TreeItemCollapsibleState.None,
     );
 
-    this.iconPath = TYPE_ICONS[asset.type] || new vscode.ThemeIcon('file');
+    this.iconPath = resolveTypeIcon(asset.type);
 
     // Stable id (the unique asset path) so the tree can reveal this item.
     if (asset.type !== 'PLACEHOLDER') {

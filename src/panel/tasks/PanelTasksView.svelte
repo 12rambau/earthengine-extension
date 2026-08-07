@@ -118,7 +118,7 @@
       font-size: var(--vscode-editor-font-size, 13px);
       color: var(--vscode-foreground);
       background: transparent;
-      padding: 6px;
+      padding: var(--vscee-space-sm);
       display: flex;
       flex-direction: column;
       overflow: hidden;
@@ -145,15 +145,17 @@
     .task-row {
       display: flex;
       align-items: center;
-      gap: 6px;
-      padding: 3px 8px;
+      gap: var(--vscee-space-sm);
+      padding: var(--vscee-space-xs) var(--vscee-space-md);
       cursor: default;
-      border-bottom: 1px solid var(--vscode-panel-border);
+      border-bottom: var(--vscee-border-sm) solid var(--vscode-panel-border);
       white-space: nowrap;
       overflow: hidden;
-    }
-    .task-row:hover {
-      background: var(--vscode-list-hoverBackground);
+
+      &:hover {
+        background: var(--vscode-list-hoverBackground);
+        .task-actions { visibility: visible; }
+      }
     }
 
     /* ==================================================================
@@ -164,15 +166,16 @@
       width: 14px;
       height: 14px;
       text-align: center;
-      font-size: 0.85em;
+      font-size: var(--vscee-font-sm);
       display: inline-flex;
       align-items: center;
       justify-content: center;
-    }
-    .state-icon.running i,
-    .state-icon.cancelling i {
-      display: inline-block;
-      animation: spin 0.8s linear infinite;
+
+      &.running i,
+      &.cancelling i {
+        display: inline-block;
+        animation: spin 0.8s linear infinite;
+      }
     }
     @keyframes spin {
       to {
@@ -209,7 +212,7 @@
     .task-elapsed {
       flex-shrink: 0;
       opacity: 0.6;
-      font-size: 0.9em;
+      font-size: var(--vscee-font-md);
       font-family: var(--vscode-editor-font-family, 'Courier New', Courier, monospace);
       min-width: 40px;
       text-align: right;
@@ -224,27 +227,21 @@
       display: flex;
       justify-content: center;
       visibility: hidden;
-    }
-    .task-row:hover .task-actions {
-      visibility: visible;
-    }
-    .task-actions button {
-      background: transparent;
-      border: none;
-      color: var(--vscode-foreground);
-      cursor: pointer;
-      padding: 1px 4px;
-      border-radius: 3px;
-      opacity: 0.7;
-      font-family: inherit;
-      font-size: 0.9em;
-    }
-    .task-actions button:hover {
-      background: var(--vscode-list-hoverBackground);
-      opacity: 1;
-    }
-    .task-actions button.danger:hover {
-      color: var(--vscode-testing-iconFailed);
+
+      button {
+        background: transparent;
+        border: none;
+        color: var(--vscode-foreground);
+        cursor: pointer;
+        padding: var(--vscee-space-xxs) var(--vscee-space-xs);
+        border-radius: var(--vscee-radius-md);
+        opacity: 0.7;
+        font-family: inherit;
+        font-size: var(--vscee-font-md);
+
+        &:hover { background: var(--vscode-list-hoverBackground); opacity: 1; }
+        &.danger:hover { color: var(--vscode-testing-iconFailed); }
+      }
     }
 
 
@@ -252,7 +249,7 @@
        EMPTY STATE
        ================================================================== */
     .empty-state {
-      padding: 16px;
+      padding: var(--vscee-space-xl);
       text-align: center;
       opacity: 0.5;
       font-style: italic;
@@ -262,7 +259,7 @@
        LOADING
        ================================================================== */
     .loading-state {
-      padding: 16px;
+      padding: var(--vscee-space-xl);
       text-align: center;
       opacity: 0.5;
     }
@@ -270,11 +267,11 @@
       display: inline-block;
       width: 12px;
       height: 12px;
-      border: 2px solid var(--vscode-foreground);
+      border: var(--vscee-border-md) solid var(--vscode-foreground);
       border-top-color: transparent;
       border-radius: 50%;
       animation: spin 0.8s linear infinite;
-      margin-right: 6px;
+      margin-right: var(--vscee-space-sm);
       vertical-align: middle;
     }
   }

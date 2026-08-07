@@ -18,6 +18,7 @@ import {
 import { AuthService } from '../../auth/index.js';
 import { openAssetPreview } from '../preview/assetPreviewPanel.js';
 import { getExtensionUri } from '../../shared/extensionContext.js';
+import { designTokens } from '../../shared/index.js';
 
 import script from './TasksPanel.svelte';
 
@@ -274,6 +275,7 @@ function getHtml(filter: TaskFilter, savedPrefs: TaskPrefs, webview: vscode.Webv
     <meta http-equiv="Content-Security-Policy" content="default-src 'none'; font-src ${webview.cspSource}; style-src 'unsafe-inline' ${webview.cspSource}; script-src 'nonce-${nonce}';" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="stylesheet" href="${codiconsUri}" />
+    <style>${designTokens}</style>
   </head>
   <body>
     <div id="app"></div>

@@ -2,6 +2,10 @@
 <script>
   import { vscode, getInitData } from '../../shared/vscode.ts';
   import {
+    mdiClose, mdiCrosshairsGps, mdiEye, mdiEyeOff, mdiLayers,
+    mdiLoading, mdiMap, mdiRuler, mdiSatelliteVariant, mdiTrashCan, mdiTune,
+  } from '../../shared/icons.ts';
+  import {
     interpolateViridis, interpolateMagma, interpolatePlasma, interpolateInferno,
     interpolateCividis, interpolateTurbo, interpolateRdBu, interpolateRdYlGn,
     interpolateBrBG, interpolatePiYG, interpolateRdYlBu, interpolateSpectral,
@@ -702,19 +706,19 @@
 <div class="map-controls">
   <button class="map-btn" class:active={layersPanelVisible} title="Manage layers"
     onclick={() => { layersPanelVisible = !layersPanelVisible; }}>
-    <i class="fa-solid fa-layer-group"></i>
+    <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="currentColor"><path d={mdiLayers}/></svg>
   </button>
   <button class="map-btn" class:active={inspectorActive} title="Pixel inspector"
     onclick={toggleInspector}>
-    <i class="fa-solid fa-crosshairs"></i>
+    <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="currentColor"><path d={mdiCrosshairsGps}/></svg>
   </button>
   <button class="map-btn" class:active={activeMode === 'plan'} title="Toggle plan view"
     onclick={() => activateMode('plan')}>
-    <i class="fa-solid fa-map"></i>
+    <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="currentColor"><path d={mdiMap}/></svg>
   </button>
   <button class="map-btn" class:active={activeMode === 'satellite'} title="Toggle satellite view"
     onclick={() => activateMode('satellite')}>
-    <i class="fa-solid fa-satellite"></i>
+    <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="currentColor"><path d={mdiSatelliteVariant}/></svg>
   </button>
 </div>
 
@@ -725,7 +729,7 @@
     <span>Layers</span>
     <button class="map-btn layers-close-btn" title="Close"
       onclick={() => { layersPanelVisible = false; }}>
-      <i class="fa-solid fa-xmark"></i>
+      <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" fill="currentColor"><path d={mdiClose}/></svg>
     </button>
   </div>
   <div class="layers-list">
@@ -741,21 +745,21 @@
               oninput={(e) => setLayerOpacity(idx, Number(e.target.value))} />
             <button class="map-btn layer-vis-btn" class:active={entry.visible}
               title="Toggle visibility" onclick={() => toggleLayerVisibility(idx)}>
-              <i class="fa-solid" class:fa-eye={entry.visible} class:fa-eye-slash={!entry.visible}></i>
+              <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" fill="currentColor"><path d={entry.visible ? mdiEye : mdiEyeOff}/></svg>
             </button>
             {#if entry.visParams && (entry.visParams.palette || entry.visParams.bands)}
               <button class="map-btn layer-vis-btn" class:active={activeScaleIndex === idx}
                 title="Toggle scale" onclick={() => toggleScale(idx)}>
-                <i class="fa-solid fa-ruler-horizontal"></i>
+                <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" fill="currentColor"><path d={mdiRuler}/></svg>
               </button>
             {:else}
               <button class="map-btn layer-vis-btn" style="visibility:hidden" title="Toggle scale">
-                <i class="fa-solid fa-ruler-horizontal"></i>
+                <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" fill="currentColor"><path d={mdiRuler}/></svg>
               </button>
             {/if}
             <button class="map-btn layer-vis-btn" title="Edit visualization"
               onclick={() => openVizEditorForLayer(entry.layerIndex)}>
-              <i class="fa-solid fa-gear"></i>
+              <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" fill="currentColor"><path d={mdiTune}/></svg>
             </button>
           </div>
         </div>
@@ -771,14 +775,14 @@
   <div class="inspector-panel-header">
     <span>Inspector</span>
     <button class="map-btn layers-close-btn" title="Close" onclick={closeInspector}>
-      <i class="fa-solid fa-xmark"></i>
+      <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" fill="currentColor"><path d={mdiClose}/></svg>
     </button>
   </div>
   <div class="inspector-content">
     {#if inspectorContent.type === 'hint'}
       <p class="inspector-hint">Activate then click on the map.</p>
     {:else if inspectorContent.type === 'loading'}
-      <p class="inspector-loading"><i class="fa-solid fa-spinner fa-spin"></i> Loading…</p>
+      <p class="inspector-loading"><svg class="mdi-spin" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" fill="currentColor"><path d={mdiLoading}/></svg> Loading…</p>
     {:else if inspectorContent.type === 'result'}
       {@const d = inspectorContent.data}
       <p class="inspector-coords">{d.lng.toFixed(4)}, {d.lat.toFixed(4)} @ {d.scale}m</p>
@@ -877,7 +881,7 @@
         <option value="categorical">Categorical</option>
       </select>
       <button class="map-btn viz-close-btn" title="Close" onclick={vizClose}>
-        <i class="fa-solid fa-xmark"></i>
+        <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" fill="currentColor"><path d={mdiClose}/></svg>
       </button>
     </div>
     <!-- Body -->
@@ -1008,7 +1012,7 @@
               <input type="number" class="viz-cat-value" placeholder="Value" bind:value={row.value} />
               <input type="text" class="viz-cat-label-input" placeholder="Label" bind:value={row.label} />
               <button class="map-btn viz-cat-del" title="Remove class" onclick={() => vizRemoveCatRow(i)}>
-                <i class="fa-solid fa-trash"></i>
+                <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" fill="currentColor"><path d={mdiTrashCan}/></svg>
               </button>
             </div>
           {/each}
@@ -1041,22 +1045,22 @@
     .scale-bar {
       position: absolute; bottom: 20px; left: 0; right: 0; z-index: 1000;
       display: none; background: var(--vscode-statusBar-background);
-      padding: 2px 10px; gap: 4px; flex-direction: column;
+      padding: var(--vscee-space-xxs) var(--vscee-space-lg); gap: var(--vscee-space-xs); flex-direction: column;
     }
     .scale-bar.visible { display: flex; }
-    .scale-row { display: flex; align-items: center; gap: 6px; height: 16px; }
+    .scale-row { display: flex; align-items: center; gap: var(--vscee-space-sm); height: 16px; }
     .scale-label {
-      font-size: 9px; color: var(--vscode-descriptionForeground);
+      font-size: var(--vscee-font-compact-xxs); color: var(--vscode-descriptionForeground);
       width: 28px; flex-shrink: 0; text-align: right;
       overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
     }
     .scale-gradient-wrap {
       flex: 1; height: 12px; position: relative;
-      border-radius: 2px; overflow: visible; cursor: crosshair;
+      border-radius: var(--vscee-radius-sm); overflow: visible; cursor: crosshair;
     }
-    .scale-gradient { width: 100%; height: 100%; border-radius: 2px; }
+    .scale-gradient { width: 100%; height: 100%; border-radius: var(--vscee-radius-sm); }
     .scale-max {
-      font-size: 9px; color: var(--vscode-descriptionForeground);
+      font-size: var(--vscee-font-compact-xxs); color: var(--vscode-descriptionForeground);
       flex-shrink: 0; width: 70px; font-variant-numeric: tabular-nums; text-align: right;
     }
     .scale-pointer {
@@ -1067,14 +1071,14 @@
     .scale-tooltip {
       position: absolute; top: -18px; transform: translateX(-50%);
       background: var(--vscode-editor-background); color: var(--vscode-foreground);
-      font-size: 9px; padding: 1px 4px; border-radius: 2px;
+      font-size: var(--vscee-font-compact-xxs); padding: var(--vscee-space-xxs) var(--vscee-space-xs); border-radius: var(--vscee-radius-sm);
       white-space: nowrap; pointer-events: none; display: none;
-      box-shadow: 0 1px 3px var(--vscode-widget-shadow); font-variant-numeric: tabular-nums;
+      box-shadow: var(--vscee-shadow-xs); font-variant-numeric: tabular-nums;
     }
     .scale-cat-wrap { display: flex; overflow: visible; gap: 0; cursor: pointer; }
     .scale-cat-segment { height: 100%; position: relative; transition: opacity 0.1s; }
-    .scale-cat-segment:first-child { border-radius: 2px 0 0 2px; }
-    .scale-cat-segment:last-child { border-radius: 0 2px 2px 0; }
+    .scale-cat-segment:first-child { border-radius: var(--vscee-radius-sm) 0 0 var(--vscee-radius-sm); }
+    .scale-cat-segment:last-child { border-radius: 0 var(--vscee-radius-sm) var(--vscee-radius-sm) 0; }
     .scale-cat-pointer { left: 50%; transform: translateX(-50%); transition: left 0.1s ease-out; }
 
     /* ==================================================================
@@ -1082,13 +1086,13 @@
        ================================================================== */
     .map-controls {
       position: absolute; top: 10px; left: 10px; z-index: 1000;
-      display: flex; flex-direction: column; gap: 6px;
+      display: flex; flex-direction: column; gap: var(--vscee-space-sm);
     }
     .map-btn {
-      width: 32px; height: 32px; border: none; border-radius: 4px;
+      width: 32px; height: 32px; border: none; border-radius: var(--vscee-radius-md);
       background: var(--vscode-editor-background); color: var(--vscode-foreground);
       cursor: pointer; display: flex; align-items: center; justify-content: center;
-      box-shadow: 0 2px 6px var(--vscode-widget-shadow); opacity: 0.85; transition: opacity 0.15s;
+      box-shadow: var(--vscee-shadow-sm); opacity: 0.85; transition: opacity 0.15s;
     }
     .map-btn:hover { opacity: 1; }
     .map-btn.active { background: var(--vscode-button-background); color: var(--vscode-button-foreground); }
@@ -1104,31 +1108,31 @@
        ================================================================== */
     .layers-panel {
       position: absolute; top: 10px; left: 48px; z-index: 1000; width: 240px;
-      background: var(--vscode-editor-background); border: 1px solid var(--vscode-widget-border);
-      border-radius: 4px; box-shadow: 0 2px 8px var(--vscode-widget-shadow);
+      background: var(--vscode-editor-background); border: var(--vscee-border-sm) solid var(--vscode-widget-border);
+      border-radius: var(--vscee-radius-md); box-shadow: var(--vscee-shadow-md);
     }
     .layers-panel-header {
       display: flex; align-items: center; justify-content: space-between;
-      padding: 4px 4px 4px 10px; border-bottom: 1px solid var(--vscode-widget-border);
-      font-size: 11px; font-weight: 600; color: var(--vscode-foreground);
+      padding: var(--vscee-space-xs) var(--vscee-space-xs) var(--vscee-space-xs) var(--vscee-space-lg); border-bottom: var(--vscee-border-sm) solid var(--vscode-widget-border);
+      font-size: var(--vscee-font-compact-sm); font-weight: 600; color: var(--vscode-foreground);
     }
     .layers-close-btn { width: 22px; height: 22px; box-shadow: none; opacity: 0.6; }
     .layers-list { max-height: 320px; overflow-y: auto; }
     .layers-empty {
-      padding: 10px; font-size: 11px; color: var(--vscode-descriptionForeground); text-align: center;
+      padding: var(--vscee-space-lg); font-size: var(--vscee-font-compact-sm); color: var(--vscode-descriptionForeground); text-align: center;
     }
     .layer-row {
-      padding: 4px 8px; border-bottom: 1px solid var(--vscode-widget-border);
-      display: flex; align-items: center; gap: 6px; min-width: 0;
+      padding: var(--vscee-space-xs) var(--vscee-space-md); border-bottom: var(--vscee-border-sm) solid var(--vscode-widget-border);
+      display: flex; align-items: center; gap: var(--vscee-space-sm); min-width: 0;
     }
     .layer-row:last-child { border-bottom: none; }
     .layer-vis-btn { width: 22px; height: 22px; flex-shrink: 0; box-shadow: none; opacity: 0.5; }
     .layer-vis-btn.active { opacity: 1; background: transparent; color: var(--vscode-foreground); }
     .layer-name {
-      flex: 1; min-width: 0; font-size: 11px; color: var(--vscode-foreground);
+      flex: 1; min-width: 0; font-size: var(--vscee-font-compact-sm); color: var(--vscode-foreground);
       overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
     }
-    .layer-controls { display: flex; align-items: center; gap: 4px; flex-shrink: 0; margin-left: auto; }
+    .layer-controls { display: flex; align-items: center; gap: var(--vscee-space-xs); flex-shrink: 0; margin-left: auto; }
     .layer-opacity { width: 60px; flex-shrink: 0; accent-color: var(--vscode-button-background); cursor: pointer; }
 
     /* ==================================================================
@@ -1136,27 +1140,27 @@
        ================================================================== */
     .inspector-panel {
       position: absolute; top: 10px; left: 48px; z-index: 1000; width: 220px;
-      background: var(--vscode-editor-background); border: 1px solid var(--vscode-widget-border);
-      border-radius: 4px; box-shadow: 0 2px 8px var(--vscode-widget-shadow);
+      background: var(--vscode-editor-background); border: var(--vscee-border-sm) solid var(--vscode-widget-border);
+      border-radius: var(--vscee-radius-md); box-shadow: var(--vscee-shadow-md);
     }
     .inspector-panel-header {
       display: flex; align-items: center; justify-content: space-between;
-      padding: 4px 4px 4px 10px; border-bottom: 1px solid var(--vscode-widget-border);
-      font-size: 11px; font-weight: 600; color: var(--vscode-foreground);
+      padding: var(--vscee-space-xs) var(--vscee-space-xs) var(--vscee-space-xs) var(--vscee-space-lg); border-bottom: var(--vscee-border-sm) solid var(--vscode-widget-border);
+      font-size: var(--vscee-font-compact-sm); font-weight: 600; color: var(--vscode-foreground);
     }
-    .inspector-content { max-height: 360px; overflow-y: auto; padding: 6px 8px; }
-    .inspector-hint { font-size: 11px; color: var(--vscode-descriptionForeground); text-align: center; padding: 4px 0; }
-    .inspector-coords { font-size: 11px; color: var(--vscode-descriptionForeground); margin-bottom: 6px; }
-    .inspector-loading { font-size: 11px; color: var(--vscode-descriptionForeground); text-align: center; padding: 4px 0; }
-    .inspector-layer { margin-bottom: 8px; }
+    .inspector-content { max-height: 360px; overflow-y: auto; padding: var(--vscee-space-sm) var(--vscee-space-md); }
+    .inspector-hint { font-size: var(--vscee-font-compact-sm); color: var(--vscode-descriptionForeground); text-align: center; padding: var(--vscee-space-xs) 0; }
+    .inspector-coords { font-size: var(--vscee-font-compact-sm); color: var(--vscode-descriptionForeground); margin-bottom: var(--vscee-space-sm); }
+    .inspector-loading { font-size: var(--vscee-font-compact-sm); color: var(--vscode-descriptionForeground); text-align: center; padding: var(--vscee-space-xs) 0; }
+    .inspector-layer { margin-bottom: var(--vscee-space-md); }
     .inspector-layer-name {
-      display: block; font-size: 11px; font-weight: 600; color: var(--vscode-foreground);
-      margin-bottom: 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+      display: block; font-size: var(--vscee-font-compact-sm); font-weight: 600; color: var(--vscode-foreground);
+      margin-bottom: var(--vscee-space-xs); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
     }
-    .inspector-no-data { font-size: 11px; color: var(--vscode-descriptionForeground); font-style: italic; }
-    .inspector-error { font-size: 10px; color: var(--vscode-errorForeground); word-break: break-all; }
-    .inspector-table { width: 100%; border-collapse: collapse; font-size: 11px; }
-    .inspector-band { color: var(--vscode-descriptionForeground); padding: 1px 4px 1px 0; }
+    .inspector-no-data { font-size: var(--vscee-font-compact-sm); color: var(--vscode-descriptionForeground); font-style: italic; }
+    .inspector-error { font-size: var(--vscee-font-compact-xs); color: var(--vscode-errorForeground); word-break: break-all; }
+    .inspector-table { width: 100%; border-collapse: collapse; font-size: var(--vscee-font-compact-sm); }
+    .inspector-band { color: var(--vscode-descriptionForeground); padding: var(--vscee-space-xxs) var(--vscee-space-xs) var(--vscee-space-xxs) 0; }
     .inspector-val { color: var(--vscode-foreground); text-align: right; font-variant-numeric: tabular-nums; }
 
     /* ==================================================================
@@ -1165,7 +1169,7 @@
     .status-bar {
       position: absolute; bottom: 0; left: 0; right: 0; z-index: 1000;
       background: var(--vscode-statusBar-background); color: var(--vscode-statusBar-foreground);
-      padding: 2px 10px; font-size: 11px; display: flex; justify-content: space-between;
+      padding: var(--vscee-space-xxs) var(--vscee-space-lg); font-size: var(--vscee-font-compact-sm); display: flex; justify-content: space-between;
     }
 
     /* ==================================================================
@@ -1176,69 +1180,71 @@
       background: rgba(0, 0, 0, 0.5); display: flex; align-items: center; justify-content: center;
     }
     .viz-editor-dialog {
-      background: var(--vscode-editor-background); border: 1px solid var(--vscode-widget-border);
-      border-radius: 6px; box-shadow: 0 4px 24px var(--vscode-widget-shadow);
+      background: var(--vscode-editor-background); border: var(--vscee-border-sm) solid var(--vscode-widget-border);
+      border-radius: var(--vscee-radius-lg); box-shadow: var(--vscee-shadow-xl);
       width: 420px; max-height: 80vh; display: flex; flex-direction: column; overflow: hidden;
     }
     .viz-editor-header {
-      display: flex; align-items: center; gap: 8px; padding: 8px 10px;
-      border-bottom: 1px solid var(--vscode-widget-border);
-      font-size: 12px; font-weight: 600; color: var(--vscode-foreground);
+      display: flex; align-items: center; gap: var(--vscee-space-md); padding: var(--vscee-space-md) var(--vscee-space-lg);
+      border-bottom: var(--vscee-border-sm) solid var(--vscode-widget-border);
+      font-size: var(--vscee-font-compact-md); font-weight: 600; color: var(--vscode-foreground);
     }
     .viz-editor-header span { flex: 1; }
     .viz-type-select, .viz-preset-select {
       background: var(--vscode-dropdown-background); color: var(--vscode-dropdown-foreground);
-      border: 1px solid var(--vscode-dropdown-border); border-radius: 3px; font-size: 11px; padding: 2px 4px;
+      border: var(--vscee-border-sm) solid var(--vscode-dropdown-border); border-radius: var(--vscee-radius-md); font-size: var(--vscee-font-compact-sm); padding: var(--vscee-space-xxs) var(--vscee-space-xs);
     }
     .viz-preset-select { max-width: 140px; }
     .viz-close-btn { width: 22px; height: 22px; box-shadow: none; opacity: 0.6; }
-    .viz-editor-body { overflow-y: auto; padding: 10px; flex: 1; }
+    .viz-editor-body { overflow-y: auto; padding: var(--vscee-space-lg); flex: 1; }
     .viz-editor-footer {
-      display: flex; justify-content: flex-end; gap: 6px; padding: 8px 10px;
-      border-top: 1px solid var(--vscode-widget-border);
+      display: flex; justify-content: flex-end; gap: var(--vscee-space-sm); padding: var(--vscee-space-md) var(--vscee-space-lg);
+      border-top: var(--vscee-border-sm) solid var(--vscode-widget-border);
     }
     .viz-btn {
-      font-size: 11px; padding: 4px 12px; border: 1px solid var(--vscode-button-border, transparent);
-      border-radius: 3px; cursor: pointer; color: var(--vscode-foreground); background: transparent;
+      font-size: var(--vscee-font-compact-sm); padding: var(--vscee-space-xs) var(--vscee-space-lg); border: var(--vscee-border-sm) solid var(--vscode-button-border, transparent);
+      border-radius: var(--vscee-radius-md); cursor: pointer; color: var(--vscode-foreground); background: transparent;
     }
     .viz-btn-primary { background: var(--vscode-button-background); color: var(--vscode-button-foreground); }
     .viz-btn-primary:hover { background: var(--vscode-button-hoverBackground); }
     .viz-btn-secondary { background: var(--vscode-button-secondaryBackground); color: var(--vscode-button-secondaryForeground); }
     .viz-section-label {
-      font-size: 10px; font-weight: 600; color: var(--vscode-descriptionForeground);
-      text-transform: uppercase; margin: 10px 0 4px;
+      font-size: var(--vscee-font-compact-xs); font-weight: 600; color: var(--vscode-descriptionForeground);
+      text-transform: uppercase; margin: var(--vscee-space-lg) 0 var(--vscee-space-xs);
     }
-    .viz-channel-row { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
-    .viz-channel-label { width: 60px; flex-shrink: 0; font-size: 11px; color: var(--vscode-descriptionForeground); }
+    .viz-channel-row { display: flex; align-items: center; gap: var(--vscee-space-sm); margin-bottom: var(--vscee-space-sm); }
+    .viz-channel-label { width: 60px; flex-shrink: 0; font-size: var(--vscee-font-compact-sm); color: var(--vscode-descriptionForeground); }
     .viz-band-select {
       flex: 1; min-width: 0; background: var(--vscode-dropdown-background); color: var(--vscode-dropdown-foreground);
-      border: 1px solid var(--vscode-dropdown-border); border-radius: 3px; font-size: 11px; padding: 2px 4px;
+      border: var(--vscee-border-sm) solid var(--vscode-dropdown-border); border-radius: var(--vscee-radius-md); font-size: var(--vscee-font-compact-sm); padding: var(--vscee-space-xxs) var(--vscee-space-xs);
     }
     .viz-input {
       width: 60px; background: var(--vscode-input-background); color: var(--vscode-input-foreground);
-      border: 1px solid var(--vscode-input-border); border-radius: 3px; font-size: 11px; padding: 2px 4px;
+      border: var(--vscee-border-sm) solid var(--vscode-input-border); border-radius: var(--vscee-radius-md); font-size: var(--vscee-font-compact-sm); padding: var(--vscee-space-xxs) var(--vscee-space-xs);
     }
-    .viz-compute-btn { margin-top: 4px; }
-    .viz-palette-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; margin-top: 4px; }
+    .viz-compute-btn { margin-top: var(--vscee-space-xs); }
+    .viz-palette-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--vscee-space-xs); margin-top: var(--vscee-space-xs); }
     .viz-palette-item {
-      cursor: pointer; border: 1px solid transparent; border-radius: 3px; padding: 2px; text-align: center;
+      cursor: pointer; border: var(--vscee-border-sm) solid transparent; border-radius: var(--vscee-radius-md); padding: var(--vscee-space-xxs); text-align: center;
     }
     .viz-palette-item:hover { border-color: var(--vscode-focusBorder); }
     .viz-palette-item.selected { border-color: var(--vscode-focusBorder); background: var(--vscode-list-hoverBackground); }
-    .viz-palette-bar { height: 10px; border-radius: 2px; }
-    .viz-palette-name { font-size: 9px; color: var(--vscode-descriptionForeground); display: block; margin-top: 1px; }
-    .viz-cat-legend { display: flex; flex-direction: column; gap: 4px; max-height: 200px; overflow-y: auto; }
-    .viz-cat-row { display: flex; align-items: center; gap: 4px; }
-    .viz-cat-color { width: 28px; height: 22px; border: none; padding: 0; cursor: pointer; border-radius: 3px; }
+    .viz-palette-bar { height: 10px; border-radius: var(--vscee-radius-sm); }
+    .viz-palette-name { font-size: var(--vscee-font-compact-xxs); color: var(--vscode-descriptionForeground); display: block; margin-top: var(--vscee-space-xxs); }
+    .viz-cat-legend { display: flex; flex-direction: column; gap: var(--vscee-space-xs); max-height: 200px; overflow-y: auto; }
+    .viz-cat-row { display: flex; align-items: center; gap: var(--vscee-space-xs); }
+    .viz-cat-color { width: 28px; height: 22px; border: none; padding: 0; cursor: pointer; border-radius: var(--vscee-radius-md); }
     .viz-cat-value {
       width: 50px; background: var(--vscode-input-background); color: var(--vscode-input-foreground);
-      border: 1px solid var(--vscode-input-border); border-radius: 3px; font-size: 11px; padding: 2px 4px;
+      border: var(--vscee-border-sm) solid var(--vscode-input-border); border-radius: var(--vscee-radius-md); font-size: var(--vscee-font-compact-sm); padding: var(--vscee-space-xxs) var(--vscee-space-xs);
     }
     .viz-cat-label-input {
       flex: 1; background: var(--vscode-input-background); color: var(--vscode-input-foreground);
-      border: 1px solid var(--vscode-input-border); border-radius: 3px; font-size: 11px; padding: 2px 4px;
+      border: var(--vscee-border-sm) solid var(--vscode-input-border); border-radius: var(--vscee-radius-md); font-size: var(--vscee-font-compact-sm); padding: var(--vscee-space-xxs) var(--vscee-space-xs);
     }
     .viz-cat-del { width: 22px; height: 22px; box-shadow: none; opacity: 0.5; }
-    .viz-cat-add { margin-top: 4px; align-self: flex-start; }
+    .viz-cat-add { margin-top: var(--vscee-space-xs); align-self: flex-start; }
+    @keyframes mdi-spin { to { transform: rotate(360deg); } }
+    .mdi-spin { animation: mdi-spin 1s linear infinite; display: inline-block; vertical-align: middle; }
   }
 </style>

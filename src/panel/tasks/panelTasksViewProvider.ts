@@ -18,6 +18,7 @@ import {
   isImportTask,
 } from '../../sidebar/tasks/tasksApiClient.js';
 import { AuthService } from '../../auth/index.js';
+import { designTokens } from '../../shared/index.js';
 import { openAssetPreview } from '../../editor/preview/assetPreviewPanel.js';
 
 import script from './PanelTasksView.svelte';
@@ -301,6 +302,7 @@ export class PanelTasksViewProvider implements vscode.WebviewViewProvider {
     <meta http-equiv="Content-Security-Policy" content="${csp}" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="stylesheet" href="${codiconsUri}" />
+    <style>${designTokens}</style>
   </head>
   <body>
     <div id="app"></div>

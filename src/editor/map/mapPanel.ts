@@ -14,6 +14,7 @@ import { ensureEe } from '../../shared/eeSession.js';
 import { MapLayerManager } from './mapLayerManager.js';
 import { MapInspector } from './mapInspector.js';
 
+import { designTokens } from '../../shared/index.js';
 import script from './MapPanel.svelte';
 
 // ==================================================================
@@ -62,9 +63,9 @@ export class MapPanel extends EditorPanel {
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <link rel="stylesheet" href="https://unpkg.com/@fortawesome/fontawesome-free@6.7.2/css/all.min.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet-providers@2.0.0/leaflet-providers.js"></script>
+    <style>${designTokens}</style>
   </head>
   <body>
     <div id="app"></div>

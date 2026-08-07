@@ -183,12 +183,10 @@
        TITLE BAR
        ================================================================== */
     .title-bar {
-      padding: 12px 20px;
-      border-bottom: 1px solid var(--vscode-panel-border);
-    }
-    .title-bar h1 {
-      font-size: 1.2em;
-      font-weight: 500;
+      padding: var(--vscee-space-lg) var(--vscee-space-xxl);
+      border-bottom: var(--vscee-border-sm) solid var(--vscode-panel-border);
+
+      h1 { font-size: var(--vscee-font-xl); font-weight: 500; }
     }
 
     /* ==================================================================
@@ -205,58 +203,59 @@
     .sidebar {
       width: 280px;
       min-width: 280px;
-      border-right: 1px solid var(--vscode-panel-border);
-      padding: 16px;
+      border-right: var(--vscee-border-sm) solid var(--vscode-panel-border);
+      padding: var(--vscee-space-xl);
       overflow-y: auto;
     }
     .thumbnail-container {
       width: 100%;
       aspect-ratio: 1;
       background: var(--vscode-list-hoverBackground);
-      border-radius: 6px;
+      border-radius: var(--vscee-radius-lg);
       display: flex;
       align-items: center;
       justify-content: center;
-      margin-bottom: 16px;
+      margin-bottom: var(--vscee-space-xl);
       overflow: hidden;
-    }
-    .thumbnail-container img {
-      max-width: 100%;
-      max-height: 100%;
-      object-fit: contain;
+
+      img {
+        max-width: 100%;
+        max-height: 100%;
+        object-fit: contain;
+      }
     }
     .thumb-loading,
     .thumb-unavailable {
-      font-size: 0.85em;
+      font-size: var(--vscee-font-sm);
       opacity: 0.6;
       text-align: center;
-      padding: 12px;
+      padding: var(--vscee-space-lg);
     }
     .sidebar-info {
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      gap: var(--vscee-space-lg);
     }
     .info-row {
       display: flex;
       flex-direction: column;
-      gap: 2px;
+      gap: var(--vscee-space-xxs);
     }
     .info-label {
       font-weight: 600;
-      font-size: 0.85em;
+      font-size: var(--vscee-font-sm);
     }
     .info-value {
-      font-size: 0.85em;
+      font-size: var(--vscee-font-sm);
       opacity: 0.85;
     }
     .asset-id {
       font-family: var(--vscode-editor-font-family, monospace);
-      font-size: 0.78em;
+      font-size: var(--vscee-font-xxs);
       word-break: break-all;
       background: var(--vscode-textCodeBlock-background);
-      padding: 4px 6px;
-      border-radius: 3px;
+      padding: var(--vscee-space-xs) var(--vscee-space-sm);
+      border-radius: var(--vscee-radius-md);
     }
 
     /* ==================================================================
@@ -270,45 +269,40 @@
     }
     .tabs {
       display: flex;
-      border-bottom: 1px solid var(--vscode-panel-border);
-      padding: 0 16px;
+      border-bottom: var(--vscee-border-sm) solid var(--vscode-panel-border);
+      padding: 0 var(--vscee-space-xl);
     }
     .tab {
       background: none;
       border: none;
       color: var(--vscode-foreground);
-      padding: 10px 16px;
+      padding: var(--vscee-space-lg) var(--vscee-space-xl);
       cursor: pointer;
-      font-size: 0.85em;
+      font-size: var(--vscee-font-sm);
       font-weight: 500;
       opacity: 0.7;
-      border-bottom: 2px solid transparent;
+      border-bottom: var(--vscee-border-md) solid transparent;
       transition:
         opacity 0.15s,
         border-color 0.15s;
-    }
-    .tab:hover {
-      opacity: 1;
-    }
-    .tab.active {
-      opacity: 1;
-      border-bottom-color: var(--vscode-focusBorder);
+
+      &:hover { opacity: 1; }
+      &.active { opacity: 1; border-bottom-color: var(--vscode-focusBorder); }
     }
     .tab-panel {
       display: none;
-      padding: 16px;
+      padding: var(--vscee-space-xl);
       overflow: auto;
       flex: 1;
-    }
-    .tab-panel.active {
-      display: block;
+
+      &.active { display: block; }
     }
 
     /* ==================================================================
        DESCRIPTION
        ================================================================== */
     .description-text {
-      font-size: 0.9em;
+      font-size: var(--vscee-font-md);
       white-space: pre-wrap;
       opacity: 0.85;
     }
@@ -320,21 +314,21 @@
     .props-table {
       width: 100%;
       border-collapse: collapse;
-      font-size: 0.85em;
+      font-size: var(--vscee-font-sm);
     }
     .bands-table th,
     .props-table th {
       text-align: left;
       background: var(--vscode-list-hoverBackground);
-      padding: 6px 10px;
+      padding: var(--vscee-space-sm) var(--vscee-space-lg);
       font-weight: 600;
       position: sticky;
       top: 0;
     }
     .bands-table td,
     .props-table td {
-      padding: 6px 10px;
-      border-bottom: 1px solid var(--vscode-panel-border);
+      padding: var(--vscee-space-sm) var(--vscee-space-lg);
+      border-bottom: var(--vscee-border-sm) solid var(--vscode-panel-border);
     }
     .bands-table tbody tr:nth-child(even) {
       background: var(--vscode-list-hoverBackground);
@@ -351,7 +345,7 @@
       display: inline-block;
       width: 12px;
       height: 12px;
-      border: 2px solid var(--vscode-foreground);
+      border: var(--vscee-border-md) solid var(--vscode-foreground);
       border-top-color: transparent;
       border-radius: 50%;
       animation: spin 0.8s linear infinite;

@@ -6,6 +6,7 @@
 
 import * as vscode from 'vscode';
 import { CommunityDatasetEntry } from './communityClient.js';
+import { getExtensionUri } from '../../shared/extensionContext.js';
 
 /** Kind of node a `DatasetTreeItem` represents. */
 export type NodeType = 'category' | 'provider' | 'dataset' | 'communityTheme' | 'communityDataset';
@@ -13,11 +14,17 @@ export type NodeType = 'category' | 'provider' | 'dataset' | 'communityTheme' | 
 // ==================================================================
 // CONSTANTS
 // ==================================================================
-const TYPE_ICONS: Record<string, vscode.ThemeIcon> = {
-  image_collection: new vscode.ThemeIcon('layers', new vscode.ThemeColor('charts.blue')),
-  image: new vscode.ThemeIcon('file-media', new vscode.ThemeColor('charts.orange')),
-  table: new vscode.ThemeIcon('table', new vscode.ThemeColor('charts.green')),
-};
+function datasetIcon(type: string): vscode.Uri | vscode.ThemeIcon {
+  const files: Record<string, string> = {
+    image_collection: 'image-multiple',
+    image: 'image',
+    table: 'table-multiple',
+  };
+  const file = files[type];
+  return file
+    ? vscode.Uri.joinPath(getExtensionUri(), 'resources', 'icons', `${file}.svg`)
+    : new vscode.ThemeIcon('file');
+}
 
 // ==================================================================
 // DATASETTREEITEM
@@ -70,9 +77,7 @@ export class DatasetTreeItem extends vscode.TreeItem {
       this.id = `ct:${stacHref}`;
     } else if (nodeType === 'communityDataset') {
       this.collapsibleState = vscode.TreeItemCollapsibleState.None;
-      this.iconPath = geeType
-        ? TYPE_ICONS[geeType] || new vscode.ThemeIcon('file')
-        : new vscode.ThemeIcon('file');
+      this.iconPath = geeType ? datasetIcon(geeType) : new vscode.ThemeIcon('file');
       this.contextValue = 'dataset-community-item';
       this.id = `cd:${docsUrl}`;
       const communityTooltip = new vscode.MarkdownString('', true);
@@ -89,9 +94,7 @@ export class DatasetTreeItem extends vscode.TreeItem {
       this.tooltip = communityTooltip;
     } else {
       this.collapsibleState = vscode.TreeItemCollapsibleState.None;
-      this.iconPath = geeType
-        ? TYPE_ICONS[geeType] || new vscode.ThemeIcon('file')
-        : new vscode.ThemeIcon('loading~spin');
+      this.iconPath = geeType ? datasetIcon(geeType) : new vscode.ThemeIcon('loading~spin');
       this.contextValue = 'dataset-item';
       this.id = `ds:${stacHref}`;
       if (geeType) {

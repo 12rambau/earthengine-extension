@@ -14,7 +14,7 @@
 import * as vscode from 'vscode';
 import { marked } from 'marked';
 import { EEAsset, EEBand, listAssets, getAsset } from '../../../sidebar/assets/eeApiClient.js';
-import { escapeHtml } from '../../../shared/index.js';
+import { designTokens, escapeHtml } from '../../../shared/index.js';
 import { filesize } from 'filesize';
 import dayjs from 'dayjs';
 import { ensureEe, getThumbUrlRest } from '../../../shared/eeSession.js';
@@ -288,6 +288,7 @@ function buildHtml(
       content="default-src 'none'; img-src https: data:; font-src ${webview.cspSource}; style-src 'unsafe-inline' ${webview.cspSource}; script-src 'nonce-${nonce}';"
     />
     <link rel="stylesheet" href="${codiconsUri}" />
+    <style>${designTokens}</style>
   </head>
   <body>
     <div id="app"></div>

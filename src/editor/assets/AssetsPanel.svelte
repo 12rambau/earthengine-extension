@@ -1,6 +1,7 @@
 <!-- AssetsPanel: sortable/paginated asset table with breadcrumb, column picker, actions -->
 <script>
   import { vscode, getInitData } from '../../shared/vscode.ts';
+  import { mdiImage, mdiImageMultiple, mdiTableMultiple } from '../../shared/icons.ts';
   import Pagination from '../Pagination.svelte';
   import ColumnPicker from '../ColumnPicker.svelte';
 
@@ -160,7 +161,7 @@
       {/each}
     </div>
   </div>
-  <div style="display:flex;align-items:center;gap:6px;">
+  <div style="display:flex;align-items:center;gap:var(--vscee-space-sm);">
     <ColumnPicker columns={ALL_COLS} bind:visibleCols onchange={saveState} />
   </div>
 </div>
@@ -191,11 +192,11 @@
               {#if a.type === 'FOLDER'}
                 <i class="codicon codicon-folder"></i>
               {:else if a.type === 'IMAGE_COLLECTION'}
-                <i class="codicon codicon-layers" style="color:var(--vscode-charts-blue)"></i>
+                <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="var(--vscee-color-image-collection)"><path d={mdiImageMultiple}/></svg>
               {:else if a.type === 'IMAGE'}
-                <i class="codicon codicon-file-media" style="color:var(--vscode-charts-orange)"></i>
+                <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="var(--vscee-color-image)"><path d={mdiImage}/></svg>
               {:else if a.type === 'TABLE'}
-                <i class="codicon codicon-table" style="color:var(--vscode-charts-green)"></i>
+                <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="var(--vscee-color-table)"><path d={mdiTableMultiple}/></svg>
               {/if}
             </td>
           {/if}
@@ -270,7 +271,7 @@
       font-family: var(--vscode-font-family, sans-serif);
       color: var(--vscode-foreground);
       background: var(--vscode-editor-background);
-      padding: 12px 16px 8px;
+      padding: var(--vscee-space-lg) var(--vscee-space-xl) var(--vscee-space-md);
       display: flex;
       flex-direction: column;
       overflow: hidden;
@@ -284,11 +285,11 @@
       overflow: hidden;
     }
     h1 {
-      font-size: 1.3em;
-      margin: 0 0 8px 0;
+      font-size: var(--vscee-font-xxl);
+      margin: 0 0 var(--vscee-space-md) 0;
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: var(--vscee-space-md);
       flex-shrink: 0;
     }
 
@@ -299,14 +300,14 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 8px;
-      margin-bottom: 6px;
+      gap: var(--vscee-space-md);
+      margin-bottom: var(--vscee-space-sm);
       flex-shrink: 0;
     }
     .topbar-left {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: var(--vscee-space-md);
       min-width: 0;
     }
 
@@ -316,24 +317,22 @@
     .breadcrumb {
       display: flex;
       align-items: center;
-      gap: 4px;
-      font-size: 0.9em;
+      gap: var(--vscee-space-xs);
+      font-size: var(--vscee-font-md);
       flex-wrap: wrap;
       min-width: 0;
-    }
-    .breadcrumb button {
-      background: none !important;
-      border: none !important;
-      color: var(--vscode-textLink-foreground);
-      cursor: pointer;
-      padding: 2px 4px;
-      font-size: 0.9em;
-    }
-    .breadcrumb button:hover {
-      text-decoration: underline;
-    }
-    .breadcrumb .sep {
-      opacity: 0.5;
+
+      button {
+        background: none;
+        border: none;
+        color: var(--vscode-textLink-foreground);
+        cursor: pointer;
+        padding: var(--vscee-space-xxs) var(--vscee-space-xs);
+        font-size: var(--vscee-font-md);
+
+        &:hover { text-decoration: underline; }
+      }
+      .sep { opacity: 0.5; }
     }
 
     /* ==================================================================
@@ -343,8 +342,14 @@
       flex: 1 1 0;
       overflow-y: auto;
       min-height: 120px;
-      border: 1px solid var(--vscode-panel-border);
-      border-radius: 3px;
+      border: var(--vscee-border-sm) solid var(--vscode-panel-border);
+      border-radius: var(--vscee-radius-md);
+
+      &.loading {
+        opacity: 0.45;
+        pointer-events: none;
+        transition: opacity 0.15s;
+      }
     }
 
     /* ==================================================================
@@ -354,7 +359,7 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding-top: 4px;
+      padding-top: var(--vscee-space-xs);
       flex-shrink: 0;
     }
 
@@ -365,51 +370,53 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding-top: 8px;
-      gap: 8px;
+      padding-top: var(--vscee-space-md);
+      gap: var(--vscee-space-md);
       flex-wrap: wrap;
       flex-shrink: 0;
     }
     .pager {
       display: flex;
       align-items: center;
-      gap: 2px;
+      gap: var(--vscee-space-xxs);
     }
     .nav-btn {
-      background: transparent !important;
-      border-color: transparent !important;
+      background: transparent;
+      border-color: transparent;
       font-weight: 500;
-    }
-    .nav-btn:not(:disabled):hover {
-      background: var(--vscode-list-hoverBackground) !important;
-      border-color: var(--vscode-input-border) !important;
+
+      &:not(:disabled):hover {
+        background: var(--vscode-list-hoverBackground);
+        border-color: var(--vscode-input-border);
+      }
     }
     .page-btn {
       min-width: 28px;
       height: 28px;
-      padding: 0 4px;
+      padding: 0 var(--vscee-space-xs);
       border-radius: 50%;
-      background: transparent !important;
-      border: 1px solid transparent !important;
-      font-size: 0.82em;
+      background: transparent;
+      border: var(--vscee-border-sm) solid transparent;
+      font-size: var(--vscee-font-xs);
       display: inline-flex;
       align-items: center;
       justify-content: center;
-    }
-    .page-btn:hover {
-      background: var(--vscode-list-hoverBackground) !important;
-      border-color: var(--vscode-input-border) !important;
-    }
-    .page-btn.active {
-      background: var(--vscode-button-background) !important;
-      color: var(--vscode-button-foreground) !important;
-      border-color: transparent !important;
-      font-weight: 600;
+
+      &:hover {
+        background: var(--vscode-list-hoverBackground);
+        border-color: var(--vscode-input-border);
+      }
+      &.active {
+        background: var(--vscode-button-background);
+        color: var(--vscode-button-foreground);
+        border-color: transparent;
+        font-weight: 600;
+      }
     }
     .page-ellipsis {
-      padding: 0 4px;
+      padding: 0 var(--vscee-space-xs);
       opacity: 0.5;
-      font-size: 0.85em;
+      font-size: var(--vscee-font-sm);
       user-select: none;
     }
 
@@ -419,14 +426,14 @@
     .spinner-inline {
       width: 9px;
       height: 9px;
-      border: 1.5px solid currentColor;
+      border: var(--vscee-border-md) solid currentColor;
       border-top-color: transparent;
       border-radius: 50%;
       display: inline-block;
       animation: spin 0.8s linear infinite;
       opacity: 0.6;
       vertical-align: middle;
-      margin-left: 5px;
+      margin-left: var(--vscee-space-sm);
     }
 
     /* ==================================================================
@@ -436,29 +443,31 @@
     select {
       background: var(--vscode-button-secondaryBackground);
       color: var(--vscode-button-secondaryForeground);
-      border: 1px solid var(--vscode-input-border);
-      padding: 4px 8px;
-      border-radius: 4px;
+      border: var(--vscee-border-sm) solid var(--vscode-input-border);
+      padding: var(--vscee-space-xs) var(--vscee-space-md);
+      border-radius: var(--vscee-radius-md);
       cursor: pointer;
-      font-size: 0.85em;
+      font-size: var(--vscee-font-sm);
     }
-    button:hover {
-      background: var(--vscode-button-secondaryHoverBackground);
-    }
-    button:disabled {
-      opacity: 0.4;
-      cursor: default;
+    button {
+      &:hover { background: var(--vscode-button-secondaryHoverBackground); }
+      &:disabled { opacity: 0.4; cursor: default; }
     }
     .btn-primary {
       background: var(--vscode-button-background);
       color: var(--vscode-button-foreground);
       border-color: transparent;
-    }
-    .btn-primary:hover {
-      background: var(--vscode-button-hoverBackground);
+
+      &:hover { background: var(--vscode-button-hoverBackground); }
+      &.loading {
+        opacity: 0.75;
+        cursor: default;
+
+        .refresh-icon { animation: spin 0.8s linear infinite; }
+      }
     }
     .page-info {
-      font-size: 0.85em;
+      font-size: var(--vscee-font-sm);
       opacity: 0.7;
     }
 
@@ -468,36 +477,34 @@
     table {
       width: 100%;
       border-collapse: collapse;
-      font-size: 0.85em;
+      font-size: var(--vscee-font-sm);
     }
-    thead th {
-      position: sticky;
-      top: 0;
-      z-index: 1;
-      text-align: left;
-      padding: 6px 8px;
-      cursor: pointer;
-      user-select: none;
-      background: var(--vscode-editor-background);
-      border-bottom: 2px solid var(--vscode-panel-border);
-      white-space: nowrap;
+    thead {
+      th {
+        position: sticky;
+        top: 0;
+        z-index: 1;
+        text-align: left;
+        padding: var(--vscee-space-sm) var(--vscee-space-md);
+        cursor: pointer;
+        user-select: none;
+        background: var(--vscode-editor-background);
+        border-bottom: var(--vscee-border-md) solid var(--vscode-panel-border);
+        white-space: nowrap;
+
+        &:hover { background: var(--vscode-list-hoverBackground); }
+      }
     }
-    thead th:hover {
-      background: var(--vscode-list-hoverBackground);
-    }
-    th .sort-arrow {
-      opacity: 0.5;
-      margin-left: 4px;
-    }
-    th.sorted .sort-arrow {
-      opacity: 1;
+    th {
+      .sort-arrow {
+        opacity: 0.5;
+        margin-left: var(--vscee-space-xs);
+      }
+      &.sorted .sort-arrow { opacity: 1; }
     }
     td {
-      padding: 5px 8px;
-      border-bottom: 1px solid var(--vscode-panel-border);
-    }
-    tr:hover {
-      background: var(--vscode-list-hoverBackground);
+      padding: var(--vscee-space-sm) var(--vscee-space-md);
+      border-bottom: var(--vscee-border-sm) solid var(--vscode-panel-border);
     }
 
     /* ==================================================================
@@ -508,57 +515,43 @@
         transform: rotate(360deg);
       }
     }
-    .refresh-icon {
-      display: inline-block;
-    }
-    .btn-primary.loading {
-      opacity: 0.75;
-      cursor: default;
-    }
-    .btn-primary.loading .refresh-icon {
-      animation: spin 0.8s linear infinite;
-    }
-    .table-wrap.loading {
-      opacity: 0.45;
-      pointer-events: none;
-      transition: opacity 0.15s;
-    }
+    .refresh-icon { display: inline-block; }
 
     /* ==================================================================
        ASSET NAME & ICONS
        ================================================================== */
     .name-link {
-      background: none !important;
-      border: none !important;
+      background: none;
+      border: none;
       color: var(--vscode-textLink-foreground);
       cursor: pointer;
       padding: 0;
       font-size: inherit;
       text-align: left;
-    }
-    .name-link:hover {
-      text-decoration: underline;
+
+      &:hover { text-decoration: underline; }
     }
     .name-text {
       padding: 0;
     }
     .icon {
-      margin-right: 6px;
+      margin-right: var(--vscee-space-sm);
       vertical-align: middle;
     }
     .icon-col {
       width: 24px;
-      padding: 3px 4px;
+      padding: var(--vscee-space-xs) var(--vscee-space-xs);
       text-align: center;
-    }
-    .icon-col .codicon {
-      display: block;
-      margin: auto;
-      font-size: 16px;
+
+      .codicon {
+        display: block;
+        margin: auto;
+        font-size: var(--vscee-font-icon-md);
+      }
     }
     .id-cell {
       font-family: var(--vscode-editor-font-family, monospace);
-      font-size: 0.78em;
+      font-size: var(--vscee-font-xxs);
       opacity: 0.75;
     }
 
@@ -579,61 +572,58 @@
       opacity: 0.4;
     }
     .action-dot {
-      padding: 2px 6px;
+      padding: var(--vscee-space-xxs) var(--vscee-space-sm);
       display: inline-flex;
       align-items: center;
+
+      .codicon { font-size: var(--vscee-font-icon-sm); }
     }
     .action-btns {
       display: none;
       align-items: center;
       height: 22px;
     }
-    tr:hover .action-dots,
-    tr:focus-within .action-dots,
-    tr.busy .action-dots {
-      display: none;
-    }
-    tr:hover .action-btns,
-    tr:focus-within .action-btns,
-    tr.busy .action-btns {
-      display: inline-flex;
-    }
-    tr.busy .action-btn {
-      opacity: 0.35;
-      pointer-events: none;
-    }
-    tr.busy .action-btn.spinning {
-      opacity: 1;
-    }
-    tr.busy .action-btn.spinning .codicon {
-      display: none;
-    }
-    .action-btn .codicon {
-      font-size: 14px;
-    }
-    .action-dot .codicon {
-      font-size: 14px;
+    tr {
+      &:hover {
+        background: var(--vscode-list-hoverBackground);
+        .action-dots { display: none; }
+        .action-btns { display: inline-flex; }
+      }
+      &:focus-within {
+        .action-dots { display: none; }
+        .action-btns { display: inline-flex; }
+      }
+      &.busy {
+        .action-dots { display: none; }
+        .action-btns { display: inline-flex; }
+        .action-btn {
+          opacity: 0.35;
+          pointer-events: none;
+
+          &.spinning {
+            opacity: 1;
+            .codicon { display: none; }
+          }
+        }
+      }
     }
     .action-btn {
-      background: none !important;
-      border: none !important;
+      background: none;
+      border: none;
       cursor: pointer;
-      padding: 2px 6px;
-      border-radius: 3px;
+      padding: var(--vscee-space-xxs) var(--vscee-space-sm);
+      border-radius: var(--vscee-radius-md);
       color: var(--vscode-foreground);
       opacity: 0.7;
       display: inline-flex;
       align-items: center;
-    }
-    .action-btn:hover {
-      opacity: 1;
-      background: var(--vscode-list-hoverBackground) !important;
-    }
-    .action-btn.danger {
-      color: var(--vscode-errorForeground);
-    }
-    .action-btn.danger:hover {
-      background: var(--vscode-inputValidation-errorBackground) !important;
+
+      .codicon { font-size: var(--vscee-font-icon-sm); }
+      &:hover { opacity: 1; background: var(--vscode-list-hoverBackground); }
+      &.danger {
+        color: var(--vscode-errorForeground);
+        &:hover { background: var(--vscode-inputValidation-errorBackground); }
+      }
     }
   }
 </style>

@@ -6,7 +6,7 @@
 
 import * as vscode from 'vscode';
 import { EEAsset, getAsset } from '../../sidebar/assets/eeApiClient.js';
-import { renderPropertiesTable } from '../../shared/index.js';
+import { designTokens, renderPropertiesTable } from '../../shared/index.js';
 import { filesize } from 'filesize';
 import dayjs from 'dayjs';
 import { openImagePreview } from './imagePreview/imagePreviewPanel.js';
@@ -64,6 +64,7 @@ function openGenericPreview(asset: EEAsset): void {
     <meta charset="UTF-8" />
     <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'nonce-${nonce}';" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <style>${designTokens}</style>
   </head>
   <body>
     <div id="app"></div>

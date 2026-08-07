@@ -87,36 +87,31 @@
   .size-trigger {
     display: inline-flex;
     align-items: center;
-    gap: 5px;
-    padding: 4px 8px;
+    gap: var(--vscee-space-sm);
+    padding: var(--vscee-space-xs) var(--vscee-space-md);
     background: var(--vscode-button-secondaryBackground);
     color: var(--vscode-button-secondaryForeground);
-    border: 1px solid var(--vscode-input-border);
-    border-radius: 4px;
+    border: var(--vscee-border-sm) solid var(--vscode-input-border);
+    border-radius: var(--vscee-radius-md);
     cursor: pointer;
-    font-size: 0.85em;
+    font-size: var(--vscee-font-sm);
     font-family: var(--vscode-font-family, sans-serif);
     line-height: 1;
     white-space: nowrap;
-  }
 
-  .size-trigger:hover {
-    background: var(--vscode-button-secondaryHoverBackground);
-  }
-
-  .size-trigger.open {
-    background: var(--vscode-button-background);
-    color: var(--vscode-button-foreground);
-    border-color: transparent;
+    &:hover { background: var(--vscode-button-secondaryHoverBackground); }
+    &.open {
+      background: var(--vscode-button-background);
+      color: var(--vscode-button-foreground);
+      border-color: transparent;
+    }
   }
 
   .size-chevron {
     opacity: 0.7;
     transition: transform 0.15s;
-  }
 
-  .size-chevron.open {
-    transform: rotate(180deg);
+    &.open { transform: rotate(180deg); }
   }
 
   .size-menu {
@@ -126,33 +121,30 @@
     z-index: 20;
     min-width: 80px;
     background: var(--vscode-editorWidget-background, var(--vscode-editor-background));
-    border: 1px solid var(--vscode-widget-border, var(--vscode-panel-border));
-    border-radius: 4px;
-    padding: 4px;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+    border: var(--vscee-border-sm) solid var(--vscode-widget-border, var(--vscode-panel-border));
+    border-radius: var(--vscee-radius-md);
+    padding: var(--vscee-space-xs);
+    box-shadow: var(--vscee-shadow-lg);
   }
 
   .size-item {
     display: block;
     width: 100%;
-    padding: 6px 10px;
-    border-radius: 3px;
+    padding: var(--vscee-space-sm) var(--vscee-space-lg);
+    border-radius: var(--vscee-radius-md);
     background: none;
     border: none;
     cursor: pointer;
-    font-size: 0.85em;
+    font-size: var(--vscee-font-sm);
     font-family: var(--vscode-font-family, sans-serif);
     color: var(--vscode-foreground);
     text-align: left;
     white-space: nowrap;
-  }
 
-  .size-item:hover {
-    background: var(--vscode-list-hoverBackground);
-  }
-
-  .size-item.active {
-    background: var(--vscode-button-background);
-    color: var(--vscode-button-foreground);
+    &:hover { background: var(--vscode-list-hoverBackground); }
+    &.active {
+      background: var(--vscode-button-background);
+      color: var(--vscode-button-foreground);
+    }
   }
 </style>

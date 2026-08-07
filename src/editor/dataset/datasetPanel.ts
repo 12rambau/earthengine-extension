@@ -12,6 +12,7 @@ import { marked } from 'marked';
 import { StacCollection } from '../../sidebar/dataset/stacClient.js';
 import { CommunityDatasetEntry } from '../../sidebar/dataset/communityClient.js';
 
+import { designTokens } from '../../shared/index.js';
 import script from './DatasetPanel.svelte';
 
 // ==================================================================
@@ -168,7 +169,7 @@ function buildHtml(
     <meta charset="UTF-8" />
     <meta http-equiv="Content-Security-Policy" content="${csp}" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
+    <style>${designTokens}</style>
   </head>
   <body>
     <div id="app"></div>
