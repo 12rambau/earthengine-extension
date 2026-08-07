@@ -18,7 +18,7 @@ import {
 import { AuthService } from '../../auth/index.js';
 import { openAssetPreview } from '../preview/assetPreviewPanel.js';
 import { getExtensionUri } from '../../shared/extensionContext.js';
-import { designTokens } from '../../shared/index.js';
+import { designTokens, codiconsCss } from '../../shared/index.js';
 
 import script from './TasksPanel.svelte';
 
@@ -258,23 +258,13 @@ export async function openTasksPanel(
 function getHtml(filter: TaskFilter, savedPrefs: TaskPrefs, webview: vscode.Webview): string {
   const nonce = getNonce();
   const initData = JSON.stringify({ ...savedPrefs, filter }).replace(/</g, '\\u003c');
-  const codiconsUri = webview.asWebviewUri(
-    vscode.Uri.joinPath(
-      getExtensionUri(),
-      'node_modules',
-      '@vscode',
-      'codicons',
-      'dist',
-      'codicon.css',
-    ),
-  );
   return `<!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; font-src ${webview.cspSource}; style-src 'unsafe-inline' ${webview.cspSource}; script-src 'nonce-${nonce}';" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; font-src data:; style-src 'unsafe-inline'; script-src 'nonce-${nonce}';" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="stylesheet" href="${codiconsUri}" />
+    <style>${codiconsCss}</style>
     <style>${designTokens}</style>
   </head>
   <body>

@@ -45,6 +45,24 @@ function generateAssetIcons() {
   }
 }
 
+/** Inlines codicon.ttf as a base64 data URL inside codicon.css so the font works in bundled WebViews. */
+const codiconsInlinePlugin = {
+  name: 'codicons-inline',
+  setup(build) {
+    build.onLoad({ filter: /codicon\.css$/ }, (args) => {
+      if (!args.path.includes('@vscode/codicons')) return null;
+      const css = fs.readFileSync(args.path, 'utf8');
+      const ttfPath = path.join(path.dirname(args.path), 'codicon.ttf');
+      const ttfBase64 = fs.readFileSync(ttfPath).toString('base64');
+      const inlined = css.replace(
+        /url\("\.\/codicon\.ttf[^"]*"\)/,
+        `url("data:font/truetype;base64,${ttfBase64}")`,
+      );
+      return { contents: inlined, loader: 'text' };
+    });
+  },
+};
+
 /** Appends the generated --vscee-color-* variables to webview.css at bundle time. */
 const webviewCssPlugin = {
   name: 'webview-css',
@@ -149,9 +167,9 @@ async function main() {
     loader: { '.css': 'text' },
     logLevel: 'silent',
     plugins: [
+      codiconsInlinePlugin,
       webviewCssPlugin,
       webviewScriptTextPlugin,
-      /* add to the end of plugins array */
       esbuildProblemMatcherPlugin,
     ],
   });

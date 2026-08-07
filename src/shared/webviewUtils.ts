@@ -5,8 +5,10 @@
  */
 
 import designTokensCss from './webview.css';
+import codiconsCssRaw from '@vscode/codicons/dist/codicon.css';
 
 export const designTokens: string = designTokensCss;
+export const codiconsCss: string = codiconsCssRaw;
 
 /**
  * Escape HTML special characters for safe rendering in WebViews.
