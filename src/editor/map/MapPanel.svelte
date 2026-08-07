@@ -2,6 +2,10 @@
 <script>
   import { vscode, getInitData } from '../../shared/vscode.ts';
   import {
+    mdiClose, mdiCrosshairsGps, mdiEye, mdiEyeOff, mdiLayers,
+    mdiLoading, mdiMap, mdiRuler, mdiSatelliteVariant, mdiTrashCan, mdiTune,
+  } from '../../shared/icons.ts';
+  import {
     interpolateViridis, interpolateMagma, interpolatePlasma, interpolateInferno,
     interpolateCividis, interpolateTurbo, interpolateRdBu, interpolateRdYlGn,
     interpolateBrBG, interpolatePiYG, interpolateRdYlBu, interpolateSpectral,
@@ -702,19 +706,19 @@
 <div class="map-controls">
   <button class="map-btn" class:active={layersPanelVisible} title="Manage layers"
     onclick={() => { layersPanelVisible = !layersPanelVisible; }}>
-    <i class="fa-solid fa-layer-group"></i>
+    <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="currentColor"><path d={mdiLayers}/></svg>
   </button>
   <button class="map-btn" class:active={inspectorActive} title="Pixel inspector"
     onclick={toggleInspector}>
-    <i class="fa-solid fa-crosshairs"></i>
+    <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="currentColor"><path d={mdiCrosshairsGps}/></svg>
   </button>
   <button class="map-btn" class:active={activeMode === 'plan'} title="Toggle plan view"
     onclick={() => activateMode('plan')}>
-    <i class="fa-solid fa-map"></i>
+    <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="currentColor"><path d={mdiMap}/></svg>
   </button>
   <button class="map-btn" class:active={activeMode === 'satellite'} title="Toggle satellite view"
     onclick={() => activateMode('satellite')}>
-    <i class="fa-solid fa-satellite"></i>
+    <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="currentColor"><path d={mdiSatelliteVariant}/></svg>
   </button>
 </div>
 
@@ -725,7 +729,7 @@
     <span>Layers</span>
     <button class="map-btn layers-close-btn" title="Close"
       onclick={() => { layersPanelVisible = false; }}>
-      <i class="fa-solid fa-xmark"></i>
+      <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" fill="currentColor"><path d={mdiClose}/></svg>
     </button>
   </div>
   <div class="layers-list">
@@ -741,21 +745,21 @@
               oninput={(e) => setLayerOpacity(idx, Number(e.target.value))} />
             <button class="map-btn layer-vis-btn" class:active={entry.visible}
               title="Toggle visibility" onclick={() => toggleLayerVisibility(idx)}>
-              <i class="fa-solid" class:fa-eye={entry.visible} class:fa-eye-slash={!entry.visible}></i>
+              <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" fill="currentColor"><path d={entry.visible ? mdiEye : mdiEyeOff}/></svg>
             </button>
             {#if entry.visParams && (entry.visParams.palette || entry.visParams.bands)}
               <button class="map-btn layer-vis-btn" class:active={activeScaleIndex === idx}
                 title="Toggle scale" onclick={() => toggleScale(idx)}>
-                <i class="fa-solid fa-ruler-horizontal"></i>
+                <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" fill="currentColor"><path d={mdiRuler}/></svg>
               </button>
             {:else}
               <button class="map-btn layer-vis-btn" style="visibility:hidden" title="Toggle scale">
-                <i class="fa-solid fa-ruler-horizontal"></i>
+                <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" fill="currentColor"><path d={mdiRuler}/></svg>
               </button>
             {/if}
             <button class="map-btn layer-vis-btn" title="Edit visualization"
               onclick={() => openVizEditorForLayer(entry.layerIndex)}>
-              <i class="fa-solid fa-gear"></i>
+              <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" fill="currentColor"><path d={mdiTune}/></svg>
             </button>
           </div>
         </div>
@@ -771,14 +775,14 @@
   <div class="inspector-panel-header">
     <span>Inspector</span>
     <button class="map-btn layers-close-btn" title="Close" onclick={closeInspector}>
-      <i class="fa-solid fa-xmark"></i>
+      <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" fill="currentColor"><path d={mdiClose}/></svg>
     </button>
   </div>
   <div class="inspector-content">
     {#if inspectorContent.type === 'hint'}
       <p class="inspector-hint">Activate then click on the map.</p>
     {:else if inspectorContent.type === 'loading'}
-      <p class="inspector-loading"><i class="fa-solid fa-spinner fa-spin"></i> Loading…</p>
+      <p class="inspector-loading"><svg class="mdi-spin" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" fill="currentColor"><path d={mdiLoading}/></svg> Loading…</p>
     {:else if inspectorContent.type === 'result'}
       {@const d = inspectorContent.data}
       <p class="inspector-coords">{d.lng.toFixed(4)}, {d.lat.toFixed(4)} @ {d.scale}m</p>
@@ -877,7 +881,7 @@
         <option value="categorical">Categorical</option>
       </select>
       <button class="map-btn viz-close-btn" title="Close" onclick={vizClose}>
-        <i class="fa-solid fa-xmark"></i>
+        <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" fill="currentColor"><path d={mdiClose}/></svg>
       </button>
     </div>
     <!-- Body -->
@@ -1008,7 +1012,7 @@
               <input type="number" class="viz-cat-value" placeholder="Value" bind:value={row.value} />
               <input type="text" class="viz-cat-label-input" placeholder="Label" bind:value={row.label} />
               <button class="map-btn viz-cat-del" title="Remove class" onclick={() => vizRemoveCatRow(i)}>
-                <i class="fa-solid fa-trash"></i>
+                <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" fill="currentColor"><path d={mdiTrashCan}/></svg>
               </button>
             </div>
           {/each}
@@ -1240,5 +1244,7 @@
     }
     .viz-cat-del { width: 22px; height: 22px; box-shadow: none; opacity: 0.5; }
     .viz-cat-add { margin-top: var(--vscee-space-xs); align-self: flex-start; }
+    @keyframes mdi-spin { to { transform: rotate(360deg); } }
+    .mdi-spin { animation: mdi-spin 1s linear infinite; display: inline-block; vertical-align: middle; }
   }
 </style>
