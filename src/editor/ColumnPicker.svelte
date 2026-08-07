@@ -18,7 +18,7 @@
   }
 </script>
 
-<svelte:document onclick={(e) => { if (!wrap?.contains(e.target)) open = false; }} />
+<svelte:document onclick={(e) => { if (!wrap?.contains(e.target)) {open = false;} }} />
 
 <div class="wrap" bind:this={wrap}>
   <button

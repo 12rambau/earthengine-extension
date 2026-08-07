@@ -33,7 +33,7 @@
   // Derived
   let sorted = $derived.by(() => {
     return [...assets].sort((a, b) => {
-      if (a.isContainer !== b.isContainer) return a.isContainer ? -1 : 1;
+      if (a.isContainer !== b.isContainer) {return a.isContainer ? -1 : 1;}
       const va = (a[sortCol] || '').toLowerCase();
       const vb = (b[sortCol] || '').toLowerCase();
       return va < vb ? -sortDir : va > vb ? sortDir : 0;
@@ -43,7 +43,7 @@
   let totalPages = $derived(Math.max(1, Math.ceil(sorted.length / pageSize)));
   let pageItems = $derived(sorted.slice(currentPage * pageSize, (currentPage + 1) * pageSize));
   let rangeText = $derived.by(() => {
-    if (sorted.length === 0) return '0 assets';
+    if (sorted.length === 0) {return '0 assets';}
     const start = currentPage * pageSize + 1;
     const end = Math.min((currentPage + 1) * pageSize, sorted.length);
     return `${start}–${end} of ${sorted.length} assets`;
@@ -73,7 +73,7 @@
   }
 
   function handleSort(key) {
-    if (key === 'icon' || key === 'actions') return;
+    if (key === 'icon' || key === 'actions') {return;}
     if (sortCol === key) { sortDir *= -1; }
     else { sortCol = key; sortDir = 1; }
   }
@@ -85,7 +85,7 @@
   }
 
   function goUp() {
-    if (currentParent === rootPath) return;
+    if (currentParent === rootPath) {return;}
     const parts = currentParent.split('/');
     navigate(parts.length <= 4 ? rootPath : parts.slice(0, -1).join('/'));
   }

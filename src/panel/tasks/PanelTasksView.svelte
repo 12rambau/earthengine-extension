@@ -66,7 +66,7 @@
   }
 
   function getPreviewAsset(task) {
-    if (task.state !== 'SUCCEEDED' || !task.destinationUris?.length) return null;
+    if (task.state !== 'SUCCEEDED' || !task.destinationUris?.length) {return null;}
     return assetNameFromUri(task.destinationUris[0]);
   }
 </script>

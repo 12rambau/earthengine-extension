@@ -19,13 +19,13 @@
 
   function rgbToHex(rgb) {
     const m = rgb.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
-    if (!m) return rgb;
+    if (!m) {return rgb;}
     return '#' + [m[1], m[2], m[3]].map(v => parseInt(v).toString(16).padStart(2, '0')).join('');
   }
 
   function sample(fn, n) {
     const colors = [];
-    for (let i = 0; i < n; i++) colors.push(rgbToHex(fn(i / (n - 1))));
+    for (let i = 0; i < n; i++) {colors.push(rgbToHex(fn(i / (n - 1))));}
     return colors;
   }
 
@@ -127,9 +127,9 @@
   // ----------------------------------------------------------------
 
   let scaleData = $derived.by(() => {
-    if (activeScaleIndex < 0) return null;
+    if (activeScaleIndex < 0) {return null;}
     const entry = overlays[activeScaleIndex];
-    if (!entry || !entry.visParams) return null;
+    if (!entry || !entry.visParams) {return null;}
     const vp = entry.visParams;
     const bands = vp.bands || [];
     const palette = vp.palette || null;
@@ -164,16 +164,16 @@
   }
 
   function paletteGradient(palette) {
-    if (!palette || palette.length === 0) return 'linear-gradient(to right, #000, #fff)';
+    if (!palette || palette.length === 0) {return 'linear-gradient(to right, #000, #fff)';}
     const colors = palette.map(c => c.startsWith('#') ? c : '#' + c);
     return 'linear-gradient(to right, ' + colors.join(', ') + ')';
   }
 
   function fmtVal(v) {
-    if (v == null) return '';
+    if (v == null) {return '';}
     const n = Number(v);
-    if (Number.isNaN(n)) return String(v);
-    if (Number.isInteger(n)) return String(n);
+    if (Number.isNaN(n)) {return String(v);}
+    if (Number.isInteger(n)) {return String(n);}
     return n.toPrecision(4);
   }
 
@@ -207,7 +207,7 @@
 
     // Theme sync
     new MutationObserver(() => {
-      if (activeMode === 'theme') setBasemap(isDarkTheme() ? darkBasemap : lightBasemap);
+      if (activeMode === 'theme') {setBasemap(isDarkTheme() ? darkBasemap : lightBasemap);}
     }).observe(document.body, { attributes: true, attributeFilter: ['class'] });
 
     // Status bar events
@@ -219,7 +219,7 @@
 
     // Inspector click
     map.on('click', (e) => {
-      if (!inspectorActive) return;
+      if (!inspectorActive) {return;}
       const { lat, lng } = e.latlng;
       const L = window.L;
       if (inspectorMarker) {
@@ -239,7 +239,7 @@
 
   function setBasemap(id) {
     const next = basemapTileLayers[id];
-    if (!next || next === currentBasemap) return;
+    if (!next || next === currentBasemap) {return;}
     map.removeLayer(currentBasemap);
     next.addTo(map);
     currentBasemap = next;
@@ -296,13 +296,13 @@
   function toggleInspector() {
     inspectorActive = !inspectorActive;
     inspectorPanelVisible = inspectorActive;
-    if (map) map.getContainer().style.cursor = inspectorActive ? 'crosshair' : '';
+    if (map) {map.getContainer().style.cursor = inspectorActive ? 'crosshair' : '';}
   }
 
   function closeInspector() {
     inspectorActive = false;
     inspectorPanelVisible = false;
-    if (map) map.getContainer().style.cursor = '';
+    if (map) {map.getContainer().style.cursor = '';}
     if (inspectorMarker) {
       map.removeLayer(inspectorMarker);
       inspectorMarker = null;
@@ -315,9 +315,9 @@
 
   function sampleOverlayPixel(latlng, idx) {
     const entry = overlays[idx];
-    if (!entry || !entry.visible) return null;
+    if (!entry || !entry.visible) {return null;}
     const container = entry.tileLayer.getContainer();
-    if (!container) return null;
+    if (!container) {return null;}
     const pt = map.latLngToContainerPoint(latlng);
     const mapRect = map.getContainer().getBoundingClientRect();
     const tiles = container.querySelectorAll('img');
@@ -328,7 +328,7 @@
       const ty = r.top - mapRect.top;
       if (pt.x >= tx && pt.x < tx + r.width && pt.y >= ty && pt.y < ty + r.height) {
         try {
-          if (!_sampleCanvas) _sampleCanvas = document.createElement('canvas');
+          if (!_sampleCanvas) {_sampleCanvas = document.createElement('canvas');}
           _sampleCanvas.width = tile.naturalWidth || 256;
           _sampleCanvas.height = tile.naturalHeight || 256;
           const ctx = _sampleCanvas.getContext('2d');
@@ -343,7 +343,7 @@
   }
 
   function updateScaleFromMap(latlng) {
-    if (activeScaleIndex < 0) return;
+    if (activeScaleIndex < 0) {return;}
     const rgba = sampleOverlayPixel(latlng, activeScaleIndex);
     if (!rgba || rgba[3] === 0) {
       // Reset pointers via DOM
@@ -352,7 +352,7 @@
       return;
     }
     const entry = overlays[activeScaleIndex];
-    if (!entry || !entry.visParams) return;
+    if (!entry || !entry.visParams) {return;}
     const vp = entry.visParams;
     const bands = vp.bands || [];
     const palette = vp.palette || null;
@@ -372,9 +372,9 @@
       const pct = palette.length > 1 ? bestIdx / (palette.length - 1) : 0;
       setPointerDOM(rows[0], pct, minArr[0], maxArr[0]);
     } else if (bands.length === 3) {
-      if (rows[0]) setPointerDOM(rows[0], rgba[0] / 255, minArr[0], maxArr[0]);
-      if (rows[1]) setPointerDOM(rows[1], rgba[1] / 255, minArr[1] ?? minArr[0], maxArr[1] ?? maxArr[0]);
-      if (rows[2]) setPointerDOM(rows[2], rgba[2] / 255, minArr[2] ?? minArr[0], maxArr[2] ?? maxArr[0]);
+      if (rows[0]) {setPointerDOM(rows[0], rgba[0] / 255, minArr[0], maxArr[0]);}
+      if (rows[1]) {setPointerDOM(rows[1], rgba[1] / 255, minArr[1] ?? minArr[0], maxArr[1] ?? maxArr[0]);}
+      if (rows[2]) {setPointerDOM(rows[2], rgba[2] / 255, minArr[2] ?? minArr[0], maxArr[2] ?? maxArr[0]);}
     }
   }
 
@@ -396,14 +396,14 @@
     const pointer = row.querySelector('.scale-pointer');
     const tooltip = row.querySelector('.scale-tooltip');
     const maxEl = row.querySelector('.scale-max');
-    if (!pointer || !tooltip) return;
+    if (!pointer || !tooltip) {return;}
     const c = Math.max(0, Math.min(1, pct));
     pointer.style.left = c * 100 + '%';
     pointer.style.display = 'block';
     tooltip.style.display = 'block';
     const val = min + c * (max - min);
     tooltip.textContent = fmtVal(val);
-    if (maxEl) maxEl.textContent = fmtVal(val);
+    if (maxEl) {maxEl.textContent = fmtVal(val);}
   }
 
   function highlightCategoryDOM(index) {
@@ -412,7 +412,7 @@
     const tooltip = pointer ? pointer.querySelector('.scale-tooltip') : null;
     const maxEl = document.querySelector('.scale-bar .scale-max');
     const n = segments.length;
-    if (!pointer || !tooltip || n === 0) return;
+    if (!pointer || !tooltip || n === 0) {return;}
     const pct = ((index + 0.5) / n) * 100;
     pointer.style.left = pct + '%';
     pointer.style.display = 'block';
@@ -421,7 +421,7 @@
     if (seg) {
       const label = seg.dataset.catLabel || 'Class ' + index;
       tooltip.textContent = label;
-      if (maxEl) maxEl.textContent = label;
+      if (maxEl) {maxEl.textContent = label;}
     }
   }
 
@@ -440,8 +440,8 @@
     const wrap = e.currentTarget;
     const pointer = wrap.querySelector('.scale-pointer');
     const tooltip = wrap.querySelector('.scale-tooltip');
-    if (pointer) pointer.style.display = 'none';
-    if (tooltip) tooltip.style.display = 'none';
+    if (pointer) {pointer.style.display = 'none';}
+    if (tooltip) {tooltip.style.display = 'none';}
   }
 
   // ----------------------------------------------------------------
@@ -452,9 +452,9 @@
     const bands = vp.bands || [];
     const isCat = Array.isArray(vp.values) && vp.values.length > 0;
 
-    if (isCat) vizType = 'categorical';
-    else if (vp.palette && bands.length <= 1) vizType = 'continuous';
-    else vizType = 'rgb';
+    if (isCat) {vizType = 'categorical';}
+    else if (vp.palette && bands.length <= 1) {vizType = 'continuous';}
+    else {vizType = 'rgb';}
 
     const minArr = Array.isArray(vp.min) ? vp.min : [vp.min];
     const maxArr = Array.isArray(vp.max) ? vp.max : [vp.max];
@@ -467,7 +467,7 @@
     vizRgbGMax = String(maxArr[1] ?? maxArr[0] ?? '');
     vizRgbBMin = String(minArr[2] ?? minArr[0] ?? '');
     vizRgbBMax = String(maxArr[2] ?? maxArr[0] ?? '');
-    if (vp.gamma) vizRgbGamma = String(Array.isArray(vp.gamma) ? vp.gamma[0] : vp.gamma);
+    if (vp.gamma) {vizRgbGamma = String(Array.isArray(vp.gamma) ? vp.gamma[0] : vp.gamma);}
 
     // HSV
     if (bands.length >= 3) { vizHsvH = bands[0]; vizHsvS = bands[1]; vizHsvV = bands[2]; }
@@ -479,12 +479,12 @@
     vizHsvVMax = String(maxArr[2] ?? maxArr[0] ?? '');
 
     // Continuous
-    if (bands.length >= 1) vizContBand = bands[0];
+    if (bands.length >= 1) {vizContBand = bands[0];}
     vizContMin = minArr[0] != null ? String(minArr[0]) : '';
     vizContMax = maxArr[0] != null ? String(maxArr[0]) : '';
 
     // Categorical
-    if (bands.length >= 1) vizCatBand = bands[0];
+    if (bands.length >= 1) {vizCatBand = bands[0];}
     if (isCat) {
       const palette = vp.palette || [];
       const labels = vp.labels || [];
@@ -509,18 +509,18 @@
       const max = isRgb
         ? [parseFloat(vizRgbRMax), parseFloat(vizRgbGMax), parseFloat(vizRgbBMax)]
         : [parseFloat(vizHsvHMax), parseFloat(vizHsvSMax), parseFloat(vizHsvVMax)];
-      if (!min.every(Number.isFinite) || !max.every(Number.isFinite)) return null;
+      if (!min.every(Number.isFinite) || !max.every(Number.isFinite)) {return null;}
       const config = { vizType, bands, min, max };
       if (isRgb) {
         const gamma = parseFloat(vizRgbGamma);
-        if (gamma && gamma !== 1) config.gamma = gamma;
+        if (gamma && gamma !== 1) {config.gamma = gamma;}
       }
       return config;
     }
     if (vizType === 'continuous') {
       const min = parseFloat(vizContMin);
       const max = parseFloat(vizContMax);
-      if (!Number.isFinite(min) || !Number.isFinite(max)) return null;
+      if (!Number.isFinite(min) || !Number.isFinite(max)) {return null;}
       const palette = vizSelectedPalette ? vizSelectedPalette.colors : [];
       return { vizType: 'continuous', bands: [vizContBand], min: [min], max: [max], palette };
     }
@@ -541,7 +541,7 @@
 
   function vizApply() {
     const config = collectVisParams();
-    if (!config) return;
+    if (!config) {return;}
     vscode.postMessage({ type: 'updateViz', data: { layerIndex: vizLayerIndex, ...config } });
     vizVisible = false;
   }
@@ -555,14 +555,14 @@
 
   function vizApplyPreset(idx) {
     const p = vizPresets[idx];
-    if (!p) return;
+    if (!p) {return;}
     const vp = { bands: p.bands || [] };
-    if (p.min) vp.min = p.min;
-    if (p.max) vp.max = p.max;
-    if (p.palette) vp.palette = p.palette;
-    if (p.gamma) vp.gamma = p.gamma;
-    if (p.labels) vp.labels = p.labels;
-    if (p.values) vp.values = p.values;
+    if (p.min) {vp.min = p.min;}
+    if (p.max) {vp.max = p.max;}
+    if (p.palette) {vp.palette = p.palette;}
+    if (p.gamma) {vp.gamma = p.gamma;}
+    if (p.labels) {vp.labels = p.labels;}
+    if (p.values) {vp.values = p.values;}
     const typeMap = { rgb: 'rgb', hsv: 'hsv', continuous: 'continuous', categorical: 'categorical' };
     vizType = typeMap[p.type] || 'rgb';
     applyVisParams(vp);
@@ -591,8 +591,8 @@
   function autoFillMinMax(minMax) {
     if (vizType === 'continuous') {
       if (vizContBand && minMax[vizContBand]) {
-        if (!vizContMin) vizContMin = String(minMax[vizContBand].min);
-        if (!vizContMax) vizContMax = String(minMax[vizContBand].max);
+        if (!vizContMin) {vizContMin = String(minMax[vizContBand].min);}
+        if (!vizContMax) {vizContMax = String(minMax[vizContBand].max);}
       }
     } else if (vizType === 'rgb') {
       const bands = [vizRgbR, vizRgbG, vizRgbB];
@@ -600,8 +600,8 @@
       const maxs = [vizRgbRMax, vizRgbGMax, vizRgbBMax];
       bands.forEach((b, i) => {
         if (b && minMax[b]) {
-          if (!mins[i]) { if (i === 0) vizRgbRMin = String(minMax[b].min); else if (i === 1) vizRgbGMin = String(minMax[b].min); else vizRgbBMin = String(minMax[b].min); }
-          if (!maxs[i]) { if (i === 0) vizRgbRMax = String(minMax[b].max); else if (i === 1) vizRgbGMax = String(minMax[b].max); else vizRgbBMax = String(minMax[b].max); }
+          if (!mins[i]) { if (i === 0) {vizRgbRMin = String(minMax[b].min);} else if (i === 1) {vizRgbGMin = String(minMax[b].min);} else {vizRgbBMin = String(minMax[b].min);} }
+          if (!maxs[i]) { if (i === 0) {vizRgbRMax = String(minMax[b].max);} else if (i === 1) {vizRgbGMax = String(minMax[b].max);} else {vizRgbBMax = String(minMax[b].max);} }
         }
       });
     } else if (vizType === 'hsv') {
@@ -610,8 +610,8 @@
       const maxs = [vizHsvHMax, vizHsvSMax, vizHsvVMax];
       bands.forEach((b, i) => {
         if (b && minMax[b]) {
-          if (!mins[i]) { if (i === 0) vizHsvHMin = String(minMax[b].min); else if (i === 1) vizHsvSMin = String(minMax[b].min); else vizHsvVMin = String(minMax[b].min); }
-          if (!maxs[i]) { if (i === 0) vizHsvHMax = String(minMax[b].max); else if (i === 1) vizHsvSMax = String(minMax[b].max); else vizHsvVMax = String(minMax[b].max); }
+          if (!mins[i]) { if (i === 0) {vizHsvHMin = String(minMax[b].min);} else if (i === 1) {vizHsvSMin = String(minMax[b].min);} else {vizHsvVMin = String(minMax[b].min);} }
+          if (!maxs[i]) { if (i === 0) {vizHsvHMax = String(minMax[b].max);} else if (i === 1) {vizHsvSMax = String(minMax[b].max);} else {vizHsvVMax = String(minMax[b].max);} }
         }
       });
     }
@@ -637,13 +637,13 @@
         opacity, visParams: d.visParams || null, layerIndex: d.layerIndex,
       };
       overlays = [...overlays, entry];
-      if (d.shown !== false) tileLayer.addTo(map);
+      if (d.shown !== false) {tileLayer.addTo(map);}
     } else if (msg.type === 'centerObject') {
       const d = msg.data;
       if (d.bounds) {
         const bounds = L.latLngBounds(L.latLng(d.bounds[0], d.bounds[1]), L.latLng(d.bounds[2], d.bounds[3]));
-        if (d.zoom) map.setView(bounds.getCenter(), d.zoom);
-        else map.fitBounds(bounds);
+        if (d.zoom) {map.setView(bounds.getCenter(), d.zoom);}
+        else {map.fitBounds(bounds);}
       }
     } else if (msg.type === 'setCenter') {
       const d = msg.data;
@@ -669,12 +669,12 @@
       const idx = overlays.findIndex(o => o.layerIndex === d.layerIndex);
       if (idx >= 0) {
         const entry = overlays[idx];
-        if (entry.visible) map.removeLayer(entry.tileLayer);
+        if (entry.visible) {map.removeLayer(entry.tileLayer);}
         entry.tileLayer = L.tileLayer(d.url, {
           maxZoom: 24, opacity: entry.opacity, attribution: 'Google Earth Engine', crossOrigin: 'anonymous',
         });
         entry.visParams = d.visParams;
-        if (entry.visible) entry.tileLayer.addTo(map);
+        if (entry.visible) {entry.tileLayer.addTo(map);}
         overlays = [...overlays];
         if (activeScaleIndex === idx) {
           if (entry.visParams && (entry.visParams.palette || entry.visParams.bands)) {

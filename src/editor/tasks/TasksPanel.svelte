@@ -51,7 +51,7 @@
   let totalPages = $derived(Math.max(1, Math.ceil(sorted.length / pageSize)));
   let pageItems = $derived(sorted.slice(currentPage * pageSize, (currentPage + 1) * pageSize));
   let rangeText = $derived.by(() => {
-    if (sorted.length === 0) return '0 tasks';
+    if (sorted.length === 0) {return '0 tasks';}
     const start = currentPage * pageSize + 1;
     const end = Math.min((currentPage + 1) * pageSize, sorted.length);
     return `${start}–${end} of ${sorted.length} tasks`;
@@ -68,7 +68,7 @@
   }
 
   function handleSort(key) {
-    if (key === 'icon' || key === 'actions') return;
+    if (key === 'icon' || key === 'actions') {return;}
     if (sortCol === key) {
       sortDir *= -1;
     } else {
@@ -91,7 +91,7 @@
     // EE returns ?asset=projects/... (code.earthengine.google.com) or /v1/projects/... (googleapis.com)
     const m = uri.match(/asset=(projects\/[^&\s]+)/) ||
               uri.match(/\/v1\/(projects\/[^/]+\/assets\/.+)/);
-    if (m) vscode.postMessage({ type: 'preview', assetName: decodeURIComponent(m[1]) });
+    if (m) {vscode.postMessage({ type: 'preview', assetName: decodeURIComponent(m[1]) });}
   }
 
   function refresh() {
@@ -99,7 +99,7 @@
   }
 
   function formatTime(t) {
-    if (!t) return '';
+    if (!t) {return '';}
     return new Date(t).toLocaleString();
   }
 

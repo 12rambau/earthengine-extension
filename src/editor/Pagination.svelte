@@ -12,7 +12,7 @@
   // ----------------------------------------------------------------
   // Builds a sparse page list: always includes first, last, and neighbours of current.
   function pages() {
-    if (totalPages <= 1) return [];
+    if (totalPages <= 1) {return [];}
     const shown = new Set([0, totalPages - 1]);
     for (let i = Math.max(0, currentPage - 1); i <= Math.min(totalPages - 1, currentPage + 1); i++) {
       shown.add(i);
@@ -21,7 +21,7 @@
     const result = [];
     let prev = -1;
     for (const p of sorted) {
-      if (prev !== -1 && p > prev + 1) result.push({ type: 'ellipsis' });
+      if (prev !== -1 && p > prev + 1) {result.push({ type: 'ellipsis' });}
       result.push({ type: 'page', value: p });
       prev = p;
     }
@@ -36,7 +36,7 @@
   }
 </script>
 
-<svelte:document onclick={(e) => { if (!sizeWrap?.contains(e.target)) openSize = false; }} />
+<svelte:document onclick={(e) => { if (!sizeWrap?.contains(e.target)) {openSize = false;} }} />
 
 <!-- CONTROLS -->
 <div class="pagination">

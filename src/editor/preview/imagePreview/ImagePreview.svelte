@@ -42,18 +42,18 @@
   // HELPERS
   // ----------------------------------------------------------------
   function formatNum(n) {
-    if (n === null || n === undefined) return '—';
-    if (Number.isInteger(n)) return String(n);
+    if (n === null || n === undefined) {return '—';}
+    if (Number.isInteger(n)) {return String(n);}
     return n.toFixed(4);
   }
 
   function getMin(bandId) {
-    if (!minMaxData || !minMaxData[bandId]) return null;
+    if (!minMaxData || !minMaxData[bandId]) {return null;}
     return minMaxData[bandId].min;
   }
 
   function getMax(bandId) {
-    if (!minMaxData || !minMaxData[bandId]) return null;
+    if (!minMaxData || !minMaxData[bandId]) {return null;}
     return minMaxData[bandId].max;
   }
 </script>
