@@ -88,11 +88,11 @@
       line-height: 1.5;
     }
     h1 {
-      font-size: 1.5em;
+      font-size: var(--vscee-font-3xl);
       margin-bottom: var(--vscee-space-xs);
     }
     h2 {
-      font-size: 1.15em;
+      font-size: var(--vscee-font-lg);
       margin-top: var(--vscee-space-xxl);
       border-bottom: var(--vscee-border-sm) solid var(--vscode-panel-border);
       padding-bottom: var(--vscee-space-xs);
@@ -110,7 +110,7 @@
     .meta-item strong,
     .tags strong {
       display: block;
-      font-size: 0.85em;
+      font-size: var(--vscee-font-sm);
       opacity: 0.7;
       margin-bottom: var(--vscee-space-xs);
     }
@@ -134,7 +134,7 @@
       background: none;
       padding: 0;
       font-family: var(--vscode-editor-font-family, monospace);
-      font-size: 0.9em;
+      font-size: var(--vscee-font-md);
       white-space: nowrap;
     }
     .copy-btn {
@@ -145,7 +145,7 @@
       border: none;
       border-radius: var(--vscee-radius-md);
       padding: var(--vscee-space-xs) var(--vscee-space-lg);
-      font-size: 0.8em;
+      font-size: var(--vscee-font-xs);
       font-family: var(--vscode-font-family, sans-serif);
     }
     .copy-btn:hover {
@@ -166,7 +166,7 @@
       color: var(--vscode-badge-foreground);
       padding: var(--vscee-space-xxs) var(--vscee-space-md);
       border-radius: var(--vscee-radius-xl);
-      font-size: 0.8em;
+      font-size: var(--vscee-font-xs);
     }
 
     /* ==================================================================
@@ -176,7 +176,7 @@
       width: 100%;
       border-collapse: collapse;
       margin: var(--vscee-space-md) 0;
-      font-size: 0.9em;
+      font-size: var(--vscee-font-md);
     }
     th {
       text-align: left;
@@ -238,7 +238,7 @@
       opacity: 0.65;
       cursor: pointer;
       padding: var(--vscee-space-md) var(--vscee-space-lg);
-      font-size: 0.95em;
+      font-size: var(--vscee-font-md);
       font-family: inherit;
     }
     .tab:hover {

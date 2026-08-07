@@ -267,7 +267,7 @@
       overflow: hidden;
     }
     h1 {
-      font-size: 1.3em;
+      font-size: var(--vscee-font-xxl);
       margin: 0 0 var(--vscee-space-md) 0;
       display: flex;
       align-items: center;
@@ -353,7 +353,7 @@
       border-radius: 50%;
       background: transparent !important;
       border: var(--vscee-border-sm) solid transparent !important;
-      font-size: 0.82em;
+      font-size: var(--vscee-font-xs);
       display: inline-flex;
       align-items: center;
       justify-content: center;
@@ -371,7 +371,7 @@
     .page-ellipsis {
       padding: 0 var(--vscee-space-xs);
       opacity: 0.5;
-      font-size: 0.85em;
+      font-size: var(--vscee-font-sm);
       user-select: none;
     }
 
@@ -391,7 +391,7 @@
     }
     .toggle-switch label {
       padding: var(--vscee-space-xs) var(--vscee-space-lg);
-      font-size: 0.85em;
+      font-size: var(--vscee-font-sm);
       cursor: pointer;
       position: relative;
       z-index: 1;
@@ -438,7 +438,7 @@
       padding: var(--vscee-space-xs) var(--vscee-space-md);
       border-radius: var(--vscee-radius-md);
       cursor: pointer;
-      font-size: 0.85em;
+      font-size: var(--vscee-font-sm);
     }
     button:hover {
       background: var(--vscode-button-secondaryHoverBackground);
@@ -456,7 +456,7 @@
       background: var(--vscode-button-hoverBackground);
     }
     .page-info {
-      font-size: 0.85em;
+      font-size: var(--vscee-font-sm);
       opacity: 0.7;
     }
 
@@ -466,7 +466,7 @@
     table {
       width: 100%;
       border-collapse: collapse;
-      font-size: 0.85em;
+      font-size: var(--vscee-font-sm);
     }
     thead th {
       position: sticky;
@@ -625,7 +625,7 @@
     }
     .id-cell {
       font-family: var(--vscode-editor-font-family, monospace);
-      font-size: 0.78em;
+      font-size: var(--vscee-font-xxs);
       max-width: 140px;
       overflow: hidden;
       text-overflow: ellipsis;

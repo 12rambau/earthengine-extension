@@ -187,7 +187,7 @@
       border-bottom: var(--vscee-border-sm) solid var(--vscode-panel-border);
     }
     .title-bar h1 {
-      font-size: 1.2em;
+      font-size: var(--vscee-font-xl);
       font-weight: 500;
     }
 
@@ -227,7 +227,7 @@
     }
     .thumb-loading,
     .thumb-unavailable {
-      font-size: 0.85em;
+      font-size: var(--vscee-font-sm);
       opacity: 0.6;
       text-align: center;
       padding: var(--vscee-space-lg);
@@ -244,15 +244,15 @@
     }
     .info-label {
       font-weight: 600;
-      font-size: 0.85em;
+      font-size: var(--vscee-font-sm);
     }
     .info-value {
-      font-size: 0.85em;
+      font-size: var(--vscee-font-sm);
       opacity: 0.85;
     }
     .asset-id {
       font-family: var(--vscode-editor-font-family, monospace);
-      font-size: 0.78em;
+      font-size: var(--vscee-font-xxs);
       word-break: break-all;
       background: var(--vscode-textCodeBlock-background);
       padding: var(--vscee-space-xs) var(--vscee-space-sm);
@@ -279,7 +279,7 @@
       color: var(--vscode-foreground);
       padding: var(--vscee-space-lg) var(--vscee-space-xl);
       cursor: pointer;
-      font-size: 0.85em;
+      font-size: var(--vscee-font-sm);
       font-weight: 500;
       opacity: 0.7;
       border-bottom: var(--vscee-border-md) solid transparent;
@@ -308,7 +308,7 @@
        DESCRIPTION
        ================================================================== */
     .description-text {
-      font-size: 0.9em;
+      font-size: var(--vscee-font-md);
       white-space: pre-wrap;
       opacity: 0.85;
     }
@@ -320,7 +320,7 @@
     .props-table {
       width: 100%;
       border-collapse: collapse;
-      font-size: 0.85em;
+      font-size: var(--vscee-font-sm);
     }
     .bands-table th,
     .props-table th {

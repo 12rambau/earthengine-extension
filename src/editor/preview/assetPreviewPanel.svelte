@@ -24,11 +24,11 @@
       line-height: 1.5;
     }
     h1 {
-      font-size: 1.4em;
+      font-size: var(--vscee-font-3xl);
       margin-bottom: var(--vscee-space-xs);
     }
     h2 {
-      font-size: 1.1em;
+      font-size: var(--vscee-font-lg);
       margin-top: var(--vscee-space-xxl);
       border-bottom: var(--vscee-border-sm) solid var(--vscode-panel-border);
       padding-bottom: var(--vscee-space-xs);
@@ -39,7 +39,7 @@
       color: var(--vscode-badge-foreground);
       padding: var(--vscee-space-xxs) var(--vscee-space-md);
       border-radius: var(--vscee-radius-xl);
-      font-size: 0.8em;
+      font-size: var(--vscee-font-xs);
       margin-right: var(--vscee-space-xs);
     }
     .meta {
@@ -50,13 +50,13 @@
     }
     .meta-item strong {
       display: block;
-      font-size: 0.8em;
+      font-size: var(--vscee-font-xs);
       opacity: 0.7;
     }
     table {
       width: 100%;
       border-collapse: collapse;
-      font-size: 0.9em;
+      font-size: var(--vscee-font-md);
       margin: var(--vscee-space-md) 0;
     }
     th {
@@ -72,7 +72,7 @@
       background: var(--vscode-textCodeBlock-background);
       padding: var(--vscee-space-xxs) var(--vscee-space-xs);
       border-radius: var(--vscee-radius-md);
-      font-size: 0.9em;
+      font-size: var(--vscee-font-md);
     }
     .props-table td:first-child {
       font-weight: 600;

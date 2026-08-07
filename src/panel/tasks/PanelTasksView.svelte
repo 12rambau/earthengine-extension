@@ -164,7 +164,7 @@
       width: 14px;
       height: 14px;
       text-align: center;
-      font-size: 0.85em;
+      font-size: var(--vscee-font-sm);
       display: inline-flex;
       align-items: center;
       justify-content: center;
@@ -209,7 +209,7 @@
     .task-elapsed {
       flex-shrink: 0;
       opacity: 0.6;
-      font-size: 0.9em;
+      font-size: var(--vscee-font-md);
       font-family: var(--vscode-editor-font-family, 'Courier New', Courier, monospace);
       min-width: 40px;
       text-align: right;
@@ -237,7 +237,7 @@
       border-radius: var(--vscee-radius-md);
       opacity: 0.7;
       font-family: inherit;
-      font-size: 0.9em;
+      font-size: var(--vscee-font-md);
     }
     .task-actions button:hover {
       background: var(--vscode-list-hoverBackground);

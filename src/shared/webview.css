@@ -23,4 +23,30 @@
      ================================================================== */
   --vscee-border-sm: 1px;
   --vscee-border-md: 2px;
+
+  /* ==================================================================
+     FONT SIZE — em-based (relative to context element)
+     ================================================================== */
+  --vscee-font-xxs: 0.78em; /* tiny: IDs, timestamps */
+  --vscee-font-xs: 0.82em; /* extra-small: tags, badges, pills */
+  --vscee-font-sm: 0.85em; /* small: secondary text, metadata */
+  --vscee-font-md: 0.9em; /* medium: body descriptions, code */
+  --vscee-font-lg: 1.1em; /* large: sub-headings */
+  --vscee-font-xl: 1.2em; /* x-large: section headings */
+  --vscee-font-xxl: 1.3em; /* xx-large: panel h1 */
+  --vscee-font-3xl: 1.5em; /* 3x-large: page/content title */
+
+  /* ==================================================================
+     FONT SIZE — px-based for compact overlay panels
+     ================================================================== */
+  --vscee-font-compact-xxs: 9px;
+  --vscee-font-compact-xs: 10px;
+  --vscee-font-compact-sm: 11px;
+  --vscee-font-compact-md: 12px;
+
+  /* ==================================================================
+     FONT SIZE — px-based for icon fonts (codicons)
+     ================================================================== */
+  --vscee-font-icon-sm: 14px;
+  --vscee-font-icon-md: 16px;
 }

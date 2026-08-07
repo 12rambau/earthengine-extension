@@ -132,7 +132,7 @@
       border-bottom: var(--vscee-border-sm) solid var(--vscode-panel-border);
     }
     .title-bar h1 {
-      font-size: 1.2em;
+      font-size: var(--vscee-font-xl);
       font-weight: 500;
     }
 
@@ -172,7 +172,7 @@
     }
     .thumb-loading,
     .thumb-unavailable {
-      font-size: 0.85em;
+      font-size: var(--vscee-font-sm);
       opacity: 0.6;
       text-align: center;
       padding: var(--vscee-space-lg);
@@ -189,15 +189,15 @@
     }
     .info-label {
       font-weight: 600;
-      font-size: 0.85em;
+      font-size: var(--vscee-font-sm);
     }
     .info-value {
-      font-size: 0.85em;
+      font-size: var(--vscee-font-sm);
       opacity: 0.85;
     }
     .asset-id {
       font-family: var(--vscode-editor-font-family, monospace);
-      font-size: 0.78em;
+      font-size: var(--vscee-font-xxs);
       word-break: break-all;
       background: var(--vscode-textCodeBlock-background);
       padding: var(--vscee-space-xs) var(--vscee-space-sm);
@@ -224,7 +224,7 @@
       color: var(--vscode-foreground);
       padding: var(--vscee-space-lg) var(--vscee-space-xl);
       cursor: pointer;
-      font-size: 0.85em;
+      font-size: var(--vscee-font-sm);
       font-weight: 500;
       opacity: 0.7;
       border-bottom: var(--vscee-border-md) solid transparent;
@@ -249,7 +249,7 @@
       display: block;
     }
     .empty-state {
-      font-size: 0.9em;
+      font-size: var(--vscee-font-md);
       opacity: 0.6;
       font-style: italic;
     }
@@ -258,15 +258,15 @@
        DESCRIPTION
        ================================================================== */
     .description-text {
-      font-size: 0.9em;
+      font-size: var(--vscee-font-md);
       line-height: 1.6;
     }
     .description-text h2 {
-      font-size: 1.3em;
+      font-size: var(--vscee-font-xxl);
       margin: var(--vscee-space-xl) 0 var(--vscee-space-md);
     }
     .description-text h3 {
-      font-size: 1.1em;
+      font-size: var(--vscee-font-lg);
       margin: var(--vscee-space-lg) 0 var(--vscee-space-sm);
     }
     .description-text h4 {
@@ -280,7 +280,7 @@
       background: var(--vscode-textCodeBlock-background);
       padding: var(--vscee-space-xxs) var(--vscee-space-xs);
       border-radius: var(--vscee-radius-md);
-      font-size: 0.9em;
+      font-size: var(--vscee-font-md);
     }
     .description-text pre {
       background: var(--vscode-textCodeBlock-background);
@@ -306,7 +306,7 @@
     .props-table {
       width: 100%;
       border-collapse: collapse;
-      font-size: 0.85em;
+      font-size: var(--vscee-font-sm);
     }
     .features-table th,
     .columns-table th,

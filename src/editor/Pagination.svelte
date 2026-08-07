@@ -94,7 +94,7 @@
     border: var(--vscee-border-sm) solid var(--vscode-input-border);
     border-radius: var(--vscee-radius-md);
     cursor: pointer;
-    font-size: 0.85em;
+    font-size: var(--vscee-font-sm);
     font-family: var(--vscode-font-family, sans-serif);
     line-height: 1;
     white-space: nowrap;
@@ -140,7 +140,7 @@
     background: none;
     border: none;
     cursor: pointer;
-    font-size: 0.85em;
+    font-size: var(--vscee-font-sm);
     font-family: var(--vscode-font-family, sans-serif);
     color: var(--vscode-foreground);
     text-align: left;
