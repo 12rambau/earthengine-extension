@@ -338,34 +338,34 @@
       gap: var(--vscee-space-xxs);
     }
     .nav-btn {
-      background: transparent !important;
-      border-color: transparent !important;
+      background: transparent;
+      border-color: transparent;
       font-weight: 500;
     }
     .nav-btn:not(:disabled):hover {
-      background: var(--vscode-list-hoverBackground) !important;
-      border-color: var(--vscode-input-border) !important;
+      background: var(--vscode-list-hoverBackground);
+      border-color: var(--vscode-input-border);
     }
     .page-btn {
       min-width: 28px;
       height: 28px;
       padding: 0 var(--vscee-space-xs);
       border-radius: 50%;
-      background: transparent !important;
-      border: var(--vscee-border-sm) solid transparent !important;
+      background: transparent;
+      border: var(--vscee-border-sm) solid transparent;
       font-size: var(--vscee-font-xs);
       display: inline-flex;
       align-items: center;
       justify-content: center;
     }
     .page-btn:hover {
-      background: var(--vscode-list-hoverBackground) !important;
-      border-color: var(--vscode-input-border) !important;
+      background: var(--vscode-list-hoverBackground);
+      border-color: var(--vscode-input-border);
     }
     .page-btn.active {
-      background: var(--vscode-button-background) !important;
-      color: var(--vscode-button-foreground) !important;
-      border-color: transparent !important;
+      background: var(--vscode-button-background);
+      color: var(--vscode-button-foreground);
+      border-color: transparent;
       font-weight: 600;
     }
     .page-ellipsis {
@@ -593,8 +593,8 @@
       display: inline-flex;
     }
     .action-btn {
-      background: none !important;
-      border: none !important;
+      background: none;
+      border: none;
       cursor: pointer;
       padding: var(--vscee-space-xxs) var(--vscee-space-sm);
       border-radius: var(--vscee-radius-md);
@@ -605,13 +605,13 @@
     }
     .action-btn:hover {
       opacity: 1;
-      background: var(--vscode-list-hoverBackground) !important;
+      background: var(--vscode-list-hoverBackground);
     }
     .action-btn.danger {
       color: var(--vscode-errorForeground);
     }
     .action-btn.danger:hover {
-      background: var(--vscode-inputValidation-errorBackground) !important;
+      background: var(--vscode-inputValidation-errorBackground);
     }
 
     /* ==================================================================

@@ -436,8 +436,8 @@
       display: inline-flex;
     }
     .action-btn {
-      background: none !important;
-      border: none !important;
+      background: none;
+      border: none;
       cursor: pointer;
       padding: var(--vscee-space-xxs) var(--vscee-space-sm);
       border-radius: var(--vscee-radius-md);
@@ -448,13 +448,13 @@
     }
     .action-btn:hover {
       opacity: 1;
-      background: var(--vscode-list-hoverBackground) !important;
+      background: var(--vscode-list-hoverBackground);
     }
     .action-btn.danger {
       color: var(--vscode-errorForeground);
     }
     .action-btn.danger:hover {
-      background: var(--vscode-inputValidation-errorBackground) !important;
+      background: var(--vscode-inputValidation-errorBackground);
     }
 
     /* ==================================================================
