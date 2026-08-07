@@ -268,14 +268,7 @@ function buildHtml(
   });
 
   const codiconsUri = webview.asWebviewUri(
-    vscode.Uri.joinPath(
-      getExtensionUri(),
-      'node_modules',
-      '@vscode',
-      'codicons',
-      'dist',
-      'codicon.css',
-    ),
+    vscode.Uri.joinPath(getExtensionUri(), 'dist', 'codicons', 'codicon.css'),
   );
 
   return `<!DOCTYPE html>

@@ -259,14 +259,7 @@ function getHtml(filter: TaskFilter, savedPrefs: TaskPrefs, webview: vscode.Webv
   const nonce = getNonce();
   const initData = JSON.stringify({ ...savedPrefs, filter }).replace(/</g, '\\u003c');
   const codiconsUri = webview.asWebviewUri(
-    vscode.Uri.joinPath(
-      getExtensionUri(),
-      'node_modules',
-      '@vscode',
-      'codicons',
-      'dist',
-      'codicon.css',
-    ),
+    vscode.Uri.joinPath(getExtensionUri(), 'dist', 'codicons', 'codicon.css'),
   );
   return `<!DOCTYPE html>
 <html lang="en">

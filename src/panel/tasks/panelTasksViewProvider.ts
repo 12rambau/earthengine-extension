@@ -63,7 +63,7 @@ export class PanelTasksViewProvider implements vscode.WebviewViewProvider {
     this.view = webviewView;
     webviewView.webview.options = {
       enableScripts: true,
-      localResourceRoots: [vscode.Uri.joinPath(this.context.extensionUri, 'node_modules')],
+      localResourceRoots: [vscode.Uri.joinPath(this.context.extensionUri, 'dist', 'codicons')],
     };
     webviewView.webview.html = this.getHtml(webviewView.webview);
 
@@ -279,14 +279,7 @@ export class PanelTasksViewProvider implements vscode.WebviewViewProvider {
   private getHtml(webview: vscode.Webview): string {
     const nonce = getNonce();
     const codiconsUri = webview.asWebviewUri(
-      vscode.Uri.joinPath(
-        this.context.extensionUri,
-        'node_modules',
-        '@vscode',
-        'codicons',
-        'dist',
-        'codicon.css',
-      ),
+      vscode.Uri.joinPath(this.context.extensionUri, 'dist', 'codicons', 'codicon.css'),
     );
     const csp = [
       `default-src 'none'`,

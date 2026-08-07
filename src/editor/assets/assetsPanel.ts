@@ -63,9 +63,7 @@ export async function openAssetsPanel(
     {
       enableScripts: true,
       retainContextWhenHidden: true,
-      localResourceRoots: [
-        vscode.Uri.joinPath(context.extensionUri, 'node_modules', '@vscode', 'codicons', 'dist'),
-      ],
+      localResourceRoots: [vscode.Uri.joinPath(context.extensionUri, 'dist', 'codicons')],
     },
   );
 
@@ -196,7 +194,7 @@ function getHtml(
   const nonce = getNonce();
   const initData = JSON.stringify(savedPrefs).replace(/</g, '\\u003c');
   const codiconsUri = webview.asWebviewUri(
-    vscode.Uri.joinPath(extensionUri, 'node_modules', '@vscode', 'codicons', 'dist', 'codicon.css'),
+    vscode.Uri.joinPath(extensionUri, 'dist', 'codicons', 'codicon.css'),
   );
   return `<!DOCTYPE html>
 <html lang="en">
