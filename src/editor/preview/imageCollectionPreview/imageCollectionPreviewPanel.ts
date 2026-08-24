@@ -79,6 +79,8 @@ export async function openImageCollectionPreview(
   panel.webview.onDidReceiveMessage(async (msg: { type: string; name?: string }) => {
     if (msg.type === 'ready') {
       sendThumbnail(asset, bands, childImages, panel);
+    } else if (msg.type === 'copyAssetId') {
+      await vscode.env.clipboard.writeText(asset.name);
     } else if (msg.type === 'openImage' && msg.name) {
       const token = await getTokenSafe(accessToken);
       try {

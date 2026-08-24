@@ -19,6 +19,8 @@
     '<span class="thumb-loading"><span class="spinner"></span> Loading thumbnail...</span>'
   );
   let images = $state(data.images);
+  let assetIdCopied = $state(false);
+  let copyResetTimer;
 
   // ----------------------------------------------------------------
   // MESSAGES
@@ -42,6 +44,13 @@
   // ----------------------------------------------------------------
   // ACTIONS
   // ----------------------------------------------------------------
+  function copyAssetId() {
+    vscode.postMessage({ type: 'copyAssetId' });
+    assetIdCopied = true;
+    clearTimeout(copyResetTimer);
+    copyResetTimer = setTimeout(() => assetIdCopied = false, 5000);
+  }
+
   function openImage(name) {
     vscode.postMessage({ type: 'openImage', name });
   }
@@ -68,7 +77,12 @@
     <div class="sidebar-info">
       <div class="info-row">
         <span class="info-label">ImageCollection ID</span>
-        <span class="info-value asset-id" title={data.assetId}>{data.assetId}</span>
+        <span class="info-value asset-id copyable-id" title={data.assetId}>
+          <span class="copyable-id-value">{data.assetId}</span>
+          <button class="copy-id-btn" title="Copy image collection ID" onclick={copyAssetId}>
+            <i class="codicon" class:codicon-copy={!assetIdCopied} class:codicon-check={assetIdCopied}></i>
+          </button>
+        </span>
       </div>
       <div class="info-row">
         <span class="info-label">Date</span>
@@ -259,6 +273,35 @@
       background: var(--vscode-textCodeBlock-background);
       padding: var(--vscee-space-xs) var(--vscee-space-sm);
       border-radius: var(--vscee-radius-md);
+    }
+    .copyable-id {
+      display: flex;
+      align-items: center;
+      min-width: 0;
+    }
+    .copyable-id-value {
+      flex: 1 1 auto;
+      min-width: 0;
+      word-break: break-all;
+    }
+    .copy-id-btn {
+      display: inline-flex;
+      align-items: center;
+      flex: 0 0 auto;
+      margin-left: var(--vscee-space-xs);
+      padding: var(--vscee-space-xxs) var(--vscee-space-sm);
+      border: none;
+      border-radius: var(--vscee-radius-md);
+      background: none;
+      color: var(--vscode-foreground);
+      cursor: pointer;
+      opacity: 0;
+
+      &:hover { background: var(--vscode-list-hoverBackground); opacity: 1; }
+    }
+    .copyable-id {
+      &:hover .copy-id-btn,
+      &:focus-within .copy-id-btn { opacity: 0.7; }
     }
 
     /* ==================================================================

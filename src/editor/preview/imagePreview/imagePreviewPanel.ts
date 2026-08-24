@@ -14,8 +14,8 @@
 
 import * as vscode from 'vscode';
 import { marked } from 'marked';
-import { EEAsset, EEBand } from '../../../sidebar/assets/eeApiClient.js';
-import { designTokens, escapeHtml } from '../../../shared/index.js';
+import { EEAsset, EEBand, getAsset } from '../../../sidebar/assets/eeApiClient.js';
+import { designTokens, codiconsCss, escapeHtml } from '../../../shared/index.js';
 import { filesize } from 'filesize';
 import dayjs from 'dayjs';
 import { ensureEe, computeValue, getThumbUrlRest } from '../../../shared/eeSession.js';
@@ -33,7 +33,7 @@ const GLOBAL_BBOX = [-180, -89, 180, 89];
 // PUBLIC API
 // ==================================================================
 /** Opens a read-only WebView showing full metadata for an IMAGE asset. */
-export function openImagePreview(asset: EEAsset): void {
+export function openImagePreview(asset: EEAsset, accessToken: string): void {
   const shortName = asset.name.split('/').pop() || 'Image';
   const panel = vscode.window.createWebviewPanel(
     'earthengine.imagePreview',
@@ -48,11 +48,63 @@ export function openImagePreview(asset: EEAsset): void {
   // Handle messages from the WebView (lazy loading of thumbnail + min/max)
   panel.webview.onDidReceiveMessage(async (msg: { type: string }) => {
     if (msg.type === 'ready') {
-      // Fire-and-forget: send thumbnail + min/max data asynchronously
+      // Fire-and-forget: send asynchronous image and parent metadata.
       sendThumbnail(asset, panel);
       sendMinMax(asset, panel);
+      sendParentCollection(asset, accessToken, panel);
+    } else if (msg.type === 'copyAssetId') {
+      await vscode.env.clipboard.writeText(asset.name);
+    } else if (msg.type === 'openParentCollection') {
+      await openParentCollection(asset, accessToken);
     }
   });
+}
+
+// ==================================================================
+// PARENT COLLECTION
+// ==================================================================
+/** Sends parent metadata only when the immediate parent is an image collection. */
+async function sendParentCollection(
+  asset: EEAsset,
+  accessToken: string,
+  panel: vscode.WebviewPanel,
+): Promise<void> {
+  const parentName = asset.name.slice(0, asset.name.lastIndexOf('/'));
+  if (!parentName) {
+    return;
+  }
+
+  try {
+    const parent = await getAsset(parentName, accessToken);
+    if (parent.type === 'IMAGE_COLLECTION') {
+      panel.webview.postMessage({
+        type: 'parentCollection',
+        name: parent.name,
+      });
+    }
+  } catch {
+    // A missing or inaccessible parent is not displayed in the sidebar.
+  }
+}
+
+/** Opens the immediate parent when it is confirmed to be an image collection. */
+async function openParentCollection(asset: EEAsset, accessToken: string): Promise<void> {
+  const parentName = asset.name.slice(0, asset.name.lastIndexOf('/'));
+  if (!parentName) {
+    return;
+  }
+
+  try {
+    const parent = await getAsset(parentName, accessToken);
+    if (parent.type === 'IMAGE_COLLECTION') {
+      const { openImageCollectionPreview } =
+        await import('../imageCollectionPreview/imageCollectionPreviewPanel.js');
+      await openImageCollectionPreview(parent, accessToken);
+    }
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    vscode.window.showErrorMessage(`Failed to open parent collection: ${message}`);
+  }
 }
 
 // ==================================================================
@@ -241,8 +293,9 @@ function buildImageHtml(asset: EEAsset, webview: vscode.Webview): string {
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'none'; img-src https: data:; style-src 'unsafe-inline'; script-src 'nonce-${nonce}';"
+      content="default-src 'none'; img-src https: data:; font-src data:; style-src 'unsafe-inline'; script-src 'nonce-${nonce}';"
     />
+    <style>${codiconsCss}</style>
     <style>${designTokens}</style>
   </head>
   <body>
