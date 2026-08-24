@@ -15,27 +15,15 @@ Configure the extension through VS Code Settings using the `earthengine.*` keys 
 
 ## Map basemaps
 
-| Setting | Default | Description |
-| --- | --- | --- |
-| `earthengine.map.darkBasemap` | `CartoDB.DarkMatter` | Basemap used when VS Code uses a dark colour theme. |
-| `earthengine.map.lightBasemap` | `CartoDB.Positron` | Basemap used when VS Code uses a light colour theme. |
-| `earthengine.map.satelliteBasemap` | `Esri.WorldImagery` | Basemap used when satellite view is active. |
-| `earthengine.map.planBasemap` | `CartoDB.Voyager` | Basemap used when plan view is active. |
+| Setting | Default | Description | Available values |
+| --- | --- | --- | --- |
+| `earthengine.map.darkBasemap` | `CartoDB.DarkMatter` | Basemap used when VS Code uses a dark colour theme. | `CartoDB.DarkMatter`, `Stadia.AlidadeSmoothDark`, `Stadia.StamenTonerDark`, `Jawg.Dark`, `Jawg.Matrix` |
+| `earthengine.map.lightBasemap` | `CartoDB.Positron` | Basemap used when VS Code uses a light colour theme. | `CartoDB.Positron`, `Stadia.AlidadeSmooth`, `Stadia.StamenTonerLite`, `Jawg.Light`, `Esri.WorldGrayCanvas` |
+| `earthengine.map.satelliteBasemap` | `Esri.WorldImagery` | Basemap used when satellite view is active. | `Esri.WorldImagery`, `Stadia.AlidadeSatellite`, `GeoportailFrance.orthos` |
+| `earthengine.map.planBasemap` | `CartoDB.Voyager` | Basemap used when plan view is active. | `GeoportailFrance.plan`, `CartoDB.Voyager`, `OpenStreetMap.Mapnik`, `OpenTopoMap`, `Stadia.OSMBright`, `Stadia.Outdoors`, `Stadia.StamenToner`, `Thunderforest.SpinalMap`, `Thunderforest.Landscape`, `Thunderforest.Outdoors`, `Thunderforest.Atlas`, `Jawg.Streets`, `Esri.WorldTopoMap` |
 
-### Dark basemap choices
+:::warning[Provider credentials]
 
-`CartoDB.DarkMatter`, `Stadia.AlidadeSmoothDark`, `Stadia.StamenTonerDark`, `Jawg.Dark`, `Jawg.Matrix`.
+Some providers, including Jawg and Thunderforest, require an API key. Selecting a provider only chooses its name; ensure its provider-specific credentials are available before using it.
 
-### Light basemap choices
-
-`CartoDB.Positron`, `Stadia.AlidadeSmooth`, `Stadia.StamenTonerLite`, `Jawg.Light`, `Esri.WorldGrayCanvas`.
-
-### Satellite basemap choices
-
-`Esri.WorldImagery`, `Stadia.AlidadeSatellite`, `GeoportailFrance.orthos`.
-
-### Plan basemap choices
-
-`GeoportailFrance.plan`, `CartoDB.Voyager`, `OpenStreetMap.Mapnik`, `OpenTopoMap`, `Stadia.OSMBright`, `Stadia.Outdoors`, `Stadia.StamenToner`, `Thunderforest.SpinalMap`, `Thunderforest.Landscape`, `Thunderforest.Outdoors`, `Thunderforest.Atlas`, `Jawg.Streets`, `Esri.WorldTopoMap`.
-
-Some providers, including Jawg and Thunderforest, require an API key. The setting selects the provider name; ensure any provider-specific configuration is available before selecting it.
+:::
