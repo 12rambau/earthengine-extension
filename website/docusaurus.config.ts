@@ -15,7 +15,8 @@ const config: Config = {
   },
 
   url: 'https://12rambau.github.io',
-  baseUrl: '/',
+  baseUrl:
+    process.env.DEPLOYMENT_TARGET === 'github-pages' ? '/earthengine-extension/' : '/',
 
   organizationName: '12rambau',
   projectName: 'earthengine-extension',
