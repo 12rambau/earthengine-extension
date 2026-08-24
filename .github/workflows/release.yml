@@ -51,7 +51,7 @@ jobs:
   build-documentation:
     name: Build documentation
     runs-on: ubuntu-latest
-
+    if: github.event.release.prerelease == false
     steps:
       - uses: actions/checkout@v4
 
@@ -78,6 +78,7 @@ jobs:
   deploy-documentation:
     name: Deploy documentation
     needs: build-documentation
+    if: github.event.release.prerelease == false
     runs-on: ubuntu-latest
     permissions:
       pages: write
