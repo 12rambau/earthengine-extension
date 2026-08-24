@@ -64,7 +64,7 @@ const config: Config = {
       },
       items: [
         {
-          to: '/',
+          to: '/getting-started',
           position: 'left',
           label: 'Documentation',
         },
@@ -98,8 +98,8 @@ const config: Config = {
           title: 'Documentation',
           items: [
             {
-              label: 'README',
-              to: '/',
+              label: 'Getting started',
+              to: '/getting-started',
             },
           ],
         },

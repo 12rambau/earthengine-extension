@@ -2,7 +2,6 @@ import type {SidebarsConfig} from '@docusaurus/plugin-content-docs';
 
 const sidebars: SidebarsConfig = {
   docsSidebar: [
-    'home',
     'getting-started',
     'overview',
     'assets',
