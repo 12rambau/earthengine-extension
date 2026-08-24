@@ -58,6 +58,7 @@ export async function openTasksPanel(
     vscode.ViewColumn.One,
     { enableScripts: true, retainContextWhenHidden: true },
   );
+  panel.iconPath = new vscode.ThemeIcon('tasklist');
 
   let allOps: Operation[] = [];
   let resolvedProject = profile.project;
