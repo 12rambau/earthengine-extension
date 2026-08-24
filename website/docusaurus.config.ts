@@ -1,6 +1,10 @@
+import path from 'path';
 import {themes as prismThemes} from 'prism-react-renderer';
 import type {Config} from '@docusaurus/types';
 import type * as Preset from '@docusaurus/preset-classic';
+
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const { version } = require('../package.json') as { version: string };
 
 // This runs in Node.js - Don't use client-side code here (browser APIs, JSX...)
 
@@ -32,6 +36,22 @@ const config: Config = {
     defaultLocale: 'en',
     locales: ['en'],
   },
+
+  customFields: {
+    extensionVersion: version,
+  },
+
+  plugins: [
+    // Sets --cosmos-version so the cosmos sidebar badge shows the extension version.
+    function injectVersion() {
+      return {
+        name: 'inject-extension-version',
+        getClientModules() {
+          return [path.resolve(__dirname, 'src/versionBadge.ts')];
+        },
+      };
+    },
+  ],
 
   presets: [
     [
@@ -71,51 +91,25 @@ const config: Config = {
         },
         {
           type: 'html',
-          className: 'navbar-icon-item',
           value:
-            '<a class="navbar__item navbar-icon-link" href="https://marketplace.visualstudio.com/items?itemName=12rambau.earthengine" target="_blank" rel="noopener noreferrer" aria-label="VS Code Marketplace" title="VS Code Marketplace"><span class="navbar-vscode-icon" aria-hidden="true"></span></a>',
+            '<a class="navbar__item navbar__link" href="https://marketplace.visualstudio.com/items?itemName=12rambau.earthengine" target="_blank" rel="noopener noreferrer" aria-label="VS Code Marketplace" title="VS Code Marketplace"><span class="navbar-vscode-icon" aria-hidden="true"></span></a>',
           position: 'right',
         },
         {
           type: 'html',
-          className: 'navbar-icon-item',
           value:
-            '<a class="navbar__item navbar-icon-link" href="https://open-vsx.org/extension/12rambau/earthengine" target="_blank" rel="noopener noreferrer" aria-label="Open VSX Registry" title="Open VSX Registry"><span class="navbar-open-vsx-icon" aria-hidden="true"></span></a>',
+            '<a class="navbar__item navbar__link" href="https://open-vsx.org/extension/12rambau/earthengine" target="_blank" rel="noopener noreferrer" aria-label="Open VSX Registry" title="Open VSX Registry"><span class="navbar-open-vsx-icon" aria-hidden="true"></span></a>',
           position: 'right',
         },
         {
           type: 'html',
-          className: 'navbar-icon-item navbar-icon-item-last',
           value:
-            '<a class="navbar__item navbar-icon-link" href="https://github.com/12rambau/earthengine-extension" target="_blank" rel="noopener noreferrer" aria-label="GitHub repository" title="GitHub repository"><span class="navbar-github-icon" aria-hidden="true"></span></a>',
+            '<a class="navbar__item navbar__link" href="https://github.com/12rambau/earthengine-extension" target="_blank" rel="noopener noreferrer" aria-label="GitHub repository" title="GitHub repository"><span class="navbar-github-icon" aria-hidden="true"></span></a>',
           position: 'right',
         },
       ],
     },
-    footer: {
-      style: 'dark',
-      links: [
-        {
-          title: 'Documentation',
-          items: [
-            {
-              label: 'Getting started',
-              to: '/getting-started',
-            },
-          ],
-        },
-        {
-          title: 'More',
-          items: [
-            {
-              label: 'GitHub',
-              href: 'https://github.com/12rambau/earthengine-extension',
-            },
-          ],
-        },
-      ],
-      copyright: `Copyright © ${new Date().getFullYear()} Earth Engine for VS Code. Built with Docusaurus.`,
-    },
+    footer: undefined,
     prism: {
       theme: prismThemes.github,
       darkTheme: prismThemes.dracula,
