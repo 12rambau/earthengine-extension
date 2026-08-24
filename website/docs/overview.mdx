@@ -1,0 +1,45 @@
+---
+sidebar_position: 3
+---
+
+# Extension overview
+
+The extension uses three distinct VS Code surfaces: Activity Bar sidebar views for discovery, docked Panel views for compact task monitoring, and Webview editors for detailed work. Sidebar collections are lazy-loaded where collections can be large; singleton editors preserve their state while you switch between tabs.
+
+## Sidebar sections
+
+| Section | Purpose | Primary actions |
+| --- | --- | --- |
+| [Profiles](./sections/profiles) | Authenticate and choose the active project profile. | Add, activate, sign out, remove, create a Python script. |
+| [Assets](./sections/assets) | Browse the Earth Engine asset hierarchy. | Search, refresh, create folders, preview, copy, move, delete. |
+| [Docs](./sections/api-docs) | Browse the Earth Engine JavaScript API. | Search and refresh the local API registry. |
+| [Export Tasks](./sections/export-tasks) | Monitor export operations. | Filter, refresh, cancel, open the full task editor. |
+| [Import Tasks](./sections/import-tasks) | Monitor ingestion and import operations. | Filter, refresh, cancel, open the full task editor. |
+| [Dataset](./sections/dataset) | Explore Google, Publisher, and Community catalog entries. | Search, refresh, open details, copy an ID, open the source page. |
+
+<div className="screenshot-placeholder" role="note">
+  <strong>Activity Bar and Earth Engine sidebar screenshot</strong>
+  <span>Show the six sections expanded in a real VS Code workspace.</span>
+</div>
+
+## Docked Panel views
+
+| Panel | Container | What it provides |
+| --- | --- | --- |
+| [EE Export](./panels/ee-export) | Bottom Panel | Compact, live list of export operations with state, elapsed time, cancellation, and result preview actions. |
+| [EE Import](./panels/ee-import) | Bottom Panel | Compact, live list of import operations with state, elapsed time, cancellation, and result preview actions. |
+
+## Webview editors
+
+| Editor | Opens from | What it provides |
+| --- | --- | --- |
+| [Asset Manager](./editors/asset-manager) | Assets title action | Sortable, paginated assets with breadcrumbs and management actions. |
+| [Image preview](./editors/image-preview) | Image context action | Thumbnail, description, bands with min/max values, and properties. |
+| [ImageCollection preview](./editors/image-collection-preview) | ImageCollection context action | Mosaic thumbnail, child images, first-image bands, and properties. |
+| [Table preview](./editors/table-preview) | Table context action | Thumbnail, description, features, inferred columns, and properties. |
+| [Export Tasks](./editors/export-tasks) | Export Tasks title action or EE Export panel | Sortable, paginated export operation table with live refresh. |
+| [Import Tasks](./editors/import-tasks) | Import Tasks title action or EE Import panel | Sortable, paginated import operation table with live refresh. |
+| [Dataset details](./editors/dataset-details) | Dataset context action | Dataset metadata, bands, properties, and copyable Earth Engine snippets. |
+| [Interactive Map](./editors/interactive-map) | Profiles title action or command palette | Leaflet map, Earth Engine tiles, layer controls, inspector, scale, and visualisation editor. |
+
+Each row links to its dedicated reference page; use the sidebar categories to browse the same architecture by surface type.

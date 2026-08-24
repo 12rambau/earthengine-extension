@@ -1,0 +1,29 @@
+---
+sidebar_position: 9
+---
+
+# Settings reference
+
+Configure the extension through VS Code Settings using the `earthengine.*` keys below.
+
+## Tasks
+
+| Setting | Default | Range | Description |
+| --- | --- | --- | --- |
+| `earthengine.tasks.maxItems` | `100` | `10`–`1000` | Maximum tasks displayed by sidebar and panel tree views. |
+| `earthengine.tasks.scanLimit` | `1000` | `100`–`5000` | Maximum operations fetched while loading or refreshing tasks. |
+
+## Map basemaps
+
+| Setting | Default | Description | Available values |
+| --- | --- | --- | --- |
+| `earthengine.map.darkBasemap` | `CartoDB.DarkMatter` | Basemap used when VS Code uses a dark colour theme. | `CartoDB.DarkMatter`, `Stadia.AlidadeSmoothDark`, `Stadia.StamenTonerDark`, `Jawg.Dark`, `Jawg.Matrix` |
+| `earthengine.map.lightBasemap` | `CartoDB.Positron` | Basemap used when VS Code uses a light colour theme. | `CartoDB.Positron`, `Stadia.AlidadeSmooth`, `Stadia.StamenTonerLite`, `Jawg.Light`, `Esri.WorldGrayCanvas` |
+| `earthengine.map.satelliteBasemap` | `Esri.WorldImagery` | Basemap used when satellite view is active. | `Esri.WorldImagery`, `Stadia.AlidadeSatellite`, `GeoportailFrance.orthos` |
+| `earthengine.map.planBasemap` | `CartoDB.Voyager` | Basemap used when plan view is active. | `GeoportailFrance.plan`, `CartoDB.Voyager`, `OpenStreetMap.Mapnik`, `OpenTopoMap`, `Stadia.OSMBright`, `Stadia.Outdoors`, `Stadia.StamenToner`, `Thunderforest.SpinalMap`, `Thunderforest.Landscape`, `Thunderforest.Outdoors`, `Thunderforest.Atlas`, `Jawg.Streets`, `Esri.WorldTopoMap` |
+
+:::warning[Provider credentials]
+
+Some providers, including Jawg and Thunderforest, require an API key. Selecting a provider only chooses its name; ensure its provider-specific credentials are available before using it.
+
+:::

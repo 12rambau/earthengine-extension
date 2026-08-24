@@ -212,7 +212,7 @@ git clone https://github.com/your-org/earthengine-vscode
 
 ## Release Notes
 
-See [CHANGELOG.md](CHANGELOG.md) for the full history.
+See [CHANGELOG.md](https://github.com/12rambau/earthengine-extension/blob/main/CHANGELOG.md) for the full history.
 
 ---
 

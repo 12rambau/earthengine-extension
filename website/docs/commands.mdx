@@ -1,0 +1,69 @@
+---
+sidebar_position: 8
+---
+
+# Commands reference
+
+All commands are available from the VS Code Command Palette. Context menus and view title actions expose the relevant subset when an asset, task, dataset, or profile is selected.
+
+## Profiles
+
+| Command ID | Title | Description |
+| --- | --- | --- |
+| `earthengine.showAuthStatus` | Earth Engine: Show Authentication Status | Show the current authentication status. |
+| `earthengine.signIn` | Add Profile | Add a Google OAuth profile. |
+| `earthengine.addServiceAccount` | Add Service Account | Register a service-account key file. |
+| `earthengine.signOut` | Sign Out | Sign out the selected profile. |
+| `earthengine.activateProfile` | Earth Engine: Activate Profile | Make a profile active. |
+| `earthengine.removeProfile` | Remove Profile | Remove a stored profile. |
+| `earthengine.newScript` | New Python Script | Create a Python script configured for the extension workflow. |
+
+## Assets
+
+| Command ID | Title | Description |
+| --- | --- | --- |
+| `earthengine.refreshAssets` | Refresh Assets | Reload the asset tree root. |
+| `earthengine.searchAssets` | Earth Engine: Search Assets | Search assets in the active project. |
+| `earthengine.openAssetsPanel` | Open Asset Manager | Open the paginated Asset Manager editor. |
+| `earthengine.createFolder` | New Folder | Create a folder below the selected parent. |
+| `earthengine.refreshAssetFolder` | Refresh Folder | Reload a selected folder or ImageCollection. |
+| `earthengine.openAssetPreview` | Open Preview | Open a type-specific asset preview. |
+| `earthengine.copyAssetId` | Copy Asset ID | Copy the full Earth Engine asset name. |
+| `earthengine.deleteAsset` | Earth Engine: Delete Asset | Delete an asset or recursively delete a container. |
+| `earthengine.moveAsset` | Earth Engine: Move Asset | Move an asset; containers are processed recursively. |
+| `earthengine.copyAsset` | Earth Engine: Copy Asset | Copy an asset; containers are processed recursively. |
+
+## API docs and datasets
+
+| Command ID | Title | Description |
+| --- | --- | --- |
+| `earthengine.refreshDocs` | Earth Engine: Refresh API Docs | Reload the API registry. |
+| `earthengine.searchDocs` | Earth Engine: Search API Docs | Search Earth Engine API symbols. |
+| `earthengine.refreshDatasets` | Earth Engine: Refresh Datasets | Reload catalog entries. |
+| `earthengine.searchDatasets` | Earth Engine: Search Datasets | Search the dataset catalog. |
+| `earthengine.openDatasetInBrowser` | Open in Browser | Open the dataset's official source page. |
+| `earthengine.copyDatasetId` | Copy Dataset ID | Copy an Earth Engine dataset ID. |
+| `earthengine.openDatasetPanel` | Open Details | Open a dataset detail editor. |
+| `earthengine.openCommunityDatasetPanel` | Open Details | Open a Community catalog dataset detail editor. |
+
+## Tasks
+
+| Command ID | Title | Description |
+| --- | --- | --- |
+| `earthengine.refreshTasks` | Refresh Tasks | Reload the active sidebar task view. |
+| `earthengine.filterTasksByStatus` | Filter by Status | Filter the active sidebar task view. |
+| `earthengine.cancelTask` | Cancel Task | Cancel a running operation. |
+| `earthengine.openExportTasksPanel` | Earth Engine: Open Export Tasks | Open export operations in the editor. |
+| `earthengine.openImportTasksPanel` | Earth Engine: Open Import Tasks | Open import operations in the editor. |
+| `earthengine.panelTasksRefresh` | Refresh Tasks | Reload the active EE Export or EE Import docked Panel. |
+| `earthengine.panelTasksOpenExportEditor` | Open in Editor | Open the EE Export docked Panel data in the Export Tasks editor. |
+| `earthengine.panelTasksOpenImportEditor` | Open in Editor | Open the EE Import docked Panel data in the Import Tasks editor. |
+| `earthengine.panelFilterTasksByStatus` | Filter by Status | Filter the active EE Export or EE Import docked Panel. |
+
+## Map and development helpers
+
+| Command ID | Title | Description |
+| --- | --- | --- |
+| `earthengine.openMap` | Open Map View | Open or reveal the interactive map editor. |
+| `earthengine.map.testNighttimeLights` | Earth Engine: Test – Nighttime Lights Trend | Load the nighttime-lights test layer. |
+| `earthengine.map.testSepalViz` | Earth Engine: Test – SEPAL Visualization Presets | Load visualisation-preset test data. |

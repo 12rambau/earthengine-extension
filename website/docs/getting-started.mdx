@@ -1,0 +1,29 @@
+---
+sidebar_position: 2
+---
+
+# Getting started
+
+## Install
+
+Install **Earth Engine** from the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=12rambau.earthengine) or [Open VSX](https://open-vsx.org/extension/12rambau/earthengine). Open the Earth Engine view from the VS Code Activity Bar after installation.
+
+## Add and activate a profile
+
+1. In the **Profiles** view, select **Add Profile** to authenticate through Google OAuth.
+2. Alternatively, select **Add Service Account** and either choose a key file or paste the JSON content directly.
+3. Select a profile to make it active. The active profile is marked with a green status indicator.
+4. Assets, tasks, dataset metadata, and API docs load against the active profile's project.
+
+Credentials are stored in `~/.config/earthengine/profiles/`, matching the location used by the Earth Engine CLI.
+
+<div className="screenshot-placeholder" role="note">
+  <strong>Profiles view screenshot</strong>
+  <span>Show OAuth and service-account profiles, including the active-state indicator.</span>
+</div>
+
+## First workflow
+
+Once a profile is active, use the **Assets** view to locate an image, collection, table, or folder. Open its context menu to preview metadata or manage it. Use the **Export Tasks** and **Import Tasks** views to follow operations started elsewhere in Earth Engine.
+
+For a complete orientation, read [Extension overview](./overview).

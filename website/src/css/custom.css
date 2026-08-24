@@ -1,0 +1,243 @@
+@import 'cosmos-docusaurus-theme/css/theme.css';
+
+/* ==================================================================
+   PRIMARY COLORS
+   ================================================================== */
+:root {
+	--ifm-color-primary: #4285f4;
+	--ifm-color-primary-rgb: 66, 133, 244;
+	--ifm-color-primary-dark: #1a73e8;
+	--ifm-color-primary-darker: #1765cc;
+	--ifm-color-primary-darkest: #1557b0;
+	--ifm-color-primary-light: #669df6;
+	--ifm-color-primary-light-rgb: 102, 157, 246;
+	--ifm-color-primary-lighter: #8ab4f8;
+	--ifm-color-primary-lightest: #d2e3fc;
+
+	/* ==================================================================
+	   COSMOS BRAND
+	   ================================================================== */
+	--cosmos-brand: var(--ifm-color-primary);
+	--cosmos-brand-rgb: var(--ifm-color-primary-rgb);
+	--cosmos-brand-light: var(--ifm-color-primary-light);
+	--cosmos-brand-light-rgb: var(--ifm-color-primary-light-rgb);
+}
+
+/* ==================================================================
+   DARK PRIMARY COLORS
+   ================================================================== */
+[data-theme='dark'] {
+	--ifm-color-primary: #8ab4f8;
+	--ifm-color-primary-rgb: 138, 180, 248;
+	--ifm-color-primary-dark: #669df6;
+	--ifm-color-primary-darker: #4285f4;
+	--ifm-color-primary-darkest: #1a73e8;
+	--ifm-color-primary-light: #aecbfa;
+	--ifm-color-primary-light-rgb: 174, 203, 250;
+	--ifm-color-primary-lighter: #d2e3fc;
+	--ifm-color-primary-lightest: #e8f0fe;
+}
+
+/* ==================================================================
+   NAVBAR ICONS
+   ================================================================== */
+.navbar-icon-item {
+	padding: 0 !important;
+}
+
+.navbar-icon-item-last {
+	margin-right: var(--ifm-spacing-horizontal);
+	padding-right: var(--ifm-spacing-horizontal) !important;
+	border-right: 1px solid var(--ifm-color-emphasis-300);
+}
+
+.navbar-icon-link {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 2rem;
+	height: 2rem;
+	padding: 0;
+	border-radius: var(--ifm-global-radius);
+
+	&:hover {
+		background: var(--cosmos-brand-light);
+	}
+
+	&:focus-visible {
+		outline: 2px solid var(--ifm-color-primary);
+		outline-offset: 2px;
+	}
+
+	.navbar-vscode-icon,
+	.navbar-open-vsx-icon,
+	.navbar-github-icon {
+		width: 1.125rem;
+		height: 1.125rem;
+		display: block;
+		background: currentcolor;
+		mask-position: center;
+		mask-repeat: no-repeat;
+		mask-size: contain;
+	}
+
+	.navbar-vscode-icon { mask-image: url('/icons/vscode.svg'); }
+	.navbar-open-vsx-icon { mask-image: url('/icons/open-vsx.svg'); }
+	.navbar-github-icon { mask-image: url('/icons/github.svg'); }
+}
+
+/* ==================================================================
+   LANDING PAGE
+   ================================================================== */
+.site-landing {
+	display: grid;
+	grid-template-columns: minmax(14rem, 0.55fr) minmax(28rem, 1.25fr) minmax(18rem, 0.85fr);
+	align-items: center;
+	gap: clamp(2rem, 4vw, 5rem);
+	width: min(100% - 3rem, 82rem);
+	min-height: calc(100vh - var(--ifm-navbar-height));
+	margin: 0 auto;
+	padding: 4rem 0;
+}
+
+.site-landing__hero {
+	max-width: 34rem;
+}
+
+.site-landing__logo-column {
+	display: flex;
+	justify-content: center;
+}
+
+.site-landing__logo {
+	width: clamp(12rem, 19vw, 18rem);
+	aspect-ratio: 1;
+	height: auto;
+	object-fit: contain;
+}
+
+.site-landing__eyebrow,
+.site-landing__video-label {
+	margin: 0;
+	color: var(--ifm-color-primary);
+	font-family: var(--ifm-font-family-monospace);
+	font-size: var(--ifm-font-size-small);
+	font-weight: 600;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+}
+
+.site-landing h1 {
+	margin: 0;
+	font-size: clamp(2.75rem, 6vw, 5.25rem);
+	line-height: 0.98;
+}
+
+.site-landing__summary {
+	max-width: 32rem;
+	margin: 1.75rem 0 0;
+	font-size: clamp(1.125rem, 1.6vw, 1.35rem);
+	line-height: 1.6;
+	color: var(--ifm-color-emphasis-700);
+}
+
+.site-landing__video-frame {
+	display: flex;
+	flex-direction: column;
+	justify-content: end;
+	aspect-ratio: 16 / 10;
+	padding: clamp(1.5rem, 4vw, 3rem);
+	border: 1px solid var(--ifm-color-emphasis-300);
+	border-radius: var(--ifm-card-border-radius);
+	background: var(--ifm-background-surface-color);
+	box-shadow: var(--ifm-global-shadow-lw);
+}
+
+.site-landing__video-frame strong {
+	font-size: clamp(1.25rem, 2vw, 1.75rem);
+}
+
+.site-landing__video-frame span:last-child {
+	margin-top: 0.5rem;
+	color: var(--ifm-color-emphasis-700);
+}
+
+	.media-placeholder,
+	.screenshot-placeholder {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		gap: 0.5rem;
+		border: 1px dashed var(--ifm-color-emphasis-400);
+		background: var(--ifm-background-surface-color);
+		color: var(--ifm-color-emphasis-700);
+		text-align: center;
+	}
+
+	.media-placeholder {
+		min-height: 20rem;
+		margin: 3rem 0;
+		padding: 2rem;
+	}
+
+	.media-placeholder-kicker {
+		color: var(--ifm-color-primary);
+		font-family: var(--ifm-font-family-monospace);
+		font-size: var(--ifm-font-size-small);
+		text-transform: uppercase;
+	}
+
+	.screenshot-placeholder {
+		min-height: 18rem;
+		margin: 2rem 0;
+		padding: 2rem;
+	}
+
+	.docs-action-grid {
+		display: grid;
+		grid-template-columns: repeat(3, minmax(0, 1fr));
+		gap: var(--ifm-spacing-horizontal);
+		margin: 2.5rem 0;
+	}
+
+	.docs-action-card {
+		display: flex;
+		flex-direction: column;
+		gap: 0.5rem;
+		padding: 1.25rem;
+		border: 1px solid var(--ifm-color-emphasis-300);
+		border-radius: var(--ifm-card-border-radius);
+		color: inherit;
+
+		&:hover {
+			border-color: var(--ifm-color-primary);
+			color: inherit;
+			text-decoration: none;
+		}
+	}
+
+@media screen and (max-width: 1050px) {
+	.site-landing {
+		grid-template-columns: minmax(0, 0.9fr) minmax(20rem, 1.1fr);
+		gap: clamp(2rem, 6vw, 4rem);
+		width: min(100% - 2rem, 38rem);
+		padding: 3rem 0;
+	}
+
+	.site-landing__logo-column {
+		display: none;
+	}
+}
+
+
+@media screen and (max-width: 700px) {
+	.site-landing {
+		grid-template-columns: 1fr;
+		gap: 3rem;
+	}
+
+	.site-landing__video-frame {
+		aspect-ratio: 16 / 11;
+	}
+}
