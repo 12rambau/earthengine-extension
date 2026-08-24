@@ -301,10 +301,14 @@ export class AssetsSection extends SidebarSection {
           return false;
         }
         try {
-          const shortName = name.split('/').pop() || name;
           await vscode.window.withProgress(
-            { location: vscode.ProgressLocation.Notification, title: `Deleting "${shortName}"…` },
-            () => deleteAsset(name, token),
+            { location: vscode.ProgressLocation.Notification, title: 'Deleting asset…' },
+            (_progress) => {
+              _progress.report({ message: name });
+              return deleteAsset(name, token, (assetName) => {
+                _progress.report({ message: assetName });
+              });
+            },
           );
           vscode.window.showInformationMessage(`Asset "${name}" deleted.`);
           this.provider.refresh();
@@ -334,10 +338,14 @@ export class AssetsSection extends SidebarSection {
           return false;
         }
         try {
-          const shortName = source.split('/').pop() || source;
           await vscode.window.withProgress(
-            { location: vscode.ProgressLocation.Notification, title: `Moving "${shortName}"…` },
-            () => moveAsset(source, destination, token),
+            { location: vscode.ProgressLocation.Notification, title: 'Moving asset…' },
+            (_progress) => {
+              _progress.report({ message: source });
+              return moveAsset(source, destination, token, (assetName) => {
+                _progress.report({ message: assetName });
+              });
+            },
           );
           vscode.window.showInformationMessage(`Asset moved to "${destination}".`);
           this.provider.refresh();
@@ -367,10 +375,14 @@ export class AssetsSection extends SidebarSection {
           return false;
         }
         try {
-          const shortName = source.split('/').pop() || source;
           await vscode.window.withProgress(
-            { location: vscode.ProgressLocation.Notification, title: `Copying "${shortName}"…` },
-            () => copyAsset(source, destination, token),
+            { location: vscode.ProgressLocation.Notification, title: 'Copying asset…' },
+            (_progress) => {
+              _progress.report({ message: source });
+              return copyAsset(source, destination, token, (assetName) => {
+                _progress.report({ message: assetName });
+              });
+            },
           );
           vscode.window.showInformationMessage(`Asset copied to "${destination}".`);
           this.provider.refresh();

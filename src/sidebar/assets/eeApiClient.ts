@@ -116,17 +116,26 @@ export async function listFeatures(
  * Deletes an asset by name.
  * Containers (folders, image collections) are deleted recursively.
  */
-export async function deleteAsset(name: string, accessToken: string): Promise<void> {
+export async function deleteAsset(
+  name: string,
+  accessToken: string,
+  onProgress?: (assetName: string) => void,
+): Promise<void> {
   const asset = await getAsset(name, accessToken);
   if (CONTAINER_TYPES.has(asset.type)) {
-    await deleteContainerRecursive(name, accessToken);
+    await deleteContainerRecursive(name, accessToken, onProgress);
   } else {
-    await deleteLeaf(name, accessToken);
+    await deleteLeaf(name, accessToken, onProgress);
   }
 }
 
 /** Deletes a single (non-container) asset. */
-async function deleteLeaf(name: string, accessToken: string): Promise<void> {
+async function deleteLeaf(
+  name: string,
+  accessToken: string,
+  onProgress?: (assetName: string) => void,
+): Promise<void> {
+  onProgress?.(name);
   const url = `${EE_API_BASE}/${name}`;
   await httpRequest(url, 'DELETE', accessToken);
 }
@@ -191,16 +200,20 @@ async function copyContainerProperties(
 }
 
 /** Recursively deletes a container and all its children (deepest first). */
-async function deleteContainerRecursive(name: string, accessToken: string): Promise<void> {
+async function deleteContainerRecursive(
+  name: string,
+  accessToken: string,
+  onProgress?: (assetName: string) => void,
+): Promise<void> {
   const children = await listAllAssets(name, accessToken);
   for (const child of children) {
     if (CONTAINER_TYPES.has(child.type)) {
-      await deleteContainerRecursive(child.name, accessToken);
+      await deleteContainerRecursive(child.name, accessToken, onProgress);
     } else {
-      await deleteLeaf(child.name, accessToken);
+      await deleteLeaf(child.name, accessToken, onProgress);
     }
   }
-  await deleteLeaf(name, accessToken);
+  await deleteLeaf(name, accessToken, onProgress);
 }
 
 /** Internal recursive copy implementation; caller is responsible for fetching the asset. */
@@ -208,7 +221,9 @@ async function copyAssetImpl(
   asset: EEAsset,
   destinationName: string,
   accessToken: string,
+  onProgress?: (assetName: string) => void,
 ): Promise<EEAsset> {
+  onProgress?.(asset.name);
   if (!CONTAINER_TYPES.has(asset.type)) {
     const url = `${EE_API_BASE}/${asset.name}:copy`;
     const body = JSON.stringify({ destinationName });
@@ -232,7 +247,7 @@ async function copyAssetImpl(
     // IMAGE_COLLECTION children need properties; listAllAssets doesn't return them
     const childAsset =
       child.type === 'IMAGE_COLLECTION' ? await getAsset(child.name, accessToken) : child;
-    await copyAssetImpl(childAsset, destinationName + relativeSuffix, accessToken);
+    await copyAssetImpl(childAsset, destinationName + relativeSuffix, accessToken, onProgress);
   }
 
   return created;
@@ -250,6 +265,7 @@ export async function moveAsset(
   sourceName: string,
   destinationName: string,
   accessToken: string,
+  onProgress?: (assetName: string) => void,
 ): Promise<EEAsset> {
   if (destinationName === sourceName || destinationName.startsWith(sourceName + '/')) {
     throw new Error(`Cannot move "${sourceName}" into itself or a descendant.`);
@@ -258,14 +274,15 @@ export async function moveAsset(
   const asset = await getAsset(sourceName, accessToken);
 
   if (!CONTAINER_TYPES.has(asset.type)) {
+    onProgress?.(sourceName);
     const url = `${EE_API_BASE}/${sourceName}:move`;
     const body = JSON.stringify({ destinationName });
     const response = await httpRequest(url, 'POST', accessToken, body);
     return JSON.parse(response) as EEAsset;
   }
 
-  const result = await copyAssetImpl(asset, destinationName, accessToken);
-  await deleteContainerRecursive(sourceName, accessToken);
+  const result = await copyAssetImpl(asset, destinationName, accessToken, onProgress);
+  await deleteContainerRecursive(sourceName, accessToken, onProgress);
   return result;
 }
 
@@ -279,12 +296,13 @@ export async function copyAsset(
   sourceName: string,
   destinationName: string,
   accessToken: string,
+  onProgress?: (assetName: string) => void,
 ): Promise<EEAsset> {
   if (destinationName === sourceName || destinationName.startsWith(sourceName + '/')) {
     throw new Error(`Cannot copy "${sourceName}" into itself or a descendant.`);
   }
   const asset = await getAsset(sourceName, accessToken);
-  return copyAssetImpl(asset, destinationName, accessToken);
+  return copyAssetImpl(asset, destinationName, accessToken, onProgress);
 }
 
 /**
