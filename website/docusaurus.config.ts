@@ -91,23 +91,20 @@ const config: Config = {
         },
         {
           type: 'html',
-          className: 'navbar-icon-item',
           value:
-            '<a class="navbar__item navbar-icon-link" href="https://marketplace.visualstudio.com/items?itemName=12rambau.earthengine" target="_blank" rel="noopener noreferrer" aria-label="VS Code Marketplace" title="VS Code Marketplace"><span class="navbar-vscode-icon" aria-hidden="true"></span></a>',
+            '<a class="navbar__item navbar__link" href="https://marketplace.visualstudio.com/items?itemName=12rambau.earthengine" target="_blank" rel="noopener noreferrer" aria-label="VS Code Marketplace" title="VS Code Marketplace"><span class="navbar-vscode-icon" aria-hidden="true"></span></a>',
           position: 'right',
         },
         {
           type: 'html',
-          className: 'navbar-icon-item',
           value:
-            '<a class="navbar__item navbar-icon-link" href="https://open-vsx.org/extension/12rambau/earthengine" target="_blank" rel="noopener noreferrer" aria-label="Open VSX Registry" title="Open VSX Registry"><span class="navbar-open-vsx-icon" aria-hidden="true"></span></a>',
+            '<a class="navbar__item navbar__link" href="https://open-vsx.org/extension/12rambau/earthengine" target="_blank" rel="noopener noreferrer" aria-label="Open VSX Registry" title="Open VSX Registry"><span class="navbar-open-vsx-icon" aria-hidden="true"></span></a>',
           position: 'right',
         },
         {
           type: 'html',
-          className: 'navbar-icon-item navbar-icon-item-last',
           value:
-            '<a class="navbar__item navbar-icon-link" href="https://github.com/12rambau/earthengine-extension" target="_blank" rel="noopener noreferrer" aria-label="GitHub repository" title="GitHub repository"><span class="navbar-github-icon" aria-hidden="true"></span></a>',
+            '<a class="navbar__item navbar__link" href="https://github.com/12rambau/earthengine-extension" target="_blank" rel="noopener noreferrer" aria-label="GitHub repository" title="GitHub repository"><span class="navbar-github-icon" aria-hidden="true"></span></a>',
           position: 'right',
         },
       ],
