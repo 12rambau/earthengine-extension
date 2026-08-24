@@ -1,0 +1,27 @@
+---
+sidebar_position: 6
+---
+
+# Dataset catalog and API docs
+
+## Dataset catalog
+
+The **Dataset** view queries the Earth Engine STAC catalog and groups entries by Google, Publishers, and Community providers. Dataset types resolve lazily so the tree stays responsive.
+
+Open details to inspect metadata in an editor panel. The panel includes an image preview when the catalog supplies one, temporal availability, provider metadata, tags, an Earth Engine code snippet with a copy action, and the available **Description**, **Bands**, and **Properties** tabs. Community entries add their catalog-specific properties.
+
+<div className="screenshot-placeholder" role="note">
+  <strong>Dataset catalog and details screenshot</strong>
+  <span>Show provider tiers, the dataset detail panel, bands, tags, and copyable snippet.</span>
+</div>
+
+## API docs
+
+The **Docs** view holds the searchable Earth Engine JavaScript API registry. Browse the tree by namespace such as `ee.Image`, `ee.FeatureCollection`, and `ee.Reducer`. Tooltips expose a method description, argument names and types, and its return type.
+
+Use **Search API Docs** to locate symbols, and **Refresh API Docs** when the algorithm registry needs to be fetched again for the active profile.
+
+<div className="screenshot-placeholder" role="note">
+  <strong>API Docs tree screenshot</strong>
+  <span>Show a namespace expanded beside a rich method tooltip.</span>
+</div>

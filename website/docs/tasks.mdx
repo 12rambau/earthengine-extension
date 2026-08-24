@@ -1,0 +1,46 @@
+---
+sidebar_position: 5
+---
+
+# Tasks
+
+The extension exposes tasks in three places: **Export Tasks** and **Import Tasks** sidebar views, compact **EE Export** and **EE Import** docked Panel views, and full **Export Tasks** and **Import Tasks** Webview editors. All task surfaces refresh automatically every 15 seconds.
+
+## Sidebar task views
+
+The sidebar is the compact view for checking state quickly. Filter by status, refresh the list, and cancel a running task from its context action. Pending operations intentionally omit start time and elapsed duration because Earth Engine has not started them yet.
+
+<div className="screenshot-placeholder" role="note">
+  <strong>Tasks sidebar screenshot</strong>
+  <span>Show running, pending, completed, failed, and cancelled task states.</span>
+</div>
+
+## EE Export and EE Import panels
+
+The bottom Panel contains two independent compact Webviews: **EE Export** and **EE Import**. Each row shows a task state, a description or operation ID, elapsed time after the task starts, and a contextual action. Running and pending tasks can be cancelled; a successful task with a recognised destination asset can open that asset preview.
+
+Use **Open in Editor** from either panel to move from monitoring to the corresponding full task editor.
+
+<div className="screenshot-placeholder" role="note">
+  <strong>EE Export and EE Import panel screenshot</strong>
+  <span>Show the bottom Panel containers, compact rows, cancellation, and a result preview action.</span>
+</div>
+
+## Export and Import Tasks editors
+
+Open **Export Tasks** or **Import Tasks** in the editor from their respective sidebar title action, from the corresponding docked Panel, or from the Command Palette. Each is a full Webview editor with a sortable, paginated table. The editor streams operation pages as they load and performs silent incremental refreshes for non-terminal tasks. It includes cancellation, destination links where available, and preview actions for resulting assets.
+
+<div className="screenshot-placeholder" role="note">
+  <strong>Export or Import Tasks editor screenshot</strong>
+  <span>Show filters, table columns, progress, and the pagination controls.</span>
+</div>
+
+## State handling
+
+| State | Meaning in the extension |
+| --- | --- |
+| Pending | Waiting to begin; no elapsed or started time is displayed. |
+| Running | Actively processed; can be cancelled. |
+| Succeeded | Completed successfully. |
+| Failed | Completed with an API error. |
+| Cancelled | Stopped by the user or service. |
