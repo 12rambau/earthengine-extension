@@ -43,6 +43,7 @@ export class MapPanel extends EditorPanel {
       vscode.ViewColumn.Beside,
       { enableScripts: true, retainContextWhenHidden: true },
     );
+    panel.iconPath = new vscode.ThemeIcon('map');
 
     if (this.commandDisposable) {
       return;
