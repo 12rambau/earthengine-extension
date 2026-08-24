@@ -19,6 +19,7 @@ import { designTokens, escapeHtml } from '../../../shared/index.js';
 import { filesize } from 'filesize';
 import dayjs from 'dayjs';
 import { ensureEe, computeValue, getThumbUrlRest } from '../../../shared/eeSession.js';
+import { getExtensionUri } from '../../../shared/extensionContext.js';
 
 import script from './ImagePreview.svelte';
 
@@ -33,12 +34,14 @@ const GLOBAL_BBOX = [-180, -89, 180, 89];
 // ==================================================================
 /** Opens a read-only WebView showing full metadata for an IMAGE asset. */
 export function openImagePreview(asset: EEAsset): void {
+  const shortName = asset.name.split('/').pop() || 'Image';
   const panel = vscode.window.createWebviewPanel(
     'earthengine.imagePreview',
-    `Asset details: ${asset.id || asset.name.split('/').pop() || 'Image'}`,
+    shortName,
     vscode.ViewColumn.One,
     { enableScripts: true, retainContextWhenHidden: true },
   );
+  panel.iconPath = vscode.Uri.joinPath(getExtensionUri(), 'resources', 'icons', 'image.svg');
 
   panel.webview.html = buildImageHtml(asset, panel.webview);
 

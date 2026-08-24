@@ -66,6 +66,7 @@ export async function openAssetsPanel(
       localResourceRoots: [],
     },
   );
+  panel.iconPath = new vscode.ThemeIcon('folder-library');
 
   let rootPath = `projects/${profile.project}`;
   let currentParentPath = rootPath;

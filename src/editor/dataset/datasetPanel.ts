@@ -31,6 +31,16 @@ export function createDatasetPanel(
     { enableScripts: true },
   );
 
+  const iconFile: Record<string, string> = {
+    image_collection: 'image-multiple',
+    image: 'image',
+    table: 'table-multiple',
+  };
+  const file = iconFile[collection['gee:type'] || ''];
+  if (file) {
+    panel.iconPath = vscode.Uri.joinPath(extensionUri, 'resources', 'icons', `${file}.svg`);
+  }
+
   panel.webview.html = buildHtml(collection, panel.webview, extraTabs);
 
   // The webview posts the snippet text back so we can write it to the clipboard.
