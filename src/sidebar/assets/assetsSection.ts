@@ -303,10 +303,12 @@ export class AssetsSection extends SidebarSection {
         try {
           await vscode.window.withProgress(
             { location: vscode.ProgressLocation.Notification, title: 'Deleting asset…' },
-            (_progress) =>
-              deleteAsset(name, token, (assetName) => {
+            (_progress) => {
+              _progress.report({ message: name });
+              return deleteAsset(name, token, (assetName) => {
                 _progress.report({ message: assetName });
-              }),
+              });
+            },
           );
           vscode.window.showInformationMessage(`Asset "${name}" deleted.`);
           this.provider.refresh();
@@ -338,10 +340,12 @@ export class AssetsSection extends SidebarSection {
         try {
           await vscode.window.withProgress(
             { location: vscode.ProgressLocation.Notification, title: 'Moving asset…' },
-            (_progress) =>
-              moveAsset(source, destination, token, (assetName) => {
+            (_progress) => {
+              _progress.report({ message: source });
+              return moveAsset(source, destination, token, (assetName) => {
                 _progress.report({ message: assetName });
-              }),
+              });
+            },
           );
           vscode.window.showInformationMessage(`Asset moved to "${destination}".`);
           this.provider.refresh();
@@ -373,10 +377,12 @@ export class AssetsSection extends SidebarSection {
         try {
           await vscode.window.withProgress(
             { location: vscode.ProgressLocation.Notification, title: 'Copying asset…' },
-            (_progress) =>
-              copyAsset(source, destination, token, (assetName) => {
+            (_progress) => {
+              _progress.report({ message: source });
+              return copyAsset(source, destination, token, (assetName) => {
                 _progress.report({ message: assetName });
-              }),
+              });
+            },
           );
           vscode.window.showInformationMessage(`Asset copied to "${destination}".`);
           this.provider.refresh();
