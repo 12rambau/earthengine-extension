@@ -83,7 +83,7 @@
       <li class="task-row" title={task.id || ''}>
         <span class={stateClass(task.state)}><i class={STATE_ICONS[task.state] || 'codicon codicon-question'}></i></span>
         <span class="task-name">{task.description || task.id || ''}</span>
-        <span class="task-elapsed">{task.elapsed || ''}</span>
+        <span class="task-elapsed">{task.state !== 'PENDING' ? (task.elapsed || '') : ''}</span>
         <span class="task-actions">
           {#if task.state === 'RUNNING' || task.state === 'PENDING'}
             <button type="button" class="danger" title="Cancel" onclick={() => cancel(task.name)}><i class="codicon codicon-stop-circle"></i></button>

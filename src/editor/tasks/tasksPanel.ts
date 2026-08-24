@@ -74,7 +74,7 @@ export async function openTasksPanel(
       state: getTaskState(op),
       type: op.metadata?.type || '',
       createTime: op.metadata?.createTime || '',
-      startTime: op.metadata?.startTime || '',
+      startTime: getTaskState(op) === 'PENDING' ? '' : op.metadata?.startTime || '',
       endTime: op.metadata?.endTime || '',
       updateTime: op.metadata?.updateTime || '',
       elapsed: getElapsedTime(op),
