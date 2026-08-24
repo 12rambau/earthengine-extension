@@ -51,15 +51,6 @@ const config: Config = {
     ],
   ],
 
-  themes: [
-    [
-      'cosmos-docusaurus-theme',
-      {
-        injectFavicon: false,
-      },
-    ],
-  ],
-
   themeConfig: {
     colorMode: {
       defaultMode: 'dark',

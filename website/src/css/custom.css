@@ -1,9 +1,39 @@
+@import 'cosmos-docusaurus-theme/css/theme.css';
+
+/* ==================================================================
+   PRIMARY COLORS
+   ================================================================== */
 :root {
-  --cosmos-brand: #1a73e8;
-  --cosmos-brand-rgb: 26, 115, 232;
+	--ifm-color-primary: #4285f4;
+	--ifm-color-primary-rgb: 66, 133, 244;
+	--ifm-color-primary-dark: #1a73e8;
+	--ifm-color-primary-darker: #1765cc;
+	--ifm-color-primary-darkest: #1557b0;
+	--ifm-color-primary-light: #669df6;
+	--ifm-color-primary-light-rgb: 102, 157, 246;
+	--ifm-color-primary-lighter: #8ab4f8;
+	--ifm-color-primary-lightest: #d2e3fc;
+
+	/* ==================================================================
+	   COSMOS BRAND
+	   ================================================================== */
+	--cosmos-brand: var(--ifm-color-primary);
+	--cosmos-brand-rgb: var(--ifm-color-primary-rgb);
+	--cosmos-brand-light: var(--ifm-color-primary-light);
+	--cosmos-brand-light-rgb: var(--ifm-color-primary-light-rgb);
 }
 
+/* ==================================================================
+   DARK PRIMARY COLORS
+   ================================================================== */
 [data-theme='dark'] {
-  --cosmos-brand-light: #8ab4f8;
-  --cosmos-brand-light-rgb: 138, 180, 248;
+	--ifm-color-primary: #8ab4f8;
+	--ifm-color-primary-rgb: 138, 180, 248;
+	--ifm-color-primary-dark: #669df6;
+	--ifm-color-primary-darker: #4285f4;
+	--ifm-color-primary-darkest: #1a73e8;
+	--ifm-color-primary-light: #aecbfa;
+	--ifm-color-primary-light-rgb: 174, 203, 250;
+	--ifm-color-primary-lighter: #d2e3fc;
+	--ifm-color-primary-lightest: #e8f0fe;
 }
