@@ -19,6 +19,7 @@
   );
   // null = still loading; object = received (may have no entry for a band)
   let minMaxData = $state(null);
+  let parentCollection = $state(null);
 
   // ----------------------------------------------------------------
   // MESSAGES
@@ -35,6 +36,8 @@
       }
     } else if (msg.type === 'minmax') {
       minMaxData = msg.data;
+    } else if (msg.type === 'parentCollection') {
+      parentCollection = msg;
     }
   });
 
@@ -55,6 +58,10 @@
   function getMax(bandId) {
     if (!minMaxData || !minMaxData[bandId]) {return null;}
     return minMaxData[bandId].max;
+  }
+
+  function openParentCollection() {
+    vscode.postMessage({ type: 'openParentCollection' });
   }
 </script>
 
@@ -77,6 +84,17 @@
         <span class="info-label">Image ID</span>
         <span class="info-value asset-id" title={data.assetId}>{data.assetId}</span>
       </div>
+      {#if parentCollection}
+        <div class="info-row parent-collection-row">
+          <span class="info-label">Parent collection</span>
+          <span class="info-value asset-id parent-collection">
+            <span class="parent-collection-name" title={parentCollection.name}>{parentCollection.name}</span>
+            <button class="parent-preview-btn" title="Open parent collection preview" onclick={openParentCollection}>
+              <i class="codicon codicon-open-preview"></i>
+            </button>
+          </span>
+        </div>
+      {/if}
       <div class="info-row">
         <span class="info-label">Date</span>
         <span class="info-value">Start date: {data.startDate}<br />End date: {data.endDate}</span>
@@ -256,6 +274,37 @@
       background: var(--vscode-textCodeBlock-background);
       padding: var(--vscee-space-xs) var(--vscee-space-sm);
       border-radius: var(--vscee-radius-md);
+    }
+    .parent-collection {
+      display: flex;
+      align-items: center;
+      min-width: 0;
+    }
+    .parent-collection-name {
+      flex: 1 1 auto;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .parent-preview-btn {
+      display: inline-flex;
+      align-items: center;
+      flex: 0 0 auto;
+      margin-left: var(--vscee-space-xs);
+      padding: var(--vscee-space-xxs) var(--vscee-space-sm);
+      border: none;
+      border-radius: var(--vscee-radius-md);
+      background: none;
+      color: var(--vscode-foreground);
+      cursor: pointer;
+      opacity: 0;
+
+      &:hover { background: var(--vscode-list-hoverBackground); opacity: 1; }
+    }
+    .parent-collection-row {
+      &:hover .parent-preview-btn,
+      &:focus-within .parent-preview-btn { opacity: 0.7; }
     }
 
     /* ==================================================================
