@@ -17,6 +17,7 @@ import {
   isExportTask,
   isImportTask,
 } from '../../sidebar/tasks/tasksApiClient.js';
+import { filterOperationsByHistory, getTaskHistoryDays } from '../../sidebar/tasks/taskHistory.js';
 import { AuthService } from '../../auth/index.js';
 import { designTokens, codiconsCss } from '../../shared/index.js';
 import { openAssetPreview } from '../../editor/preview/assetPreviewPanel.js';
@@ -96,6 +97,14 @@ export class PanelTasksViewProvider implements vscode.WebviewViewProvider {
     });
     this.disposables.push(authListener);
 
+    const configurationListener = vscode.workspace.onDidChangeConfiguration((event) => {
+      if (!event.affectsConfiguration('earthengine.tasks.historyDays')) {
+        return;
+      }
+      this.refresh();
+    });
+    this.disposables.push(configurationListener);
+
     webviewView.onDidDispose(() => {
       if (this.refreshTimer) {
         clearInterval(this.refreshTimer);
@@ -165,6 +174,8 @@ export class PanelTasksViewProvider implements vscode.WebviewViewProvider {
     this.allOps = [];
     let pageToken: string | undefined;
     const scanLimit = getMaxScan();
+    const historyDays = getTaskHistoryDays();
+    let reachedHistoryLimit = false;
     do {
       const result = await listOperationsPage(
         project,
@@ -173,10 +184,12 @@ export class PanelTasksViewProvider implements vscode.WebviewViewProvider {
         pageToken,
       );
       this.resolvedProject = result.project;
-      this.allOps.push(...result.operations);
+      const history = filterOperationsByHistory(result.operations, historyDays);
+      this.allOps.push(...history.operations);
+      reachedHistoryLimit = history.reachedHistoryLimit;
       pageToken = result.nextPageToken;
-      this.sendData(!!pageToken && this.allOps.length < scanLimit);
-    } while (pageToken && this.allOps.length < scanLimit);
+      this.sendData(!!pageToken && !reachedHistoryLimit && this.allOps.length < scanLimit);
+    } while (pageToken && !reachedHistoryLimit && this.allOps.length < scanLimit);
   }
 
   private async refreshIncremental(): Promise<void> {
@@ -185,6 +198,8 @@ export class PanelTasksViewProvider implements vscode.WebviewViewProvider {
       this.view?.webview.postMessage({ type: 'unauthenticated' });
       return;
     }
+    const historyDays = getTaskHistoryDays();
+    this.allOps = filterOperationsByHistory(this.allOps, historyDays).operations;
     if (this.allOps.length === 0) {
       await this.loadAndStream();
       return;
@@ -195,6 +210,7 @@ export class PanelTasksViewProvider implements vscode.WebviewViewProvider {
     let foundOverlap = false;
     let pageToken: string | undefined;
     let fetched = 0;
+    let reachedHistoryLimit = false;
     const scanLimit = getMaxScan();
 
     do {
@@ -205,7 +221,8 @@ export class PanelTasksViewProvider implements vscode.WebviewViewProvider {
         pageToken,
       );
       this.resolvedProject = result.project;
-      for (const op of result.operations) {
+      const history = filterOperationsByHistory(result.operations, historyDays);
+      for (const op of history.operations) {
         if (existingNames.has(op.name)) {
           foundOverlap = true;
           break;
@@ -213,8 +230,9 @@ export class PanelTasksViewProvider implements vscode.WebviewViewProvider {
         newOps.push(op);
       }
       fetched += result.operations.length;
+      reachedHistoryLimit = history.reachedHistoryLimit;
       pageToken = result.nextPageToken;
-    } while (!foundOverlap && pageToken && fetched < scanLimit);
+    } while (!foundOverlap && !reachedHistoryLimit && pageToken && fetched < scanLimit);
 
     if (newOps.length > 0) {
       this.allOps.unshift(...newOps);

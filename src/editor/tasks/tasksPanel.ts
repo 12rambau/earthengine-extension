@@ -15,6 +15,7 @@ import {
   cancelOperation,
   getOperation,
 } from '../../sidebar/tasks/tasksApiClient.js';
+import { filterOperationsByHistory, getTaskHistoryDays } from '../../sidebar/tasks/taskHistory.js';
 import { AuthService } from '../../auth/index.js';
 import { openAssetPreview } from '../preview/assetPreviewPanel.js';
 import { getExtensionUri } from '../../shared/extensionContext.js';
@@ -97,6 +98,8 @@ export async function openTasksPanel(
     allOps = [];
     let pageToken: string | undefined;
     const scanLimit = getMaxScan();
+    const historyDays = getTaskHistoryDays();
+    let reachedHistoryLimit = false;
     do {
       const result = await listOperationsPage(
         resolvedProject,
@@ -105,10 +108,12 @@ export async function openTasksPanel(
         pageToken,
       );
       resolvedProject = result.project;
-      allOps.push(...result.operations);
+      const history = filterOperationsByHistory(result.operations, historyDays);
+      allOps.push(...history.operations);
+      reachedHistoryLimit = history.reachedHistoryLimit;
       pageToken = result.nextPageToken;
-      sendData(!!(pageToken && allOps.length < scanLimit), silent);
-    } while (pageToken && allOps.length < scanLimit);
+      sendData(!!(pageToken && !reachedHistoryLimit && allOps.length < scanLimit), silent);
+    } while (pageToken && !reachedHistoryLimit && allOps.length < scanLimit);
   }
 
   /**
@@ -122,6 +127,9 @@ export async function openTasksPanel(
       return;
     }
 
+    const historyDays = getTaskHistoryDays();
+    allOps = filterOperationsByHistory(allOps, historyDays).operations;
+
     // If we have no existing data, fall back to full load
     if (allOps.length === 0) {
       await loadAndStream(true);
@@ -133,6 +141,7 @@ export async function openTasksPanel(
     let foundOverlap = false;
     let pageToken: string | undefined;
     let fetched = 0;
+    let reachedHistoryLimit = false;
 
     const scanLimit = getMaxScan();
     // Step 1: Fetch batches of 25 until we overlap with known tasks
@@ -145,7 +154,8 @@ export async function openTasksPanel(
       );
       resolvedProject = result.project;
 
-      for (const op of result.operations) {
+      const history = filterOperationsByHistory(result.operations, historyDays);
+      for (const op of history.operations) {
         if (existingNames.has(op.name)) {
           foundOverlap = true;
           break;
@@ -154,8 +164,9 @@ export async function openTasksPanel(
       }
 
       fetched += result.operations.length;
+      reachedHistoryLimit = history.reachedHistoryLimit;
       pageToken = result.nextPageToken;
-    } while (!foundOverlap && pageToken && fetched < scanLimit);
+    } while (!foundOverlap && !reachedHistoryLimit && pageToken && fetched < scanLimit);
 
     // Step 2: Insert new tasks at the front
     if (newOps.length > 0) {
@@ -250,9 +261,22 @@ export async function openTasksPanel(
     });
   });
 
+  const configurationListener = vscode.workspace.onDidChangeConfiguration((event) => {
+    if (!event.affectsConfiguration('earthengine.tasks.historyDays')) {
+      return;
+    }
+    allOps = [];
+    panel.webview.postMessage({ type: 'loading' });
+    loadAndStream(false).catch((err) => {
+      const m = err instanceof Error ? err.message : String(err);
+      panel.webview.postMessage({ type: 'error', message: m });
+    });
+  });
+
   panel.onDidDispose(() => {
     clearInterval(interval);
     authListener.dispose();
+    configurationListener.dispose();
   });
 }
 
