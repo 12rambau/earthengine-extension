@@ -90,8 +90,7 @@ export async function openImageCollectionPreview(
       }
     } else if (msg.type === 'deleteImage' && msg.name) {
       const confirm = await vscode.window.showWarningMessage(
-        `Delete image "${msg.name}"?`,
-        { modal: true, detail: 'This action cannot be undone.' },
+        `Delete "${msg.name.split('/').pop()}"? This action cannot be undone.`,
         'Delete',
       );
       if (confirm === 'Delete') {

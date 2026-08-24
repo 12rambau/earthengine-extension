@@ -294,8 +294,7 @@ export class AssetsSection extends SidebarSection {
           return false;
         }
         const confirm = await vscode.window.showWarningMessage(
-          `Delete asset "${name}"?`,
-          { modal: true, detail: 'This action cannot be undone.' },
+          `Delete "${name.split('/').pop()}"? This action cannot be undone.`,
           'Delete',
         );
         if (confirm !== 'Delete') {
