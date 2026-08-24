@@ -139,19 +139,23 @@ export function getTaskState(op: Operation): string {
 
 /** Computes a compact elapsed time string (e.g. "42s", "5 minutes", "2 hours"). */
 export function getElapsedTime(op: Operation): string {
+  if (getTaskState(op) === 'PENDING') {
+    return '';
+  }
   const start = op.metadata?.startTime;
   // Treat Unix epoch (1970-01-01T00:00:00.000Z) as sentinel for "not started yet"
   if (!start || start === '1970-01-01T00:00:00.000Z') {
     return '';
   }
   const ms = (op.metadata?.endTime ? dayjs(op.metadata.endTime) : dayjs()).diff(start);
-  return ms < 60_000
-    ? `${Math.floor(ms / 1000)}s`
-    : dayjs.duration(ms).humanize();
+  return ms < 60_000 ? `${Math.floor(ms / 1000)}s` : dayjs.duration(ms).humanize();
 }
 
 /** Formats a runtime string with duration and local start time (e.g. "42s (started 2026-07-22 10:49:00 +0200)"). */
 export function formatRuntimeLine(op: Operation): string {
+  if (getTaskState(op) === 'PENDING') {
+    return '';
+  }
   const startIso = op.metadata?.startTime;
   // Treat Unix epoch (1970-01-01T00:00:00.000Z) as sentinel for "not started yet"
   if (!startIso || startIso === '1970-01-01T00:00:00.000Z') {
