@@ -17,6 +17,7 @@ import {
   isExportTask,
   isImportTask,
 } from '../../sidebar/tasks/tasksApiClient.js';
+import { filterOperationsByHistory, getTaskHistoryDays } from '../../sidebar/tasks/taskHistory.js';
 import { AuthService } from '../../auth/index.js';
 import { designTokens, codiconsCss } from '../../shared/index.js';
 import { openAssetPreview } from '../../editor/preview/assetPreviewPanel.js';
@@ -48,6 +49,7 @@ export class PanelTasksViewProvider implements vscode.WebviewViewProvider {
   private refreshTimer: ReturnType<typeof setInterval> | undefined;
   private disposables: vscode.Disposable[] = [];
   private statusFilter: Set<string> | undefined;
+  private loadGeneration = 0;
 
   constructor(
     private readonly authService: AuthService,
@@ -92,9 +94,17 @@ export class PanelTasksViewProvider implements vscode.WebviewViewProvider {
       this.resolvedProject = profile.project;
       this.allOps = [];
       this.view?.webview.postMessage({ type: 'loading' });
-      this.loadAndStream().catch(() => {});
+      this.loadAndStream(++this.loadGeneration).catch(() => {});
     });
     this.disposables.push(authListener);
+
+    const configurationListener = vscode.workspace.onDidChangeConfiguration((event) => {
+      if (!event.affectsConfiguration('earthengine.tasks.historyDays')) {
+        return;
+      }
+      this.refresh();
+    });
+    this.disposables.push(configurationListener);
 
     webviewView.onDidDispose(() => {
       if (this.refreshTimer) {
@@ -106,16 +116,16 @@ export class PanelTasksViewProvider implements vscode.WebviewViewProvider {
     });
 
     // Initial load
-    this.loadAndStream().catch(() => {});
+    this.loadAndStream(++this.loadGeneration).catch(() => {});
   }
 
   /** Triggers a full reload from the extension host side. */
-  refresh(): void {
+  refresh(generation = ++this.loadGeneration): void {
     if (!this.view) {
       return;
     }
     this.view.webview.postMessage({ type: 'loading' });
-    this.loadAndStream().catch(() => {});
+    this.loadAndStream(generation).catch(() => {});
   }
 
   /** Sets the status filter. Pass undefined or empty set to clear. */
@@ -154,8 +164,11 @@ export class PanelTasksViewProvider implements vscode.WebviewViewProvider {
     this.view.webview.postMessage({ type: 'data', tasks: mapped, loading });
   }
 
-  private async loadAndStream(): Promise<void> {
+  private async loadAndStream(generation: number): Promise<void> {
     const token = await this.authService.getToken();
+    if (generation !== this.loadGeneration) {
+      return;
+    }
     if (!token) {
       this.view?.webview.postMessage({ type: 'unauthenticated' });
       return;
@@ -165,6 +178,8 @@ export class PanelTasksViewProvider implements vscode.WebviewViewProvider {
     this.allOps = [];
     let pageToken: string | undefined;
     const scanLimit = getMaxScan();
+    const historyDays = getTaskHistoryDays();
+    let reachedHistoryLimit = false;
     do {
       const result = await listOperationsPage(
         project,
@@ -172,21 +187,32 @@ export class PanelTasksViewProvider implements vscode.WebviewViewProvider {
         Math.min(100, scanLimit - this.allOps.length),
         pageToken,
       );
+      if (generation !== this.loadGeneration) {
+        return;
+      }
       this.resolvedProject = result.project;
-      this.allOps.push(...result.operations);
+      const history = filterOperationsByHistory(result.operations, historyDays);
+      this.allOps.push(...history.operations);
+      reachedHistoryLimit = history.reachedHistoryLimit;
       pageToken = result.nextPageToken;
-      this.sendData(!!pageToken && this.allOps.length < scanLimit);
-    } while (pageToken && this.allOps.length < scanLimit);
+      this.sendData(!!pageToken && !reachedHistoryLimit && this.allOps.length < scanLimit);
+    } while (pageToken && !reachedHistoryLimit && this.allOps.length < scanLimit);
   }
 
   private async refreshIncremental(): Promise<void> {
+    const generation = ++this.loadGeneration;
     const token = await this.authService.getToken();
+    if (generation !== this.loadGeneration) {
+      return;
+    }
     if (!token) {
       this.view?.webview.postMessage({ type: 'unauthenticated' });
       return;
     }
+    const historyDays = getTaskHistoryDays();
+    this.allOps = filterOperationsByHistory(this.allOps, historyDays).operations;
     if (this.allOps.length === 0) {
-      await this.loadAndStream();
+      await this.loadAndStream(++this.loadGeneration);
       return;
     }
 
@@ -195,6 +221,7 @@ export class PanelTasksViewProvider implements vscode.WebviewViewProvider {
     let foundOverlap = false;
     let pageToken: string | undefined;
     let fetched = 0;
+    let reachedHistoryLimit = false;
     const scanLimit = getMaxScan();
 
     do {
@@ -204,8 +231,12 @@ export class PanelTasksViewProvider implements vscode.WebviewViewProvider {
         Math.min(25, scanLimit - fetched),
         pageToken,
       );
+      if (generation !== this.loadGeneration) {
+        return;
+      }
       this.resolvedProject = result.project;
-      for (const op of result.operations) {
+      const history = filterOperationsByHistory(result.operations, historyDays);
+      for (const op of history.operations) {
         if (existingNames.has(op.name)) {
           foundOverlap = true;
           break;
@@ -213,8 +244,9 @@ export class PanelTasksViewProvider implements vscode.WebviewViewProvider {
         newOps.push(op);
       }
       fetched += result.operations.length;
+      reachedHistoryLimit = history.reachedHistoryLimit;
       pageToken = result.nextPageToken;
-    } while (!foundOverlap && pageToken && fetched < scanLimit);
+    } while (!foundOverlap && !reachedHistoryLimit && pageToken && fetched < scanLimit);
 
     if (newOps.length > 0) {
       this.allOps.unshift(...newOps);
@@ -228,6 +260,9 @@ export class PanelTasksViewProvider implements vscode.WebviewViewProvider {
       nonTerminal.map(async (op) => {
         try {
           const updated = await getOperation(op.name, token!);
+          if (generation !== this.loadGeneration) {
+            return;
+          }
           op.metadata = updated.metadata;
           op.done = updated.done;
           op.error = updated.error;
@@ -236,6 +271,9 @@ export class PanelTasksViewProvider implements vscode.WebviewViewProvider {
         }
       }),
     );
+    if (generation !== this.loadGeneration) {
+      return;
+    }
     this.sendData(false);
   }
 

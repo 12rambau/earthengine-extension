@@ -44,6 +44,13 @@
           "maximum": 5000,
           "description": "Maximum number of operations to fetch from the API when loading or refreshing tasks."
         },
+        "earthengine.tasks.historyDays": {
+          "type": "number",
+          "default": 30,
+          "minimum": 1,
+          "multipleOf": 1,
+          "description": "Number of days of task history to load."
+        },
         "earthengine.map.darkBasemap": {
           "type": "string",
           "default": "CartoDB.DarkMatter",
