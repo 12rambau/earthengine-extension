@@ -1,3 +1,4 @@
+import useBaseUrl from '@docusaurus/useBaseUrl';
 import Layout from '@theme/Layout';
 
 export default function HomePage() {
@@ -9,7 +10,7 @@ export default function HomePage() {
     >
       <main className="site-landing">
         <div className="site-landing__logo-column" aria-hidden="true">
-          <img className="site-landing__logo" src="/icon.png" alt="" />
+          <img className="site-landing__logo" src={useBaseUrl('/icon.png')} alt="" />
         </div>
         <section className="site-landing__hero" aria-labelledby="landing-title">
           <p className="site-landing__eyebrow">Earth Engine for VS Code</p>
