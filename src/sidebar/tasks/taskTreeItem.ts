@@ -48,7 +48,7 @@ export class TaskTreeItem extends vscode.TreeItem {
     this.id = operation.name;
 
     const state = getTaskState(operation);
-    const elapsed = getElapsedTime(operation);
+    const elapsed = state !== 'PENDING' ? getElapsedTime(operation) : undefined;
 
     // Icon: shape from task type, color from state; spinner for active tasks
     const color = STATE_COLORS[state];
