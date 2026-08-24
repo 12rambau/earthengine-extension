@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="resources/icon.png" alt="Earth Engine for VS Code" width="128" />
+<img src="/icon.png" alt="Earth Engine for VS Code" width="128" />
 
 # Earth Engine for VS Code
 
