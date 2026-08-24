@@ -18,6 +18,7 @@ import { designTokens, escapeHtml } from '../../../shared/index.js';
 import { filesize } from 'filesize';
 import dayjs from 'dayjs';
 import { ensureEe, getThumbUrlRest } from '../../../shared/eeSession.js';
+import { getExtensionUri } from '../../../shared/extensionContext.js';
 
 import script from './FeatureCollectionPreview.svelte';
 
@@ -35,11 +36,18 @@ export async function openFeatureCollectionPreview(
   asset: EEAsset,
   accessToken: string,
 ): Promise<void> {
+  const shortName = asset.name.split('/').pop() || 'Table';
   const panel = vscode.window.createWebviewPanel(
     'earthengine.featureCollectionPreview',
-    `Asset details: ${asset.id || asset.name.split('/').pop() || 'Table'}`,
+    shortName,
     vscode.ViewColumn.One,
     { enableScripts: true, retainContextWhenHidden: true },
+  );
+  panel.iconPath = vscode.Uri.joinPath(
+    getExtensionUri(),
+    'resources',
+    'icons',
+    'table-multiple.svg',
   );
 
   // Fetch the first 20 features upfront (needed for FEATURES + COLUMNS tabs)

@@ -39,11 +39,18 @@ export async function openImageCollectionPreview(
   asset: EEAsset,
   accessToken: string,
 ): Promise<void> {
+  const shortName = asset.name.split('/').pop() || 'ImageCollection';
   const panel = vscode.window.createWebviewPanel(
     'earthengine.imageCollectionPreview',
-    `Asset details: ${asset.id || asset.name.split('/').pop() || 'ImageCollection'} (ImageCollection)`,
+    shortName,
     vscode.ViewColumn.One,
     { enableScripts: true, retainContextWhenHidden: true },
+  );
+  panel.iconPath = vscode.Uri.joinPath(
+    getExtensionUri(),
+    'resources',
+    'icons',
+    'image-multiple.svg',
   );
 
   // Fetch child images for the IMAGES tab (first page)
