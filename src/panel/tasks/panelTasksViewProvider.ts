@@ -49,6 +49,7 @@ export class PanelTasksViewProvider implements vscode.WebviewViewProvider {
   private refreshTimer: ReturnType<typeof setInterval> | undefined;
   private disposables: vscode.Disposable[] = [];
   private statusFilter: Set<string> | undefined;
+  private loadGeneration = 0;
 
   constructor(
     private readonly authService: AuthService,
@@ -93,7 +94,7 @@ export class PanelTasksViewProvider implements vscode.WebviewViewProvider {
       this.resolvedProject = profile.project;
       this.allOps = [];
       this.view?.webview.postMessage({ type: 'loading' });
-      this.loadAndStream().catch(() => {});
+      this.loadAndStream(++this.loadGeneration).catch(() => {});
     });
     this.disposables.push(authListener);
 
@@ -115,16 +116,16 @@ export class PanelTasksViewProvider implements vscode.WebviewViewProvider {
     });
 
     // Initial load
-    this.loadAndStream().catch(() => {});
+    this.loadAndStream(++this.loadGeneration).catch(() => {});
   }
 
   /** Triggers a full reload from the extension host side. */
-  refresh(): void {
+  refresh(generation = ++this.loadGeneration): void {
     if (!this.view) {
       return;
     }
     this.view.webview.postMessage({ type: 'loading' });
-    this.loadAndStream().catch(() => {});
+    this.loadAndStream(generation).catch(() => {});
   }
 
   /** Sets the status filter. Pass undefined or empty set to clear. */
@@ -163,8 +164,11 @@ export class PanelTasksViewProvider implements vscode.WebviewViewProvider {
     this.view.webview.postMessage({ type: 'data', tasks: mapped, loading });
   }
 
-  private async loadAndStream(): Promise<void> {
+  private async loadAndStream(generation: number): Promise<void> {
     const token = await this.authService.getToken();
+    if (generation !== this.loadGeneration) {
+      return;
+    }
     if (!token) {
       this.view?.webview.postMessage({ type: 'unauthenticated' });
       return;
@@ -183,6 +187,9 @@ export class PanelTasksViewProvider implements vscode.WebviewViewProvider {
         Math.min(100, scanLimit - this.allOps.length),
         pageToken,
       );
+      if (generation !== this.loadGeneration) {
+        return;
+      }
       this.resolvedProject = result.project;
       const history = filterOperationsByHistory(result.operations, historyDays);
       this.allOps.push(...history.operations);
@@ -193,7 +200,11 @@ export class PanelTasksViewProvider implements vscode.WebviewViewProvider {
   }
 
   private async refreshIncremental(): Promise<void> {
+    const generation = ++this.loadGeneration;
     const token = await this.authService.getToken();
+    if (generation !== this.loadGeneration) {
+      return;
+    }
     if (!token) {
       this.view?.webview.postMessage({ type: 'unauthenticated' });
       return;
@@ -201,7 +212,7 @@ export class PanelTasksViewProvider implements vscode.WebviewViewProvider {
     const historyDays = getTaskHistoryDays();
     this.allOps = filterOperationsByHistory(this.allOps, historyDays).operations;
     if (this.allOps.length === 0) {
-      await this.loadAndStream();
+      await this.loadAndStream(++this.loadGeneration);
       return;
     }
 
@@ -220,6 +231,9 @@ export class PanelTasksViewProvider implements vscode.WebviewViewProvider {
         Math.min(25, scanLimit - fetched),
         pageToken,
       );
+      if (generation !== this.loadGeneration) {
+        return;
+      }
       this.resolvedProject = result.project;
       const history = filterOperationsByHistory(result.operations, historyDays);
       for (const op of history.operations) {
@@ -246,6 +260,9 @@ export class PanelTasksViewProvider implements vscode.WebviewViewProvider {
       nonTerminal.map(async (op) => {
         try {
           const updated = await getOperation(op.name, token!);
+          if (generation !== this.loadGeneration) {
+            return;
+          }
           op.metadata = updated.metadata;
           op.done = updated.done;
           op.error = updated.error;
@@ -254,6 +271,9 @@ export class PanelTasksViewProvider implements vscode.WebviewViewProvider {
         }
       }),
     );
+    if (generation !== this.loadGeneration) {
+      return;
+    }
     this.sendData(false);
   }
 

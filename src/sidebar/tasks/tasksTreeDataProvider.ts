@@ -60,6 +60,7 @@ export class TasksTreeDataProvider implements vscode.TreeDataProvider<TaskTreeIt
   private statusFilter: Set<string> | undefined;
   private lastPageToken: string | undefined;
   private readonly configurationListener: vscode.Disposable;
+  private loadGeneration = 0;
 
   constructor(
     private readonly authService: AuthService,
@@ -79,6 +80,7 @@ export class TasksTreeDataProvider implements vscode.TreeDataProvider<TaskTreeIt
 
   /** Sets the status filter. Pass undefined or empty set to clear. */
   setStatusFilter(states: Set<string> | undefined): void {
+    this.loadGeneration++;
     this.statusFilter = states && states.size > 0 ? states : undefined;
     // Reload from scratch when filter changes
     this.loadedTasks = [];
@@ -177,8 +179,12 @@ export class TasksTreeDataProvider implements vscode.TreeDataProvider<TaskTreeIt
 
   /** Initial load: fetch first page immediately, then continue in background. */
   private async initialLoad(): Promise<void> {
+    const generation = ++this.loadGeneration;
     try {
       const token = await this.authService.getToken();
+      if (generation !== this.loadGeneration) {
+        return;
+      }
       if (!token) {
         return;
       }
@@ -188,6 +194,9 @@ export class TasksTreeDataProvider implements vscode.TreeDataProvider<TaskTreeIt
 
       // First page — show results immediately
       const first = await listOperationsPage(project, token, 100);
+      if (generation !== this.loadGeneration) {
+        return;
+      }
       this.resolvedProject = first.project;
       const history = filterOperationsByHistory(first.operations, getTaskHistoryDays());
       this.loadedTasks = history.operations;
@@ -197,12 +206,15 @@ export class TasksTreeDataProvider implements vscode.TreeDataProvider<TaskTreeIt
 
       // Continue loading in background if filter requires more matches
       if (first.nextPageToken && !history.reachedHistoryLimit && this.needsMoreMatches()) {
-        this.loadMoreInBackground(token, first.nextPageToken);
+        this.loadMoreInBackground(token, first.nextPageToken, generation);
       } else {
         this.lastPageToken = history.reachedHistoryLimit ? undefined : first.nextPageToken;
         this.manageAutoRefresh();
       }
     } catch (err) {
+      if (generation !== this.loadGeneration) {
+        return;
+      }
       const msg = err instanceof Error ? err.message : String(err);
       vscode.window.showErrorMessage(`Failed to load ${this.filter} tasks: ${msg}`);
       this.initialLoaded = true;
@@ -222,7 +234,11 @@ export class TasksTreeDataProvider implements vscode.TreeDataProvider<TaskTreeIt
   }
 
   /** Fetches additional pages in background, updating the tree after each. */
-  private async loadMoreInBackground(token: string, startToken: string): Promise<void> {
+  private async loadMoreInBackground(
+    token: string,
+    startToken: string,
+    generation: number,
+  ): Promise<void> {
     const filterFn = this.filter === 'export' ? isExportTask : isImportTask;
     let pageToken: string | undefined = startToken;
     const scanLimit = getMaxScan();
@@ -237,6 +253,9 @@ export class TasksTreeDataProvider implements vscode.TreeDataProvider<TaskTreeIt
           Math.min(100, scanLimit - this.loadedTasks.length),
           pageToken,
         );
+        if (generation !== this.loadGeneration) {
+          return;
+        }
         this.resolvedProject = result.project;
         const history = filterOperationsByHistory(result.operations, historyDays);
         this.loadedTasks.push(...history.operations);
@@ -257,12 +276,16 @@ export class TasksTreeDataProvider implements vscode.TreeDataProvider<TaskTreeIt
       }
     }
 
+    if (generation !== this.loadGeneration) {
+      return;
+    }
     this.lastPageToken = reachedHistoryLimit ? undefined : pageToken;
     this.manageAutoRefresh();
   }
 
   /** Full refresh — clears everything and reloads. */
   refresh(): void {
+    this.loadGeneration++;
     this.loadedTasks = [];
     this.resolvedProject = undefined;
     this.loading = false;
@@ -281,8 +304,12 @@ export class TasksTreeDataProvider implements vscode.TreeDataProvider<TaskTreeIt
    * and backfill from the API if we drop below the configured max.
    */
   private async incrementalRefresh(): Promise<void> {
+    const generation = ++this.loadGeneration;
     try {
       const token = await this.authService.getToken();
+      if (generation !== this.loadGeneration) {
+        return;
+      }
       if (!token || this.loadedTasks.length === 0) {
         return;
       }
@@ -306,6 +333,9 @@ export class TasksTreeDataProvider implements vscode.TreeDataProvider<TaskTreeIt
           Math.min(25, scanLimit - fetched),
           pageToken,
         );
+        if (generation !== this.loadGeneration) {
+          return;
+        }
         this.resolvedProject = result.project;
 
         const history = filterOperationsByHistory(result.operations, historyDays);
@@ -341,6 +371,9 @@ export class TasksTreeDataProvider implements vscode.TreeDataProvider<TaskTreeIt
         nonTerminal.map(async (op) => {
           try {
             const updated = await getOperation(op.name, token);
+            if (generation !== this.loadGeneration) {
+              return;
+            }
             op.metadata = updated.metadata;
             op.done = updated.done;
             op.error = updated.error;
@@ -349,6 +382,9 @@ export class TasksTreeDataProvider implements vscode.TreeDataProvider<TaskTreeIt
           }
         }),
       );
+      if (generation !== this.loadGeneration) {
+        return;
+      }
 
       // If a status filter is active, prune tasks that no longer match
       if (this.statusFilter) {
@@ -359,7 +395,10 @@ export class TasksTreeDataProvider implements vscode.TreeDataProvider<TaskTreeIt
       }
 
       // Backfill if we dropped below getMaxTasks() matching items
-      await this.backfillIfNeeded(token);
+      await this.backfillIfNeeded(token, generation);
+      if (generation !== this.loadGeneration) {
+        return;
+      }
 
       // Final prune
       if (this.loadedTasks.length > getMaxTasks() * 2) {
@@ -374,7 +413,7 @@ export class TasksTreeDataProvider implements vscode.TreeDataProvider<TaskTreeIt
   }
 
   /** Fetches additional pages if the visible list is below the configured max. */
-  private async backfillIfNeeded(token: string): Promise<void> {
+  private async backfillIfNeeded(token: string, generation: number): Promise<void> {
     const filterFn = this.filter === 'export' ? isExportTask : isImportTask;
     let matching = this.loadedTasks.filter(filterFn);
     if (this.statusFilter) {
@@ -402,6 +441,9 @@ export class TasksTreeDataProvider implements vscode.TreeDataProvider<TaskTreeIt
         Math.min(100, scanLimit - this.loadedTasks.length),
         pageToken,
       );
+      if (generation !== this.loadGeneration) {
+        return;
+      }
       this.resolvedProject = result.project;
       const history = filterOperationsByHistory(result.operations, historyDays);
       this.loadedTasks.push(...history.operations);

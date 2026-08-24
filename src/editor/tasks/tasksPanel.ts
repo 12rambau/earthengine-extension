@@ -63,6 +63,7 @@ export async function openTasksPanel(
 
   let allOps: Operation[] = [];
   let resolvedProject = profile.project;
+  let loadGeneration = 0;
 
   // Terminal states that will never change
   const TERMINAL_STATES = new Set(['SUCCEEDED', 'FAILED', 'CANCELLED']);
@@ -90,8 +91,11 @@ export async function openTasksPanel(
   }
 
   /** Streams all pages of operations, calling sendData after each page. */
-  async function loadAndStream(silent = false): Promise<void> {
+  async function loadAndStream(silent = false, generation = ++loadGeneration): Promise<void> {
     const t = await authService.getToken();
+    if (generation !== loadGeneration) {
+      return;
+    }
     if (!t) {
       return;
     }
@@ -107,6 +111,9 @@ export async function openTasksPanel(
         Math.min(100, scanLimit - allOps.length),
         pageToken,
       );
+      if (generation !== loadGeneration) {
+        return;
+      }
       resolvedProject = result.project;
       const history = filterOperationsByHistory(result.operations, historyDays);
       allOps.push(...history.operations);
@@ -122,7 +129,11 @@ export async function openTasksPanel(
    * Does NOT reload terminal tasks (SUCCEEDED, FAILED, CANCELLED).
    */
   async function refreshIncremental(): Promise<void> {
+    const generation = ++loadGeneration;
     const t = await authService.getToken();
+    if (generation !== loadGeneration) {
+      return;
+    }
     if (!t) {
       return;
     }
@@ -152,6 +163,9 @@ export async function openTasksPanel(
         Math.min(25, scanLimit - fetched),
         pageToken,
       );
+      if (generation !== loadGeneration) {
+        return;
+      }
       resolvedProject = result.project;
 
       const history = filterOperationsByHistory(result.operations, historyDays);
@@ -182,6 +196,9 @@ export async function openTasksPanel(
     const updatePromises = nonTerminal.map(async (op) => {
       try {
         const updated = await getOperation(op.name, t!);
+        if (generation !== loadGeneration) {
+          return;
+        }
         op.metadata = updated.metadata;
         op.done = updated.done;
         op.error = updated.error;
@@ -190,6 +207,9 @@ export async function openTasksPanel(
       }
     });
     await Promise.all(updatePromises);
+    if (generation !== loadGeneration) {
+      return;
+    }
 
     // Step 4: Send refreshed data (no loading indicators)
     sendData(false, true);
@@ -253,6 +273,7 @@ export async function openTasksPanel(
       return;
     }
     resolvedProject = profile.project;
+    loadGeneration++;
     allOps = [];
     panel.webview.postMessage({ type: 'loading' });
     loadAndStream(false).catch((err) => {
@@ -265,9 +286,10 @@ export async function openTasksPanel(
     if (!event.affectsConfiguration('earthengine.tasks.historyDays')) {
       return;
     }
+    const generation = ++loadGeneration;
     allOps = [];
     panel.webview.postMessage({ type: 'loading' });
-    loadAndStream(false).catch((err) => {
+    loadAndStream(false, generation).catch((err) => {
       const m = err instanceof Error ? err.message : String(err);
       panel.webview.postMessage({ type: 'error', message: m });
     });
