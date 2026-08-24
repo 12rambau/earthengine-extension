@@ -52,6 +52,8 @@ export function openImagePreview(asset: EEAsset, accessToken: string): void {
       sendThumbnail(asset, panel);
       sendMinMax(asset, panel);
       sendParentCollection(asset, accessToken, panel);
+    } else if (msg.type === 'copyAssetId') {
+      await vscode.env.clipboard.writeText(asset.name);
     } else if (msg.type === 'openParentCollection') {
       await openParentCollection(asset, accessToken);
     }
