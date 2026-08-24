@@ -31,13 +31,13 @@ This command generates static content into the `build` directory and can be serv
 Using SSH:
 
 ```bash
-USE_SSH=true npm run deploy
+DEPLOYMENT_TARGET=github-pages USE_SSH=true npm run deploy
 ```
 
 Not using SSH:
 
 ```bash
-GIT_USER=<Your GitHub username> npm run deploy
+DEPLOYMENT_TARGET=github-pages GIT_USER=<Your GitHub username> npm run deploy
 ```
 
 If you are using GitHub Pages for hosting, this command is a convenient way to build the website and push to the `gh-pages` branch.
