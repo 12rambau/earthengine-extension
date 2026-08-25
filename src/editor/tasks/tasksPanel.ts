@@ -20,6 +20,7 @@ import { AuthService } from '../../auth/index.js';
 import { openAssetPreview } from '../preview/assetPreviewPanel.js';
 import { getExtensionUri } from '../../shared/extensionContext.js';
 import { designTokens, codiconsCss } from '../../shared/index.js';
+import type { TablePreferences } from '../../shared/dataTable/tableTypes.js';
 
 import script from './TasksPanel.svelte';
 
@@ -37,8 +38,10 @@ function getMaxScan(): number {
 }
 
 interface TaskPrefs {
+  // Legacy fields retained only to migrate existing saved preferences.
   visibleCols?: string[];
   pageSize?: number;
+  tablePreferences?: Partial<Record<TaskFilter, TablePreferences>>;
 }
 
 export async function openTasksPanel(
@@ -69,24 +72,30 @@ export async function openTasksPanel(
   const TERMINAL_STATES = new Set(['SUCCEEDED', 'FAILED', 'CANCELLED']);
 
   function sendData(loading = false, silent = false) {
-    const mapped = allOps.map((op) => ({
-      name: op.name,
-      id: op.name.split('/').pop() || '',
-      description: op.metadata?.description || op.name.split('/').pop() || '',
-      state: getTaskState(op),
-      type: op.metadata?.type || '',
-      createTime: op.metadata?.createTime || '',
-      startTime: getTaskState(op) === 'PENDING' ? '' : op.metadata?.startTime || '',
-      endTime: op.metadata?.endTime || '',
-      updateTime: op.metadata?.updateTime || '',
-      elapsed: getElapsedTime(op),
-      progress: op.metadata?.progress,
-      attempt: op.metadata?.attempt ?? null,
-      priority: op.metadata?.priority ?? null,
-      computeUsage: op.metadata?.batchEecuUsageSeconds ?? null,
-      destinationUris: op.metadata?.destinationUris || [],
-      error: op.error?.message || '',
-    }));
+    const mapped = allOps.map((op) => {
+      const state = getTaskState(op);
+      const startTime = state === 'PENDING' ? '' : op.metadata?.startTime || '';
+      const endTime = op.metadata?.endTime || '';
+      return {
+        name: op.name,
+        id: op.name.split('/').pop() || '',
+        description: op.metadata?.description || op.name.split('/').pop() || '',
+        state,
+        type: op.metadata?.type || '',
+        createTime: op.metadata?.createTime || '',
+        startTime,
+        endTime,
+        updateTime: op.metadata?.updateTime || '',
+        elapsed: getElapsedTime(op),
+        elapsedMs: getElapsedMs(startTime, endTime),
+        progress: op.metadata?.progress,
+        attempt: op.metadata?.attempt ?? null,
+        priority: op.metadata?.priority ?? null,
+        computeUsage: op.metadata?.batchEecuUsageSeconds ?? null,
+        destinationUris: op.metadata?.destinationUris || [],
+        error: op.error?.message || '',
+      };
+    });
     panel.webview.postMessage({ type: 'data', tasks: mapped, loading, silent });
   }
 
@@ -244,7 +253,9 @@ export async function openTasksPanel(
         panel.webview.postMessage({ type: 'error', message: m });
       });
     } else if (msg.type === 'savePrefs') {
-      const prefs: TaskPrefs = { visibleCols: msg.visibleCols, pageSize: msg.pageSize };
+      const prefs: TaskPrefs = {
+        tablePreferences: msg.tablePreferences as Partial<Record<TaskFilter, TablePreferences>>,
+      };
       await context.globalState.update(PREFS_KEY, prefs);
     }
   });
@@ -304,7 +315,15 @@ export async function openTasksPanel(
 
 function getHtml(filter: TaskFilter, savedPrefs: TaskPrefs, webview: vscode.Webview): string {
   const nonce = getNonce();
-  const initData = JSON.stringify({ ...savedPrefs, filter }).replace(/</g, '\\u003c');
+  const legacyPreferences: TablePreferences = {
+    visibleCols: savedPrefs.visibleCols,
+    pageSize: savedPrefs.pageSize,
+  };
+  const tablePreferences = {
+    ...savedPrefs.tablePreferences,
+    [filter]: savedPrefs.tablePreferences?.[filter] ?? legacyPreferences,
+  };
+  const initData = JSON.stringify({ filter, tablePreferences }).replace(/</g, '\u003c');
   return `<!DOCTYPE html>
 <html lang="en">
   <head>
@@ -329,4 +348,17 @@ function getNonce(): string {
     nonce += chars.charAt(Math.floor(Math.random() * chars.length));
   }
   return nonce;
+}
+
+/** Returns an elapsed duration for filtering, or null when the task has not started. */
+function getElapsedMs(startTime: string, endTime: string): number | null {
+  if (!startTime || startTime === '1970-01-01T00:00:00.000Z') {
+    return null;
+  }
+  const start = Date.parse(startTime);
+  const end = endTime ? Date.parse(endTime) : Date.now();
+  if (Number.isNaN(start) || Number.isNaN(end)) {
+    return null;
+  }
+  return Math.max(0, end - start);
 }

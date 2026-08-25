@@ -16,6 +16,7 @@ import { AuthService } from '../../auth/index.js';
 import { openAssetPreview } from '../preview/assetPreviewPanel.js';
 
 import { designTokens, codiconsCss } from '../../shared/index.js';
+import type { TablePreferences } from '../../shared/dataTable/tableTypes.js';
 import script from './AssetsPanel.svelte';
 
 const CONTAINER_TYPES = new Set(['FOLDER', 'IMAGE_COLLECTION']);
@@ -28,10 +29,7 @@ const API_PAGE_SIZE = 200;
 
 const PREFS_KEY = 'earthengine.assets.prefs';
 
-interface AssetPrefs {
-  visibleCols?: string[];
-  pageSize?: number;
-}
+interface AssetPrefs extends TablePreferences {}
 
 /** Commands invoked by the row action buttons in the WebView. */
 const ACTION_COMMANDS: Record<string, string> = {
@@ -147,8 +145,7 @@ export async function openAssetsPanel(
           })();
         }
       } else if (msg.type === 'savePrefs') {
-        const prefs: AssetPrefs = { visibleCols: msg.visibleCols, pageSize: msg.pageSize };
-        await context.globalState.update(PREFS_KEY, prefs);
+        await context.globalState.update(PREFS_KEY, msg.preferences as AssetPrefs);
       }
     } catch (err) {
       const m = err instanceof Error ? err.message : String(err);

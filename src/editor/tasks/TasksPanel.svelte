@@ -1,85 +1,61 @@
 <!-- TasksPanel: sortable/paginated task table with filter toggle and column picker -->
 <script>
   import { vscode, getInitData } from '../../shared/vscode.ts';
-  import Pagination from '../Pagination.svelte';
-  import ColumnPicker from '../ColumnPicker.svelte';
+  import DataTable from '../../shared/dataTable/DataTable.svelte';
+  import { createDataTable } from '../../shared/dataTable/dataTable.svelte.ts';
 
   const saved = getInitData();
 
   const ALL_COLS = [
     { key: 'icon', label: '', required: true },
-    { key: 'state', label: 'Status', required: true },
-    { key: 'description', label: 'Name', required: true },
-    { key: 'id', label: 'ID' },
-    { key: 'createTime', label: 'Created' },
-    { key: 'startTime', label: 'Start' },
-    { key: 'elapsed', label: 'Duration' },
-    { key: 'attempt', label: 'Attempts' },
-    { key: 'priority', label: 'Priority' },
-    { key: 'computeUsage', label: 'Compute Usage' },
+    { key: 'state', label: 'Status', required: true, sortable: true, filter: { kind: 'enum', options: ['PENDING', 'RUNNING', 'CANCELLING', 'SUCCEEDED', 'FAILED', 'CANCELLED'] }, accessor: task => task.state },
+    { key: 'description', label: 'Name', required: true, sortable: true, filter: { kind: 'text' }, accessor: task => task.description },
+    { key: 'id', label: 'ID', sortable: true, filter: { kind: 'text' }, accessor: task => task.id },
+    { key: 'createTime', label: 'Created', sortable: true, filter: { kind: 'date' }, accessor: task => task.createTime },
+    { key: 'startTime', label: 'Start', sortable: true, filter: { kind: 'date' }, accessor: task => task.startTime },
+    { key: 'elapsed', label: 'Duration', sortable: true, filter: { kind: 'number' }, accessor: task => task.elapsedMs },
+    { key: 'attempt', label: 'Attempts', sortable: true, filter: { kind: 'number' }, accessor: task => task.attempt },
+    { key: 'priority', label: 'Priority', sortable: true, filter: { kind: 'number' }, accessor: task => task.priority },
+    { key: 'computeUsage', label: 'Compute Usage', sortable: true, filter: { kind: 'number' }, accessor: task => task.computeUsage },
     { key: 'actions', label: 'Actions', required: true },
   ];
 
-  let visibleCols = $state(new Set(saved.visibleCols || ALL_COLS.map(c => c.key)));
-  ALL_COLS.filter(c => c.required).forEach(c => visibleCols.add(c.key));
-  let pageSize = $state(saved.pageSize || 25);
-  let currentFilter = $state(saved.filter || 'export');
+  const initialFilter = saved.filter || 'export';
+  const initialPreferencesByFilter = saved.tablePreferences || {};
+  let currentFilter = $state(initialFilter);
+  let preferencesByFilter = $state(initialPreferencesByFilter);
+  let table = createDataTable({
+    columns: ALL_COLS,
+    defaultPageSize: 25,
+    defaultSort: { column: 'createTime', direction: -1 },
+    preferences: initialPreferencesByFilter[initialFilter],
+  });
 
   let allTasks = $state([]);
   let isLoading = $state(true);
   let isRefreshing = $state(false);
-  let currentPage = $state(0);
-  let sortCol = $state('createTime');
-  let sortDir = $state(-1);
-
-  // Derived: filtered tasks
-  let tasks = $derived.by(() => {
-    return currentFilter === 'export'
-      ? allTasks.filter(t => { const type = (t.type || '').toUpperCase(); return type.startsWith('EXPORT') || type === ''; })
-      : allTasks.filter(t => { const type = (t.type || '').toUpperCase(); return type.startsWith('INGEST') || type.startsWith('IMPORT'); });
-  });
-
-  // Derived: sorted tasks
-  let sorted = $derived.by(() => {
-    return [...tasks].sort((a, b) => {
-      const va = a[sortCol] ?? '';
-      const vb = b[sortCol] ?? '';
-      return va < vb ? -sortDir : va > vb ? sortDir : 0;
-    });
-  });
-
-  let totalPages = $derived(Math.max(1, Math.ceil(sorted.length / pageSize)));
-  let pageItems = $derived(sorted.slice(currentPage * pageSize, (currentPage + 1) * pageSize));
-  let rangeText = $derived.by(() => {
-    if (sorted.length === 0) {return '0 tasks';}
-    const start = currentPage * pageSize + 1;
-    const end = Math.min((currentPage + 1) * pageSize, sorted.length);
-    return `${start}–${end} of ${sorted.length} tasks`;
-  });
-
-  // Visible columns (excluding hidden ones)
-  let visCols = $derived(ALL_COLS.filter(c => visibleCols.has(c.key)));
 
   // ----------------------------------------------------------------
   // ACTIONS
   // ----------------------------------------------------------------
-  function saveState() {
-    vscode.postMessage({ type: 'savePrefs', visibleCols: [...visibleCols], pageSize });
+  function saveState(preferences = table.exportPreferences()) {
+    preferencesByFilter = { ...preferencesByFilter, [currentFilter]: preferences };
+    vscode.postMessage({ type: 'savePrefs', tablePreferences: preferencesByFilter });
   }
 
-  function handleSort(key) {
-    if (key === 'icon' || key === 'actions') {return;}
-    if (sortCol === key) {
-      sortDir *= -1;
-    } else {
-      sortCol = key;
-      sortDir = key === 'createTime' ? -1 : 1;
-    }
+  function syncRows() {
+    const rows = currentFilter === 'export'
+      ? allTasks.filter(task => { const type = (task.type || '').toUpperCase(); return type.startsWith('EXPORT') || type === ''; })
+      : allTasks.filter(task => { const type = (task.type || '').toUpperCase(); return type.startsWith('INGEST') || type.startsWith('IMPORT'); });
+    table.setRows(rows);
   }
 
-  function changeFilter(f) {
-    currentFilter = f;
-    currentPage = 0;
+  function changeFilter(filter) {
+    if (currentFilter === filter) {return;}
+    preferencesByFilter = { ...preferencesByFilter, [currentFilter]: table.exportPreferences() };
+    currentFilter = filter;
+    table.applyPreferences(preferencesByFilter[currentFilter]);
+    syncRows();
     saveState();
   }
 
@@ -111,6 +87,7 @@
     const msg = e.data;
     if (msg.type === 'data') {
       allTasks = msg.tasks;
+      syncRows();
       isLoading = msg.loading;
       isRefreshing = false;
     } else if (msg.type === 'refreshStart') {
@@ -119,6 +96,7 @@
       isLoading = true;
     } else if (msg.type === 'cancelled') {
       allTasks = allTasks.map(t => t.name === msg.name ? { ...t, state: 'CANCELLING' } : t);
+      syncRows();
     } else if (msg.type === 'error') {
       isRefreshing = false;
       isLoading = false;
@@ -127,9 +105,14 @@
   });
 </script>
 
-<!-- TOOLBAR -->
-<div class="topbar">
-  <div class="topbar-left">
+<DataTable
+  {table}
+  itemLabel="tasks"
+  loading={isLoading}
+  rowKey={(task) => task.name}
+  onpreferenceschange={saveState}
+>
+  {#snippet toolbar()}
     <!-- Filter toggle -->
     <div class="toggle-switch">
       <input type="radio" id="filter-export" name="filter" checked={currentFilter === 'export'} onchange={() => changeFilter('export')} />
@@ -144,97 +127,64 @@
       <span class="refresh-icon">↻</span>
       {isRefreshing ? 'Refreshing…' : 'Refresh'}
     </button>
-  </div>
+  {/snippet}
 
-  <!-- Column picker anchored to the right of the toolbar -->
-  <ColumnPicker columns={ALL_COLS} bind:visibleCols onchange={saveState} />
-</div>
-
-<!-- TABLE -->
-<div class="table-wrap" class:loading={isLoading && allTasks.length === 0}>
-  <table>
-    <thead>
-      <tr>
-        {#each visCols as col}
-          {#if col.key === 'icon'}
-            <th class="icon-col"></th>
-          {:else if col.key === 'actions'}
-            <th>Actions</th>
-          {:else}
-            <th class:sorted={sortCol === col.key} onclick={() => handleSort(col.key)}>
-              {col.label}
-              <span class="sort-arrow">{sortCol === col.key ? (sortDir === 1 ? '▲' : '▼') : '▲'}</span>
-            </th>
-          {/if}
-        {/each}
-      </tr>
-    </thead>
-    <tbody>
-      {#each pageItems as t (t.name)}
-        <tr>
-          {#if visibleCols.has('icon')}
-            <td class="icon-col">
-              {#if t.state === 'RUNNING' || t.state === 'CANCELLING'}
-                <span class="spinner"></span>
-              {:else if t.state === 'SUCCEEDED'}
-                <span class="dot succeeded"></span>
-              {:else if t.state === 'FAILED'}
-                <span class="dot failed"></span>
-              {:else if t.state === 'CANCELLED'}
-                <span class="dot cancelled"></span>
-              {:else if t.state === 'PENDING'}
-                <span class="dot pending"></span>
-              {/if}
-            </td>
-          {/if}
-          {#if visibleCols.has('state')}<td><span class="status">{t.state}</span></td>{/if}
-          {#if visibleCols.has('description')}
-            <td>
-              {t.description}
-              {#if t.error}<br /><span class="error-text">{t.error}</span>{/if}
-            </td>
-          {/if}
-          {#if visibleCols.has('id')}<td class="id-cell" title={t.id}>{t.id}</td>{/if}
-          {#if visibleCols.has('createTime')}<td>{formatTime(t.createTime)}</td>{/if}
-          {#if visibleCols.has('startTime')}<td>{formatTime(t.startTime)}</td>{/if}
-          {#if visibleCols.has('elapsed')}<td class="elapsed">{t.elapsed}</td>{/if}
-          {#if visibleCols.has('attempt')}<td style="text-align:center">{t.attempt ?? ''}</td>{/if}
-          {#if visibleCols.has('priority')}<td style="text-align:center">{t.priority ?? ''}</td>{/if}
-          {#if visibleCols.has('computeUsage')}<td class="compute">{t.computeUsage != null ? t.computeUsage.toFixed(1) + ' EECU·s' : ''}</td>{/if}
-          {#if visibleCols.has('actions')}
-            {@const hasCancel = t.state === 'RUNNING' || t.state === 'PENDING'}
-            {@const hasPreview = t.state === 'SUCCEEDED' && t.destinationUris?.length > 0}
-            <td class="actions-cell">
-              {#if hasCancel || hasPreview}
-                <span class="action-dots">
-                  <span class="action-dot"><i class="codicon codicon-circle-small-filled"></i></span>
-                </span>
-                <span class="action-btns">
-                  {#if hasCancel}
-                    <button class="action-btn danger" title="Cancel task" onclick={() => cancelTask(t.name)}>
-                      <i class="codicon codicon-stop-circle"></i>
-                    </button>
-                  {/if}
-                  {#if hasPreview}
-                    <button class="action-btn" title="Preview asset" onclick={() => previewAsset(t.destinationUris[0])}>
-                      <i class="codicon codicon-open-preview"></i>
-                    </button>
-                  {/if}
-                </span>
-              {/if}
-            </td>
-          {/if}
-        </tr>
-      {/each}
-    </tbody>
-  </table>
-</div>
-
-<!-- FOOTER: count left, pagination right -->
-<div class="footer">
-  <span class="page-info">{rangeText}{#if isLoading} <span class="spinner-inline"></span>{/if}</span>
-  <Pagination bind:currentPage {totalPages} bind:pageSize onPageSizeChange={saveState} />
-</div>
+  {#snippet row(t, columns)}
+    {@const visible = new Set(columns.map(column => column.key))}
+    {#if visible.has('icon')}
+      <td class="icon-col">
+        {#if t.state === 'RUNNING' || t.state === 'CANCELLING'}
+          <span class="spinner"></span>
+        {:else if t.state === 'SUCCEEDED'}
+          <span class="dot succeeded"></span>
+        {:else if t.state === 'FAILED'}
+          <span class="dot failed"></span>
+        {:else if t.state === 'CANCELLED'}
+          <span class="dot cancelled"></span>
+        {:else if t.state === 'PENDING'}
+          <span class="dot pending"></span>
+        {/if}
+      </td>
+    {/if}
+    {#if visible.has('state')}<td><span class="status">{t.state}</span></td>{/if}
+    {#if visible.has('description')}
+      <td>
+        {t.description}
+        {#if t.error}<br /><span class="error-text">{t.error}</span>{/if}
+      </td>
+    {/if}
+    {#if visible.has('id')}<td class="id-cell" title={t.id}>{t.id}</td>{/if}
+    {#if visible.has('createTime')}<td>{formatTime(t.createTime)}</td>{/if}
+    {#if visible.has('startTime')}<td>{formatTime(t.startTime)}</td>{/if}
+    {#if visible.has('elapsed')}<td class="elapsed">{t.elapsed}</td>{/if}
+    {#if visible.has('attempt')}<td style="text-align:center">{t.attempt ?? ''}</td>{/if}
+    {#if visible.has('priority')}<td style="text-align:center">{t.priority ?? ''}</td>{/if}
+    {#if visible.has('computeUsage')}<td class="compute">{t.computeUsage != null ? t.computeUsage.toFixed(1) + ' EECU·s' : ''}</td>{/if}
+    {#if visible.has('actions')}
+      {@const hasCancel = t.state === 'RUNNING' || t.state === 'PENDING'}
+      {@const hasPreview = t.state === 'SUCCEEDED' && t.destinationUris?.length > 0}
+      <td class="actions-cell">
+        {#if hasCancel || hasPreview}
+          <span class="action-dots">
+            <span class="action-dot"><i class="codicon codicon-circle-small-filled"></i></span>
+          </span>
+          <span class="action-btns">
+            {#if hasCancel}
+              <button class="action-btn danger" title="Cancel task" onclick={() => cancelTask(t.name)}>
+                <i class="codicon codicon-stop-circle"></i>
+              </button>
+            {/if}
+            {#if hasPreview}
+              <button class="action-btn" title="Preview asset" onclick={() => previewAsset(t.destinationUris[0])}>
+                <i class="codicon codicon-open-preview"></i>
+              </button>
+            {/if}
+          </span>
+        {/if}
+      </td>
+    {/if}
+  {/snippet}
+</DataTable>
 
 <style>
   :global {
