@@ -14,6 +14,7 @@ import {
   getElapsedTime,
   cancelOperation,
   getOperation,
+  getPreviewAssetName,
 } from '../../sidebar/tasks/tasksApiClient.js';
 import { filterOperationsByHistory, getTaskHistoryDays } from '../../sidebar/tasks/taskHistory.js';
 import { AuthService } from '../../auth/index.js';
@@ -84,7 +85,7 @@ export async function openTasksPanel(
       attempt: op.metadata?.attempt ?? null,
       priority: op.metadata?.priority ?? null,
       computeUsage: op.metadata?.batchEecuUsageSeconds ?? null,
-      destinationUris: op.metadata?.destinationUris || [],
+      previewAssetName: getPreviewAssetName(op),
       error: op.error?.message || '',
     }));
     panel.webview.postMessage({ type: 'data', tasks: mapped, loading, silent });
