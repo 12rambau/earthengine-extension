@@ -604,7 +604,7 @@
     "@types/vscode": "^1.58.0",
     "@vscode/test-cli": "^0.0.15",
     "@vscode/test-electron": "^3.0.0",
-    "esbuild": "^0.28.1",
+    "esbuild": "^0.28.2",
     "esbuild-svelte": "^0.9.5",
     "eslint": "^10.5.0",
     "eslint-plugin-svelte": "^3.22.0",
