@@ -615,7 +615,7 @@
     "release-it": "^21.0.2",
     "svelte": "^5.56.8",
     "svelte-eslint-parser": "^1.8.0",
-    "typescript": "^6.0.3",
+    "typescript": "^7.0.2",
     "typescript-eslint": "^8.61.1"
   },
   "overrides": {
