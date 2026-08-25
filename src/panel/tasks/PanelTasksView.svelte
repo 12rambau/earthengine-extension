@@ -1,6 +1,9 @@
 <!-- PanelTasksView: compact task list with live updates and row actions -->
 <script>
   import { vscode } from '../../shared/vscode.ts';
+  import {
+    mdiChartTree, mdiEarth, mdiImage, mdiMapOutline, mdiTable, mdiVideoBox,
+  } from '../../shared/icons.ts';
 
   const STATE_ICONS = {
     PENDING: 'codicon codicon-circle-outline',
@@ -9,6 +12,17 @@
     SUCCEEDED: 'codicon codicon-check',
     FAILED: 'codicon codicon-error',
     CANCELLED: 'codicon codicon-circle-slash',
+  };
+
+  const TASK_TYPE_ICONS = {
+    'image-export': mdiImage,
+    'map-export': mdiMapOutline,
+    'table-export': mdiTable,
+    'video-export': mdiVideoBox,
+    'classifier-export': mdiChartTree,
+    export: mdiEarth,
+    import: mdiEarth,
+    unknown: mdiEarth,
   };
 
   // ----------------------------------------------------------------
@@ -48,12 +62,6 @@
     return 'state-icon state-' + s + anim;
   }
 
-  function assetNameFromUri(uri) {
-    const m = uri.match(/asset=(projects\/[^&\s]+)/) ||
-              uri.match(/\/v1\/(projects\/[^/]+\/assets\/.+)/);
-    return m ? decodeURIComponent(m[1]) : null;
-  }
-
   // ----------------------------------------------------------------
   // ACTIONS
   // ----------------------------------------------------------------
@@ -63,11 +71,6 @@
 
   function preview(assetName) {
     vscode.postMessage({ type: 'preview', assetName });
-  }
-
-  function getPreviewAsset(task) {
-    if (task.state !== 'SUCCEEDED' || !task.destinationUris?.length) {return null;}
-    return assetNameFromUri(task.destinationUris[0]);
   }
 </script>
 
@@ -82,13 +85,14 @@
     {#each tasks as task (task.name)}
       <li class="task-row" title={task.id || ''}>
         <span class={stateClass(task.state)}><i class={STATE_ICONS[task.state] || 'codicon codicon-question'}></i></span>
+        <span class={stateClass(task.state)}><svg class="task-type-icon" viewBox="0 0 24 24" aria-hidden="true"><path d={TASK_TYPE_ICONS[task.kind] || mdiEarth}/></svg></span>
         <span class="task-name">{task.description || task.id || ''}</span>
         <span class="task-elapsed">{task.state !== 'PENDING' ? (task.elapsed || '') : ''}</span>
         <span class="task-actions">
           {#if task.state === 'RUNNING' || task.state === 'PENDING'}
             <button type="button" class="danger" title="Cancel" onclick={() => cancel(task.name)}><i class="codicon codicon-stop-circle"></i></button>
-          {:else if getPreviewAsset(task)}
-            <button type="button" title="Preview" onclick={() => preview(getPreviewAsset(task))}><i class="codicon codicon-open-preview"></i></button>
+          {:else if task.previewAssetName}
+            <button type="button" title="Preview asset" onclick={() => preview(task.previewAssetName)}><i class="codicon codicon-open-preview"></i></button>
           {/if}
         </span>
       </li>
@@ -171,8 +175,8 @@
       align-items: center;
       justify-content: center;
 
-      &.running i,
-      &.cancelling i {
+      &.running .task-type-icon,
+      &.cancelling .task-type-icon {
         display: inline-block;
         animation: spin 0.8s linear infinite;
       }
@@ -199,6 +203,12 @@
     }
     .state-CANCELLED {
       color: var(--vscode-disabledForeground);
+    }
+    .task-type-icon {
+      width: 14px;
+      height: 14px;
+      display: block;
+      fill: currentColor;
     }
 
     /* ==================================================================
