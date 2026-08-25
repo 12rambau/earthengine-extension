@@ -2,54 +2,41 @@
 <script>
   import { vscode, getInitData } from '../../shared/vscode.ts';
   import { mdiImage, mdiImageMultiple, mdiTableMultiple } from '../../shared/icons.ts';
-  import Pagination from '../Pagination.svelte';
-  import ColumnPicker from '../ColumnPicker.svelte';
+  import DataTable from '../../shared/dataTable/DataTable.svelte';
+  import { createDataTable } from '../../shared/dataTable/dataTable.svelte.ts';
 
   const saved = getInitData();
 
   const ALL_COLS = [
     { key: 'icon', label: '', required: true },
-    { key: 'shortName', label: 'Name', required: true },
-    { key: 'type', label: 'Type' },
-    { key: 'assetId', label: 'Asset ID' },
+    {
+      key: 'shortName',
+      label: 'Name',
+      required: true,
+      sortable: true,
+      filter: { kind: 'text' },
+      accessor: a => a.shortName,
+      compare: (left, right, direction) => {
+        if (left.isContainer !== right.isContainer) {return left.isContainer ? -1 : 1;}
+        return left.shortName.localeCompare(right.shortName, undefined, { sensitivity: 'base' }) * direction;
+      },
+    },
+    { key: 'type', label: 'Type', sortable: true, filter: { kind: 'text' }, accessor: a => a.type },
+    { key: 'assetId', label: 'Asset ID', sortable: true, filter: { kind: 'text' }, accessor: a => a.assetId },
     { key: 'actions', label: 'Actions', required: true },
   ];
 
-  const CONTAINER_TYPES = new Set(['FOLDER', 'IMAGE_COLLECTION']);
+  let table = createDataTable({
+    columns: ALL_COLS,
+    defaultPageSize: 50,
+    defaultSort: { column: 'shortName', direction: 1 },
+    preferences: saved,
+  });
 
-  let visibleCols = $state(new Set(saved.visibleCols || ALL_COLS.map(c => c.key)));
-  ALL_COLS.filter(c => c.required).forEach(c => visibleCols.add(c.key));
-  let pageSize = $state(saved.pageSize || 50);
-
-  let assets = $state([]);
   let currentParent = $state('');
   let rootPath = $state('');
   let isLoading = $state(true);
-  let currentPage = $state(0);
-  let sortCol = $state('shortName');
-  let sortDir = $state(1);
   let busyAssets = $state(new Map());
-
-  // Derived
-  let sorted = $derived.by(() => {
-    return [...assets].sort((a, b) => {
-      if (a.isContainer !== b.isContainer) {return a.isContainer ? -1 : 1;}
-      const va = (a[sortCol] || '').toLowerCase();
-      const vb = (b[sortCol] || '').toLowerCase();
-      return va < vb ? -sortDir : va > vb ? sortDir : 0;
-    });
-  });
-
-  let totalPages = $derived(Math.max(1, Math.ceil(sorted.length / pageSize)));
-  let pageItems = $derived(sorted.slice(currentPage * pageSize, (currentPage + 1) * pageSize));
-  let rangeText = $derived.by(() => {
-    if (sorted.length === 0) {return '0 assets';}
-    const start = currentPage * pageSize + 1;
-    const end = Math.min((currentPage + 1) * pageSize, sorted.length);
-    return `${start}–${end} of ${sorted.length} assets`;
-  });
-
-  let visCols = $derived(ALL_COLS.filter(c => visibleCols.has(c.key)));
 
   let breadcrumbParts = $derived.by(() => {
     const parts = [{ label: rootPath.split('/')[1] || rootPath, path: rootPath }];
@@ -68,18 +55,12 @@
   // ----------------------------------------------------------------
   // ACTIONS
   // ----------------------------------------------------------------
-  function saveState() {
-    vscode.postMessage({ type: 'savePrefs', visibleCols: [...visibleCols], pageSize });
-  }
-
-  function handleSort(key) {
-    if (key === 'icon' || key === 'actions') {return;}
-    if (sortCol === key) { sortDir *= -1; }
-    else { sortCol = key; sortDir = 1; }
+  function saveState(preferences) {
+    vscode.postMessage({ type: 'savePrefs', preferences });
   }
 
   function navigate(path) {
-    currentPage = 0;
+    table.currentPage = 0;
     isLoading = true;
     vscode.postMessage({ type: 'navigate', path });
   }
@@ -128,7 +109,7 @@
   window.addEventListener('message', (e) => {
     const msg = e.data;
     if (msg.type === 'data') {
-      assets = msg.assets;
+      table.setRows(msg.assets);
       currentParent = msg.parent;
       rootPath = msg.root;
       isLoading = msg.loading;
@@ -146,8 +127,15 @@
 
 <h1>Asset Manager</h1>
 
-<div class="topbar">
-  <div class="topbar-left">
+<DataTable
+  {table}
+  itemLabel="assets"
+  loading={isLoading}
+  rowKey={(asset) => asset.name}
+  rowClass={(asset) => isBusy(asset.name) ? 'busy' : ''}
+  onpreferenceschange={saveState}
+>
+  {#snippet toolbar()}
     <button class="btn-primary" title="Create a new folder" onclick={newFolder}>+ New</button>
     <button class="btn-primary" class:loading={isLoading} disabled={isLoading} onclick={refresh}>
       <span class="refresh-icon">⟳</span>
@@ -160,97 +148,66 @@
         <button onclick={() => navigate(part.path)}>{part.label}</button>
       {/each}
     </div>
-  </div>
-  <div style="display:flex;align-items:center;gap:var(--vscee-space-sm);">
-    <ColumnPicker columns={ALL_COLS} bind:visibleCols onchange={saveState} />
-  </div>
-</div>
+  {/snippet}
 
-<div class="table-wrap" class:loading={isLoading}>
-  <table>
-    <thead>
-      <tr>
-        {#each visCols as col}
-          {#if col.key === 'icon'}
-            <th></th>
-          {:else if col.key === 'actions'}
-            <th>Actions</th>
+  {#snippet row(a, columns)}
+    {@const visible = new Set(columns.map(column => column.key))}
+    {#if visible.has('icon')}
+      <td class="icon-col">
+        {#if a.type === 'FOLDER'}
+          <i class="codicon codicon-folder"></i>
+        {:else if a.type === 'IMAGE_COLLECTION'}
+          <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="var(--vscee-color-image-collection)"><path d={mdiImageMultiple}/></svg>
+        {:else if a.type === 'IMAGE'}
+          <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="var(--vscee-color-image)"><path d={mdiImage}/></svg>
+        {:else if a.type === 'TABLE'}
+          <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="var(--vscee-color-table)"><path d={mdiTableMultiple}/></svg>
+        {/if}
+      </td>
+    {/if}
+    {#if visible.has('shortName')}
+      <td>
+        {#if a.isContainer}
+          <button class="name-link" onclick={() => navigate(a.name)}>{a.shortName}</button>
+        {:else}
+          <span class="name-text">{a.shortName}</span>
+        {/if}
+      </td>
+    {/if}
+    {#if visible.has('type')}<td>{formatType(a.type)}</td>{/if}
+    {#if visible.has('assetId')}<td class="id-cell" title={a.assetId}>{a.assetId}</td>{/if}
+    {#if visible.has('actions')}
+      <td class="actions-cell">
+        <span class="action-dots">
+          <span class="action-dot"><i class="codicon codicon-circle-small-filled"></i></span>
+          <span class="action-dot"><i class="codicon codicon-circle-small-filled"></i></span>
+          <span class="action-dot"><i class="codicon codicon-circle-small-filled"></i></span>
+          <span class="action-dot"><i class="codicon codicon-circle-small-filled"></i></span>
+        </span>
+        <span class="action-btns">
+          {#if a.type === 'FOLDER'}
+            <button class="action-btn" title="New folder" disabled={isBusy(a.name)} onclick={() => assetAction('createFolder', a.name)}>
+              <i class="codicon codicon-new-folder"></i>
+            </button>
           {:else}
-            <th class:sorted={sortCol === col.key} onclick={() => handleSort(col.key)}>
-              {col.label}
-              <span class="sort-arrow">{sortCol === col.key ? (sortDir === 1 ? '▲' : '▼') : '▲'}</span>
-            </th>
+            <button class="action-btn" title="Preview" disabled={isBusy(a.name)} onclick={() => preview(a.name)}>
+              <i class="codicon codicon-open-preview"></i>
+            </button>
           {/if}
-        {/each}
-      </tr>
-    </thead>
-    <tbody>
-      {#each pageItems as a (a.name)}
-        <tr class:busy={isBusy(a.name)}>
-          {#if visibleCols.has('icon')}
-            <td class="icon-col">
-              {#if a.type === 'FOLDER'}
-                <i class="codicon codicon-folder"></i>
-              {:else if a.type === 'IMAGE_COLLECTION'}
-                <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="var(--vscee-color-image-collection)"><path d={mdiImageMultiple}/></svg>
-              {:else if a.type === 'IMAGE'}
-                <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="var(--vscee-color-image)"><path d={mdiImage}/></svg>
-              {:else if a.type === 'TABLE'}
-                <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="var(--vscee-color-table)"><path d={mdiTableMultiple}/></svg>
-              {/if}
-            </td>
-          {/if}
-          {#if visibleCols.has('shortName')}
-            <td>
-              {#if a.isContainer}
-                <button class="name-link" onclick={() => navigate(a.name)}>{a.shortName}</button>
-              {:else}
-                <span class="name-text">{a.shortName}</span>
-              {/if}
-            </td>
-          {/if}
-          {#if visibleCols.has('type')}<td>{formatType(a.type)}</td>{/if}
-          {#if visibleCols.has('assetId')}<td class="id-cell" title={a.assetId}>{a.assetId}</td>{/if}
-          {#if visibleCols.has('actions')}
-            <td class="actions-cell">
-              <span class="action-dots">
-                <span class="action-dot"><i class="codicon codicon-circle-small-filled"></i></span>
-                <span class="action-dot"><i class="codicon codicon-circle-small-filled"></i></span>
-                <span class="action-dot"><i class="codicon codicon-circle-small-filled"></i></span>
-                <span class="action-dot"><i class="codicon codicon-circle-small-filled"></i></span>
-              </span>
-              <span class="action-btns">
-                {#if a.type === 'FOLDER'}
-                  <button class="action-btn" title="New folder" disabled={isBusy(a.name)} onclick={() => assetAction('createFolder', a.name)}>
-                    <i class="codicon codicon-new-folder"></i>
-                  </button>
-                {:else}
-                  <button class="action-btn" title="Preview" disabled={isBusy(a.name)} onclick={() => preview(a.name)}>
-                    <i class="codicon codicon-open-preview"></i>
-                  </button>
-                {/if}
-                <button class="action-btn" title="Copy asset" disabled={isBusy(a.name)} onclick={() => assetAction('copy', a.name)}>
-                  <i class="codicon codicon-copy"></i>
-                </button>
-                <button class="action-btn" title="Move asset" disabled={isBusy(a.name)} onclick={() => assetAction('move', a.name)}>
-                  <i class="codicon codicon-clippy"></i>
-                </button>
-                <button class="action-btn danger" title="Delete asset" disabled={isBusy(a.name)} onclick={() => assetAction('delete', a.name)}>
-                  <i class="codicon codicon-trash"></i>
-                </button>
-              </span>
-            </td>
-          {/if}
-        </tr>
-      {/each}
-    </tbody>
-  </table>
-</div>
-
-<div class="bottom-bar">
-  <span class="page-info">{rangeText}{#if isLoading} <span class="spinner-inline"></span>{/if}</span>
-  <Pagination bind:currentPage {totalPages} bind:pageSize onPageSizeChange={saveState} />
-</div>
+          <button class="action-btn" title="Copy asset" disabled={isBusy(a.name)} onclick={() => assetAction('copy', a.name)}>
+            <i class="codicon codicon-copy"></i>
+          </button>
+          <button class="action-btn" title="Move asset" disabled={isBusy(a.name)} onclick={() => assetAction('move', a.name)}>
+            <i class="codicon codicon-clippy"></i>
+          </button>
+          <button class="action-btn danger" title="Delete asset" disabled={isBusy(a.name)} onclick={() => assetAction('delete', a.name)}>
+            <i class="codicon codicon-trash"></i>
+          </button>
+        </span>
+      </td>
+    {/if}
+  {/snippet}
+</DataTable>
 
 <style>
   :global {
