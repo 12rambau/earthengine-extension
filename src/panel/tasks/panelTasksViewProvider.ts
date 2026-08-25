@@ -16,6 +16,8 @@ import {
   getOperation,
   isExportTask,
   isImportTask,
+  getTaskKind,
+  getPreviewAssetName,
 } from '../../sidebar/tasks/tasksApiClient.js';
 import { filterOperationsByHistory, getTaskHistoryDays } from '../../sidebar/tasks/taskHistory.js';
 import { AuthService } from '../../auth/index.js';
@@ -159,7 +161,8 @@ export class PanelTasksViewProvider implements vscode.WebviewViewProvider {
       description: op.metadata?.description || op.name.split('/').pop() || '',
       state: getTaskState(op),
       elapsed: getElapsedTime(op),
-      destinationUris: op.metadata?.destinationUris || [],
+      kind: getTaskKind(op),
+      previewAssetName: getPreviewAssetName(op),
     }));
     this.view.webview.postMessage({ type: 'data', tasks: mapped, loading });
   }

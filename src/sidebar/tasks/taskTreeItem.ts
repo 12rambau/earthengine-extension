@@ -12,7 +12,17 @@ import {
   formatRuntimeLine,
   isExportTask,
   isImportTask,
+  getTaskKind,
+  type TaskKind,
 } from './tasksApiClient.js';
+import {
+  mdiChartTree,
+  mdiEarth,
+  mdiImage,
+  mdiMapOutline,
+  mdiTable,
+  mdiVideoBox,
+} from '../../shared/icons.js';
 
 // ==================================================================
 // CONSTANTS
@@ -26,15 +36,31 @@ const STATE_COLORS: Partial<Record<string, vscode.ThemeColor>> = {
   CANCELLED: new vscode.ThemeColor('disabledForeground'),
 };
 
-const TYPE_ICONS: [string, string][] = [
-  ['INGEST', 'cloud-upload'],
-  ['IMPORT', 'cloud-upload'],
-  ['EXPORT_IMAGE', 'file-media'],
-  ['EXPORT_VIDEO', 'file-media'],
-  ['EXPORT_TABLE', 'table'],
-  ['EXPORT_FEATURES', 'table'],
-  ['EXPORT', 'cloud-download'],
-];
+const STATE_ICON_COLORS: Record<string, string> = {
+  PENDING: '#cca700',
+  RUNNING: '#3794ff',
+  CANCELLING: '#8c8c8c',
+  SUCCEEDED: '#89d185',
+  FAILED: '#f14c4c',
+  CANCELLED: '#8c8c8c',
+};
+
+const TREE_MDI_ICONS: Record<TaskKind, string> = {
+  'image-export': mdiImage,
+  'map-export': mdiMapOutline,
+  'table-export': mdiTable,
+  'video-export': mdiVideoBox,
+  'classifier-export': mdiChartTree,
+  export: mdiEarth,
+  import: mdiEarth,
+  unknown: mdiEarth,
+};
+
+function getTaskTreeIcon(kind: TaskKind, state: string): vscode.Uri {
+  const color = STATE_ICON_COLORS[state] ?? '#8c8c8c';
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="${color}" d="${TREE_MDI_ICONS[kind]}"/></svg>`;
+  return vscode.Uri.parse(`data:image/svg+xml,${encodeURIComponent(svg)}`);
+}
 
 // ==================================================================
 // TASKTREEITEM
@@ -57,11 +83,7 @@ export class TaskTreeItem extends vscode.TreeItem {
         ? new vscode.ThemeIcon('loading~spin', color)
         : new vscode.ThemeIcon('loading~spin');
     } else {
-      const iconId =
-        TYPE_ICONS.find(([p]) =>
-          (operation.metadata?.type ?? '').toUpperCase().startsWith(p),
-        )?.[1] ?? 'symbol-misc';
-      this.iconPath = color ? new vscode.ThemeIcon(iconId, color) : new vscode.ThemeIcon(iconId);
+      this.iconPath = getTaskTreeIcon(getTaskKind(operation), state);
     }
 
     this.description = elapsed;

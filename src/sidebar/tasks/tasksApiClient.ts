@@ -62,6 +62,17 @@ export interface PaginatedOperations {
   project: string;
 }
 
+/** Display category for a task type returned by the Earth Engine API. */
+export type TaskKind =
+  | 'image-export'
+  | 'map-export'
+  | 'table-export'
+  | 'video-export'
+  | 'classifier-export'
+  | 'export'
+  | 'import'
+  | 'unknown';
+
 // ==================================================================
 // API FUNCTIONS
 // ==================================================================
@@ -130,6 +141,49 @@ export function isExportTask(op: Operation): boolean {
 export function isImportTask(op: Operation): boolean {
   const type = (op.metadata?.type || '').toUpperCase();
   return type.startsWith('INGEST') || type.startsWith('IMPORT');
+}
+
+/** Returns the display category for an Earth Engine operation. */
+export function getTaskKind(op: Operation): TaskKind {
+  switch ((op.metadata?.type || '').toUpperCase()) {
+    case 'EXPORT_IMAGE':
+      return 'image-export';
+    case 'EXPORT_TILES':
+      return 'map-export';
+    case 'EXPORT_TABLE':
+    case 'EXPORT_FEATURES':
+      return 'table-export';
+    case 'EXPORT_VIDEO':
+      return 'video-export';
+    case 'EXPORT_CLASSIFIER':
+      return 'classifier-export';
+    default:
+      return isExportTask(op) ? 'export' : isImportTask(op) ? 'import' : 'unknown';
+  }
+}
+
+/** Returns the asset name that can be opened in a preview panel, if any. */
+export function getPreviewAssetName(op: Operation): string | undefined {
+  const kind = getTaskKind(op);
+  if (getTaskState(op) !== 'SUCCEEDED' || (kind !== 'image-export' && kind !== 'table-export')) {
+    return undefined;
+  }
+
+  const uri = op.metadata?.destinationUris?.find((value) =>
+    /(?:asset=|\/v1\/projects\/[^/]+\/assets\/)/.test(value),
+  );
+  if (!uri) {
+    return undefined;
+  }
+
+  const match =
+    uri.match(/asset=(projects\/[^&\s]+)/) || uri.match(/\/v1\/(projects\/[^/]+\/assets\/.+)/);
+  return match ? decodeURIComponent(match[1]) : undefined;
+}
+
+/** Whether a completed task can be opened in an asset preview panel. */
+export function canPreviewTask(op: Operation): boolean {
+  return getPreviewAssetName(op) !== undefined;
 }
 
 /** Derives the display state from operation metadata. */

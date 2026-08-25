@@ -63,11 +63,8 @@
     vscode.postMessage({ type: 'cancel', name });
   }
 
-  function previewAsset(uri) {
-    // EE returns ?asset=projects/... (code.earthengine.google.com) or /v1/projects/... (googleapis.com)
-    const m = uri.match(/asset=(projects\/[^&\s]+)/) ||
-              uri.match(/\/v1\/(projects\/[^/]+\/assets\/.+)/);
-    if (m) {vscode.postMessage({ type: 'preview', assetName: decodeURIComponent(m[1]) });}
+  function previewAsset(assetName) {
+    vscode.postMessage({ type: 'preview', assetName });
   }
 
   function refresh() {
@@ -162,7 +159,7 @@
     {#if visible.has('computeUsage')}<td class="compute">{t.computeUsage != null ? t.computeUsage.toFixed(1) + ' EECU·s' : ''}</td>{/if}
     {#if visible.has('actions')}
       {@const hasCancel = t.state === 'RUNNING' || t.state === 'PENDING'}
-      {@const hasPreview = t.state === 'SUCCEEDED' && t.destinationUris?.length > 0}
+      {@const hasPreview = Boolean(t.previewAssetName)}
       <td class="actions-cell">
         {#if hasCancel || hasPreview}
           <span class="action-dots">
@@ -175,7 +172,7 @@
               </button>
             {/if}
             {#if hasPreview}
-              <button class="action-btn" title="Preview asset" onclick={() => previewAsset(t.destinationUris[0])}>
+              <button class="action-btn" title="Preview asset" onclick={() => previewAsset(t.previewAssetName)}>
                 <i class="codicon codicon-open-preview"></i>
               </button>
             {/if}
@@ -500,7 +497,6 @@
       display: inline-block;
       animation: spin 1s linear infinite;
     }
-
     /* ==================================================================
        ROW ACTIONS
        ================================================================== */
