@@ -175,8 +175,8 @@
       align-items: center;
       justify-content: center;
 
-      &.running i,
-      &.cancelling i {
+      &.running .task-type-icon,
+      &.cancelling .task-type-icon {
         display: inline-block;
         animation: spin 0.8s linear infinite;
       }
