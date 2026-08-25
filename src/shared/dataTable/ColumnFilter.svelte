@@ -3,9 +3,17 @@
   let { column, filter, open = false, align = 'end', onchange, onopenchange } = $props();
 
   let wrap = $state(null);
+  let comparisonDraft = $state(undefined);
 
   const active = $derived(filter !== undefined);
   const filterKind = $derived(column.filter?.kind);
+  const comparison = $derived(
+    filter?.kind === filterKind
+      ? filter
+      : comparisonDraft?.kind === filterKind
+        ? comparisonDraft
+        : { kind: filterKind, operator: 'equals', value: '' },
+  );
 
   function setText(query) {
     onchange?.(query ? { kind: 'text', query } : undefined);
@@ -18,11 +26,14 @@
   }
 
   function setComparison(field, value) {
-    const current = filter?.kind === filterKind
-      ? filter
-      : { kind: filterKind, operator: filterKind === 'date' ? 'equals' : 'equals', value: '' };
-    const next = { ...current, [field]: value };
+    const next = { ...comparison, [field]: value };
+    comparisonDraft = next;
     onchange?.(next.value === '' ? undefined : next);
+  }
+
+  function clearFilter() {
+    comparisonDraft = undefined;
+    onchange?.(undefined);
   }
 
   function closeOnEscape(event) {
@@ -73,7 +84,7 @@
         <div class="comparison">
           <select
             aria-label={`Filter operator for ${column.label}`}
-            value={filter?.kind === filterKind ? filter.operator : 'equals'}
+            value={comparison.operator}
             onchange={(event) => setComparison('operator', event.currentTarget.value)}
           >
             <option value="equals">Is</option>
@@ -88,7 +99,7 @@
           </select>
           <input
             type={filterKind === 'date' ? 'date' : 'number'}
-            value={filter?.kind === filterKind ? filter.value : ''}
+            value={comparison.value}
             aria-label={`Filter value for ${column.label}`}
             oninput={(event) => setComparison('value', event.currentTarget.value)}
           />
@@ -96,7 +107,7 @@
       {/if}
 
       {#if active}
-        <button class="clear" onclick={() => onchange?.(undefined)}>
+        <button class="clear" onclick={clearFilter}>
           <i class="codicon codicon-clear-all"></i>
           Clear filter
         </button>

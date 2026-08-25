@@ -321,7 +321,8 @@ function getHtml(filter: TaskFilter, savedPrefs: TaskPrefs, webview: vscode.Webv
   };
   const tablePreferences = {
     ...savedPrefs.tablePreferences,
-    [filter]: savedPrefs.tablePreferences?.[filter] ?? legacyPreferences,
+    export: savedPrefs.tablePreferences?.export ?? legacyPreferences,
+    import: savedPrefs.tablePreferences?.import ?? legacyPreferences,
   };
   const initData = JSON.stringify({ filter, tablePreferences }).replace(/</g, '\u003c');
   return `<!DOCTYPE html>
