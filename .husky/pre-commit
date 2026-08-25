@@ -1,1 +1,9 @@
+if git diff --cached --name-only --diff-filter=ACMR | grep -qx 'package.json'; then
+	npm install --package-lock-only --ignore-scripts
+	if ! git diff --quiet -- package-lock.json; then
+		echo 'package-lock.json is out of date. Run npm install --package-lock-only --ignore-scripts and stage the result.'
+		exit 1
+	fi
+fi
+
 npx lint-staged

@@ -21,7 +21,7 @@ This is a VS Code extension for Google Earth Engine. Read `.github/ARCHITECTURE.
 - **No hardcoded SVG icons in WebViews**: the `@vscode/codicons` library is loaded in every WebView panel. Always use `<i class="codicon codicon-NAME"></i>` — never inline `<svg>` for icons.
 - **Lazy loading pattern**: tree views return spinner placeholders immediately, load in the background, then fire `_onDidChangeTreeData`. See `assetsTreeDataProvider.ts` for the canonical example.
 - **Pagination**: server-side (API pageToken) for large collections, not client-side.
-- **package.json**: be careful with JSON structure — orphan fragments are a recurring issue. Validate after edits.
+- **package.json**: be careful with JSON structure — orphan fragments are a recurring issue. Validate after edits. When changing dependencies, run `npm install --package-lock-only --ignore-scripts` and include the resulting `package-lock.json` update in the same commit.
 
 ## Anatomy of a WebView panel
 
