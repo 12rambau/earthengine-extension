@@ -15,7 +15,13 @@ export class EeLayer {
     public readonly serialized: string,
     /** Display name shown in the layer panel. */
     public readonly name: string,
+    /** Last resolved tile URL — empty until `add()` completes. */
+    public url: string = '',
     /** The vis-params last used to render this layer. */
     public visParams: Record<string, unknown> = {},
+    /** Whether the layer is currently visible on the map. */
+    public shown: boolean = true,
+    /** Current opacity in [0, 1]. */
+    public opacity: number = 1.0,
   ) {}
 }

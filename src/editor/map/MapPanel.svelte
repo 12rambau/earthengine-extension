@@ -76,6 +76,11 @@
   let activeScaleIndex = $state(-1);
   let coords = $state('0.0000, 0.0000');
   let zoomLevel = $state(2);
+
+  // Floating tooltip that follows the mouse while a colour-scale layer is active.
+  let cursorTooltipText = $state('');
+  let cursorTooltipX = $state(0);
+  let cursorTooltipY = $state(0);
   let activeMode = $state('theme');
 
   // Viz editor
@@ -213,8 +218,11 @@
     // Status bar events
     map.on('mousemove', (e) => {
       coords = e.latlng.lat.toFixed(4) + ', ' + e.latlng.lng.toFixed(4);
+      cursorTooltipX = e.originalEvent.clientX;
+      cursorTooltipY = e.originalEvent.clientY;
       updateScaleFromMap(e.latlng);
     });
+    map.on('mouseout', () => { cursorTooltipText = ''; });
     map.on('zoomend', () => { zoomLevel = map.getZoom(); });
 
     // Inspector click
@@ -231,6 +239,10 @@
       pendingInspect = { lat, lng };
       vscode.postMessage({ type: 'inspect', data: { lat, lng, zoom: map.getZoom() } });
     });
+
+    // Signal the extension host that the map is ready to receive layers.
+    // The host uses this to replay any layer added before the panel was (re)opened.
+    vscode.postMessage({ type: 'ready' });
   }
 
   // ----------------------------------------------------------------
@@ -268,6 +280,10 @@
       map.removeLayer(entry.tileLayer);
     }
     overlays = overlays;
+    vscode.postMessage({
+      type: 'layerVisibility',
+      data: { layerIndex: entry.layerIndex, shown: entry.visible },
+    });
   }
 
   function setLayerOpacity(idx, val) {
@@ -275,6 +291,10 @@
     entry.opacity = val / 10;
     entry.tileLayer.setOpacity(entry.opacity);
     overlays = overlays;
+    vscode.postMessage({
+      type: 'layerOpacity',
+      data: { layerIndex: entry.layerIndex, opacity: entry.opacity },
+    });
   }
 
   function toggleScale(idx) {
@@ -346,9 +366,8 @@
     if (activeScaleIndex < 0) {return;}
     const rgba = sampleOverlayPixel(latlng, activeScaleIndex);
     if (!rgba || rgba[3] === 0) {
-      // Reset pointers via DOM
       document.querySelectorAll('.scale-pointer').forEach(p => { p.style.display = 'none'; });
-      document.querySelectorAll('.scale-tooltip').forEach(t => { t.style.display = 'none'; });
+      cursorTooltipText = '';
       return;
     }
     const entry = overlays[activeScaleIndex];
@@ -360,9 +379,12 @@
     const maxArr = Array.isArray(vp.max) ? vp.max : [vp.max != null ? vp.max : 1];
     const isCategorical = Array.isArray(vp.values) && vp.values.length > 0;
 
+    const parts = [];
     if (isCategorical && palette) {
       const bestIdx = findClosestPaletteIndex(rgba, palette);
-      highlightCategoryDOM(bestIdx);
+      const label = highlightCategoryDOM(bestIdx);
+      if (label) {parts.push(label);}
+      cursorTooltipText = parts.join('\n');
       return;
     }
 
@@ -370,12 +392,23 @@
     if (palette && bands.length <= 1 && rows[0]) {
       const bestIdx = findClosestPaletteIndex(rgba, palette);
       const pct = palette.length > 1 ? bestIdx / (palette.length - 1) : 0;
-      setPointerDOM(rows[0], pct, minArr[0], maxArr[0]);
+      const t = setPointerDOM(rows[0], pct, minArr[0], maxArr[0]);
+      if (t) {parts.push(t);}
     } else if (bands.length === 3) {
-      if (rows[0]) {setPointerDOM(rows[0], rgba[0] / 255, minArr[0], maxArr[0]);}
-      if (rows[1]) {setPointerDOM(rows[1], rgba[1] / 255, minArr[1] ?? minArr[0], maxArr[1] ?? maxArr[0]);}
-      if (rows[2]) {setPointerDOM(rows[2], rgba[2] / 255, minArr[2] ?? minArr[0], maxArr[2] ?? maxArr[0]);}
+      if (rows[0]) {
+        const t = setPointerDOM(rows[0], rgba[0] / 255, minArr[0], maxArr[0]);
+        if (t) {parts.push(`${bands[0] || 'R'}: ${t}`);}
+      }
+      if (rows[1]) {
+        const t = setPointerDOM(rows[1], rgba[1] / 255, minArr[1] ?? minArr[0], maxArr[1] ?? maxArr[0]);
+        if (t) {parts.push(`${bands[1] || 'G'}: ${t}`);}
+      }
+      if (rows[2]) {
+        const t = setPointerDOM(rows[2], rgba[2] / 255, minArr[2] ?? minArr[0], maxArr[2] ?? maxArr[0]);
+        if (t) {parts.push(`${bands[2] || 'B'}: ${t}`);}
+      }
     }
+    cursorTooltipText = parts.join('\n');
   }
 
   function findClosestPaletteIndex(rgba, palette) {
@@ -394,35 +427,31 @@
 
   function setPointerDOM(row, pct, min, max) {
     const pointer = row.querySelector('.scale-pointer');
-    const tooltip = row.querySelector('.scale-tooltip');
     const maxEl = row.querySelector('.scale-max');
-    if (!pointer || !tooltip) {return;}
+    if (!pointer) {return null;}
     const c = Math.max(0, Math.min(1, pct));
     pointer.style.left = c * 100 + '%';
     pointer.style.display = 'block';
-    tooltip.style.display = 'block';
     const val = min + c * (max - min);
-    tooltip.textContent = fmtVal(val);
-    if (maxEl) {maxEl.textContent = fmtVal(val);}
+    const text = fmtVal(val);
+    if (maxEl) {maxEl.textContent = text;}
+    return text;
   }
 
   function highlightCategoryDOM(index) {
     const segments = document.querySelectorAll('.scale-cat-segment');
     const pointer = document.querySelector('.scale-cat-pointer');
-    const tooltip = pointer ? pointer.querySelector('.scale-tooltip') : null;
     const maxEl = document.querySelector('.scale-bar .scale-max');
     const n = segments.length;
-    if (!pointer || !tooltip || n === 0) {return;}
+    if (!pointer || n === 0) {return null;}
     const pct = ((index + 0.5) / n) * 100;
     pointer.style.left = pct + '%';
     pointer.style.display = 'block';
-    tooltip.style.display = 'block';
     const seg = segments[index];
-    if (seg) {
-      const label = seg.dataset.catLabel || 'Class ' + index;
-      tooltip.textContent = label;
-      if (maxEl) {maxEl.textContent = label;}
-    }
+    if (!seg) {return null;}
+    const label = seg.dataset.catLabel || 'Class ' + index;
+    if (maxEl) {maxEl.textContent = label;}
+    return label;
   }
 
   function handleScaleRowHover(e, min, max) {
@@ -431,17 +460,15 @@
     const pct = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
     const val = min + pct * (max - min);
     const pointer = wrap.querySelector('.scale-pointer');
-    const tooltip = wrap.querySelector('.scale-tooltip');
     if (pointer) { pointer.style.left = pct * 100 + '%'; pointer.style.display = 'block'; }
-    if (tooltip) { tooltip.style.display = 'block'; tooltip.textContent = fmtVal(val); }
+    const maxEl = wrap.parentElement?.querySelector('.scale-max');
+    if (maxEl) { maxEl.textContent = fmtVal(val); }
   }
 
   function handleScaleRowLeave(e) {
     const wrap = e.currentTarget;
     const pointer = wrap.querySelector('.scale-pointer');
-    const tooltip = wrap.querySelector('.scale-tooltip');
     if (pointer) {pointer.style.display = 'none';}
-    if (tooltip) {tooltip.style.display = 'none';}
   }
 
   // ----------------------------------------------------------------
@@ -684,6 +711,13 @@
           }
         }
       }
+    } else if (msg.type === 'clearLayers') {
+      for (const entry of overlays) {
+        if (entry.visible) {map.removeLayer(entry.tileLayer);}
+        nativeLayerControl.removeLayer(entry.tileLayer);
+      }
+      overlays = [];
+      activeScaleIndex = -1;
     }
   });
 
@@ -702,6 +736,13 @@
 <!-- MAP -->
 <div id="map"></div>
 
+{#if activeScaleIndex >= 0 && cursorTooltipText}
+  <div class="cursor-value-tooltip"
+    style="left: {cursorTooltipX + 12}px; top: {cursorTooltipY + 12}px;">
+    {cursorTooltipText}
+  </div>
+{/if}
+
 <!-- CONTROLS -->
 <div class="map-controls">
   <button class="map-btn" class:active={layersPanelVisible} title="Manage layers"
@@ -719,6 +760,13 @@
   <button class="map-btn" class:active={activeMode === 'satellite'} title="Toggle satellite view"
     onclick={() => activateMode('satellite')}>
     <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="currentColor"><path d={mdiSatelliteVariant}/></svg>
+  </button>
+</div>
+
+<div class="map-controls map-controls-right">
+  <button class="map-btn" title="Clear all layers"
+    onclick={() => vscode.postMessage({ type: 'clearAllLayers' })}>
+    <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="currentColor"><path d={mdiTrashCan}/></svg>
   </button>
 </div>
 
@@ -828,9 +876,7 @@
           <div class="scale-cat-segment" style="background:{color.startsWith('#') ? color : '#' + color};width:{100/scaleData.palette.length}%"
             data-index={i} data-cat-label={catLabel}></div>
         {/each}
-        <div class="scale-pointer scale-cat-pointer">
-          <div class="scale-tooltip"></div>
-        </div>
+        <div class="scale-pointer scale-cat-pointer"></div>
       </div>
       <span class="scale-max">{scaleData.palette.length} classes</span>
     </div>
@@ -842,9 +888,7 @@
           onmousemove={(e) => handleScaleRowHover(e, row.min, row.max)}
           onmouseleave={handleScaleRowLeave}>
           <div class="scale-gradient" style="background:{row.gradient}"></div>
-          <div class="scale-pointer">
-            <div class="scale-tooltip"></div>
-          </div>
+          <div class="scale-pointer"></div>
         </div>
         <span class="scale-max">{fmtVal(row.min)}–{fmtVal(row.max)}</span>
       </div>
@@ -1068,12 +1112,14 @@
       background: var(--vscode-foreground); pointer-events: none;
       display: none; opacity: 0.9; transition: left 0.1s ease-out;
     }
-    .scale-tooltip {
-      position: absolute; top: -18px; transform: translateX(-50%);
+    .scale-tooltip { display: none; }
+    .cursor-value-tooltip {
+      position: fixed; pointer-events: none; z-index: 1000;
       background: var(--vscode-editor-background); color: var(--vscode-foreground);
-      font-size: var(--vscee-font-compact-xxs); padding: var(--vscee-space-xxs) var(--vscee-space-xs); border-radius: var(--vscee-radius-sm);
-      white-space: nowrap; pointer-events: none; display: none;
-      box-shadow: var(--vscee-shadow-xs); font-variant-numeric: tabular-nums;
+      font-size: var(--vscee-font-compact-xxs);
+      padding: var(--vscee-space-xxs) var(--vscee-space-xs); border-radius: var(--vscee-radius-sm);
+      white-space: pre-line; box-shadow: var(--vscee-shadow-xs);
+      font-variant-numeric: tabular-nums;
     }
     .scale-cat-wrap { display: flex; overflow: visible; gap: 0; cursor: pointer; }
     .scale-cat-segment { height: 100%; position: relative; transition: opacity 0.1s; }
@@ -1088,6 +1134,7 @@
       position: absolute; top: 10px; left: 10px; z-index: 1000;
       display: flex; flex-direction: column; gap: var(--vscee-space-sm);
     }
+    .map-controls-right { left: auto; right: 10px; }
     .map-btn {
       width: 32px; height: 32px; border: none; border-radius: var(--vscee-radius-md);
       background: var(--vscode-editor-background); color: var(--vscode-foreground);
