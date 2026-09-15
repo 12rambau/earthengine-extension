@@ -3,23 +3,21 @@ from vscee import Map
 
 ee.Initialize(project="ee-geetools")
 
-# Adds a band containing image date as years since 1991.
-def createTimeBand(img: ee.Image) -> ee.Image:
-    year = ee.Date(img.get('system:time_start')).get('year').subtract(1991)
-    return ee.Image(year).byte().addBands(img)
+# Update to the latest vintage in the Data Catalog once one covering lossYear exists.
+hansen = ee.Image('UMD/hansen/global_forest_change_2023_v1_11')
+lossYear = 2023
 
-# Map the time band creation helper over the night-time lights collection.
-# https://developers.google.com/earth-engine/datasets/catalog/NOAA_DMSP-OLS_NIGHTTIME_LIGHTS
-collection = (
-    ee.ImageCollection('NOAA/DMSP-OLS/NIGHTTIME_LIGHTS')
-    .select('stable_lights')
-    .map(createTimeBand)
-)
+# The country boundary defines both the analysis region and the outline overlay.
+france = ee.FeatureCollection('FAO/GAUL/2015/level0').filter(ee.Filter.eq('ADM0_NAME', 'France'))
+region = france.geometry()
 
-# Compute a linear fit over the series of values at each pixel, visualizing
-# the y-intercept in green, and positive/negative slopes as red/blue.
-Map.addLayer(
-    collection.reduce(ee.Reducer.linearFit()),
-    {"min": 0, "max": [0.18, 20, -0.18], "bands": ['scale', 'offset', 'scale']},
-    'stable lights trend 3'
-)
+# lossyear is coded as years since 2000 (1-23 in the 2023 vintage), so 2025 needs a newer asset.
+loss = hansen.select('lossyear').eq(lossYear - 2000).selfMask().clip(region)
+
+treeVis = {"bands": ['treecover2000'], "min": 0, "max": 100, "palette": ['000000', '00ff00']}
+lossVis = {"palette": ['ff0000']}
+
+Map.addLayer(hansen.select('treecover2000').clip(region), treeVis, 'Tree cover 2000')
+Map.addLayer(loss, lossVis, f'Tree cover loss {lossYear}')
+Map.addLayer(france, {"color": '000000', "strokeWidth": 1}, 'France boundary')
+Map.centerObject(region, zoom=6)
