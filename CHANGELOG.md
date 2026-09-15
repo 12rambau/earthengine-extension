@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.7](https://github.com/12rambau/earthengine-extension/compare/v0.6.6...v0.6.7) (2026-09-15)
+
+### Bug Fixes
+
+- drop files from the gitignore ([377c1ad](https://github.com/12rambau/earthengine-extension/commit/377c1ad95bd7ecfaed22948e6411ecc1fcc2de83))
+- update release-it after:bump hook to python/ path ([2ece15e](https://github.com/12rambau/earthengine-extension/commit/2ece15edebc81c823a85117755b9c4b9d233ab75))
+
 ## [0.6.6](https://github.com/12rambau/earthengine-extension/compare/v0.6.5...v0.6.6) (2026-08-25)
 
 ### Bug Fixes
