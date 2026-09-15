@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "vscee"
-version = "0.6.7"
+version = "0.6.8"
 description = "Python bridge to the interactive map panel of the Earth Engine VS Code extension."
 readme = "README.rst"
 requires-python = ">=3.9"

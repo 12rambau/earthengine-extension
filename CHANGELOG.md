@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.6.8](https://github.com/12rambau/earthengine-extension/compare/v0.6.7...v0.6.8) (2026-09-15)
+
+### Bug Fixes
+
+- split vsx and vscode release ([5d94918](https://github.com/12rambau/earthengine-extension/commit/5d94918578575a19f0442ada53645c6e5815a27f))
+
 ## [0.6.7](https://github.com/12rambau/earthengine-extension/compare/v0.6.6...v0.6.7) (2026-09-15)
 
 ### Bug Fixes
