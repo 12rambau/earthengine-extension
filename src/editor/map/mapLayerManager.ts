@@ -108,7 +108,10 @@ export class MapLayerManager {
     const url = await getMapIdUrl(resolvedImage, resolvedVisParams);
 
     const finalVisParams = displayVisParams ?? resolvedVisParams;
+    eeLayer.url = url;
     eeLayer.visParams = finalVisParams;
+    eeLayer.shown = payload.shown;
+    eeLayer.opacity = payload.opacity;
 
     postMessage({
       type: 'addTileLayer',
@@ -121,6 +124,42 @@ export class MapLayerManager {
         visParams: finalVisParams,
       },
     });
+  }
+
+  /** Re-emits `addTileLayer` for every stored layer — used after a WebView reload. */
+  replay(postMessage: (msg: unknown) => void): void {
+    for (const layer of this._layers.values()) {
+      if (!layer.url) {
+        continue;
+      }
+      postMessage({
+        type: 'addTileLayer',
+        data: {
+          url: layer.url,
+          name: layer.name,
+          shown: layer.shown,
+          opacity: layer.opacity,
+          layerIndex: layer.index,
+          visParams: layer.visParams,
+        },
+      });
+    }
+  }
+
+  /** Records a visibility change coming from the WebView. */
+  setLayerVisibility(layerIndex: number, shown: boolean): void {
+    const layer = this._layers.get(layerIndex);
+    if (layer) {
+      layer.shown = shown;
+    }
+  }
+
+  /** Records an opacity change coming from the WebView. */
+  setLayerOpacity(layerIndex: number, opacity: number): void {
+    const layer = this._layers.get(layerIndex);
+    if (layer) {
+      layer.opacity = opacity;
+    }
   }
 
   /** Clears all layers and resets the insertion counter. */
@@ -307,6 +346,7 @@ export class MapLayerManager {
 
     const url = await getMapIdUrl(resolvedImage, resolvedVisParams);
     const finalVisParams = displayVisParams ?? resolvedVisParams;
+    layer.url = url;
     layer.visParams = finalVisParams;
 
     postMessage({

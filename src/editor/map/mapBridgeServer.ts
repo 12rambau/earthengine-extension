@@ -3,8 +3,8 @@
  * Local HTTP bridge server for Python \u2192 Map communication.
  *
  * Listens on `127.0.0.1:31415` for JSON POST requests from Python
- * scripts (via `earthengine_vscode_map.py`) and translates them into
- * VS Code events that the MapPanel forwards to the Leaflet WebView.
+ * scripts (via the `earthengine_vscode_map.Map` module) and translates
+ * them into VS Code events that the MapPanel forwards to the Leaflet WebView.
  */
 
 import * as http from 'http';

@@ -1,6 +1,22 @@
+# js extension outputs
 out
-dist
 node_modules
 .vscode-test/
 *.vsix
 resources/icons/
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+*.egg
+
+# Virtual environments
+.venv/
+venv/
+env/

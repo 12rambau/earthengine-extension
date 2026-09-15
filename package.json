@@ -592,7 +592,11 @@
   },
   "lint-staged": {
     "*.{ts,svelte}": "eslint --fix",
-    "*.{ts,svelte,json,css}": "prettier --write"
+    "*.{ts,svelte,json,css}": "prettier --write",
+    "*.py": [
+      "ruff check --fix",
+      "ruff format"
+    ]
   },
   "devDependencies": {
     "@commitlint/cli": "^21.2.2",

@@ -33,10 +33,12 @@ export class MapPanel extends EditorPanel {
     this.bridgeServer = new MapBridgeServer();
   }
 
-  /** Starts the bridge server, creates the WebView, and wires up commands. */
+  /** Creates (or reveals) the map WebView and wires WebView message handling. */
   async open(): Promise<void> {
+    // The bridge server is started in register(); starting again is a no-op.
     await this.bridgeServer.start();
 
+    const alreadyOpen = this.panel !== undefined;
     const panel = this.createPanel(
       'earthengine.map',
       'Earth Engine Map',
@@ -45,9 +47,9 @@ export class MapPanel extends EditorPanel {
     );
     panel.iconPath = new vscode.ThemeIcon('map');
 
-    if (this.commandDisposable) {
+    if (alreadyOpen) {
       return;
-    } // Already wired
+    }
 
     const cfg = vscode.workspace.getConfiguration('earthengine.map');
     const nonce = getNonce();
@@ -75,35 +77,31 @@ export class MapPanel extends EditorPanel {
   </body>
 </html>`;
 
-    this.commandDisposable = this.bridgeServer.onCommand(async (cmd: MapCommand) => {
-      if (!this.panel) {
-        return;
-      }
-
-      if (cmd.type === 'addLayer') {
-        const d = cmd.data as {
-          serialized: string;
-          visParams: Record<string, unknown>;
-          name: string;
-          shown: boolean;
-          opacity: number;
-        };
-        try {
-          await this.layerManager.add(d, (m) => this.post(m));
-        } catch (err) {
-          vscode.window.showErrorMessage(
-            `[Map] Layer error: ${err instanceof Error ? err.message : String(err)}`,
-          );
-        }
-        return;
-      }
-
-      this.panel.webview.postMessage(cmd);
-    });
+    this.messageDisposable?.dispose();
 
     // WebView → extension host messages (inspector clicks, viz editor).
     this.messageDisposable = panel.webview.onDidReceiveMessage(async (msg) => {
-      if (msg.type === 'inspect') {
+      if (msg.type === 'ready') {
+        this.layerManager.replay((m) => this.post(m));
+      } else if (msg.type === 'clearAllLayers') {
+        if (this.layerManager.layers.size === 0) {
+          return;
+        }
+        const choice = await vscode.window.showWarningMessage(
+          'Clear all layers from the map? This cannot be undone.',
+          'Clear all',
+        );
+        if (choice === 'Clear all') {
+          this.layerManager.clear();
+          this.post({ type: 'clearLayers' });
+        }
+      } else if (msg.type === 'layerVisibility') {
+        const d = msg.data as { layerIndex: number; shown: boolean };
+        this.layerManager.setLayerVisibility(d.layerIndex, d.shown);
+      } else if (msg.type === 'layerOpacity') {
+        const d = msg.data as { layerIndex: number; opacity: number };
+        this.layerManager.setLayerOpacity(d.layerIndex, d.opacity);
+      } else if (msg.type === 'inspect') {
         const d = msg.data as { lat: number; lng: number; zoom: number };
         await this.inspector.inspect(d.lat, d.lng, d.zoom, this.layerManager.layers, (m) =>
           this.post(m),
@@ -263,20 +261,31 @@ export class MapPanel extends EditorPanel {
   }
 
   protected override onDidDispose(): void {
-    this.commandDisposable?.dispose();
-    this.commandDisposable = undefined;
     this.messageDisposable?.dispose();
     this.messageDisposable = undefined;
-    this.layerManager.clear();
+    // Keep layerManager state so a subsequent open() can replay the layers.
   }
 
   override dispose(): void {
+    this.commandDisposable?.dispose();
+    this.commandDisposable = undefined;
     this.bridgeServer.stop();
     super.dispose();
   }
 
   /** Registers map commands. */
   register(context: vscode.ExtensionContext): void {
+    // Start the bridge server on activation so Python scripts can connect
+    // before the user has manually opened the map panel.
+    void this.bridgeServer.start().catch((err) => {
+      console.error('[Map] Bridge server failed to start:', err);
+    });
+
+    // Subscribe once to bridge commands; the panel opens on demand.
+    this.commandDisposable = this.bridgeServer.onCommand((cmd) => {
+      void this.handleBridgeCommand(cmd);
+    });
+
     context.subscriptions.push(
       vscode.commands.registerCommand('earthengine.openMap', () => this.open()),
       vscode.commands.registerCommand('earthengine.map.testNighttimeLights', () =>
@@ -285,6 +294,46 @@ export class MapPanel extends EditorPanel {
       vscode.commands.registerCommand('earthengine.map.testSepalViz', () => this.testSepalViz()),
       this,
     );
+  }
+
+  // ==================================================================
+  // BRIDGE COMMANDS
+  // ==================================================================
+
+  /** Dispatches a command received on the HTTP bridge from a Python script. */
+  private async handleBridgeCommand(cmd: MapCommand): Promise<void> {
+    // Any incoming command reveals or opens the panel first, so the user
+    // never has to open the map manually before running a Python script.
+    await this.open();
+    if (!this.panel) {
+      return;
+    }
+
+    if (cmd.type === 'addLayer') {
+      const d = cmd.data as {
+        serialized: string;
+        visParams: Record<string, unknown>;
+        name: string;
+        shown: boolean;
+        opacity: number;
+      };
+      try {
+        await this.layerManager.add(d, (m) => this.post(m));
+      } catch (err) {
+        vscode.window.showErrorMessage(
+          `[Map] Layer error: ${err instanceof Error ? err.message : String(err)}`,
+        );
+      }
+      return;
+    }
+
+    if (cmd.type === 'clear') {
+      this.layerManager.clear();
+      this.post({ type: 'clearLayers' });
+      return;
+    }
+
+    this.panel.webview.postMessage(cmd);
   }
 }
 
