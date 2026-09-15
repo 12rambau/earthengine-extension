@@ -7,7 +7,7 @@ if git diff --cached --name-only --diff-filter=ACMR | grep -qx 'package.json'; t
 fi
 
 if git diff --cached --name-only --diff-filter=ACMR | grep -qE '\.py$'; then
-	mypy python_package/
+	mypy python/
 fi
 
 npx lint-staged

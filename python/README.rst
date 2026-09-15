@@ -38,7 +38,7 @@ From the repository root:
 
 .. code-block:: bash
 
-    pip install -e python_package/
+    pip install -e python/
 
 License
 -------
