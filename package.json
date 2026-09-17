@@ -80,9 +80,9 @@
                 "Jawg.Matrix"
               ],
               "enumDescriptions": [
-                "CartoDB dark matter (default)",
-                "Stadia smooth dark",
-                "Stadia Stamen toner dark",
+                "CartoDB dark matter (default, API key required)",
+                "Stadia smooth dark (API key required)",
+                "Stadia Stamen toner dark (API key required)",
                 "Jawg dark (API key required)",
                 "Jawg matrix (API key required)"
               ]
@@ -109,7 +109,7 @@
           "description": "Base map used when VS Code is in a light colour theme. Use the \"Earth Engine: Set Basemap API Key\" command to store a key for providers that require one.",
           "default": {
             "name": "Light",
-            "provider": "CartoDB.Positron",
+            "provider": "Esri.WorldGrayCanvas",
             "override": false,
             "url": "",
             "attribution": ""
@@ -123,21 +123,21 @@
             },
             "provider": {
               "type": "string",
-              "default": "CartoDB.Positron",
+              "default": "Esri.WorldGrayCanvas",
               "description": "leaflet-providers ID. Ignored when \"override\" is enabled.",
               "enum": [
+                "Esri.WorldGrayCanvas",
                 "CartoDB.Positron",
                 "Stadia.AlidadeSmooth",
                 "Stadia.StamenTonerLite",
-                "Jawg.Light",
-                "Esri.WorldGrayCanvas"
+                "Jawg.Light"
               ],
               "enumDescriptions": [
-                "CartoDB Positron (default)",
-                "Stadia smooth light",
-                "Stadia Stamen toner lite",
-                "Jawg light (API key required)",
-                "Esri world grey canvas"
+                "Esri world grey canvas (default, no API key required)",
+                "CartoDB Positron (API key required)",
+                "Stadia smooth light (API key required)",
+                "Stadia Stamen toner lite (API key required)",
+                "Jawg light (API key required)"
               ]
             },
             "override": {
@@ -211,7 +211,7 @@
           "description": "Base map used when plan view is active. Use the \"Earth Engine: Set Basemap API Key\" command to store a key for providers that require one.",
           "default": {
             "name": "Plan",
-            "provider": "CartoDB.Voyager",
+            "provider": "OpenStreetMap.Mapnik",
             "override": false,
             "url": "",
             "attribution": ""
@@ -225,12 +225,12 @@
             },
             "provider": {
               "type": "string",
-              "default": "CartoDB.Voyager",
+              "default": "OpenStreetMap.Mapnik",
               "description": "leaflet-providers ID. Ignored when \"override\" is enabled.",
               "enum": [
+                "OpenStreetMap.Mapnik",
                 "GeoportailFrance.plan",
                 "CartoDB.Voyager",
-                "OpenStreetMap.Mapnik",
                 "OpenTopoMap",
                 "Stadia.OSMBright",
                 "Stadia.Outdoors",
@@ -243,13 +243,13 @@
                 "Esri.WorldTopoMap"
               ],
               "enumDescriptions": [
-                "Geoportail France plan (default)",
-                "CartoDB Voyager",
-                "OpenStreetMap standard",
+                "OpenStreetMap standard (default, no API key required)",
+                "Geoportail France plan",
+                "CartoDB Voyager (API key required)",
                 "OpenTopoMap topographic",
-                "Stadia OSM bright",
-                "Stadia outdoors",
-                "Stadia Stamen toner",
+                "Stadia OSM bright (API key required)",
+                "Stadia outdoors (API key required)",
+                "Stadia Stamen toner (API key required)",
                 "Thunderforest spinal map (API key required)",
                 "Thunderforest landscape (API key required)",
                 "Thunderforest outdoors (API key required)",

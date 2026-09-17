@@ -51,7 +51,7 @@ const BASEMAP_SLOTS = [
     settingKey: 'lightBasemap',
     default: {
       name: 'Light',
-      provider: 'CartoDB.Positron',
+      provider: 'Esri.WorldGrayCanvas',
       override: false,
       url: '',
       attribution: '',
@@ -73,7 +73,7 @@ const BASEMAP_SLOTS = [
     settingKey: 'planBasemap',
     default: {
       name: 'Plan',
-      provider: 'CartoDB.Voyager',
+      provider: 'OpenStreetMap.Mapnik',
       override: false,
       url: '',
       attribution: '',

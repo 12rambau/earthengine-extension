@@ -29,13 +29,15 @@ Each of the four basemap slots (`earthengine.map.darkBasemap`, `lightBasemap`, `
 | Setting | Default provider | Used when |
 | --- | --- | --- |
 | `earthengine.map.darkBasemap` | `CartoDB.DarkMatter` | VS Code uses a dark colour theme. |
-| `earthengine.map.lightBasemap` | `CartoDB.Positron` | VS Code uses a light colour theme. |
+| `earthengine.map.lightBasemap` | `Esri.WorldGrayCanvas` | VS Code uses a light colour theme. |
 | `earthengine.map.satelliteBasemap` | `Esri.WorldImagery` | Satellite/imagery view is active. |
-| `earthengine.map.planBasemap` | `CartoDB.Voyager` | Plan view is active. |
+| `earthengine.map.planBasemap` | `OpenStreetMap.Mapnik` | Plan view is active. |
 
 :::warning[Provider API keys]
 
-Some providers, including Jawg and Thunderforest, require an API key. Run **Earth Engine: Set Basemap API Key** from the Command Palette to store a key for a given slot — keys are kept in VS Code's secret storage, not in `settings.json`. Reopen the map after changing a key for it to take effect.
+Some providers, including Jawg, Thunderforest, Stadia, and CartoDB (since September 2026), require an API key. Run **Earth Engine: Set Basemap API Key** from the Command Palette to store a key for a given slot — keys are kept in VS Code's secret storage, not in `settings.json`. Reopen the map after changing a key for it to take effect.
+
+The defaults above (Esri, OpenStreetMap) were chosen because they need no key at all.
 
 For a provider not covered by `provider`'s list, or full control over the tile source, enable `override` on that basemap and set `url`/`attribution` directly.
 
