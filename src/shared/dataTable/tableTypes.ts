@@ -18,11 +18,14 @@ export interface TableSort {
 }
 
 /** Filter kinds supported by the shared filter controls. */
-export type TableFilterKind = 'text' | 'enum' | 'date' | 'number';
+export type TableFilterKind = 'text' | 'enum' | 'date' | 'number' | 'duration';
 
 /** Operators for date and numeric column filters. */
 export type TableComparisonOperator =
   'equals' | 'notEquals' | 'before' | 'after' | 'lessThan' | 'greaterThan';
+
+/** The unit a duration filter's value is expressed in. */
+export type TableDurationUnit = 'seconds' | 'minutes' | 'hours' | 'days';
 
 /** A case-insensitive text filter. */
 export interface TableTextFilter {
@@ -43,8 +46,21 @@ export interface TableComparisonFilter {
   value: string | number;
 }
 
+/**
+ * A duration comparison filter. The column's underlying value is expected to be a
+ * millisecond count; `value`/`unit` let the user express the comparison in a
+ * human-readable unit (e.g. "greater than 10 minutes") instead of raw milliseconds.
+ */
+export interface TableDurationFilter {
+  kind: 'duration';
+  operator: TableComparisonOperator;
+  value: string | number;
+  unit: TableDurationUnit;
+}
+
 /** A serializable filter value owned by a table column. */
-export type TableFilterValue = TableTextFilter | TableEnumFilter | TableComparisonFilter;
+export type TableFilterValue =
+  TableTextFilter | TableEnumFilter | TableComparisonFilter | TableDurationFilter;
 
 /** Describes the filter control and values available for a column. */
 export interface TableFilterDefinition {
