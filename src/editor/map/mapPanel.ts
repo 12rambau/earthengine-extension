@@ -13,9 +13,78 @@ import { MapBridgeServer, MapCommand } from './mapBridgeServer.js';
 import { ensureEe } from '../../shared/eeSession.js';
 import { MapLayerManager } from './mapLayerManager.js';
 import { MapInspector } from './mapInspector.js';
+import { showSecretInputBox } from '../../shared/secretInputBox.js';
 
 import { designTokens } from '../../shared/index.js';
 import script from './MapPanel.svelte';
+
+// ==================================================================
+// BASEMAPS
+// ==================================================================
+/** User-configurable base map, as declared under `earthengine.map.*Basemap`. */
+interface BasemapConfig {
+  name: string;
+  provider: string;
+  override: boolean;
+  url: string;
+  attribution: string;
+}
+
+/** A basemap config resolved with its API key (if any was stored). */
+type ResolvedBasemapConfig = BasemapConfig & { apiKey?: string };
+
+/** The four basemap slots exposed by the map — one setting each, one API key each. */
+const BASEMAP_SLOTS = [
+  {
+    slot: 'dark',
+    settingKey: 'darkBasemap',
+    default: {
+      name: 'Dark',
+      provider: 'CartoDB.DarkMatter',
+      override: false,
+      url: '',
+      attribution: '',
+    },
+  },
+  {
+    slot: 'light',
+    settingKey: 'lightBasemap',
+    default: {
+      name: 'Light',
+      provider: 'CartoDB.Positron',
+      override: false,
+      url: '',
+      attribution: '',
+    },
+  },
+  {
+    slot: 'satellite',
+    settingKey: 'satelliteBasemap',
+    default: {
+      name: 'Images',
+      provider: 'Esri.WorldImagery',
+      override: false,
+      url: '',
+      attribution: '',
+    },
+  },
+  {
+    slot: 'plan',
+    settingKey: 'planBasemap',
+    default: {
+      name: 'Plan',
+      provider: 'CartoDB.Voyager',
+      override: false,
+      url: '',
+      attribution: '',
+    },
+  },
+] as const satisfies ReadonlyArray<{ slot: string; settingKey: string; default: BasemapConfig }>;
+
+/** SecretStorage key holding the API key for a given basemap slot. */
+function basemapApiKeySecretKey(slot: string): string {
+  return `earthengine.map.basemap.${slot}.apiKey`;
+}
 
 // ==================================================================
 // MAPPANEL
@@ -27,6 +96,7 @@ export class MapPanel extends EditorPanel {
   private messageDisposable: vscode.Disposable | undefined;
   private readonly layerManager = new MapLayerManager();
   private readonly inspector = new MapInspector();
+  private secrets: vscode.SecretStorage | undefined;
 
   constructor() {
     super();
@@ -51,13 +121,13 @@ export class MapPanel extends EditorPanel {
       return;
     }
 
-    const cfg = vscode.workspace.getConfiguration('earthengine.map');
     const nonce = getNonce();
+    const basemaps = await this.resolveBasemaps();
     const initData = JSON.stringify({
-      darkBasemap: cfg.get<string>('darkBasemap', 'CartoDB.DarkMatter'),
-      lightBasemap: cfg.get<string>('lightBasemap', 'CartoDB.Positron'),
-      satelliteBasemap: cfg.get<string>('satelliteBasemap', 'Esri.WorldImagery'),
-      planBasemap: cfg.get<string>('planBasemap', 'CartoDB.Voyager'),
+      darkBasemap: basemaps.dark,
+      lightBasemap: basemaps.light,
+      satelliteBasemap: basemaps.satellite,
+      planBasemap: basemaps.plan,
     }).replace(/</g, '\\u003c');
 
     panel.webview.html = `<!DOCTYPE html>
@@ -275,6 +345,8 @@ export class MapPanel extends EditorPanel {
 
   /** Registers map commands. */
   register(context: vscode.ExtensionContext): void {
+    this.secrets = context.secrets;
+
     // Start the bridge server on activation so Python scripts can connect
     // before the user has manually opened the map panel.
     void this.bridgeServer.start().catch((err) => {
@@ -288,11 +360,86 @@ export class MapPanel extends EditorPanel {
 
     context.subscriptions.push(
       vscode.commands.registerCommand('earthengine.openMap', () => this.open()),
+      vscode.commands.registerCommand('earthengine.map.setBasemapApiKey', () =>
+        this.promptSetBasemapApiKey(),
+      ),
       vscode.commands.registerCommand('earthengine.map.testNighttimeLights', () =>
         this.testNighttimeLights(),
       ),
       vscode.commands.registerCommand('earthengine.map.testSepalViz', () => this.testSepalViz()),
       this,
+    );
+  }
+
+  // ==================================================================
+  // BASEMAP CONFIGURATION
+  // ==================================================================
+
+  /** Reads the four basemap settings and merges in their stored API keys, keyed by slot. */
+  private async resolveBasemaps(): Promise<Record<string, ResolvedBasemapConfig>> {
+    const cfg = vscode.workspace.getConfiguration('earthengine.map');
+    const entries = await Promise.all(
+      BASEMAP_SLOTS.map(async ({ slot, settingKey, default: fallback }) => {
+        const value = cfg.get<BasemapConfig>(settingKey, fallback);
+        const apiKey = await this.secrets?.get(basemapApiKeySecretKey(slot));
+        return [slot, { ...value, apiKey }] as const;
+      }),
+    );
+    return Object.fromEntries(entries);
+  }
+
+  /** Command: pick a basemap slot, then set or clear its stored API key. */
+  private async promptSetBasemapApiKey(): Promise<void> {
+    if (!this.secrets) {
+      return;
+    }
+    const cfg = vscode.workspace.getConfiguration('earthengine.map');
+    const items = await Promise.all(
+      BASEMAP_SLOTS.map(async ({ slot, settingKey, default: fallback }) => {
+        const value = cfg.get<BasemapConfig>(settingKey, fallback);
+        const hasKey = !!(await this.secrets!.get(basemapApiKeySecretKey(slot)));
+        return {
+          label: value.name || fallback.name,
+          description: hasKey ? 'API key set' : 'No API key',
+          slot,
+        };
+      }),
+    );
+    const picked = await vscode.window.showQuickPick(items, {
+      title: 'Set Basemap API Key',
+      placeHolder: 'Choose which base map the key is for',
+    });
+    if (!picked) {
+      return;
+    }
+
+    const secretKey = basemapApiKeySecretKey(picked.slot);
+    const actions =
+      picked.description === 'API key set' ? ['Set / update key', 'Clear key'] : ['Set key'];
+    const action = await vscode.window.showQuickPick(actions, {
+      title: `Basemap: ${picked.label}`,
+    });
+    if (!action) {
+      return;
+    }
+
+    if (action === 'Clear key') {
+      await this.secrets.delete(secretKey);
+      vscode.window.showInformationMessage(`[Map] Cleared API key for "${picked.label}".`);
+      return;
+    }
+
+    const value = await showSecretInputBox({
+      title: `API key for "${picked.label}"`,
+      prompt: 'Paste the API key required by this basemap provider.',
+      placeHolder: 'API key',
+    });
+    if (value === undefined) {
+      return;
+    }
+    await this.secrets.store(secretKey, value);
+    vscode.window.showInformationMessage(
+      `[Map] Saved API key for "${picked.label}". Reopen the map to apply it.`,
     );
   }
 

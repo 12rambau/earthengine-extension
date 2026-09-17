@@ -52,92 +52,228 @@
           "description": "Number of days of task history to load."
         },
         "earthengine.map.darkBasemap": {
-          "type": "string",
-          "default": "CartoDB.DarkMatter",
-          "description": "Base map layer used when VS Code is in a dark colour theme.",
-          "enum": [
-            "CartoDB.DarkMatter",
-            "Stadia.AlidadeSmoothDark",
-            "Stadia.StamenTonerDark",
-            "Jawg.Dark",
-            "Jawg.Matrix"
-          ],
-          "enumDescriptions": [
-            "CartoDB dark matter (default)",
-            "Stadia smooth dark",
-            "Stadia Stamen toner dark",
-            "Jawg dark (API key required)",
-            "Jawg matrix (API key required)"
-          ]
+          "type": "object",
+          "description": "Base map used when VS Code is in a dark colour theme. Use the \"Earth Engine: Set Basemap API Key\" command to store a key for providers that require one.",
+          "default": {
+            "name": "Dark",
+            "provider": "CartoDB.DarkMatter",
+            "override": false,
+            "url": "",
+            "attribution": ""
+          },
+          "additionalProperties": false,
+          "properties": {
+            "name": {
+              "type": "string",
+              "default": "Dark",
+              "description": "Display name shown in the map's layer picker."
+            },
+            "provider": {
+              "type": "string",
+              "default": "CartoDB.DarkMatter",
+              "description": "leaflet-providers ID. Ignored when \"override\" is enabled.",
+              "enum": [
+                "CartoDB.DarkMatter",
+                "Stadia.AlidadeSmoothDark",
+                "Stadia.StamenTonerDark",
+                "Jawg.Dark",
+                "Jawg.Matrix"
+              ],
+              "enumDescriptions": [
+                "CartoDB dark matter (default)",
+                "Stadia smooth dark",
+                "Stadia Stamen toner dark",
+                "Jawg dark (API key required)",
+                "Jawg matrix (API key required)"
+              ]
+            },
+            "override": {
+              "type": "boolean",
+              "default": false,
+              "description": "Ignore \"provider\" and load the custom \"url\"/\"attribution\" below instead."
+            },
+            "url": {
+              "type": "string",
+              "default": "",
+              "description": "Custom XYZ tile URL template, e.g. https://tile.example.com/{z}/{x}/{y}.png. Used only when \"override\" is enabled."
+            },
+            "attribution": {
+              "type": "string",
+              "default": "",
+              "description": "Custom attribution HTML shown on the map. Used only when \"override\" is enabled."
+            }
+          }
         },
         "earthengine.map.lightBasemap": {
-          "type": "string",
-          "default": "CartoDB.Positron",
-          "description": "Base map layer used when VS Code is in a light colour theme.",
-          "enum": [
-            "CartoDB.Positron",
-            "Stadia.AlidadeSmooth",
-            "Stadia.StamenTonerLite",
-            "Jawg.Light",
-            "Esri.WorldGrayCanvas"
-          ],
-          "enumDescriptions": [
-            "CartoDB Positron (default)",
-            "Stadia smooth light",
-            "Stadia Stamen toner lite",
-            "Jawg light (API key required)",
-            "Esri world grey canvas"
-          ]
+          "type": "object",
+          "description": "Base map used when VS Code is in a light colour theme. Use the \"Earth Engine: Set Basemap API Key\" command to store a key for providers that require one.",
+          "default": {
+            "name": "Light",
+            "provider": "CartoDB.Positron",
+            "override": false,
+            "url": "",
+            "attribution": ""
+          },
+          "additionalProperties": false,
+          "properties": {
+            "name": {
+              "type": "string",
+              "default": "Light",
+              "description": "Display name shown in the map's layer picker."
+            },
+            "provider": {
+              "type": "string",
+              "default": "CartoDB.Positron",
+              "description": "leaflet-providers ID. Ignored when \"override\" is enabled.",
+              "enum": [
+                "CartoDB.Positron",
+                "Stadia.AlidadeSmooth",
+                "Stadia.StamenTonerLite",
+                "Jawg.Light",
+                "Esri.WorldGrayCanvas"
+              ],
+              "enumDescriptions": [
+                "CartoDB Positron (default)",
+                "Stadia smooth light",
+                "Stadia Stamen toner lite",
+                "Jawg light (API key required)",
+                "Esri world grey canvas"
+              ]
+            },
+            "override": {
+              "type": "boolean",
+              "default": false,
+              "description": "Ignore \"provider\" and load the custom \"url\"/\"attribution\" below instead."
+            },
+            "url": {
+              "type": "string",
+              "default": "",
+              "description": "Custom XYZ tile URL template, e.g. https://tile.example.com/{z}/{x}/{y}.png. Used only when \"override\" is enabled."
+            },
+            "attribution": {
+              "type": "string",
+              "default": "",
+              "description": "Custom attribution HTML shown on the map. Used only when \"override\" is enabled."
+            }
+          }
         },
         "earthengine.map.satelliteBasemap": {
-          "type": "string",
-          "default": "Esri.WorldImagery",
-          "description": "Base map layer used when satellite view is active.",
-          "enum": [
-            "Esri.WorldImagery",
-            "Stadia.AlidadeSatellite",
-            "GeoportailFrance.orthos"
-          ],
-          "enumDescriptions": [
-            "Esri world imagery (default)",
-            "Stadia Alidade satellite",
-            "Geoportail France ortho photos"
-          ]
+          "type": "object",
+          "description": "Base map used when satellite/imagery view is active. Use the \"Earth Engine: Set Basemap API Key\" command to store a key for providers that require one.",
+          "default": {
+            "name": "Images",
+            "provider": "Esri.WorldImagery",
+            "override": false,
+            "url": "",
+            "attribution": ""
+          },
+          "additionalProperties": false,
+          "properties": {
+            "name": {
+              "type": "string",
+              "default": "Images",
+              "description": "Display name shown in the map's layer picker."
+            },
+            "provider": {
+              "type": "string",
+              "default": "Esri.WorldImagery",
+              "description": "leaflet-providers ID. Ignored when \"override\" is enabled.",
+              "enum": [
+                "Esri.WorldImagery",
+                "Stadia.AlidadeSatellite",
+                "GeoportailFrance.orthos"
+              ],
+              "enumDescriptions": [
+                "Esri world imagery (default)",
+                "Stadia Alidade satellite",
+                "Geoportail France ortho photos"
+              ]
+            },
+            "override": {
+              "type": "boolean",
+              "default": false,
+              "description": "Ignore \"provider\" and load the custom \"url\"/\"attribution\" below instead."
+            },
+            "url": {
+              "type": "string",
+              "default": "",
+              "description": "Custom XYZ tile URL template, e.g. https://tile.example.com/{z}/{x}/{y}.png. Used only when \"override\" is enabled."
+            },
+            "attribution": {
+              "type": "string",
+              "default": "",
+              "description": "Custom attribution HTML shown on the map. Used only when \"override\" is enabled."
+            }
+          }
         },
         "earthengine.map.planBasemap": {
-          "type": "string",
-          "default": "CartoDB.Voyager",
-          "description": "Base map layer used when plan view is active.",
-          "enum": [
-            "GeoportailFrance.plan",
-            "CartoDB.Voyager",
-            "OpenStreetMap.Mapnik",
-            "OpenTopoMap",
-            "Stadia.OSMBright",
-            "Stadia.Outdoors",
-            "Stadia.StamenToner",
-            "Thunderforest.SpinalMap",
-            "Thunderforest.Landscape",
-            "Thunderforest.Outdoors",
-            "Thunderforest.Atlas",
-            "Jawg.Streets",
-            "Esri.WorldTopoMap"
-          ],
-          "enumDescriptions": [
-            "Geoportail France plan (default)",
-            "CartoDB Voyager",
-            "OpenStreetMap standard",
-            "OpenTopoMap topographic",
-            "Stadia OSM bright",
-            "Stadia outdoors",
-            "Stadia Stamen toner",
-            "Thunderforest spinal map (API key required)",
-            "Thunderforest landscape (API key required)",
-            "Thunderforest outdoors (API key required)",
-            "Thunderforest atlas (API key required)",
-            "Jawg streets (API key required)",
-            "Esri world topo map"
-          ]
+          "type": "object",
+          "description": "Base map used when plan view is active. Use the \"Earth Engine: Set Basemap API Key\" command to store a key for providers that require one.",
+          "default": {
+            "name": "Plan",
+            "provider": "CartoDB.Voyager",
+            "override": false,
+            "url": "",
+            "attribution": ""
+          },
+          "additionalProperties": false,
+          "properties": {
+            "name": {
+              "type": "string",
+              "default": "Plan",
+              "description": "Display name shown in the map's layer picker."
+            },
+            "provider": {
+              "type": "string",
+              "default": "CartoDB.Voyager",
+              "description": "leaflet-providers ID. Ignored when \"override\" is enabled.",
+              "enum": [
+                "GeoportailFrance.plan",
+                "CartoDB.Voyager",
+                "OpenStreetMap.Mapnik",
+                "OpenTopoMap",
+                "Stadia.OSMBright",
+                "Stadia.Outdoors",
+                "Stadia.StamenToner",
+                "Thunderforest.SpinalMap",
+                "Thunderforest.Landscape",
+                "Thunderforest.Outdoors",
+                "Thunderforest.Atlas",
+                "Jawg.Streets",
+                "Esri.WorldTopoMap"
+              ],
+              "enumDescriptions": [
+                "Geoportail France plan (default)",
+                "CartoDB Voyager",
+                "OpenStreetMap standard",
+                "OpenTopoMap topographic",
+                "Stadia OSM bright",
+                "Stadia outdoors",
+                "Stadia Stamen toner",
+                "Thunderforest spinal map (API key required)",
+                "Thunderforest landscape (API key required)",
+                "Thunderforest outdoors (API key required)",
+                "Thunderforest atlas (API key required)",
+                "Jawg streets (API key required)",
+                "Esri world topo map"
+              ]
+            },
+            "override": {
+              "type": "boolean",
+              "default": false,
+              "description": "Ignore \"provider\" and load the custom \"url\"/\"attribution\" below instead."
+            },
+            "url": {
+              "type": "string",
+              "default": "",
+              "description": "Custom XYZ tile URL template, e.g. https://tile.example.com/{z}/{x}/{y}.png. Used only when \"override\" is enabled."
+            },
+            "attribution": {
+              "type": "string",
+              "default": "",
+              "description": "Custom attribution HTML shown on the map. Used only when \"override\" is enabled."
+            }
+          }
         }
       }
     },
@@ -374,6 +510,11 @@
         "command": "earthengine.openMap",
         "title": "Open Map View",
         "icon": "$(map)"
+      },
+      {
+        "command": "earthengine.map.setBasemapApiKey",
+        "title": "Earth Engine: Set Basemap API Key",
+        "icon": "$(key)"
       },
       {
         "command": "earthengine.map.testNighttimeLights",

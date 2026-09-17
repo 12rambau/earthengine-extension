@@ -195,24 +195,29 @@
     map = L.map('map', { center: [0, 0], zoom: 2, zoomControl: false });
 
     // Basemaps
-    basemapTileLayers[darkBasemap] = L.tileLayer.provider(darkBasemap);
-    basemapTileLayers[lightBasemap] = L.tileLayer.provider(lightBasemap);
-    basemapTileLayers[satelliteBasemap] = L.tileLayer.provider(satelliteBasemap);
-    basemapTileLayers[planBasemap] = L.tileLayer.provider(planBasemap);
+    basemapTileLayers.dark = buildBasemapLayer(darkBasemap);
+    basemapTileLayers.light = buildBasemapLayer(lightBasemap);
+    basemapTileLayers.satellite = buildBasemapLayer(satelliteBasemap);
+    basemapTileLayers.plan = buildBasemapLayer(planBasemap);
 
     nativeLayerControl = L.control.layers(
-      { Dark: basemapTileLayers[darkBasemap], Light: basemapTileLayers[lightBasemap], Satellite: basemapTileLayers[satelliteBasemap], Plan: basemapTileLayers[planBasemap] },
+      {
+        [darkBasemap.name]: basemapTileLayers.dark,
+        [lightBasemap.name]: basemapTileLayers.light,
+        [satelliteBasemap.name]: basemapTileLayers.satellite,
+        [planBasemap.name]: basemapTileLayers.plan,
+      },
       {},
       { collapsed: true },
     ).addTo(map);
     nativeLayerControl.getContainer().style.display = 'none';
 
-    currentBasemap = basemapTileLayers[isDarkTheme() ? darkBasemap : lightBasemap];
+    currentBasemap = basemapTileLayers[isDarkTheme() ? 'dark' : 'light'];
     currentBasemap.addTo(map);
 
     // Theme sync
     new MutationObserver(() => {
-      if (activeMode === 'theme') {setBasemap(isDarkTheme() ? darkBasemap : lightBasemap);}
+      if (activeMode === 'theme') {setBasemap(isDarkTheme() ? 'dark' : 'light');}
     }).observe(document.body, { attributes: true, attributeFilter: ['class'] });
 
     // Status bar events
@@ -249,8 +254,21 @@
   // BASEMAP
   // ----------------------------------------------------------------
 
-  function setBasemap(id) {
-    const next = basemapTileLayers[id];
+  // Builds a Leaflet tile layer from a basemap config: a custom URL/attribution
+  // when "override" is set, otherwise a leaflet-providers layer with the
+  // stored API key passed under every common option name providers look for.
+  function buildBasemapLayer(cfg) {
+    if (cfg.override && cfg.url) {
+      return window.L.tileLayer(cfg.url, { attribution: cfg.attribution || '' });
+    }
+    const keyOptions = cfg.apiKey
+      ? { apikey: cfg.apiKey, accessToken: cfg.apiKey, key: cfg.apiKey, appId: cfg.apiKey }
+      : {};
+    return window.L.tileLayer.provider(cfg.provider, keyOptions);
+  }
+
+  function setBasemap(slotKey) {
+    const next = basemapTileLayers[slotKey];
     if (!next || next === currentBasemap) {return;}
     map.removeLayer(currentBasemap);
     next.addTo(map);
@@ -260,10 +278,10 @@
   function activateMode(mode) {
     if (activeMode === mode) {
       activeMode = 'theme';
-      setBasemap(isDarkTheme() ? darkBasemap : lightBasemap);
+      setBasemap(isDarkTheme() ? 'dark' : 'light');
     } else {
       activeMode = mode;
-      setBasemap(mode === 'satellite' ? satelliteBasemap : planBasemap);
+      setBasemap(mode === 'satellite' ? 'satellite' : 'plan');
     }
   }
 
