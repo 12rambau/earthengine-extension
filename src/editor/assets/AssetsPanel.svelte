@@ -21,7 +21,13 @@
         return left.shortName.localeCompare(right.shortName, undefined, { sensitivity: 'base' }) * direction;
       },
     },
-    { key: 'type', label: 'Type', sortable: true, filter: { kind: 'text' }, accessor: a => a.type },
+    {
+      key: 'type',
+      label: 'Type',
+      sortable: true,
+      filter: { kind: 'enum', options: ['FOLDER', 'IMAGE', 'IMAGE_COLLECTION', 'TABLE'] },
+      accessor: a => a.type,
+    },
     { key: 'assetId', label: 'Asset ID', sortable: true, filter: { kind: 'text' }, accessor: a => a.assetId },
     { key: 'actions', label: 'Actions', required: true },
   ];
