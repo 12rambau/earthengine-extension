@@ -29,7 +29,7 @@
     { key: 'id', label: 'ID', sortable: true, filter: { kind: 'text' }, accessor: task => task.id },
     { key: 'createTime', label: 'Created', sortable: true, filter: { kind: 'date' }, accessor: task => task.createTime },
     { key: 'startTime', label: 'Start', sortable: true, filter: { kind: 'date' }, accessor: task => task.startTime },
-    { key: 'elapsed', label: 'Duration', sortable: true, filter: { kind: 'number' }, accessor: task => task.elapsedMs },
+    { key: 'elapsed', label: 'Duration', sortable: true, filter: { kind: 'duration' }, accessor: task => task.elapsedMs },
     { key: 'attempt', label: 'Attempts', sortable: true, filter: { kind: 'number' }, accessor: task => task.attempt },
     { key: 'priority', label: 'Priority', sortable: true, filter: { kind: 'number' }, accessor: task => task.priority },
     { key: 'computeUsage', label: 'Compute Usage', sortable: true, filter: { kind: 'number' }, accessor: computeUsageValue, compare: computeUsageCompare },

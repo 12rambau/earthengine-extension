@@ -6,6 +6,7 @@ import type {} from 'svelte';
 import type {
   TableColumn,
   TableComparisonFilter,
+  TableDurationUnit,
   TableFilterValue,
   TablePage,
   TablePreferences,
@@ -294,6 +295,14 @@ function matchesFilter(value: TableValue, filter: TableFilterValue): boolean {
   if (filter.kind === 'enum') {
     return filter.values.includes(String(value ?? ''));
   }
+  if (filter.kind === 'duration') {
+    const compared = typeof value === 'number' ? value : Number(value);
+    const amount = typeof filter.value === 'number' ? filter.value : Number(filter.value);
+    if (!Number.isFinite(compared) || !Number.isFinite(amount)) {
+      return false;
+    }
+    return matchesComparison(compared, amount * durationUnitToMs(filter.unit), filter);
+  }
 
   const compared = comparableValue(value, filter);
   const expected = comparableValue(filter.value, filter);
@@ -303,10 +312,24 @@ function matchesFilter(value: TableValue, filter: TableFilterValue): boolean {
   return matchesComparison(compared, expected, filter);
 }
 
+/** Converts a duration filter's human-entered unit into a millisecond multiplier. */
+function durationUnitToMs(unit: TableDurationUnit): number {
+  switch (unit) {
+    case 'seconds':
+      return 1_000;
+    case 'minutes':
+      return 60_000;
+    case 'hours':
+      return 3_600_000;
+    case 'days':
+      return 86_400_000;
+  }
+}
+
 function matchesComparison(
   value: number,
   expected: number,
-  filter: TableComparisonFilter,
+  filter: Pick<TableComparisonFilter, 'operator'>,
 ): boolean {
   switch (filter.operator) {
     case 'equals':
@@ -405,13 +428,20 @@ function isValidFilter(filter: unknown, expectedKind: string): filter is TableFi
       candidate.values.every((value: unknown) => typeof value === 'string')
     );
   }
-  return (
+  const hasValidOperatorAndValue =
     typeof candidate.operator === 'string' &&
     ['equals', 'notEquals', 'before', 'after', 'lessThan', 'greaterThan'].includes(
       candidate.operator,
     ) &&
-    (typeof candidate.value === 'string' || typeof candidate.value === 'number')
-  );
+    (typeof candidate.value === 'string' || typeof candidate.value === 'number');
+  if (candidate.kind === 'duration') {
+    return (
+      hasValidOperatorAndValue &&
+      typeof candidate.unit === 'string' &&
+      ['seconds', 'minutes', 'hours', 'days'].includes(candidate.unit)
+    );
+  }
+  return hasValidOperatorAndValue;
 }
 
 function isValidSort<Row>(columns: readonly TableColumn<Row>[], sort: unknown): sort is TableSort {
