@@ -12,7 +12,9 @@
       ? filter
       : comparisonDraft?.kind === filterKind
         ? comparisonDraft
-        : { kind: filterKind, operator: 'equals', value: '' },
+        : filterKind === 'duration'
+          ? { kind: filterKind, operator: 'equals', value: '', unit: 'minutes' }
+          : { kind: filterKind, operator: 'equals', value: '' },
   );
 
   function setText(query) {
@@ -80,7 +82,7 @@
             </label>
           {/each}
         </div>
-      {:else if filterKind === 'date' || filterKind === 'number'}
+      {:else if filterKind === 'date' || filterKind === 'number' || filterKind === 'duration'}
         <div class="comparison">
           <select
             aria-label={`Filter operator for ${column.label}`}
@@ -97,12 +99,34 @@
               <option value="greaterThan">Greater than</option>
             {/if}
           </select>
-          <input
-            type={filterKind === 'date' ? 'date' : 'number'}
-            value={comparison.value}
-            aria-label={`Filter value for ${column.label}`}
-            oninput={(event) => setComparison('value', event.currentTarget.value)}
-          />
+          {#if filterKind === 'duration'}
+            <div class="duration-value">
+              <input
+                type="number"
+                min="0"
+                value={comparison.value}
+                aria-label={`Filter value for ${column.label}`}
+                oninput={(event) => setComparison('value', event.currentTarget.value)}
+              />
+              <select
+                aria-label={`Filter unit for ${column.label}`}
+                value={comparison.unit ?? 'minutes'}
+                onchange={(event) => setComparison('unit', event.currentTarget.value)}
+              >
+                <option value="seconds">seconds</option>
+                <option value="minutes">minutes</option>
+                <option value="hours">hours</option>
+                <option value="days">days</option>
+              </select>
+            </div>
+          {:else}
+            <input
+              type={filterKind === 'date' ? 'date' : 'number'}
+              value={comparison.value}
+              aria-label={`Filter value for ${column.label}`}
+              oninput={(event) => setComparison('value', event.currentTarget.value)}
+            />
+          {/if}
         </div>
       {/if}
 
@@ -202,6 +226,12 @@
   .comparison {
     display: grid;
     grid-template-columns: 1fr;
+    gap: var(--vscee-space-xs);
+  }
+
+  .duration-value {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
     gap: var(--vscee-space-xs);
   }
 

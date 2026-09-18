@@ -6,6 +6,22 @@
 
   const saved = getInitData();
 
+  // Filters must compare the same rounded figure the cell renders, or "equals" never matches.
+  function computeUsageValue(task) {
+    return task.computeUsage != null ? Math.round(task.computeUsage * 10) / 10 : null;
+  }
+
+  // Sort on the raw compute usage so distinct values that round to the same
+  // figure (e.g. 1.24 vs 1.25) still order correctly.
+  function computeUsageCompare(left, right, direction) {
+    const a = left.computeUsage;
+    const b = right.computeUsage;
+    if (a === b) {return 0;}
+    if (a == null) {return direction;}
+    if (b == null) {return -direction;}
+    return (a - b) * direction;
+  }
+
   const ALL_COLS = [
     { key: 'icon', label: '', required: true },
     { key: 'state', label: 'Status', required: true, sortable: true, filter: { kind: 'enum', options: ['PENDING', 'RUNNING', 'CANCELLING', 'SUCCEEDED', 'FAILED', 'CANCELLED'] }, accessor: task => task.state },
@@ -13,10 +29,10 @@
     { key: 'id', label: 'ID', sortable: true, filter: { kind: 'text' }, accessor: task => task.id },
     { key: 'createTime', label: 'Created', sortable: true, filter: { kind: 'date' }, accessor: task => task.createTime },
     { key: 'startTime', label: 'Start', sortable: true, filter: { kind: 'date' }, accessor: task => task.startTime },
-    { key: 'elapsed', label: 'Duration', sortable: true, filter: { kind: 'number' }, accessor: task => task.elapsedMs },
+    { key: 'elapsed', label: 'Duration', sortable: true, filter: { kind: 'duration' }, accessor: task => task.elapsedMs },
     { key: 'attempt', label: 'Attempts', sortable: true, filter: { kind: 'number' }, accessor: task => task.attempt },
     { key: 'priority', label: 'Priority', sortable: true, filter: { kind: 'number' }, accessor: task => task.priority },
-    { key: 'computeUsage', label: 'Compute Usage', sortable: true, filter: { kind: 'number' }, accessor: task => task.computeUsage },
+    { key: 'computeUsage', label: 'Compute Usage', sortable: true, filter: { kind: 'number' }, accessor: computeUsageValue, compare: computeUsageCompare },
     { key: 'actions', label: 'Actions', required: true },
   ];
 
@@ -143,20 +159,20 @@
         {/if}
       </td>
     {/if}
-    {#if visible.has('state')}<td><span class="status">{t.state}</span></td>{/if}
+    {#if visible.has('state')}<td data-value={t.state}><span class="status">{t.state}</span></td>{/if}
     {#if visible.has('description')}
-      <td>
+      <td data-value={t.description}>
         {t.description}
         {#if t.error}<br /><span class="error-text">{t.error}</span>{/if}
       </td>
     {/if}
-    {#if visible.has('id')}<td class="id-cell" title={t.id}>{t.id}</td>{/if}
-    {#if visible.has('createTime')}<td>{formatTime(t.createTime)}</td>{/if}
-    {#if visible.has('startTime')}<td>{formatTime(t.startTime)}</td>{/if}
-    {#if visible.has('elapsed')}<td class="elapsed">{t.elapsed}</td>{/if}
-    {#if visible.has('attempt')}<td style="text-align:center">{t.attempt ?? ''}</td>{/if}
-    {#if visible.has('priority')}<td style="text-align:center">{t.priority ?? ''}</td>{/if}
-    {#if visible.has('computeUsage')}<td class="compute">{t.computeUsage != null ? t.computeUsage.toFixed(1) + ' EECU·s' : ''}</td>{/if}
+    {#if visible.has('id')}<td class="id-cell" data-value={t.id} title={t.id}>{t.id}</td>{/if}
+    {#if visible.has('createTime')}<td data-value={t.createTime}>{formatTime(t.createTime)}</td>{/if}
+    {#if visible.has('startTime')}<td data-value={t.startTime}>{formatTime(t.startTime)}</td>{/if}
+    {#if visible.has('elapsed')}<td class="elapsed" data-value={t.elapsedMs}>{t.elapsed}</td>{/if}
+    {#if visible.has('attempt')}<td style="text-align:center" data-value={t.attempt}>{t.attempt ?? ''}</td>{/if}
+    {#if visible.has('priority')}<td style="text-align:center" data-value={t.priority}>{t.priority ?? ''}</td>{/if}
+    {#if visible.has('computeUsage')}<td class="compute" data-value={computeUsageValue(t)}>{computeUsageValue(t) != null ? computeUsageValue(t).toFixed(1) + ' EECU·s' : ''}</td>{/if}
     {#if visible.has('actions')}
       {@const hasCancel = t.state === 'RUNNING' || t.state === 'PENDING'}
       {@const hasPreview = Boolean(t.previewAssetName)}

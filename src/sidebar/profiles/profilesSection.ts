@@ -65,7 +65,7 @@ export class ProfilesSection extends SidebarSection {
       const project = item.profile.project;
       const content = [
         'import ee',
-        'from earthengine_vscode_map import Map',
+        'from vscee import Map',
         '',
         '# prior to execute this code make sure you are authenticated',
         `ee.Initialize(project="${project}")`,
