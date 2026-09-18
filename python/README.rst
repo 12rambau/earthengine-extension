@@ -16,7 +16,7 @@ Usage
 .. code-block:: python
 
     import ee
-    from earthengine_vscode_map import Map
+    from vscee import Map
 
     ee.Initialize(project="my-project")
 

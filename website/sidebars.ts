@@ -35,6 +35,7 @@ const sidebars: SidebarsConfig = {
         'editors/interactive-map',
       ],
     },
+    'vscee',
     'commands',
     'settings',
   ],

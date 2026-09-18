@@ -1,0 +1,64 @@
+---
+sidebar_position: 9
+---
+
+# vscee Python library
+
+**vscee** is the Python package that bridges scripts to the extension's [Interactive Map](./editors/interactive-map) editor. It ships from the `python/` folder of this repository and is published to PyPI so it can be installed independently of the extension.
+
+Earth Engine graphs are built and serialised entirely on the Python side with the official `earthengine-api`; `vscee` only forwards the serialised object and display parameters to the extension over a local HTTP bridge. The extension host resolves tile URLs with the EE JS client — the Python side never calls `getMapId` or resolves tiles itself.
+
+## Install
+
+```bash
+pip install vscee
+```
+
+To install the version tracked by this repository instead of the PyPI release:
+
+```bash
+pip install -e python/
+```
+
+## Requirements
+
+- Python `>=3.9`
+- The Earth Engine extension installed and active in VS Code, with the [Interactive Map](./editors/interactive-map) editor open
+- A valid `ee.Initialize(project=...)` call before any `Map.*` invocation
+
+Select **New Python Script** from the Profiles view title action, or the `earthengine.newScript` command, to generate a script prefilled with the initialisation boilerplate and `Map` import shown below.
+
+## The `Map` module
+
+`vscee` exposes a single `Map` module that mirrors the `Map` global of the Earth Engine Code Editor. There is only one map panel in the extension, so `Map` is a module of functions rather than a class you instantiate:
+
+```python
+import ee
+from vscee import Map
+
+ee.Initialize(project="my-project")
+
+image = ee.Image("COPERNICUS/S2_SR_HARMONIZED/20200101T100319_20200101T100321_T32TQM")
+Map.addLayer(image, {"bands": ["B4", "B3", "B2"], "min": 0, "max": 3000}, "RGB")
+Map.centerObject(image, zoom=10)
+```
+
+### `Map.addLayer(ee_object, vis_params=None, name=None, shown=True, opacity=1.0)`
+
+Add a layer to the map. `ee_object` accepts an `ee.Image`, `ee.ImageCollection` (mosaicked automatically), `ee.FeatureCollection`, `ee.Feature`, or `ee.Geometry` (vectors are painted onto an image using the `color` and `strokeWidth` visualisation keys). The object is serialised locally and sent to the extension, which resolves the tile URL.
+
+### `Map.centerObject(ee_object, zoom=None)`
+
+Centers and, optionally, zooms the map on the bounds of an `ee.Image`, `ee.ImageCollection`, `ee.FeatureCollection`, `ee.Feature`, or `ee.Geometry`. Computing the bounds calls `getInfo()`, so it requires network access to Earth Engine.
+
+### `Map.setCenter(lon, lat, zoom=None)`
+
+Sets the map viewport to explicit coordinates without querying Earth Engine.
+
+### `Map.clear()`
+
+Removes every layer currently on the map.
+
+## How it works
+
+`vscee` never talks to Earth Engine servers on the extension's behalf. Each `Map.*` call sends a JSON POST request to a local HTTP server the extension starts on `127.0.0.1:31415`, exposing one endpoint per function (`addLayer`, `centerObject`, `setCenter`, `clear`). The extension listens for these requests and forwards them to the Leaflet Webview to update the map. If the extension is not running or the map panel has not started the bridge server, calls fail silently and print a warning instead of raising.
