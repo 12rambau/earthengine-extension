@@ -15,6 +15,7 @@ import * as path from 'path';
 import * as os from 'os';
 import { URLSearchParams } from 'url';
 import { postForm, postJson, getRequest, fetchJson } from '../shared/httpClient.js';
+import { showSecretInputBox } from '../shared/secretInputBox.js';
 
 // ==================================================================
 // OAUTH CONSTANTS
@@ -138,7 +139,7 @@ export async function authenticateNotebookFlow(): Promise<
   vscode.env.openExternal(vscode.Uri.parse(authUrl));
 
   // Ask user to paste the code
-  const authCode = await vscode.window.showInputBox({
+  const authCode = await showSecretInputBox({
     title: 'Earth Engine Authentication',
     prompt: 'Paste the authorization code from the browser here',
     placeHolder: '4/0A...',
@@ -316,7 +317,7 @@ export async function addServiceAccountFlow(): Promise<
     }
     jsonContent = fs.readFileSync(uris[0].fsPath, 'utf-8');
   } else {
-    const pasted = await vscode.window.showInputBox({
+    const pasted = await showSecretInputBox({
       title: 'Paste Service Account JSON',
       prompt: 'Paste the full contents of your service account JSON key file',
       placeHolder: '{"type": "service_account", ...}',
