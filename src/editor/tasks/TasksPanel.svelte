@@ -11,6 +11,17 @@
     return task.computeUsage != null ? Math.round(task.computeUsage * 10) / 10 : null;
   }
 
+  // Sort on the raw compute usage so distinct values that round to the same
+  // figure (e.g. 1.24 vs 1.25) still order correctly.
+  function computeUsageCompare(left, right, direction) {
+    const a = left.computeUsage;
+    const b = right.computeUsage;
+    if (a === b) {return 0;}
+    if (a == null) {return direction;}
+    if (b == null) {return -direction;}
+    return (a - b) * direction;
+  }
+
   const ALL_COLS = [
     { key: 'icon', label: '', required: true },
     { key: 'state', label: 'Status', required: true, sortable: true, filter: { kind: 'enum', options: ['PENDING', 'RUNNING', 'CANCELLING', 'SUCCEEDED', 'FAILED', 'CANCELLED'] }, accessor: task => task.state },
@@ -21,7 +32,7 @@
     { key: 'elapsed', label: 'Duration', sortable: true, filter: { kind: 'number' }, accessor: task => task.elapsedMs },
     { key: 'attempt', label: 'Attempts', sortable: true, filter: { kind: 'number' }, accessor: task => task.attempt },
     { key: 'priority', label: 'Priority', sortable: true, filter: { kind: 'number' }, accessor: task => task.priority },
-    { key: 'computeUsage', label: 'Compute Usage', sortable: true, filter: { kind: 'number' }, accessor: computeUsageValue },
+    { key: 'computeUsage', label: 'Compute Usage', sortable: true, filter: { kind: 'number' }, accessor: computeUsageValue, compare: computeUsageCompare },
     { key: 'actions', label: 'Actions', required: true },
   ];
 
