@@ -63,3 +63,19 @@
      ASSET TYPE COLORS  (values injected at build time by esbuild.js)
      ================================================================== */
 }
+
+/* ====================================================================
+   COLOR SCHEME  (keeps native form controls — e.g. the <input type="date">
+   calendar popup — in sync with the active VS Code theme instead of the
+   OS-level color scheme; VS Code sets these classes on <body>)
+   ==================================================================== */
+body.vscode-light {
+  color-scheme: light;
+}
+body.vscode-dark,
+body.vscode-high-contrast {
+  color-scheme: dark;
+}
+body.vscode-high-contrast-light {
+  color-scheme: light;
+}
