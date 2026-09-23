@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.6.10](https://github.com/12rambau/earthengine-extension/compare/v0.6.9...v0.6.10) (2026-09-23)
+
+### Bug Fixes
+
+- sync lockfile during release ([b6ef916](https://github.com/12rambau/earthengine-extension/commit/b6ef916f10f1964633cfa822fa35f95f5afecf6e))
+
 ## [0.6.9](https://github.com/12rambau/earthengine-extension/compare/v0.6.8...v0.6.9) (2026-09-23)
 
 ### Bug Fixes
