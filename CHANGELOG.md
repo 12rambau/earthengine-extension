@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.6.11](https://github.com/12rambau/earthengine-extension/compare/v0.6.10...v0.6.11) (2026-09-23)
+
+### Bug Fixes
+
+- use baseurl in the docs ([b66635f](https://github.com/12rambau/earthengine-extension/commit/b66635f3e57805f6dc9120b0fd3ea18bc7ecc2df))
+
 ## [0.6.10](https://github.com/12rambau/earthengine-extension/compare/v0.6.9...v0.6.10) (2026-09-23)
 
 ### Bug Fixes
