@@ -74,10 +74,10 @@
    ================================================================== */
 .site-landing {
 	display: grid;
-	grid-template-columns: minmax(14rem, 0.55fr) minmax(28rem, 1.25fr) minmax(18rem, 0.85fr);
+	grid-template-columns: minmax(20rem, 0.7fr) minmax(36rem, 1.3fr);
 	align-items: center;
-	gap: clamp(2rem, 4vw, 5rem);
-	width: min(100% - 3rem, 82rem);
+	gap: clamp(3rem, 6vw, 8rem);
+	width: min(100% - 4rem, 100rem);
 	min-height: calc(100vh - var(--ifm-navbar-height));
 	margin: 0 auto;
 	padding: 4rem 0;
@@ -87,20 +87,7 @@
 	max-width: 34rem;
 }
 
-.site-landing__logo-column {
-	display: flex;
-	justify-content: center;
-}
-
-.site-landing__logo {
-	width: clamp(12rem, 19vw, 18rem);
-	aspect-ratio: 1;
-	height: auto;
-	object-fit: contain;
-}
-
-.site-landing__eyebrow,
-.site-landing__video-label {
+.site-landing__eyebrow {
 	margin: 0;
 	color: var(--ifm-color-primary);
 	font-family: var(--ifm-font-family-monospace);
@@ -127,22 +114,32 @@
 .site-landing__video-frame {
 	display: flex;
 	flex-direction: column;
-	justify-content: end;
+	gap: 0.75rem;
 	aspect-ratio: 16 / 10;
-	padding: clamp(1.5rem, 4vw, 3rem);
-	border: 1px solid var(--ifm-color-emphasis-300);
-	border-radius: var(--ifm-card-border-radius);
-	background: var(--ifm-background-surface-color);
-	box-shadow: var(--ifm-global-shadow-lw);
 }
 
-.site-landing__video-frame strong {
-	font-size: clamp(1.25rem, 2vw, 1.75rem);
+.site-landing__video-media {
+	display: block;
+	width: 100%;
+	min-height: 0;
+	flex: 1;
+	border-radius: 0.5rem;
+	object-fit: cover;
+	box-shadow: 0 0 1.25rem var(--ifm-color-emphasis-300);
 }
 
-.site-landing__video-frame span:last-child {
-	margin-top: 0.5rem;
-	color: var(--ifm-color-emphasis-700);
+.site-landing__video-media--dark {
+	display: none;
+}
+
+[data-theme='dark'] {
+	.site-landing__video-media--light {
+		display: none;
+	}
+
+	.site-landing__video-media--dark {
+		display: block;
+	}
 }
 
 	.media-placeholder,
@@ -177,6 +174,38 @@
 		padding: 2rem;
 	}
 
+/* ==================================================================
+   THEMED SCREENSHOTS
+   ================================================================== */
+
+.screenshot-pair {
+	margin: 2rem 0;
+
+	& img {
+		display: block;
+		width: 100%;
+		height: auto;
+		border-radius: 0.5rem;
+		box-shadow: var(--ifm-global-shadow-md);
+	}
+
+	& .screenshot--dark {
+		display: none;
+	}
+}
+
+[data-theme='dark'] {
+	.screenshot-pair {
+		& .screenshot--light {
+			display: none;
+		}
+
+		& .screenshot--dark {
+			display: block;
+		}
+	}
+}
+
 	.docs-action-grid {
 		display: grid;
 		grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -208,9 +237,6 @@
 		padding: 3rem 0;
 	}
 
-	.site-landing__logo-column {
-		display: none;
-	}
 }
 
 
