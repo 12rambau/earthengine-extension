@@ -633,7 +633,7 @@
     "conventional-commits-filter": "^6.0.1",
     "d3-scale-chromatic": "^3.1.0",
     "dayjs": "^1.11.21",
-    "filesize": "^11.0.22",
+    "filesize": "^11.0.24",
     "marked": "^18.0.10"
   }
 }
