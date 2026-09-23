@@ -2,6 +2,8 @@
 sidebar_position: 3
 ---
 
+import useBaseUrl from '@docusaurus/useBaseUrl';
+
 # API Docs section
 
 The **Docs** sidebar section contains the searchable Earth Engine JavaScript API registry. Browse namespaces such as `ee.Image`, `ee.FeatureCollection`, and `ee.Reducer`, then inspect tooltips for descriptions, arguments, and return types.
@@ -9,6 +11,6 @@ The **Docs** sidebar section contains the searchable Earth Engine JavaScript API
 Use **Search API Docs** to locate symbols and **Refresh API Docs** to retrieve the registry again for the active profile.
 
 <div className="screenshot-pair">
-  <img className="screenshot--light" src="/img/light/docs.png" alt="API Docs section in the light theme" />
-  <img className="screenshot--dark" src="/img/dark/docs.png" alt="API Docs section in the dark theme" />
+  <img className="screenshot--light" src={useBaseUrl('/img/light/docs.png')} alt="API Docs section in the light theme" />
+  <img className="screenshot--dark" src={useBaseUrl('/img/dark/docs.png')} alt="API Docs section in the dark theme" />
 </div>

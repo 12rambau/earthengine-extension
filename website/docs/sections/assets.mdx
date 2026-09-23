@@ -2,6 +2,8 @@
 sidebar_position: 2
 ---
 
+import useBaseUrl from '@docusaurus/useBaseUrl';
+
 # Assets section
 
 The **Assets** sidebar section lazily browses the active project's Earth Engine hierarchy. It distinguishes folders, images, ImageCollections, and tables with type icons. Containers load in the background when expanded, so large libraries stay responsive.
@@ -9,6 +11,6 @@ The **Assets** sidebar section lazily browses the active project's Earth Engine 
 The section title actions search or refresh assets, open the [Asset Manager](../editors/asset-manager), and create folders. Item context actions can refresh a container, open an appropriate preview, copy an asset ID, or copy, move, and delete assets.
 
 <div className="screenshot-pair">
-  <img className="screenshot--light" src="/img/light/asset.png" alt="Assets section in the light theme" />
-  <img className="screenshot--dark" src="/img/dark/asset.png" alt="Assets section in the dark theme" />
+  <img className="screenshot--light" src={useBaseUrl('/img/light/asset.png')} alt="Assets section in the light theme" />
+  <img className="screenshot--dark" src={useBaseUrl('/img/dark/asset.png')} alt="Assets section in the dark theme" />
 </div>

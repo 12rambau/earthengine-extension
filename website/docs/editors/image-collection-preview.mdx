@@ -2,6 +2,8 @@
 sidebar_position: 3
 ---
 
+import useBaseUrl from '@docusaurus/useBaseUrl';
+
 # ImageCollection preview editor
 
 An **ImageCollection preview** opens from an ImageCollection asset and creates a mosaic thumbnail from its first available images.
@@ -9,6 +11,6 @@ An **ImageCollection preview** opens from an ImageCollection asset and creates a
 Its tabs expose the collection description, child images, bands from the first child image, and properties. The **Images** tab can open an individual image preview or delete a child image.
 
 <div className="screenshot-pair">
-  <img className="screenshot--light" src="/img/light/imagecollection-preview.png" alt="ImageCollection preview editor in the light theme" />
-  <img className="screenshot--dark" src="/img/dark/imagecollection-preview.png" alt="ImageCollection preview editor in the dark theme" />
+  <img className="screenshot--light" src={useBaseUrl('/img/light/imagecollection-preview.png')} alt="ImageCollection preview editor in the light theme" />
+  <img className="screenshot--dark" src={useBaseUrl('/img/dark/imagecollection-preview.png')} alt="ImageCollection preview editor in the dark theme" />
 </div>

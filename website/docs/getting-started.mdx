@@ -2,6 +2,8 @@
 sidebar_position: 2
 ---
 
+import useBaseUrl from '@docusaurus/useBaseUrl';
+
 # Getting started
 
 ## Install
@@ -18,8 +20,8 @@ Install **Earth Engine** from the [VS Code Marketplace](https://marketplace.visu
 Credentials are stored in `~/.config/earthengine/profiles/`, matching the location used by the Earth Engine CLI.
 
 <div className="screenshot-pair">
-  <img className="screenshot--light" src="/img/light/profile.png" alt="Earth Engine Profiles view in the light theme" />
-  <img className="screenshot--dark" src="/img/dark/profile.png" alt="Earth Engine Profiles view in the dark theme" />
+  <img className="screenshot--light" src={useBaseUrl('/img/light/profile.png')} alt="Earth Engine Profiles view in the light theme" />
+  <img className="screenshot--dark" src={useBaseUrl('/img/dark/profile.png')} alt="Earth Engine Profiles view in the dark theme" />
 </div>
 
 ## First workflow

@@ -2,6 +2,8 @@
 sidebar_position: 2
 ---
 
+import useBaseUrl from '@docusaurus/useBaseUrl';
+
 # EE Import panel
 
 **EE Import** is a docked VS Code Panel container, next to the terminal. It presents a compact live list of import operations rather than a full editor table.
@@ -9,6 +11,6 @@ sidebar_position: 2
 Each row shows its state, description or operation ID, and elapsed time after it starts. Pending tasks omit start time and duration. Running or pending tasks can be cancelled; successful tasks with a recognised destination asset expose a preview action. Use **Open in Editor** for the [Import Tasks editor](../editors/import-tasks).
 
 <div className="screenshot-pair">
-  <img className="screenshot--light" src="/img/light/import-panel.png" alt="EE Import panel in the light theme" />
-  <img className="screenshot--dark" src="/img/dark/import-panel.png" alt="EE Import panel in the dark theme" />
+  <img className="screenshot--light" src={useBaseUrl('/img/light/import-panel.png')} alt="EE Import panel in the light theme" />
+  <img className="screenshot--dark" src={useBaseUrl('/img/dark/import-panel.png')} alt="EE Import panel in the dark theme" />
 </div>

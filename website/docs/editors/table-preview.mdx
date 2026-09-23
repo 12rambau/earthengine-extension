@@ -2,6 +2,8 @@
 sidebar_position: 4
 ---
 
+import useBaseUrl from '@docusaurus/useBaseUrl';
+
 # Table preview editor
 
 A **Table preview** opens from a FeatureCollection asset. It renders an outline thumbnail and displays its ID, dates, size, feature count, and last-modified time.
@@ -9,6 +11,6 @@ A **Table preview** opens from a FeatureCollection asset. It renders an outline 
 The **Features** tab shows the first 20 rows. **Columns** infers property types from the first feature. **Description** and **Properties** display asset metadata while excluding system keys.
 
 <div className="screenshot-pair">
-  <img className="screenshot--light" src="/img/light/table-preview.png" alt="Table preview editor in the light theme" />
-  <img className="screenshot--dark" src="/img/dark/table-preview.png" alt="Table preview editor in the dark theme" />
+  <img className="screenshot--light" src={useBaseUrl('/img/light/table-preview.png')} alt="Table preview editor in the light theme" />
+  <img className="screenshot--dark" src={useBaseUrl('/img/dark/table-preview.png')} alt="Table preview editor in the dark theme" />
 </div>

@@ -2,6 +2,8 @@
 sidebar_position: 2
 ---
 
+import useBaseUrl from '@docusaurus/useBaseUrl';
+
 # Image preview editor
 
 An **Image preview** opens from an Image asset. Its sidebar holds the thumbnail, asset ID, dates, size, band count, and last-modified time.
@@ -9,6 +11,6 @@ An **Image preview** opens from an Image asset. Its sidebar holds the thumbnail,
 The **Description** tab renders the asset description. **Bands** shows each band's type, dimensions, CRS, nominal scale, and asynchronously computed min/max values. **Properties** excludes system fields and the description.
 
 <div className="screenshot-pair">
-  <img className="screenshot--light" src="/img/light/image-preview.png" alt="Image preview editor in the light theme" />
-  <img className="screenshot--dark" src="/img/dark/image-preview.png" alt="Image preview editor in the dark theme" />
+  <img className="screenshot--light" src={useBaseUrl('/img/light/image-preview.png')} alt="Image preview editor in the light theme" />
+  <img className="screenshot--dark" src={useBaseUrl('/img/dark/image-preview.png')} alt="Image preview editor in the dark theme" />
 </div>

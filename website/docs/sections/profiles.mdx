@@ -2,6 +2,8 @@
 sidebar_position: 1
 ---
 
+import useBaseUrl from '@docusaurus/useBaseUrl';
+
 # Profiles
 
 The **Profiles** sidebar section manages the credentials and Google Cloud project used by every Earth Engine request in the extension.
@@ -11,6 +13,6 @@ Use **Add Profile** for Google OAuth or **Add Service Account** for a service-ac
 Credentials are stored under `~/.config/earthengine/profiles/`, matching the Earth Engine CLI location.
 
 <div className="screenshot-pair">
-  <img className="screenshot--light" src="/img/light/profile.png" alt="Profiles section in the light theme" />
-  <img className="screenshot--dark" src="/img/dark/profile.png" alt="Profiles section in the dark theme" />
+  <img className="screenshot--light" src={useBaseUrl('/img/light/profile.png')} alt="Profiles section in the light theme" />
+  <img className="screenshot--dark" src={useBaseUrl('/img/dark/profile.png')} alt="Profiles section in the dark theme" />
 </div>
