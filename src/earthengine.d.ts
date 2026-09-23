@@ -82,6 +82,7 @@ declare module '@google/earthengine' {
     setAuthTokenRefresher(
       refresher: (authArgs: unknown, callback: (token: EeAuthToken) => void) => void,
     ): void;
+    setUserAgent(userAgent: string): void;
     listAssets(parent: string, params?: Record<string, unknown>, callback?: EeCallback): unknown;
     getAsset(id: string, callback?: EeCallback): unknown;
     listFeatures(asset: string, params: Record<string, unknown>, callback?: EeCallback): unknown;

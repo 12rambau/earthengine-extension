@@ -131,6 +131,7 @@ function initialize(project: string): Promise<void> {
             .catch((err: unknown) => opt_callback(undefined, String(err)));
         };
 
+        ee.data.setUserAgent('vscode-extension');
         ee.data.setAuthToken(
           null,
           'Bearer',
