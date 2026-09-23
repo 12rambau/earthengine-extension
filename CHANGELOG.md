@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.6.9](https://github.com/12rambau/earthengine-extension/compare/v0.6.8...v0.6.9) (2026-09-23)
+
+### Bug Fixes
+
+- add computeUsageCompare function for accurate sorting of compute usage ([2927f91](https://github.com/12rambau/earthengine-extension/commit/2927f916f96d883cde3ef757aa0b1ac79d3c9fd5))
+- add some screenshots ([df80419](https://github.com/12rambau/earthengine-extension/commit/df8041936f30adebb7fbf98ad8a23e1ee1cd2f83))
+- add unit-aware duration filter kind for the Duration column ([12f2680](https://github.com/12rambau/earthengine-extension/commit/12f268019e7b761f26c392ef1933324b71d6421f))
+- **assets:** make asset type filter a multi-select ([6664977](https://github.com/12rambau/earthengine-extension/commit/6664977f5c4a10280b41b7d22667b6e19c99ce67))
+- hide the keys by default ([54aea66](https://github.com/12rambau/earthengine-extension/commit/54aea66966127be9c2645f12d9a75f62629465fd))
+- update computeUsage accessor for accurate filtering and display ([09b9464](https://github.com/12rambau/earthengine-extension/commit/09b9464abcdedda4171980104e301f748fb908c8))
+- update packages ([485454b](https://github.com/12rambau/earthengine-extension/commit/485454b05e1407a518855be9990b69fc2c00e6c0))
+- **webview:** make datepicker filter theme responsive ([2e4a993](https://github.com/12rambau/earthengine-extension/commit/2e4a993e8b3369a7402bfcf6b5ff35c3add634db))
+
 ## [0.6.8](https://github.com/12rambau/earthengine-extension/compare/v0.6.7...v0.6.8) (2026-09-15)
 
 ### Bug Fixes
