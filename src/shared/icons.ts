@@ -1,6 +1,7 @@
 // Re-exports only the MDI icons used across WebView panels.
 // Import from here (not directly from @mdi/js) so esbuild tree-shakes the rest.
 export {
+  mdiAlertCircleOutline,
   mdiClose,
   mdiChartTree,
   mdiCrosshairsGps,

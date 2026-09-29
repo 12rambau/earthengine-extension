@@ -63,6 +63,26 @@ const codiconsInlinePlugin = {
   },
 };
 
+/** Inlines the PNGs referenced by leaflet.css as base64 data URLs so the bundled WebView needs no CDN. */
+const leafletCssInlinePlugin = {
+  name: 'leaflet-css-inline',
+  setup(build) {
+    build.onLoad({ filter: /leaflet\.css$/ }, (args) => {
+      if (!args.path.includes('leaflet')) return null;
+      const css = fs.readFileSync(args.path, 'utf8');
+      const imagesDir = path.join(path.dirname(args.path), 'images');
+      // `url(#default#VML)` is an IE behaviour selector, not an asset — leave it alone.
+      const inlined = css.replace(/url\(images\/([^)]+)\)/g, (match, file) => {
+        const assetPath = path.join(imagesDir, file);
+        if (!fs.existsSync(assetPath)) return match;
+        const base64 = fs.readFileSync(assetPath).toString('base64');
+        return `url("data:image/png;base64,${base64}")`;
+      });
+      return { contents: inlined, loader: 'text' };
+    });
+  },
+};
+
 /** Appends the generated --vscee-color-* variables to webview.css at bundle time. */
 const webviewCssPlugin = {
   name: 'webview-css',
@@ -168,6 +188,7 @@ async function main() {
     logLevel: 'silent',
     plugins: [
       codiconsInlinePlugin,
+      leafletCssInlinePlugin,
       webviewCssPlugin,
       webviewScriptTextPlugin,
       esbuildProblemMatcherPlugin,

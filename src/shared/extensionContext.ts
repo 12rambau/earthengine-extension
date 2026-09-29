@@ -1,4 +1,4 @@
-/** @module extensionContext — Singleton that gives any module access to extensionUri after activation. */
+/** @module extensionContext — Singleton that gives any module access to the ExtensionContext after activation. */
 
 import * as vscode from 'vscode';
 
@@ -6,17 +6,31 @@ import * as vscode from 'vscode';
 // SINGLETON
 // ==================================================================
 
-let _extensionUri: vscode.Uri | undefined;
+let _context: vscode.ExtensionContext | undefined;
 
 /** Called once from activate() before any WebView panel is opened. */
-export function setExtensionUri(uri: vscode.Uri): void {
-  _extensionUri = uri;
+export function setExtensionContext(context: vscode.ExtensionContext): void {
+  _context = context;
 }
 
-/** Returns the extension URI; throws if setExtensionUri was not called yet. */
-export function getExtensionUri(): vscode.Uri {
-  if (!_extensionUri) {
-    throw new Error('extensionUri not initialised — call setExtensionUri() in activate()');
+function requireContext(): vscode.ExtensionContext {
+  if (!_context) {
+    throw new Error('extension context not initialised — call setExtensionContext() in activate()');
   }
-  return _extensionUri;
+  return _context;
+}
+
+/** Returns the extension URI; throws if setExtensionContext was not called yet. */
+export function getExtensionUri(): vscode.Uri {
+  return requireContext().extensionUri;
+}
+
+/** Returns the encrypted secret store, used for user-supplied API keys. */
+export function getSecretStorage(): vscode.SecretStorage {
+  return requireContext().secrets;
+}
+
+/** Returns the machine-scoped key/value store, used for caches that survive reloads. */
+export function getGlobalState(): vscode.Memento {
+  return requireContext().globalState;
 }

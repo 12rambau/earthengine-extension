@@ -1,8 +1,9 @@
 <!-- MapPanel: Leaflet-based map with EE tile layers, inspector, scale bar and viz editor -->
 <script>
-  import { vscode, getInitData } from '../../shared/vscode.ts';
+  import L from 'leaflet';
+  import { vscode } from '../../shared/vscode.ts';
   import {
-    mdiClose, mdiCrosshairsGps, mdiEye, mdiEyeOff, mdiLayers,
+    mdiAlertCircleOutline, mdiClose, mdiCrosshairsGps, mdiEye, mdiEyeOff, mdiLayers,
     mdiLoading, mdiMap, mdiRuler, mdiSatelliteVariant, mdiTrashCan, mdiTune,
   } from '../../shared/icons.ts';
   import {
@@ -63,8 +64,6 @@
   // STATE
   // ----------------------------------------------------------------
 
-  const { darkBasemap, lightBasemap, satelliteBasemap, planBasemap } = getInitData();
-
   let map = $state(null);
   let overlays = $state([]);
   let layersPanelVisible = $state(false);
@@ -82,6 +81,8 @@
   let cursorTooltipX = $state(0);
   let cursorTooltipY = $state(0);
   let activeMode = $state('theme');
+  // Message shown when the Google Maps API key is missing or createSession failed.
+  let basemapError = $state('');
 
   // Viz editor
   let vizVisible = $state(false);
@@ -123,7 +124,11 @@
 
   // Internal refs
   let basemapTileLayers = {};
+  let pendingBasemaps = new Set();
   let currentBasemap = null;
+  let currentBasemapId = 'light';
+  let googleCopyright = '';
+  let attributionTimer = null;
   let nativeLayerControl = null;
   let _sampleCanvas = null;
 
@@ -191,28 +196,19 @@
   // ----------------------------------------------------------------
 
   function initMap() {
-    const L = window.L;
     map = L.map('map', { center: [0, 0], zoom: 2, zoomControl: false });
 
-    // Basemaps
-    basemapTileLayers[darkBasemap] = L.tileLayer.provider(darkBasemap);
-    basemapTileLayers[lightBasemap] = L.tileLayer.provider(lightBasemap);
-    basemapTileLayers[satelliteBasemap] = L.tileLayer.provider(satelliteBasemap);
-    basemapTileLayers[planBasemap] = L.tileLayer.provider(planBasemap);
+    // Google's terms require the "Google Maps" mark next to the tile copyright.
+    map.attributionControl.setPrefix('Google Maps');
 
-    nativeLayerControl = L.control.layers(
-      { Dark: basemapTileLayers[darkBasemap], Light: basemapTileLayers[lightBasemap], Satellite: basemapTileLayers[satelliteBasemap], Plan: basemapTileLayers[planBasemap] },
-      {},
-      { collapsed: true },
-    ).addTo(map);
+    nativeLayerControl = L.control.layers({}, {}, { collapsed: true }).addTo(map);
     nativeLayerControl.getContainer().style.display = 'none';
 
-    currentBasemap = basemapTileLayers[isDarkTheme() ? darkBasemap : lightBasemap];
-    currentBasemap.addTo(map);
+    setBasemap(resolveBasemapId());
 
     // Theme sync
     new MutationObserver(() => {
-      if (activeMode === 'theme') {setBasemap(isDarkTheme() ? darkBasemap : lightBasemap);}
+      setBasemap(resolveBasemapId());
     }).observe(document.body, { attributes: true, attributeFilter: ['class'] });
 
     // Status bar events
@@ -224,12 +220,12 @@
     });
     map.on('mouseout', () => { cursorTooltipText = ''; });
     map.on('zoomend', () => { zoomLevel = map.getZoom(); });
+    map.on('moveend zoomend', requestAttribution);
 
     // Inspector click
     map.on('click', (e) => {
       if (!inspectorActive) {return;}
       const { lat, lng } = e.latlng;
-      const L = window.L;
       if (inspectorMarker) {
         inspectorMarker.setLatLng([lat, lng]);
       } else {
@@ -249,22 +245,82 @@
   // BASEMAP
   // ----------------------------------------------------------------
 
+  // Maps the two toggles plus the VS Code colour theme onto a basemap slot.
+  function resolveBasemapId() {
+    if (activeMode === 'satellite') {return 'satellite';}
+    if (activeMode === 'plan') {return isDarkTheme() ? 'planDark' : 'planLight';}
+    return isDarkTheme() ? 'dark' : 'light';
+  }
+
+  // Tile URLs carry a session token minted by the extension host, so they are
+  // fetched on demand rather than all five up front.
   function setBasemap(id) {
+    currentBasemapId = id;
     const next = basemapTileLayers[id];
-    if (!next || next === currentBasemap) {return;}
-    map.removeLayer(currentBasemap);
+    if (next) {
+      applyBasemap(next);
+    } else if (!pendingBasemaps.has(id)) {
+      pendingBasemaps.add(id);
+      vscode.postMessage({ type: 'requestBasemap', data: { id } });
+    }
+  }
+
+  function applyBasemap(next) {
+    if (next === currentBasemap) {return;}
+    if (currentBasemap) {map.removeLayer(currentBasemap);}
     next.addTo(map);
+    // Leaflet stacks tile layers in DOM order, so a freshly added basemap would
+    // otherwise sit on top of the Earth Engine overlays.
+    next.bringToBack();
     currentBasemap = next;
+    basemapError = '';
+    requestAttribution();
+  }
+
+  // Drops every cached basemap: the API key or a basemap setting changed.
+  function resetBasemaps() {
+    if (currentBasemap) {map.removeLayer(currentBasemap);}
+    currentBasemap = null;
+    basemapTileLayers = {};
+    pendingBasemaps = new Set();
+    setBasemap(currentBasemapId);
+  }
+
+  const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
+
+  // Google requires the copyright string for the visible extent, which changes
+  // as the user pans; debounce so a drag costs one viewport call.
+  function requestAttribution() {
+    if (!map || !currentBasemap) {return;}
+    clearTimeout(attributionTimer);
+    attributionTimer = setTimeout(() => {
+      const b = map.getBounds();
+      vscode.postMessage({
+        type: 'requestAttribution',
+        data: {
+          id: currentBasemapId,
+          zoom: map.getZoom(),
+          bounds: {
+            north: clamp(b.getNorth(), -85, 85),
+            south: clamp(b.getSouth(), -85, 85),
+            east: clamp(b.getEast(), -180, 180),
+            west: clamp(b.getWest(), -180, 180),
+          },
+        },
+      });
+    }, 600);
+  }
+
+  function setCopyright(text) {
+    if (text === googleCopyright) {return;}
+    if (googleCopyright) {map.attributionControl.removeAttribution(googleCopyright);}
+    googleCopyright = text;
+    map.attributionControl.addAttribution(text);
   }
 
   function activateMode(mode) {
-    if (activeMode === mode) {
-      activeMode = 'theme';
-      setBasemap(isDarkTheme() ? darkBasemap : lightBasemap);
-    } else {
-      activeMode = mode;
-      setBasemap(mode === 'satellite' ? satelliteBasemap : planBasemap);
-    }
+    activeMode = activeMode === mode ? 'theme' : mode;
+    setBasemap(resolveBasemapId());
   }
 
   // ----------------------------------------------------------------
@@ -650,9 +706,24 @@
 
   window.addEventListener('message', (e) => {
     const msg = e.data;
-    const L = window.L;
 
-    if (msg.type === 'addTileLayer') {
+    if (msg.type === 'basemapUrl') {
+      const d = msg.data;
+      pendingBasemaps.delete(d.id);
+      // Map Tiles serves zoom 0-22; beyond that Leaflet upscales the last tiles
+      // so the basemap does not vanish under a deeply zoomed EE layer.
+      basemapTileLayers[d.id] = L.tileLayer(d.url, {
+        maxZoom: 24, maxNativeZoom: 22, crossOrigin: 'anonymous',
+      });
+      if (d.id === currentBasemapId) {applyBasemap(basemapTileLayers[d.id]);}
+    } else if (msg.type === 'basemapError') {
+      pendingBasemaps.delete(msg.data.id);
+      if (msg.data.id === currentBasemapId) {basemapError = msg.data.message;}
+    } else if (msg.type === 'basemapReset') {
+      resetBasemaps();
+    } else if (msg.type === 'attribution') {
+      setCopyright(msg.data.copyright);
+    } else if (msg.type === 'addTileLayer') {
       const d = msg.data;
       const opacity = d.opacity ?? 1.0;
       const tileLayer = L.tileLayer(d.url, {
@@ -735,6 +806,19 @@
 
 <!-- MAP -->
 <div id="map"></div>
+
+{#if basemapError}
+  <div class="basemap-error">
+    <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="currentColor"><path d={mdiAlertCircleOutline}/></svg>
+    <span class="basemap-error-text">{basemapError}</span>
+    <button class="basemap-error-btn" onclick={() => vscode.postMessage({ type: 'setApiKey' })}>
+      Set API key
+    </button>
+    <button class="map-btn basemap-error-close" title="Dismiss" onclick={() => { basemapError = ''; }}>
+      <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" fill="currentColor"><path d={mdiClose}/></svg>
+    </button>
+  </div>
+{/if}
 
 {#if activeScaleIndex >= 0 && cursorTooltipText}
   <div class="cursor-value-tooltip"
@@ -1143,6 +1227,30 @@
     }
     .map-btn:hover { opacity: 1; }
     .map-btn.active { background: var(--vscode-button-background); color: var(--vscode-button-foreground); }
+
+    /* ==================================================================
+       BASEMAP ERROR BANNER
+       ================================================================== */
+    .basemap-error {
+      position: absolute; top: 10px; left: 50%; transform: translateX(-50%); z-index: 1100;
+      display: flex; align-items: center; gap: var(--vscee-space-sm);
+      max-width: min(640px, calc(100% - 120px));
+      padding: var(--vscee-space-sm) var(--vscee-space-md);
+      border: 1px solid var(--vscode-inputValidation-warningBorder);
+      border-radius: var(--vscee-radius-md);
+      background: var(--vscode-inputValidation-warningBackground);
+      color: var(--vscode-foreground);
+      box-shadow: var(--vscee-shadow-sm);
+    }
+    .basemap-error-text { flex: 1; font-size: var(--vscee-font-sm); }
+    .basemap-error-btn {
+      flex-shrink: 0; border: none; border-radius: var(--vscee-radius-sm);
+      padding: 2px 10px; cursor: pointer;
+      background: var(--vscode-button-background); color: var(--vscode-button-foreground);
+      font-size: var(--vscee-font-sm);
+    }
+    .basemap-error-btn:hover { background: var(--vscode-button-hoverBackground); }
+    .basemap-error-close { width: 22px; height: 22px; box-shadow: none; background: transparent; }
 
     /* ==================================================================
        LEAFLET ATTRIBUTION

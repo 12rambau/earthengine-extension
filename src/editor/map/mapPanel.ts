@@ -2,9 +2,9 @@
  * @module mapPanel
  * Leaflet-based map WebView panel for the Earth Engine extension.
  *
- * Renders a full-screen Leaflet map with dark/light/satellite base
- * layers, a layer control panel, and a status bar. Receives tile layer,
- * GeoJSON, and viewport commands from Python scripts via the bridge server.
+ * Renders a full-screen Leaflet map with Google Map Tiles basemaps, a layer
+ * control panel, and a status bar. Receives tile layer, GeoJSON, and viewport
+ * commands from Python scripts via the bridge server.
  */
 
 import * as vscode from 'vscode';
@@ -13,8 +13,10 @@ import { MapBridgeServer, MapCommand } from './mapBridgeServer.js';
 import { ensureEe } from '../../shared/eeSession.js';
 import { MapLayerManager } from './mapLayerManager.js';
 import { MapInspector } from './mapInspector.js';
+import { MapTilesService, ViewportBounds } from './mapTilesService.js';
+import { BASEMAP_IDS, BasemapId } from './basemapPresets.js';
 
-import { designTokens } from '../../shared/index.js';
+import { designTokens, leafletCss } from '../../shared/index.js';
 import script from './MapPanel.svelte';
 
 // ==================================================================
@@ -25,8 +27,10 @@ export class MapPanel extends EditorPanel {
   private bridgeServer: MapBridgeServer;
   private commandDisposable: vscode.Disposable | undefined;
   private messageDisposable: vscode.Disposable | undefined;
+  private configDisposable: vscode.Disposable | undefined;
   private readonly layerManager = new MapLayerManager();
   private readonly inspector = new MapInspector();
+  private readonly tiles = new MapTilesService();
 
   constructor() {
     super();
@@ -51,28 +55,18 @@ export class MapPanel extends EditorPanel {
       return;
     }
 
-    const cfg = vscode.workspace.getConfiguration('earthengine.map');
     const nonce = getNonce();
-    const initData = JSON.stringify({
-      darkBasemap: cfg.get<string>('darkBasemap', 'CartoDB.DarkMatter'),
-      lightBasemap: cfg.get<string>('lightBasemap', 'CartoDB.Positron'),
-      satelliteBasemap: cfg.get<string>('satelliteBasemap', 'Esri.WorldImagery'),
-      planBasemap: cfg.get<string>('planBasemap', 'CartoDB.Voyager'),
-    }).replace(/</g, '\\u003c');
 
     panel.webview.html = `<!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="https://unpkg.com/leaflet-providers@2.0.0/leaflet-providers.js"></script>
+    <style>${leafletCss}</style>
     <style>${designTokens}</style>
   </head>
   <body>
     <div id="app"></div>
-    <script id="init-data" type="application/json" nonce="${nonce}">${initData}</script>
     <script nonce="${nonce}">${script}</script>
   </body>
 </html>`;
@@ -83,6 +77,17 @@ export class MapPanel extends EditorPanel {
     this.messageDisposable = panel.webview.onDidReceiveMessage(async (msg) => {
       if (msg.type === 'ready') {
         this.layerManager.replay((m) => this.post(m));
+      } else if (msg.type === 'requestBasemap') {
+        const d = msg.data as { id: BasemapId };
+        await this.sendBasemapUrl(d.id);
+      } else if (msg.type === 'requestAttribution') {
+        const d = msg.data as { id: BasemapId; bounds: ViewportBounds; zoom: number };
+        const copyright = await this.tiles.getAttribution(d.id, d.bounds, d.zoom);
+        if (copyright) {
+          this.post({ type: 'attribution', data: { copyright } });
+        }
+      } else if (msg.type === 'setApiKey') {
+        await this.setApiKey();
       } else if (msg.type === 'clearAllLayers') {
         if (this.layerManager.layers.size === 0) {
           return;
@@ -153,6 +158,35 @@ export class MapPanel extends EditorPanel {
   /** Forwards a message to the WebView if the panel is open. */
   private post(msg: unknown): void {
     this.panel?.webview.postMessage(msg);
+  }
+
+  // ==================================================================
+  // BASEMAPS
+  // ==================================================================
+
+  /** Resolves a basemap tile URL and pushes it to the WebView, or reports why it failed. */
+  private async sendBasemapUrl(id: BasemapId): Promise<void> {
+    try {
+      const url = await this.tiles.getTileUrlTemplate(id);
+      this.post({ type: 'basemapUrl', data: { id, url } });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      this.post({ type: 'basemapError', data: { id, message } });
+    }
+  }
+
+  /** Prompts for a Google Maps API key, then reloads the basemaps. */
+  private async setApiKey(): Promise<void> {
+    if (await this.tiles.promptForApiKey()) {
+      this.post({ type: 'basemapReset' });
+    }
+  }
+
+  /** Forgets the stored Google Maps API key. */
+  private async clearApiKey(): Promise<void> {
+    await this.tiles.clearApiKey();
+    this.post({ type: 'basemapReset' });
+    vscode.window.showInformationMessage('[Map] Google Maps API key removed.');
   }
 
   /** Runs `fn`, shows a success/error notification, and re-throws on failure. */
@@ -269,6 +303,8 @@ export class MapPanel extends EditorPanel {
   override dispose(): void {
     this.commandDisposable?.dispose();
     this.commandDisposable = undefined;
+    this.configDisposable?.dispose();
+    this.configDisposable = undefined;
     this.bridgeServer.stop();
     super.dispose();
   }
@@ -286,8 +322,27 @@ export class MapPanel extends EditorPanel {
       void this.handleBridgeCommand(cmd);
     });
 
+    // A basemap override changes the createSession body, so the cached session
+    // token no longer matches and the open panel must reload its tiles.
+    this.configDisposable = vscode.workspace.onDidChangeConfiguration(async (event) => {
+      const changed = BASEMAP_IDS.filter((id) =>
+        event.affectsConfiguration(`earthengine.map.basemap.${id}`),
+      );
+      if (changed.length === 0) {
+        return;
+      }
+      await Promise.all(changed.map((id) => this.tiles.invalidate(id)));
+      this.post({ type: 'basemapReset' });
+    });
+
     context.subscriptions.push(
       vscode.commands.registerCommand('earthengine.openMap', () => this.open()),
+      vscode.commands.registerCommand('earthengine.map.setGoogleMapsApiKey', () =>
+        this.setApiKey(),
+      ),
+      vscode.commands.registerCommand('earthengine.map.clearGoogleMapsApiKey', () =>
+        this.clearApiKey(),
+      ),
       vscode.commands.registerCommand('earthengine.map.testNighttimeLights', () =>
         this.testNighttimeLights(),
       ),

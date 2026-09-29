@@ -16,15 +16,47 @@ Configure the extension through VS Code Settings using the `earthengine.*` keys 
 
 ## Map basemaps
 
-| Setting | Default | Description | Available values |
-| --- | --- | --- | --- |
-| `earthengine.map.darkBasemap` | `CartoDB.DarkMatter` | Basemap used when VS Code uses a dark colour theme. | `CartoDB.DarkMatter`, `Stadia.AlidadeSmoothDark`, `Stadia.StamenTonerDark`, `Jawg.Dark`, `Jawg.Matrix` |
-| `earthengine.map.lightBasemap` | `CartoDB.Positron` | Basemap used when VS Code uses a light colour theme. | `CartoDB.Positron`, `Stadia.AlidadeSmooth`, `Stadia.StamenTonerLite`, `Jawg.Light`, `Esri.WorldGrayCanvas` |
-| `earthengine.map.satelliteBasemap` | `Esri.WorldImagery` | Basemap used when satellite view is active. | `Esri.WorldImagery`, `Stadia.AlidadeSatellite`, `GeoportailFrance.orthos` |
-| `earthengine.map.planBasemap` | `CartoDB.Voyager` | Basemap used when plan view is active. | `GeoportailFrance.plan`, `CartoDB.Voyager`, `OpenStreetMap.Mapnik`, `OpenTopoMap`, `Stadia.OSMBright`, `Stadia.Outdoors`, `Stadia.StamenToner`, `Thunderforest.SpinalMap`, `Thunderforest.Landscape`, `Thunderforest.Outdoors`, `Thunderforest.Atlas`, `Jawg.Streets`, `Esri.WorldTopoMap` |
+Basemaps come from the [Google Map Tiles API](https://developers.google.com/maps/documentation/tile/overview). You must supply your own API key — run **Earth Engine: Set Google Maps API Key** from the Command Palette. Without a key the map still works, but it renders your Earth Engine layers on an empty background.
 
-:::warning[Provider credentials]
+### Setting up the API key
 
-Some providers, including Jawg and Thunderforest, require an API key. Selecting a provider only chooses its name; ensure its provider-specific credentials are available before using it.
+1. In the [Google Cloud Console](https://console.cloud.google.com/), enable the **Map Tiles API** on a project with billing enabled.
+2. Create a **dedicated** API key for it. Do not reuse the key of your Earth Engine project.
+3. Under **API restrictions**, restrict the key to the **Map Tiles API** and nothing else.
+4. Set a **daily quota cap** on the Map Tiles API and configure a **budget alert** on the project.
+5. Run **Earth Engine: Set Google Maps API Key** and paste the key. It is stored in the VS Code secret store, never in your settings file.
+
+:::warning[Application restrictions do not apply]
+
+VS Code WebViews run under the `vscode-webview://` origin and send no `Referer` header, so HTTP-referrer restrictions cannot be used. The key also appears in the tile URLs the map panel requests. The quota cap and the API restriction are what protect you — treat the key as disposable and rotate it if needed.
 
 :::
+
+### Basemap slots
+
+The map has five basemap slots. Two toggles — plan and satellite — plus the VS Code colour theme decide which one is displayed.
+
+| Setting | Slot | When it is used |
+| --- | --- | --- |
+| `earthengine.map.basemap.light` | Light | Default view, light colour theme. |
+| `earthengine.map.basemap.dark` | Dark | Default view, dark colour theme. |
+| `earthengine.map.basemap.planLight` | Light plan | Plan toggle active, light colour theme. |
+| `earthengine.map.basemap.planDark` | Dark plan | Plan toggle active, dark colour theme. |
+| `earthengine.map.basemap.satellite` | Satellite | Satellite toggle active. |
+
+Each setting defaults to `{}`, meaning the built-in preset is used. Set it to a [`createSession`](https://developers.google.com/maps/documentation/tile/session_tokens) request body to override the preset. Supported fields: `mapType`, `styles`, `layerTypes`, `overlay`, `scale`, `highDpi` and `imageFormat`.
+
+```json
+"earthengine.map.basemap.planLight": {
+  "mapType": "terrain",
+  "layerTypes": ["layerRoadmap"]
+}
+```
+
+:::note[`styles` is roadmap-only]
+
+The Map Tiles API rejects `styles` on any map type other than `roadmap`, so the extension strips it when you pick `satellite` or `terrain`. Style rules use the same JSON format as the [Google Maps styling reference](https://developers.google.com/maps/documentation/cloud-customization/style-reference).
+
+:::
+
+Changing any of these settings refreshes an open map panel immediately.

@@ -6,9 +6,12 @@
 
 import designTokensCss from './webview.css';
 import codiconsCssRaw from '@vscode/codicons/dist/codicon.css';
+import leafletCssRaw from 'leaflet/dist/leaflet.css';
 
 export const designTokens: string = designTokensCss;
 export const codiconsCss: string = codiconsCssRaw;
+/** Leaflet's stylesheet with its PNG assets inlined — see the esbuild `leaflet-css-inline` plugin. */
+export const leafletCss: string = leafletCssRaw;
 
 /**
  * Escape HTML special characters for safe rendering in WebViews.
