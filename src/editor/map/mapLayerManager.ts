@@ -162,6 +162,11 @@ export class MapLayerManager {
     }
   }
 
+  /** Removes the layer identified by `layerIndex`. */
+  remove(layerIndex: number): void {
+    this._layers.delete(layerIndex);
+  }
+
   /** Clears all layers and resets the insertion counter. */
   clear(): void {
     this._layers.clear();
