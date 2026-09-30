@@ -16,7 +16,7 @@ Configure the extension through VS Code Settings using the `earthengine.*` keys 
 
 ## Map basemaps
 
-Basemaps come from the [Google Map Tiles API](https://developers.google.com/maps/documentation/tile/overview). You must supply your own API key — run **Earth Engine: Set Google Maps API Key** from the Command Palette. Without a key the map still works, but it renders your Earth Engine layers on an empty background.
+Basemaps come from the [Google Map Tiles API](https://developers.google.com/maps/documentation/tile/overview). You must supply your own API key — run **Earth Engine: Set Google Maps API Key** from the Command Palette. Without a key the map falls back to free tiles: [OpenStreetMap](https://www.openstreetmap.org/copyright) for the default and plan views, [Esri World Imagery](https://www.arcgis.com/home/item.html?id=10df2279f9684e4a9f6a7f08febac2a9) for satellite. The styled light and dark variants are only available with a key.
 
 ### Setting up the API key
 
@@ -58,5 +58,18 @@ Each setting defaults to `{}`, meaning the built-in preset is used. Set it to a 
 The Map Tiles API rejects `styles` on any map type other than `roadmap`, so the extension strips it when you pick `satellite` or `terrain`. Style rules use the same JSON format as the [Google Maps styling reference](https://developers.google.com/maps/documentation/cloud-customization/style-reference).
 
 :::
+
+### Designing a custom style
+
+Use the [Styling Wizard](https://mapstyle.withgoogle.com/) to build a palette visually, then export it with **Finish → JSON**. Paste the resulting array as the `styles` field of the slot you want to change:
+
+```json
+"earthengine.map.basemap.dark": {
+  "mapType": "roadmap",
+  "styles": [
+    { "elementType": "geometry", "stylers": [{ "color": "#212121" }] }
+  ]
+}
+```
 
 Changing any of these settings refreshes an open map panel immediately.

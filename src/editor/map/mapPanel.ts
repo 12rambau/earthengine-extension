@@ -13,11 +13,15 @@ import { MapBridgeServer, MapCommand } from './mapBridgeServer.js';
 import { ensureEe } from '../../shared/eeSession.js';
 import { MapLayerManager } from './mapLayerManager.js';
 import { MapInspector } from './mapInspector.js';
-import { MapTilesService, ViewportBounds } from './mapTilesService.js';
-import { BASEMAP_IDS, BasemapId } from './basemapPresets.js';
+import { MapTilesService, NO_API_KEY_MESSAGE, ViewportBounds } from './mapTilesService.js';
+import { BASEMAP_IDS, BasemapId, FALLBACK_BASEMAPS } from './basemapPresets.js';
+import { getGlobalState } from '../../shared/extensionContext.js';
 
 import { designTokens, leafletCss } from '../../shared/index.js';
 import script from './MapPanel.svelte';
+
+/** Global-state flag set when the user dismisses the fallback warning for good. */
+const FALLBACK_NOTICE_KEY = 'earthengine.map.fallbackNoticeDismissed';
 
 // ==================================================================
 // MAPPANEL
@@ -28,6 +32,7 @@ export class MapPanel extends EditorPanel {
   private commandDisposable: vscode.Disposable | undefined;
   private messageDisposable: vscode.Disposable | undefined;
   private configDisposable: vscode.Disposable | undefined;
+  private fallbackWarned = false;
   private readonly layerManager = new MapLayerManager();
   private readonly inspector = new MapInspector();
   private readonly tiles = new MapTilesService();
@@ -164,14 +169,46 @@ export class MapPanel extends EditorPanel {
   // BASEMAPS
   // ==================================================================
 
-  /** Resolves a basemap tile URL and pushes it to the WebView, or reports why it failed. */
+  /**
+   * Resolves a basemap tile URL and pushes it to the WebView. Without a usable
+   * Google session the panel falls back to a keyless source; a rejected key is
+   * additionally surfaced as a banner, a missing one is not.
+   */
   private async sendBasemapUrl(id: BasemapId): Promise<void> {
     try {
       const url = await this.tiles.getTileUrlTemplate(id);
-      this.post({ type: 'basemapUrl', data: { id, url } });
+      this.post({ type: 'basemapUrl', data: { id, url, maxNativeZoom: 22 } });
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-      this.post({ type: 'basemapError', data: { id, message } });
+      this.post({ type: 'basemapUrl', data: { id, ...FALLBACK_BASEMAPS[id], fallback: true } });
+      if (message === NO_API_KEY_MESSAGE) {
+        await this.warnFallback();
+      } else {
+        this.post({ type: 'basemapError', data: { id, message } });
+      }
+    }
+  }
+
+  /**
+   * Tells the user the map is running on free tiles. Fires at most once per
+   * session, and never again once dismissed for good.
+   */
+  private async warnFallback(): Promise<void> {
+    if (this.fallbackWarned || getGlobalState().get<boolean>(FALLBACK_NOTICE_KEY)) {
+      return;
+    }
+    this.fallbackWarned = true;
+    const setKey = 'Set API key';
+    const never = "Don't show again";
+    const choice = await vscode.window.showWarningMessage(
+      '[Map] No Google Maps API key set \u2014 falling back to OpenStreetMap and Esri basemaps.',
+      setKey,
+      never,
+    );
+    if (choice === setKey) {
+      await this.setApiKey();
+    } else if (choice === never) {
+      await getGlobalState().update(FALLBACK_NOTICE_KEY, true);
     }
   }
 

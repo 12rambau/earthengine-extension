@@ -124,6 +124,7 @@
 
   // Internal refs
   let basemapTileLayers = {};
+  let basemapIsFallback = {};
   let pendingBasemaps = new Set();
   let currentBasemap = null;
   let currentBasemapId = 'light';
@@ -198,8 +199,9 @@
   function initMap() {
     map = L.map('map', { center: [0, 0], zoom: 2, zoomControl: false });
 
-    // Google's terms require the "Google Maps" mark next to the tile copyright.
-    map.attributionControl.setPrefix('Google Maps');
+    // Set per basemap: Google's terms require the "Google Maps" mark, the
+    // keyless fallbacks must not carry it.
+    map.attributionControl.setPrefix('');
 
     nativeLayerControl = L.control.layers({}, {}, { collapsed: true }).addTo(map);
     nativeLayerControl.getContainer().style.display = 'none';
@@ -274,7 +276,13 @@
     next.bringToBack();
     currentBasemap = next;
     basemapError = '';
-    requestAttribution();
+    if (basemapIsFallback[currentBasemapId]) {
+      setCopyright('');
+      map.attributionControl.setPrefix('');
+    } else {
+      map.attributionControl.setPrefix('Google Maps');
+      requestAttribution();
+    }
   }
 
   // Drops every cached basemap: the API key or a basemap setting changed.
@@ -282,6 +290,7 @@
     if (currentBasemap) {map.removeLayer(currentBasemap);}
     currentBasemap = null;
     basemapTileLayers = {};
+    basemapIsFallback = {};
     pendingBasemaps = new Set();
     setBasemap(currentBasemapId);
   }
@@ -315,7 +324,7 @@
     if (text === googleCopyright) {return;}
     if (googleCopyright) {map.attributionControl.removeAttribution(googleCopyright);}
     googleCopyright = text;
-    map.attributionControl.addAttribution(text);
+    if (text) {map.attributionControl.addAttribution(text);}
   }
 
   function activateMode(mode) {
@@ -710,10 +719,14 @@
     if (msg.type === 'basemapUrl') {
       const d = msg.data;
       pendingBasemaps.delete(d.id);
-      // Map Tiles serves zoom 0-22; beyond that Leaflet upscales the last tiles
-      // so the basemap does not vanish under a deeply zoomed EE layer.
+      basemapIsFallback[d.id] = d.fallback === true;
+      // Leaflet upscales past `maxNativeZoom` so the basemap does not vanish
+      // under a deeply zoomed Earth Engine layer.
       basemapTileLayers[d.id] = L.tileLayer(d.url, {
-        maxZoom: 24, maxNativeZoom: 22, crossOrigin: 'anonymous',
+        maxZoom: 24,
+        maxNativeZoom: d.maxNativeZoom,
+        attribution: d.attribution,
+        crossOrigin: 'anonymous',
       });
       if (d.id === currentBasemapId) {applyBasemap(basemapTileLayers[d.id]);}
     } else if (msg.type === 'basemapError') {

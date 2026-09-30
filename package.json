@@ -54,27 +54,27 @@
         "earthengine.map.basemap.light": {
           "type": "object",
           "default": {},
-          "markdownDescription": "Overrides the built-in **light** basemap, used when VS Code is in a light colour theme. Accepts a Google Map Tiles [`createSession`](https://developers.google.com/maps/documentation/tile/session_tokens) request body: `mapType`, `styles`, `layerTypes`, `overlay`, `scale`, `highDpi`, `imageFormat`. `styles` is only honoured when `mapType` is `roadmap`. Leave empty to use the built-in preset."
+          "markdownDescription": "Overrides the built-in **light** basemap, used when VS Code is in a light colour theme. Accepts a Google Map Tiles [`createSession`](https://developers.google.com/maps/documentation/tile/session_tokens) request body: `mapType`, `styles`, `layerTypes`, `overlay`, `scale`, `highDpi`, `imageFormat`. `styles` is only honoured when `mapType` is `roadmap` — build one with the [Styling Wizard](https://mapstyle.withgoogle.com/). Leave empty to use the built-in preset."
         },
         "earthengine.map.basemap.dark": {
           "type": "object",
           "default": {},
-          "markdownDescription": "Overrides the built-in **dark** basemap, used when VS Code is in a dark colour theme. Accepts a Google Map Tiles [`createSession`](https://developers.google.com/maps/documentation/tile/session_tokens) request body. Leave empty to use the built-in preset."
+          "markdownDescription": "Overrides the built-in **dark** basemap, used when VS Code is in a dark colour theme. Accepts a Google Map Tiles [`createSession`](https://developers.google.com/maps/documentation/tile/session_tokens) request body. Design `styles` with the [Styling Wizard](https://mapstyle.withgoogle.com/). Leave empty to use the built-in preset."
         },
         "earthengine.map.basemap.planLight": {
           "type": "object",
           "default": {},
-          "markdownDescription": "Overrides the built-in **light plan** basemap, used by the plan toggle in a light colour theme. Accepts a Google Map Tiles [`createSession`](https://developers.google.com/maps/documentation/tile/session_tokens) request body. Leave empty to use the built-in preset."
+          "markdownDescription": "Overrides the built-in **light plan** basemap, used by the plan toggle in a light colour theme. Accepts a Google Map Tiles [`createSession`](https://developers.google.com/maps/documentation/tile/session_tokens) request body. Design `styles` with the [Styling Wizard](https://mapstyle.withgoogle.com/). Leave empty to use the built-in preset."
         },
         "earthengine.map.basemap.planDark": {
           "type": "object",
           "default": {},
-          "markdownDescription": "Overrides the built-in **dark plan** basemap, used by the plan toggle in a dark colour theme. Accepts a Google Map Tiles [`createSession`](https://developers.google.com/maps/documentation/tile/session_tokens) request body. Leave empty to use the built-in preset."
+          "markdownDescription": "Overrides the built-in **dark plan** basemap, used by the plan toggle in a dark colour theme. Accepts a Google Map Tiles [`createSession`](https://developers.google.com/maps/documentation/tile/session_tokens) request body. Design `styles` with the [Styling Wizard](https://mapstyle.withgoogle.com/). Leave empty to use the built-in preset."
         },
         "earthengine.map.basemap.satellite": {
           "type": "object",
           "default": {},
-          "markdownDescription": "Overrides the built-in **satellite** basemap, used by the satellite toggle. Accepts a Google Map Tiles [`createSession`](https://developers.google.com/maps/documentation/tile/session_tokens) request body. Leave empty to use the built-in preset."
+          "markdownDescription": "Overrides the built-in **satellite** basemap, used by the satellite toggle. Accepts a Google Map Tiles [`createSession`](https://developers.google.com/maps/documentation/tile/session_tokens) request body. `styles` is ignored unless `mapType` is `roadmap`. Leave empty to use the built-in preset."
         }
       }
     },

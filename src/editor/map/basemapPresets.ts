@@ -7,6 +7,9 @@
  * theme, `planLight`/`planDark` back the plan toggle, `satellite` the satellite
  * toggle. Users may override any preset through `earthengine.map.basemap.*`.
  *
+ * `FALLBACK_BASEMAPS` holds the keyless tile sources used when no Google
+ * session can be minted.
+ *
  * See https://developers.google.com/maps/documentation/tile/session_tokens
  */
 
@@ -55,41 +58,87 @@ export interface CreateSessionRequest {
 // STYLE PALETTES
 // ==================================================================
 
-/** Muted greyscale, POI and road labels stripped — a neutral backdrop for data layers. */
+/** Muted greyscale with labels, roads and POI stripped — a neutral backdrop for data layers. */
 const LIGHT_STYLES: MapStyle[] = [
   { elementType: 'geometry', stylers: [{ color: '#f5f5f5' }] },
+  { elementType: 'labels', stylers: [{ visibility: 'off' }] },
   { elementType: 'labels.icon', stylers: [{ visibility: 'off' }] },
   { elementType: 'labels.text.fill', stylers: [{ color: '#616161' }] },
   { elementType: 'labels.text.stroke', stylers: [{ color: '#f5f5f5' }] },
   { featureType: 'administrative', elementType: 'geometry', stylers: [{ visibility: 'off' }] },
   { featureType: 'administrative.land_parcel', stylers: [{ visibility: 'off' }] },
+  {
+    featureType: 'administrative.land_parcel',
+    elementType: 'labels.text.fill',
+    stylers: [{ color: '#bdbdbd' }],
+  },
+  { featureType: 'administrative.neighborhood', stylers: [{ visibility: 'off' }] },
   { featureType: 'poi', stylers: [{ visibility: 'off' }] },
+  { featureType: 'poi', elementType: 'geometry', stylers: [{ color: '#eeeeee' }] },
+  { featureType: 'poi', elementType: 'labels.text.fill', stylers: [{ color: '#757575' }] },
+  { featureType: 'poi.park', elementType: 'geometry', stylers: [{ color: '#e5e5e5' }] },
+  { featureType: 'poi.park', elementType: 'labels.text.fill', stylers: [{ color: '#9e9e9e' }] },
+  { featureType: 'road', stylers: [{ visibility: 'off' }] },
   { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#ffffff' }] },
-  { featureType: 'road', elementType: 'labels', stylers: [{ visibility: 'off' }] },
+  { featureType: 'road', elementType: 'labels.icon', stylers: [{ visibility: 'off' }] },
+  {
+    featureType: 'road.arterial',
+    elementType: 'labels.text.fill',
+    stylers: [{ color: '#757575' }],
+  },
   { featureType: 'road.highway', elementType: 'geometry', stylers: [{ color: '#dadada' }] },
+  { featureType: 'road.highway', elementType: 'labels.text.fill', stylers: [{ color: '#616161' }] },
+  { featureType: 'road.local', elementType: 'labels.text.fill', stylers: [{ color: '#9e9e9e' }] },
   { featureType: 'transit', stylers: [{ visibility: 'off' }] },
+  { featureType: 'transit.line', elementType: 'geometry', stylers: [{ color: '#e5e5e5' }] },
+  { featureType: 'transit.station', elementType: 'geometry', stylers: [{ color: '#eeeeee' }] },
   { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#c9c9c9' }] },
   { featureType: 'water', elementType: 'labels.text.fill', stylers: [{ color: '#9e9e9e' }] },
 ];
 
-/** The light palette inverted for dark themes. */
+/** Near-black backdrop with labels, roads and POI stripped: only water and borders remain. */
 const DARK_STYLES: MapStyle[] = [
   { elementType: 'geometry', stylers: [{ color: '#212121' }] },
+  { elementType: 'labels', stylers: [{ visibility: 'off' }] },
   { elementType: 'labels.icon', stylers: [{ visibility: 'off' }] },
   { elementType: 'labels.text.fill', stylers: [{ color: '#757575' }] },
   { elementType: 'labels.text.stroke', stylers: [{ color: '#212121' }] },
-  { featureType: 'administrative', elementType: 'geometry', stylers: [{ visibility: 'off' }] },
+  {
+    featureType: 'administrative',
+    elementType: 'geometry',
+    stylers: [{ color: '#757575' }, { visibility: 'off' }],
+  },
+  {
+    featureType: 'administrative.country',
+    elementType: 'labels.text.fill',
+    stylers: [{ color: '#9e9e9e' }],
+  },
   { featureType: 'administrative.land_parcel', stylers: [{ visibility: 'off' }] },
   {
     featureType: 'administrative.locality',
     elementType: 'labels.text.fill',
     stylers: [{ color: '#bdbdbd' }],
   },
+  { featureType: 'administrative.neighborhood', stylers: [{ visibility: 'off' }] },
   { featureType: 'poi', stylers: [{ visibility: 'off' }] },
+  { featureType: 'poi', elementType: 'labels.text.fill', stylers: [{ color: '#757575' }] },
+  { featureType: 'poi.park', elementType: 'geometry', stylers: [{ color: '#181818' }] },
+  { featureType: 'poi.park', elementType: 'labels.text.fill', stylers: [{ color: '#616161' }] },
+  { featureType: 'poi.park', elementType: 'labels.text.stroke', stylers: [{ color: '#1b1b1b' }] },
+  { featureType: 'road', stylers: [{ visibility: 'off' }] },
   { featureType: 'road', elementType: 'geometry.fill', stylers: [{ color: '#2c2c2c' }] },
-  { featureType: 'road', elementType: 'labels', stylers: [{ visibility: 'off' }] },
+  { featureType: 'road', elementType: 'labels.icon', stylers: [{ visibility: 'off' }] },
+  { featureType: 'road', elementType: 'labels.text.fill', stylers: [{ color: '#8a8a8a' }] },
+  { featureType: 'road.arterial', elementType: 'geometry', stylers: [{ color: '#373737' }] },
   { featureType: 'road.highway', elementType: 'geometry', stylers: [{ color: '#3c3c3c' }] },
+  {
+    featureType: 'road.highway.controlled_access',
+    elementType: 'geometry',
+    stylers: [{ color: '#4e4e4e' }],
+  },
+  { featureType: 'road.local', elementType: 'labels.text.fill', stylers: [{ color: '#616161' }] },
   { featureType: 'transit', stylers: [{ visibility: 'off' }] },
+  { featureType: 'transit', elementType: 'labels.text.fill', stylers: [{ color: '#757575' }] },
   { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#000000' }] },
   { featureType: 'water', elementType: 'labels.text.fill', stylers: [{ color: '#3d3d3d' }] },
 ];
@@ -137,6 +186,40 @@ export const BASEMAP_PRESETS: Record<BasemapId, CreateSessionRequest> = {
   // No `styles` — Google's stock cartography.
   planLight: { mapType: 'roadmap' },
   planDark: { mapType: 'roadmap', styles: PLAN_DARK_STYLES },
-  // `overlay: false` merges the roadmap layer into the imagery, i.e. the "hybrid" map type.
-  satellite: { mapType: 'satellite', layerTypes: ['layerRoadmap'], overlay: false },
+  // Bare imagery: no `layerTypes`, so no roads, labels or POI are baked in.
+  satellite: { mapType: 'satellite' },
+};
+
+// ==================================================================
+// FALLBACKS
+// ==================================================================
+
+/** A keyless tile source used when the Google Maps API key is missing or rejected. */
+export interface FallbackBasemap {
+  url: string;
+  attribution: string;
+  maxNativeZoom: number;
+}
+
+const OSM: FallbackBasemap = {
+  url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+  attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+  maxNativeZoom: 19,
+};
+
+/**
+ * Free basemaps shown when no Google session can be minted. OpenStreetMap has
+ * a single cartography, so all four roadmap slots share it; Esri World Imagery
+ * stands in for satellite.
+ */
+export const FALLBACK_BASEMAPS: Record<BasemapId, FallbackBasemap> = {
+  light: OSM,
+  dark: OSM,
+  planLight: OSM,
+  planDark: OSM,
+  satellite: {
+    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+    attribution: 'Tiles &copy; Esri, Maxar, Earthstar Geographics',
+    maxNativeZoom: 19,
+  },
 };
