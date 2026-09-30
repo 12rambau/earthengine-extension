@@ -782,12 +782,19 @@
       const idx = overlays.findIndex(o => o.layerIndex === d.layerIndex);
       if (idx >= 0) {
         const entry = overlays[idx];
+        // `shown`/`opacity` are only sent by addLayer replacements; updateLayer omits them.
+        const opacity = d.opacity ?? entry.opacity;
+        const visible = d.shown === undefined ? entry.visible : d.shown !== false;
         if (entry.visible) {map.removeLayer(entry.tileLayer);}
+        nativeLayerControl.removeLayer(entry.tileLayer);
         entry.tileLayer = L.tileLayer(d.url, {
-          maxZoom: 24, opacity: entry.opacity, attribution: 'Google Earth Engine', crossOrigin: 'anonymous',
+          maxZoom: 24, opacity, attribution: 'Google Earth Engine', crossOrigin: 'anonymous',
         });
+        entry.opacity = opacity;
+        entry.visible = visible;
+        nativeLayerControl.addOverlay(entry.tileLayer, entry.name);
         entry.visParams = d.visParams;
-        if (entry.visible) {entry.tileLayer.addTo(map);}
+        if (visible) {entry.tileLayer.addTo(map);}
         overlays = [...overlays];
         if (activeScaleIndex === idx) {
           if (entry.visParams && (entry.visParams.palette || entry.visParams.bands)) {
