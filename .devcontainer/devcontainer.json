@@ -1,6 +1,6 @@
 {
   "name": "earthengine Extension Dev",
-  "image": "mcr.microsoft.com/devcontainers/typescript-node:22",
+  "image": "mcr.microsoft.com/devcontainers/typescript-node:26",
   "features": {
     "ghcr.io/devcontainers/features/desktop-lite:1": {}
   },

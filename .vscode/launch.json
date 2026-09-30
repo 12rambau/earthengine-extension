@@ -12,6 +12,26 @@
       "args": ["--extensionDevelopmentPath=${workspaceFolder}"],
       "outFiles": ["${workspaceFolder}/dist/**/*.js"],
       "preLaunchTask": "${defaultBuildTask}"
+    },
+    {
+      // Launches the host without --inspect-brk. Use when the debugger fails to
+      // attach and the Extension Development Host stays stuck on "reconnecting".
+      "name": "Run Extension (no debug)",
+      "type": "extensionHost",
+      "request": "launch",
+      "args": ["--extensionDevelopmentPath=${workspaceFolder}"],
+      "noDebug": true,
+      "preLaunchTask": "${defaultBuildTask}"
+    },
+    {
+      // Same as "Run Extension" but writes a js-debug diagnostic log; its path
+      // is printed in the Debug Console.
+      "name": "Run Extension (trace)",
+      "type": "extensionHost",
+      "request": "launch",
+      "args": ["--extensionDevelopmentPath=${workspaceFolder}"],
+      "outFiles": ["${workspaceFolder}/dist/**/*.js"],
+      "trace": true
     }
   ]
 }
