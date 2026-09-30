@@ -374,6 +374,11 @@
     vscode.postMessage({ type: 'openVizEditor', data: { layerIndex } });
   }
 
+  function toggleLayersPanel() {
+    layersPanelVisible = !layersPanelVisible;
+    if (layersPanelVisible) {closeInspector();}
+  }
+
   // ----------------------------------------------------------------
   // INSPECTOR
   // ----------------------------------------------------------------
@@ -381,6 +386,7 @@
   function toggleInspector() {
     inspectorActive = !inspectorActive;
     inspectorPanelVisible = inspectorActive;
+    if (inspectorActive) {layersPanelVisible = false;}
     if (map) {map.getContainer().style.cursor = inspectorActive ? 'crosshair' : '';}
   }
 
@@ -845,7 +851,7 @@
 <!-- CONTROLS -->
 <div class="map-controls">
   <button class="map-btn" class:active={layersPanelVisible} title="Manage layers"
-    onclick={() => { layersPanelVisible = !layersPanelVisible; }}>
+    onclick={toggleLayersPanel}>
     <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="currentColor"><path d={mdiLayers}/></svg>
   </button>
   <button class="map-btn" class:active={inspectorActive} title="Pixel inspector"
