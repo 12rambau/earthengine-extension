@@ -783,9 +783,11 @@
       if (idx >= 0) {
         const entry = overlays[idx];
         if (entry.visible) {map.removeLayer(entry.tileLayer);}
+        nativeLayerControl.removeLayer(entry.tileLayer);
         entry.tileLayer = L.tileLayer(d.url, {
           maxZoom: 24, opacity: entry.opacity, attribution: 'Google Earth Engine', crossOrigin: 'anonymous',
         });
+        nativeLayerControl.addOverlay(entry.tileLayer, entry.name);
         entry.visParams = d.visParams;
         if (entry.visible) {entry.tileLayer.addTo(map);}
         overlays = [...overlays];

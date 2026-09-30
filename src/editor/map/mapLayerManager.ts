@@ -48,7 +48,8 @@ export class MapLayerManager {
    * @param postMessage - Callback that sends a message to the WebView.
    */
   async add(payload: AddLayerPayload, postMessage: (msg: unknown) => void): Promise<void> {
-    const layerIndex = this.layerCount++;
+    const existingLayer = [...this._layers.values()].find((layer) => layer.name === payload.name);
+    const layerIndex = existingLayer?.index ?? this.layerCount++;
     const eeLayer = new EeLayer(layerIndex, payload.serialized, payload.name);
     this._layers.set(layerIndex, eeLayer);
 
@@ -114,7 +115,7 @@ export class MapLayerManager {
     eeLayer.opacity = payload.opacity;
 
     postMessage({
-      type: 'addTileLayer',
+      type: existingLayer ? 'replaceTileLayer' : 'addTileLayer',
       data: {
         url,
         name: payload.name,
