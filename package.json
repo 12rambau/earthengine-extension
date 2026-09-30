@@ -51,93 +51,30 @@
           "multipleOf": 1,
           "description": "Number of days of task history to load."
         },
-        "earthengine.map.darkBasemap": {
-          "type": "string",
-          "default": "CartoDB.DarkMatter",
-          "description": "Base map layer used when VS Code is in a dark colour theme.",
-          "enum": [
-            "CartoDB.DarkMatter",
-            "Stadia.AlidadeSmoothDark",
-            "Stadia.StamenTonerDark",
-            "Jawg.Dark",
-            "Jawg.Matrix"
-          ],
-          "enumDescriptions": [
-            "CartoDB dark matter (default)",
-            "Stadia smooth dark",
-            "Stadia Stamen toner dark",
-            "Jawg dark (API key required)",
-            "Jawg matrix (API key required)"
-          ]
+        "earthengine.map.basemap.light": {
+          "type": "object",
+          "default": {},
+          "markdownDescription": "Overrides the built-in **light** basemap, used when VS Code is in a light colour theme. Accepts a Google Map Tiles [`createSession`](https://developers.google.com/maps/documentation/tile/session_tokens) request body: `mapType`, `styles`, `layerTypes`, `overlay`, `scale`, `highDpi`, `imageFormat`. `styles` is only honoured when `mapType` is `roadmap` — build one with the [Styling Wizard](https://mapstyle.withgoogle.com/). Leave empty to use the built-in preset."
         },
-        "earthengine.map.lightBasemap": {
-          "type": "string",
-          "default": "CartoDB.Positron",
-          "description": "Base map layer used when VS Code is in a light colour theme.",
-          "enum": [
-            "CartoDB.Positron",
-            "Stadia.AlidadeSmooth",
-            "Stadia.StamenTonerLite",
-            "Jawg.Light",
-            "Esri.WorldGrayCanvas"
-          ],
-          "enumDescriptions": [
-            "CartoDB Positron (default)",
-            "Stadia smooth light",
-            "Stadia Stamen toner lite",
-            "Jawg light (API key required)",
-            "Esri world grey canvas"
-          ]
+        "earthengine.map.basemap.dark": {
+          "type": "object",
+          "default": {},
+          "markdownDescription": "Overrides the built-in **dark** basemap, used when VS Code is in a dark colour theme. Accepts a Google Map Tiles [`createSession`](https://developers.google.com/maps/documentation/tile/session_tokens) request body. Design `styles` with the [Styling Wizard](https://mapstyle.withgoogle.com/). Leave empty to use the built-in preset."
         },
-        "earthengine.map.satelliteBasemap": {
-          "type": "string",
-          "default": "Esri.WorldImagery",
-          "description": "Base map layer used when satellite view is active.",
-          "enum": [
-            "Esri.WorldImagery",
-            "Stadia.AlidadeSatellite",
-            "GeoportailFrance.orthos"
-          ],
-          "enumDescriptions": [
-            "Esri world imagery (default)",
-            "Stadia Alidade satellite",
-            "Geoportail France ortho photos"
-          ]
+        "earthengine.map.basemap.planLight": {
+          "type": "object",
+          "default": {},
+          "markdownDescription": "Overrides the built-in **light plan** basemap, used by the plan toggle in a light colour theme. Accepts a Google Map Tiles [`createSession`](https://developers.google.com/maps/documentation/tile/session_tokens) request body. Design `styles` with the [Styling Wizard](https://mapstyle.withgoogle.com/). Leave empty to use the built-in preset."
         },
-        "earthengine.map.planBasemap": {
-          "type": "string",
-          "default": "CartoDB.Voyager",
-          "description": "Base map layer used when plan view is active.",
-          "enum": [
-            "GeoportailFrance.plan",
-            "CartoDB.Voyager",
-            "OpenStreetMap.Mapnik",
-            "OpenTopoMap",
-            "Stadia.OSMBright",
-            "Stadia.Outdoors",
-            "Stadia.StamenToner",
-            "Thunderforest.SpinalMap",
-            "Thunderforest.Landscape",
-            "Thunderforest.Outdoors",
-            "Thunderforest.Atlas",
-            "Jawg.Streets",
-            "Esri.WorldTopoMap"
-          ],
-          "enumDescriptions": [
-            "Geoportail France plan (default)",
-            "CartoDB Voyager",
-            "OpenStreetMap standard",
-            "OpenTopoMap topographic",
-            "Stadia OSM bright",
-            "Stadia outdoors",
-            "Stadia Stamen toner",
-            "Thunderforest spinal map (API key required)",
-            "Thunderforest landscape (API key required)",
-            "Thunderforest outdoors (API key required)",
-            "Thunderforest atlas (API key required)",
-            "Jawg streets (API key required)",
-            "Esri world topo map"
-          ]
+        "earthengine.map.basemap.planDark": {
+          "type": "object",
+          "default": {},
+          "markdownDescription": "Overrides the built-in **dark plan** basemap, used by the plan toggle in a dark colour theme. Accepts a Google Map Tiles [`createSession`](https://developers.google.com/maps/documentation/tile/session_tokens) request body. Design `styles` with the [Styling Wizard](https://mapstyle.withgoogle.com/). Leave empty to use the built-in preset."
+        },
+        "earthengine.map.basemap.satellite": {
+          "type": "object",
+          "default": {},
+          "markdownDescription": "Overrides the built-in **satellite** basemap, used by the satellite toggle. Accepts a Google Map Tiles [`createSession`](https://developers.google.com/maps/documentation/tile/session_tokens) request body. `styles` is ignored unless `mapType` is `roadmap`. Leave empty to use the built-in preset."
         }
       }
     },
@@ -376,6 +313,16 @@
         "icon": "$(map)"
       },
       {
+        "command": "earthengine.map.setGoogleMapsApiKey",
+        "title": "Earth Engine: Set Google Maps API Key",
+        "icon": "$(key)"
+      },
+      {
+        "command": "earthengine.map.clearGoogleMapsApiKey",
+        "title": "Earth Engine: Clear Google Maps API Key",
+        "icon": "$(trash)"
+      },
+      {
         "command": "earthengine.map.testNighttimeLights",
         "title": "Earth Engine: Test – Nighttime Lights Trend",
         "icon": "$(beaker)"
@@ -602,6 +549,7 @@
     "@commitlint/cli": "^21.2.2",
     "@commitlint/config-conventional": "^21.2.0",
     "@release-it/conventional-changelog": "^12.0.0",
+    "@types/leaflet": "^1.9.22",
     "@types/marked": "^4.3.2",
     "@types/mocha": "^10.0.10",
     "@types/node": "26.x",
@@ -634,6 +582,7 @@
     "d3-scale-chromatic": "^3.1.0",
     "dayjs": "^1.11.21",
     "filesize": "^11.0.24",
+    "leaflet": "^1.9.4",
     "marked": "^18.0.10"
   }
 }

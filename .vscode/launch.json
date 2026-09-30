@@ -12,6 +12,16 @@
       "args": ["--extensionDevelopmentPath=${workspaceFolder}"],
       "outFiles": ["${workspaceFolder}/dist/**/*.js"],
       "preLaunchTask": "${defaultBuildTask}"
+    },
+    {
+      // Launches the host without --inspect-brk. Fallback if the debugger ever
+      // fails to attach again (see .devcontainer/inspect-bridge.js).
+      "name": "Run Extension (no debug)",
+      "type": "extensionHost",
+      "request": "launch",
+      "args": ["--extensionDevelopmentPath=${workspaceFolder}"],
+      "noDebug": true,
+      "preLaunchTask": "${defaultBuildTask}"
     }
   ]
 }

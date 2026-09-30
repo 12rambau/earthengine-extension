@@ -8,4 +8,10 @@ import utc from 'dayjs/plugin/utc.js';
 dayjs.extend(utc);
 
 export { getRequest, httpRequest, postForm, postJson, fetchJson, fetchHtml } from './httpClient.js';
-export { designTokens, codiconsCss, escapeHtml, renderPropertiesTable } from './webviewUtils.js';
+export {
+  designTokens,
+  codiconsCss,
+  leafletCss,
+  escapeHtml,
+  renderPropertiesTable,
+} from './webviewUtils.js';
