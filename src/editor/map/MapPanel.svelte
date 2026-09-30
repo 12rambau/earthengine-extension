@@ -3,7 +3,8 @@
   import L from 'leaflet';
   import { vscode } from '../../shared/vscode.ts';
   import {
-    mdiAlertCircleOutline, mdiChevronDown, mdiClose, mdiCrosshairsGps, mdiEye, mdiEyeOff,
+    mdiAlertCircleOutline, mdiCheck, mdiChevronDown, mdiClose, mdiCodeTags, mdiContentCopy,
+    mdiCrosshairsGps, mdiEye, mdiEyeOff,
     mdiLayers, mdiLoading, mdiMap, mdiRuler, mdiSatelliteVariant, mdiTrashCan, mdiTune,
   } from '../../shared/icons.ts';
   import {
@@ -112,6 +113,8 @@
 
   // Viz editor
   let vizVisible = $state(false);
+  let vizCodeVisible = $state(false);
+  let vizCodeCopied = $state(false);
   let vizLayerIndex = $state(-1);
   let vizBands = $state([]);
   let vizPresets = $state([]);
@@ -738,6 +741,81 @@
   function vizClose() {
     setVizOpacity(vizOpacityOriginal);
     vizVisible = false;
+  }
+
+  /* ==================================================================
+     VISUALIZATION PARAMETERS AS JSON
+     ================================================================== */
+
+  function jsonStr(value) {
+    return JSON.stringify(String(value));
+  }
+
+  function jsonList(items, quote) {
+    return '[' + items.map((v) => (quote ? jsonStr(v) : String(v))).join(', ') + ']';
+  }
+
+  function jsonDict(entries) {
+    return '{\n' + entries.map(([k, v]) => `  ${jsonStr(k)}: ${v}`).join(',\n') + '\n}';
+  }
+
+  /** Renders the current editor state as a vis_params object, valid both as JSON and as a Python dict. */
+  function buildVizJson() {
+    const config = collectVisParams();
+    if (!config) {return 'Complete the visualization parameters first.';}
+    const opacity = String(clampOpacityPercent(vizOpacity) / 100);
+    const entries = [['bands', jsonList(config.bands, true)]];
+
+    if (config.vizType === 'categorical') {
+      if (config.values.length === 0) {return 'Add at least one class first.';}
+      entries.push(['min', String(Math.min(...config.values))]);
+      entries.push(['max', String(Math.max(...config.values))]);
+      entries.push(['palette', jsonList(config.palette, true)]);
+      entries.push(['opacity', opacity]);
+      return jsonDict(entries);
+    }
+
+    const single = config.bands.length === 1;
+    entries.push(['min', single ? String(config.min[0]) : jsonList(config.min)]);
+    entries.push(['max', single ? String(config.max[0]) : jsonList(config.max)]);
+    if (config.gamma) {entries.push(['gamma', String(config.gamma)]);}
+    if (config.palette) {entries.push(['palette', jsonList(config.palette, true)]);}
+    entries.push(['opacity', opacity]);
+    return jsonDict(entries);
+  }
+
+  const JSON_TOKEN = /("(?:\\.|[^"\\])*")(?=\s*:)|"(?:\\.|[^"\\])*"|-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?|\btrue\b|\bfalse\b|\bnull\b/g;
+
+  function highlightJson(text) {
+    const tokens = [];
+    let last = 0;
+    JSON_TOKEN.lastIndex = 0;
+    let match;
+    while ((match = JSON_TOKEN.exec(text)) !== null) {
+      if (match.index > last) {tokens.push({ kind: 'punct', text: text.slice(last, match.index) });}
+      const raw = match[0];
+      let kind = 'num';
+      if (match[1]) {kind = 'key';}
+      else if (raw.startsWith('"')) {kind = 'str';}
+      else if (raw === 'true' || raw === 'false' || raw === 'null') {kind = 'bool';}
+      tokens.push({ kind, text: raw });
+      last = match.index + raw.length;
+    }
+    if (last < text.length) {tokens.push({ kind: 'punct', text: text.slice(last) });}
+    return tokens;
+  }
+
+  const vizJsonText = $derived.by(() => (vizCodeVisible ? buildVizJson() : ''));
+  const vizJsonTokens = $derived.by(() => highlightJson(vizJsonText));
+
+  async function copyVizJson() {
+    try {
+      await navigator.clipboard.writeText(vizJsonText);
+      vizCodeCopied = true;
+      setTimeout(() => { vizCodeCopied = false; }, 1500);
+    } catch {
+      vizCodeCopied = false;
+    }
   }
 
   /** Bands whose range the active viz type exposes, deduplicated. */  function stretchBands() {
@@ -1479,8 +1557,38 @@
     </div>
     <!-- Footer -->
     <div class="viz-editor-footer">
+      <button class="viz-btn viz-btn-secondary viz-btn-code" title="Show these parameters as JSON"
+        onclick={() => { vizCodeVisible = true; }}>
+        <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" fill="currentColor"><path d={mdiCodeTags}/></svg>
+        JSON
+      </button>
       <button class="viz-btn viz-btn-secondary" onclick={vizClose}>Cancel</button>
       <button class="viz-btn viz-btn-primary" onclick={vizApply}>Apply</button>
+    </div>
+  </div>
+</div>
+{/if}
+
+<!-- VIZ PARAMETERS AS JSON -->
+{#if vizCodeVisible}
+<div class="viz-editor-overlay visible viz-code-overlay">
+  <div class="viz-editor-dialog viz-code-dialog">
+    <div class="viz-editor-header">
+      <span>Python visualization parameters</span>
+      <button class="map-btn viz-close-btn" title="Close" onclick={() => { vizCodeVisible = false; }}>
+        <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" fill="currentColor"><path d={mdiClose}/></svg>
+      </button>
+    </div>
+    <div class="viz-editor-body">
+      <div class="viz-code-wrap">
+        <button class="map-btn viz-code-copy" title={vizCodeCopied ? 'Copied' : 'Copy'} onclick={copyVizJson}>
+          <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" fill="currentColor"><path d={vizCodeCopied ? mdiCheck : mdiContentCopy}/></svg>
+        </button>
+        <pre class="viz-code-block">{#each vizJsonTokens as token}<span class="json-{token.kind}">{token.text}</span>{/each}</pre>
+      </div>
+    </div>
+    <div class="viz-editor-footer">
+      <button class="viz-btn viz-btn-primary" onclick={() => { vizCodeVisible = false; }}>Close</button>
     </div>
   </div>
 </div>
@@ -1692,6 +1800,32 @@
     .viz-btn-primary { background: var(--vscode-button-background); color: var(--vscode-button-foreground); }
     .viz-btn-primary:hover { background: var(--vscode-button-hoverBackground); }
     .viz-btn-secondary { background: var(--vscode-button-secondaryBackground); color: var(--vscode-button-secondaryForeground); }
+    .viz-btn-code {
+      display: inline-flex; align-items: center; gap: var(--vscee-space-xs);
+      margin-right: auto; padding-inline: var(--vscee-space-md);
+    }
+    .viz-code-overlay { z-index: 2600; }
+    .viz-code-dialog { width: 520px; }
+    .viz-code-wrap {
+      position: relative;
+
+      .viz-code-copy { position: absolute; top: var(--vscee-space-xs); right: var(--vscee-space-xs); width: 24px; height: 24px; }
+    }
+    .viz-code-block {
+      font-family: var(--vscode-editor-font-family, monospace);
+      font-size: var(--vscee-font-compact-sm); line-height: 1.5;
+      white-space: pre; overflow-x: auto; tab-size: 4;
+      color: var(--vscode-editor-foreground); background: var(--vscode-textCodeBlock-background);
+      border: var(--vscee-border-sm) solid var(--vscode-widget-border);
+      border-radius: var(--vscee-radius-md); padding: var(--vscee-space-md);
+      padding-right: calc(var(--vscee-space-md) + 24px);
+
+      .json-key { color: var(--vscode-debugTokenExpression-name, var(--vscode-charts-blue)); }
+      .json-str { color: var(--vscode-debugTokenExpression-string, var(--vscode-charts-orange)); }
+      .json-num { color: var(--vscode-debugTokenExpression-number, var(--vscode-charts-green)); }
+      .json-bool { color: var(--vscode-debugTokenExpression-boolean, var(--vscode-charts-purple)); }
+      .json-punct { color: var(--vscode-descriptionForeground); }
+    }
     .viz-section-label {
       font-size: var(--vscee-font-compact-xs); font-weight: 600; color: var(--vscode-descriptionForeground);
       text-transform: uppercase; margin: var(--vscee-space-lg) 0 var(--vscee-space-xs);

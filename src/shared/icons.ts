@@ -2,9 +2,12 @@
 // Import from here (not directly from @mdi/js) so esbuild tree-shakes the rest.
 export {
   mdiAlertCircleOutline,
+  mdiCheck,
   mdiClose,
   mdiChartTree,
   mdiChevronDown,
+  mdiCodeTags,
+  mdiContentCopy,
   mdiCrosshairsGps,
   mdiEarth,
   mdiEye,
