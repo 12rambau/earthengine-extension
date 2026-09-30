@@ -8,6 +8,7 @@
  */
 
 import * as vscode from 'vscode';
+import { AuthService } from '../../auth/index.js';
 import { SidebarSection } from '../../shared/baseComponents.js';
 import { DatasetTreeDataProvider } from './datasetTreeDataProvider.js';
 import { DatasetTreeItem } from './datasetTreeItem.js';
@@ -25,7 +26,7 @@ import {
 export class DatasetSection extends SidebarSection {
   private provider: DatasetTreeDataProvider;
 
-  constructor() {
+  constructor(private readonly authService: AuthService) {
     super();
     this.provider = new DatasetTreeDataProvider();
   }
@@ -62,7 +63,7 @@ export class DatasetSection extends SidebarSection {
         }
         try {
           const collection = await fetchCollection(href);
-          createDatasetPanel(collection, context.extensionUri);
+          createDatasetPanel(collection, this.authService);
         } catch {
           vscode.window.showErrorMessage('Failed to load dataset details.');
         }
@@ -86,7 +87,7 @@ export class DatasetSection extends SidebarSection {
       const markdownUrl = `https://raw.githubusercontent.com/samapriya/awesome-gee-community-datasets/master/docs/projects/${slug}.md`;
       try {
         const markdown = await fetchHtml(markdownUrl);
-        createCommunityDatasetPanel(item.communityEntry, markdown, context.extensionUri);
+        createCommunityDatasetPanel(item.communityEntry, markdown, this.authService);
       } catch (err) {
         vscode.window.showErrorMessage(
           `Failed to load community dataset: ${err instanceof Error ? err.message : String(err)}`,

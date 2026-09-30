@@ -18,6 +18,10 @@
     copyLabel = 'Copied!';
     setTimeout(() => { copyLabel = 'Copy'; }, 1200);
   }
+
+  function openAssetPreview() {
+    vscode.postMessage({ type: 'preview' });
+  }
 </script>
 
 <h1>{data.title}</h1>
@@ -49,6 +53,9 @@
 
 <div class="snippet">
   <code id="snippet-code">{data.snippet}</code>
+  <button class="copy-btn" title="Open the dataset asset preview" onclick={openAssetPreview}>
+    Open Asset Preview
+  </button>
   <button class="copy-btn" title="Copy to clipboard" onclick={copySnippet}>
     {copyLabel}
   </button>

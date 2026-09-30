@@ -9,8 +9,10 @@
 
 import * as vscode from 'vscode';
 import { marked } from 'marked';
+import { AuthService } from '../../auth/index.js';
 import { StacCollection } from '../../sidebar/dataset/stacClient.js';
 import { CommunityDatasetEntry } from '../../sidebar/dataset/communityClient.js';
+import { openAssetPreview } from '../preview/assetPreviewPanel.js';
 
 import { designTokens } from '../../shared/index.js';
 import script from './DatasetPanel.svelte';
@@ -21,7 +23,7 @@ import script from './DatasetPanel.svelte';
 /** Creates and displays a WebView panel for a single dataset collection. */
 export function createDatasetPanel(
   collection: StacCollection,
-  extensionUri: vscode.Uri,
+  authService: AuthService,
   extraTabs?: { id: string; label: string; content: string }[],
 ): vscode.WebviewPanel {
   const panel = vscode.window.createWebviewPanel(
@@ -31,23 +33,27 @@ export function createDatasetPanel(
     { enableScripts: true },
   );
 
-  const iconFile: Record<string, string> = {
-    image_collection: 'image-multiple',
-    image: 'image',
-    table: 'table-multiple',
-  };
-  const file = iconFile[collection['gee:type'] || ''];
-  if (file) {
-    panel.iconPath = vscode.Uri.joinPath(extensionUri, 'resources', 'icons', `${file}.svg`);
-  }
+  panel.iconPath = new vscode.ThemeIcon('folder-library');
 
   panel.webview.html = buildHtml(collection, panel.webview, extraTabs);
 
   // The webview posts the snippet text back so we can write it to the clipboard.
-  panel.webview.onDidReceiveMessage((msg) => {
+  panel.webview.onDidReceiveMessage(async (msg) => {
     if (msg?.type === 'copy' && typeof msg.text === 'string') {
       vscode.env.clipboard.writeText(msg.text);
       vscode.window.showInformationMessage('Snippet copied to clipboard.');
+    } else if (msg?.type === 'preview') {
+      const token = await authService.getToken();
+      if (!token) {
+        vscode.window.showErrorMessage('Not authenticated.');
+        return;
+      }
+      try {
+        await openAssetPreview(collection.id, token);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        vscode.window.showErrorMessage(`Failed to open asset preview: ${message}`);
+      }
     }
   });
 
@@ -62,7 +68,7 @@ export function createDatasetPanel(
 export function createCommunityDatasetPanel(
   entry: CommunityDatasetEntry,
   markdown: string,
-  extensionUri: vscode.Uri,
+  authService: AuthService,
 ): vscode.WebviewPanel {
   const collection: StacCollection = {
     type: 'Collection',
@@ -87,7 +93,7 @@ export function createCommunityDatasetPanel(
     label: 'Properties',
     content: buildCommunityPropertiesHtml(entry),
   };
-  return createDatasetPanel(collection, extensionUri, [propertiesTab]);
+  return createDatasetPanel(collection, authService, [propertiesTab]);
 }
 
 // ==================================================================

@@ -51,7 +51,7 @@ export function activate(context: vscode.ExtensionContext) {
   const profiles = new ProfilesSection(authService);
   const assets = new AssetsSection(authService);
   const tasks = new TasksSection(authService);
-  const dataset = new DatasetSection();
+  const dataset = new DatasetSection(authService);
   const docs = new DocsSection(authService);
 
   profiles.register(context);
