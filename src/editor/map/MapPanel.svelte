@@ -888,6 +888,7 @@
           <span class="layer-name" title={entry.name}>{entry.name}</span>
           <div class="layer-controls">
             <input type="range" class="layer-opacity" min="0" max="10"
+              style="--slider-fill: {Math.round(entry.opacity * 100)}%"
               value={Math.round(entry.opacity * 10)}
               oninput={(e) => setLayerOpacity(idx, Number(e.target.value))} />
             <button class="map-btn layer-vis-btn" class:active={entry.visible}
@@ -1303,7 +1304,40 @@
       overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
     }
     .layer-controls { display: flex; align-items: center; gap: var(--vscee-space-xs); flex-shrink: 0; margin-left: auto; }
-    .layer-opacity { width: 60px; flex-shrink: 0; accent-color: var(--vscode-button-background); cursor: pointer; }
+    .layer-opacity {
+      width: 60px; height: 12px; flex-shrink: 0; cursor: pointer;
+      appearance: none; background: transparent;
+
+      /* Track is painted up to --slider-fill so the filled side survives the custom thumb. */
+      &::-webkit-slider-runnable-track {
+        height: 3px; border-radius: var(--vscee-radius-sm);
+        background: linear-gradient(to right,
+          var(--vscode-button-background) 0 var(--slider-fill),
+          var(--vscode-scrollbarSlider-background) var(--slider-fill));
+      }
+      &::-moz-range-track {
+        height: 3px; border-radius: var(--vscee-radius-sm);
+        background: linear-gradient(to right,
+          var(--vscode-button-background) 0 var(--slider-fill),
+          var(--vscode-scrollbarSlider-background) var(--slider-fill));
+      }
+      &::-webkit-slider-thumb {
+        appearance: none; width: 12px; height: 12px; margin-top: -4.5px; box-sizing: border-box;
+        border: var(--vscee-border-sm) solid var(--vscode-button-background); border-radius: 50%;
+        background: var(--vscode-button-background);
+        /* Carves the ring out of the disc, leaving a round dot in the middle. */
+        box-shadow: inset 0 0 0 3px var(--vscode-editor-background), var(--vscee-shadow-xs);
+      }
+      &::-moz-range-thumb {
+        width: 12px; height: 12px; box-sizing: border-box;
+        border: var(--vscee-border-sm) solid var(--vscode-button-background); border-radius: 50%;
+        background: var(--vscode-button-background);
+        box-shadow: inset 0 0 0 3px var(--vscode-editor-background), var(--vscee-shadow-xs);
+      }
+      &:focus { outline: none; }
+      &:focus-visible::-webkit-slider-thumb { box-shadow: inset 0 0 0 3px var(--vscode-editor-background), var(--vscee-shadow-sm); }
+      &:focus-visible::-moz-range-thumb { box-shadow: inset 0 0 0 3px var(--vscode-editor-background), var(--vscee-shadow-sm); }
+    }
 
     /* ==================================================================
        INSPECTOR PANEL
