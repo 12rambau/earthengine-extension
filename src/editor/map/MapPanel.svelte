@@ -927,6 +927,13 @@
     vizRgbGamma = String(Math.max(0.1, Math.min(5, Math.round(n * 10) / 10)));
   }
 
+  /** Share of the track left of the thumb, feeding the `--slider-fill` custom property. */
+  function sliderFill(value, min, max) {
+    const n = Number(value);
+    if (!Number.isFinite(n)) {return 0;}
+    return Math.round(Math.max(0, Math.min(1, (n - min) / (max - min))) * 100);
+  }
+
   function vizApplyPreset(idx) {
     const p = vizPresets[idx];
     if (!p) {return;}
@@ -1254,7 +1261,7 @@
         <div class="layer-row">
           <span class="layer-name" title={entry.name}>{entry.name}</span>
           <div class="layer-controls">
-            <input type="range" class="layer-opacity" min="0" max="10"
+            <input type="range" class="range-slider layer-opacity" min="0" max="10"
               style="--slider-fill: {Math.round(entry.opacity * 100)}%"
               value={Math.round(entry.opacity * 10)}
               oninput={(e) => setLayerOpacity(idx, Number(e.target.value))} />
@@ -1477,7 +1484,8 @@
         {@render stretchRow()}
         <div class="viz-channel-row">
           <span class="viz-channel-label">Gamma</span>
-          <input type="range" class="viz-range" min="0.1" max="5" step="0.1"
+          <input type="range" class="range-slider viz-range" min="0.1" max="5" step="0.1"
+            style="--slider-fill: {sliderFill(vizRgbGamma, 0.1, 5)}%"
             value={vizRgbGamma}
             oninput={(e) => setVizGamma(e.target.value)} />
           <input type="number" class="viz-input viz-range-value" min="0.1" max="5" step="0.1"
@@ -1608,7 +1616,8 @@
     <!-- Opacity (all viz types) -->
     <div class="viz-opacity-bar">
       <span class="viz-channel-label">Opacity</span>
-      <input type="range" class="viz-range" min="0" max="100" step="1"
+      <input type="range" class="range-slider viz-range" min="0" max="100" step="1"
+        style="--slider-fill: {sliderFill(vizOpacity, 0, 100)}%"
         value={vizOpacity}
         oninput={(e) => setVizOpacity(e.target.value)} />
       <input type="number" class="viz-input viz-range-value" min="0" max="100" step="1"
@@ -1757,37 +1766,10 @@
     .leaflet-control-attribution a { color: var(--vscode-textLink-foreground) !important; }
 
     /* ==================================================================
-       LAYERS PANEL
+       RANGE SLIDERS
        ================================================================== */
-    .layers-panel {
-      position: absolute; top: 10px; left: 48px; z-index: 1000; width: 240px;
-      background: var(--vscode-editor-background); border: var(--vscee-border-sm) solid var(--vscode-widget-border);
-      border-radius: var(--vscee-radius-md); box-shadow: var(--vscee-shadow-md);
-    }
-    .layers-panel-header {
-      display: flex; align-items: center; justify-content: space-between;
-      padding: var(--vscee-space-xs) var(--vscee-space-xs) var(--vscee-space-xs) var(--vscee-space-lg); border-bottom: var(--vscee-border-sm) solid var(--vscode-widget-border);
-      font-size: var(--vscee-font-compact-sm); font-weight: 600; color: var(--vscode-foreground);
-    }
-    .layers-close-btn { width: 22px; height: 22px; box-shadow: none; opacity: 0.6; }
-    .layers-list { max-height: 320px; overflow-y: auto; }
-    .layers-empty {
-      padding: var(--vscee-space-lg); font-size: var(--vscee-font-compact-sm); color: var(--vscode-descriptionForeground); text-align: center;
-    }
-    .layer-row {
-      padding: var(--vscee-space-xs) var(--vscee-space-md); border-bottom: var(--vscee-border-sm) solid var(--vscode-widget-border);
-      display: flex; align-items: center; gap: var(--vscee-space-sm); min-width: 0;
-    }
-    .layer-row:last-child { border-bottom: none; }
-    .layer-vis-btn { width: 22px; height: 22px; flex-shrink: 0; box-shadow: none; opacity: 0.5; }
-    .layer-vis-btn.active { opacity: 1; background: transparent; color: var(--vscode-foreground); }
-    .layer-name {
-      flex: 1; min-width: 0; font-size: var(--vscee-font-compact-sm); color: var(--vscode-foreground);
-      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-    }
-    .layer-controls { display: flex; align-items: center; gap: var(--vscee-space-xs); flex-shrink: 0; margin-left: auto; }
-    .layer-opacity {
-      width: 60px; height: 12px; flex-shrink: 0; cursor: pointer;
+    .range-slider {
+      height: 12px; cursor: pointer;
       appearance: none; background: transparent;
 
       /* Track is painted up to --slider-fill so the filled side survives the custom thumb. */
@@ -1820,6 +1802,38 @@
       &:focus-visible::-webkit-slider-thumb { box-shadow: inset 0 0 0 3px var(--vscode-editor-background), var(--vscee-shadow-sm); }
       &:focus-visible::-moz-range-thumb { box-shadow: inset 0 0 0 3px var(--vscode-editor-background), var(--vscee-shadow-sm); }
     }
+
+    /* ==================================================================
+       LAYERS PANEL
+       ================================================================== */
+    .layers-panel {
+      position: absolute; top: 10px; left: 48px; z-index: 1000; width: 240px;
+      background: var(--vscode-editor-background); border: var(--vscee-border-sm) solid var(--vscode-widget-border);
+      border-radius: var(--vscee-radius-md); box-shadow: var(--vscee-shadow-md);
+    }
+    .layers-panel-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: var(--vscee-space-xs) var(--vscee-space-xs) var(--vscee-space-xs) var(--vscee-space-lg); border-bottom: var(--vscee-border-sm) solid var(--vscode-widget-border);
+      font-size: var(--vscee-font-compact-sm); font-weight: 600; color: var(--vscode-foreground);
+    }
+    .layers-close-btn { width: 22px; height: 22px; box-shadow: none; opacity: 0.6; }
+    .layers-list { max-height: 320px; overflow-y: auto; }
+    .layers-empty {
+      padding: var(--vscee-space-lg); font-size: var(--vscee-font-compact-sm); color: var(--vscode-descriptionForeground); text-align: center;
+    }
+    .layer-row {
+      padding: var(--vscee-space-xs) var(--vscee-space-md); border-bottom: var(--vscee-border-sm) solid var(--vscode-widget-border);
+      display: flex; align-items: center; gap: var(--vscee-space-sm); min-width: 0;
+    }
+    .layer-row:last-child { border-bottom: none; }
+    .layer-vis-btn { width: 22px; height: 22px; flex-shrink: 0; box-shadow: none; opacity: 0.5; }
+    .layer-vis-btn.active { opacity: 1; background: transparent; color: var(--vscode-foreground); }
+    .layer-name {
+      flex: 1; min-width: 0; font-size: var(--vscee-font-compact-sm); color: var(--vscode-foreground);
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .layer-controls { display: flex; align-items: center; gap: var(--vscee-space-xs); flex-shrink: 0; margin-left: auto; }
+    .layer-opacity { width: 60px; flex-shrink: 0; }
 
     /* ==================================================================
        INSPECTOR PANEL
@@ -2013,7 +2027,7 @@
       &:disabled { opacity: 0.2; cursor: default; }
     }
     .viz-legend-add { margin-top: var(--vscee-space-xs); align-self: flex-start; }
-    .viz-range { flex: 1; min-width: 0; accent-color: var(--vscode-button-background); cursor: pointer; }
+    .viz-range { flex: 1; min-width: 0; }
     .viz-range-value { width: 56px; font-variant-numeric: tabular-nums; }
     .viz-opacity-bar {
       display: flex; align-items: center; gap: var(--vscee-space-sm);
