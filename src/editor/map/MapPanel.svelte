@@ -362,6 +362,22 @@
     });
   }
 
+  function removeLayer(idx) {
+    const entry = overlays[idx];
+    if (entry.visible) {map.removeLayer(entry.tileLayer);}
+    nativeLayerControl.removeLayer(entry.tileLayer);
+    overlays = overlays.filter((_, index) => index !== idx);
+    if (activeScaleIndex === idx) {
+      activeScaleIndex = -1;
+    } else if (activeScaleIndex > idx) {
+      activeScaleIndex--;
+    }
+    if (vizLayerIndex === entry.layerIndex) {
+      vizVisible = false;
+    }
+    vscode.postMessage({ type: 'removeLayer', data: { layerIndex: entry.layerIndex } });
+  }
+
   function toggleScale(idx) {
     if (activeScaleIndex === idx) {
       activeScaleIndex = -1;
@@ -915,6 +931,10 @@
             <button class="map-btn layer-vis-btn" title="Edit visualization"
               onclick={() => openVizEditorForLayer(entry.layerIndex)}>
               <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" fill="currentColor"><path d={mdiTune}/></svg>
+            </button>
+            <button class="map-btn layer-vis-btn" title="Remove layer"
+              onclick={() => removeLayer(idx)}>
+              <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" fill="currentColor"><path d={mdiTrashCan}/></svg>
             </button>
           </div>
         </div>
