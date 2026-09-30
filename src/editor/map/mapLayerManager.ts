@@ -6,7 +6,7 @@
  * for downstream use (pixel inspection), and notifies the WebView.
  */
 
-import { ensureEe, getMapIdUrl, computeValue, evaluate } from '../../shared/eeSession.js';
+import { ensureEe, getMapIdUrl, computeValue } from '../../shared/eeSession.js';
 import { EeLayer } from './eeLayer.js';
 import {
   parseSepalVisualizations,
@@ -22,6 +22,19 @@ export interface AddLayerPayload {
   shown: boolean;
   opacity: number;
 }
+
+/** Percentile pairs backing the `percent-*` stretch modes, as [low, high]. */
+const PERCENTILE_BOUNDS: Record<string, [number, number]> = {
+  'percent-90': [5, 95],
+  'percent-98': [1, 99],
+  'percent-100': [0, 100],
+};
+
+/** Metres of slack allowed when intersecting the viewport with a footprint. */
+const STRETCH_ERROR_MARGIN = 1000;
+
+/** Upper bound on the classes `computeClasses` reports, keeping the legend usable. */
+const MAX_AUTO_CLASSES = 30;
 
 // ==================================================================
 // MAPLAYERMANAGER
@@ -223,47 +236,142 @@ export class MapLayerManager {
     }
   }
 
-  /** Computes min/max per band for the image at `layerIndex`. */
-  async computeMinMax(layerIndex: number): Promise<Record<string, { min: number; max: number }>> {
+  /**
+   * Returns the image at `layerIndex` restricted to `bands`, together with the
+   * region where it overlaps the viewport.
+   *
+   * @param bounds - Viewport as `[south, west, north, east]` in degrees.
+   */
+  private async viewportTarget(
+    layerIndex: number,
+    bands: string[],
+    bounds: [number, number, number, number],
+  ): Promise<{ image: any; region: unknown } | null> {
     const layer = this._layers.get(layerIndex);
-    if (!layer) {
+    if (!layer || bands.length === 0) {
+      return null;
+    }
+    const ee = await ensureEe();
+    const eeAny = ee as any;
+    const source = ee.Deserializer.fromJSON(layer.serialized) as any;
+    // A collection has no reduceRegion — flatten it to the image actually drawn.
+    const image = (typeof source.mosaic === 'function' ? source.mosaic() : source).select(bands);
+
+    const [south, west, north, east] = bounds;
+    // Web Mercator cannot represent the poles; EE rejects out-of-range latitudes.
+    const s = Math.max(-85, Math.min(85, south));
+    const n = Math.max(-85, Math.min(85, north));
+    const w = Math.max(-180, Math.min(180, west));
+    const e = Math.max(-180, Math.min(180, east));
+    // Planar edges: geodesic ones bow outside the viewport at low zoom.
+    const window = eeAny.Geometry.Rectangle([w, s, e, n], null, false);
+    // Intersecting with the footprint keeps unbounded images from reducing
+    // over empty space, which is what blows the response size up.
+    return { image, region: window.intersection(image.geometry(), STRETCH_ERROR_MARGIN) };
+  }
+
+  /**
+   * Computes a display range for `bands` from the pixels inside `bounds`,
+   * mirroring the Code Editor stretch presets.
+   *
+   * @param mode - `sigma-1|2|3` (mean ± n·σ) or `percent-90|98|100`.
+   * @param bounds - Viewport as `[south, west, north, east]` in degrees.
+   * @param scale - Metres per screen pixel at the current zoom.
+   */
+  async computeStretch(
+    layerIndex: number,
+    bands: string[],
+    mode: string,
+    bounds: [number, number, number, number],
+    scale: number,
+  ): Promise<Record<string, { min: number; max: number }>> {
+    const target = await this.viewportTarget(layerIndex, bands, bounds);
+    if (!target) {
       return {};
     }
     const ee = await ensureEe();
-    const image = ee.Deserializer.fromJSON(layer.serialized);
-    const reduced = (image as any).reduceRegion({
-      reducer: ee.Reducer.minMax(),
-      geometry: {
-        type: 'Polygon',
-        coordinates: [
-          [
-            [-175, -85],
-            [175, -85],
-            [175, 85],
-            [-175, 85],
-            [-175, -85],
-          ],
-        ],
-      },
-      scale: 1000,
+
+    const isSigma = mode.startsWith('sigma-');
+    const reducer = isSigma
+      ? ee.Reducer.mean().combine({ reducer2: ee.Reducer.stdDev(), sharedInputs: true })
+      : ee.Reducer.percentile(PERCENTILE_BOUNDS[mode] ?? [0, 100]);
+
+    const reduced = target.image.reduceRegion({
+      reducer,
+      geometry: target.region,
+      scale: Math.max(1, scale),
       bestEffort: true,
       maxPixels: 1e8,
+      tileScale: 4,
     });
-    const values = await evaluate<Record<string, number>>(reduced);
+    // computeValue goes through the REST client; `evaluate` uses the JS client
+    // transport that is unreliable in the extension host.
+    const values = await computeValue<Record<string, number>>(reduced);
+
     const result: Record<string, { min: number; max: number }> = {};
-    for (const [key, val] of Object.entries(values)) {
-      const m = key.match(/^(.+)_(min|max)$/);
-      if (m) {
-        if (!result[m[1]]) {
-          result[m[1]] = { min: 0, max: 0 };
+    if (isSigma) {
+      const sigmas = Number(mode.slice('sigma-'.length)) || 1;
+      for (const band of bands) {
+        const mean = values[`${band}_mean`];
+        const sd = values[`${band}_stdDev`];
+        if (Number.isFinite(mean) && Number.isFinite(sd)) {
+          result[band] = { min: mean - sigmas * sd, max: mean + sigmas * sd };
         }
-        result[m[1]][m[2] as 'min' | 'max'] = val;
+      }
+    } else {
+      const [lo, hi] = PERCENTILE_BOUNDS[mode] ?? [0, 100];
+      for (const band of bands) {
+        const min = values[`${band}_p${lo}`];
+        const max = values[`${band}_p${hi}`];
+        if (Number.isFinite(min) && Number.isFinite(max)) {
+          result[band] = { min, max };
+        }
       }
     }
     return result;
   }
 
+  /**
+   * Lists the distinct values of `band` present in the viewport, most frequent
+   * first, capped at `MAX_AUTO_CLASSES`.
+   *
+   * @param bounds - Viewport as `[south, west, north, east]` in degrees.
+   * @param scale - Metres per screen pixel at the current zoom.
+   */
+  async computeClasses(
+    layerIndex: number,
+    band: string,
+    bounds: [number, number, number, number],
+    scale: number,
+  ): Promise<{ values: number[]; truncated: boolean }> {
+    const target = await this.viewportTarget(layerIndex, [band], bounds);
+    if (!target) {
+      return { values: [], truncated: false };
+    }
+    const ee = await ensureEe();
+    const reduced = target.image.reduceRegion({
+      reducer: ee.Reducer.frequencyHistogram(),
+      geometry: target.region,
+      scale: Math.max(1, scale),
+      bestEffort: true,
+      maxPixels: 1e8,
+      tileScale: 4,
+    });
+    const result = await computeValue<Record<string, Record<string, number> | null>>(reduced);
+    const histogram = result?.[band] ?? {};
+
+    // Keep the dominant classes, then present them in value order.
+    const counted = Object.entries(histogram)
+      .map(([key, count]) => ({ value: Number(key), count: Number(count) }))
+      .filter((entry) => Number.isFinite(entry.value));
+    counted.sort((a, b) => b.count - a.count);
+    const kept = counted.slice(0, MAX_AUTO_CLASSES).map((entry) => entry.value);
+    kept.sort((a, b) => a - b);
+    return { values: kept, truncated: counted.length > MAX_AUTO_CLASSES };
+  }
+
   /** Returns parsed SEPAL visualization presets for the image at `layerIndex`. */
+
   async getPresets(layerIndex: number): Promise<
     Array<{
       index: number;

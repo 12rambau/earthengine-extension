@@ -137,19 +137,74 @@ export class MapPanel extends EditorPanel {
             bands,
             presets,
             currentVisParams: layer?.visParams ?? {},
+            opacity: layer?.opacity ?? 1,
           },
         });
-      } else if (msg.type === 'computeMinMax') {
-        const { layerIndex } = msg.data as { layerIndex: number };
+      } else if (msg.type === 'computeStretch') {
+        const d = msg.data as {
+          layerIndex: number;
+          bands: string[];
+          mode: string;
+          bounds: [number, number, number, number];
+          scale: number;
+        };
         try {
-          const minMax = await this.layerManager.computeMinMax(layerIndex);
-          this.post({ type: 'vizMinMax', data: { layerIndex, minMax } });
-        } catch {
-          this.post({ type: 'vizMinMax', data: { layerIndex, minMax: null } });
+          const ranges = await this.layerManager.computeStretch(
+            d.layerIndex,
+            d.bands,
+            d.mode,
+            d.bounds,
+            d.scale,
+          );
+          this.post({
+            type: 'vizStretch',
+            data: { layerIndex: d.layerIndex, mode: d.mode, ranges },
+          });
+        } catch (err) {
+          this.post({
+            type: 'vizStretch',
+            data: {
+              layerIndex: d.layerIndex,
+              mode: d.mode,
+              ranges: null,
+              error: err instanceof Error ? err.message : String(err),
+            },
+          });
+        }
+      } else if (msg.type === 'computeClasses') {
+        const d = msg.data as {
+          layerIndex: number;
+          band: string;
+          bounds: [number, number, number, number];
+          scale: number;
+        };
+        try {
+          const { values, truncated } = await this.layerManager.computeClasses(
+            d.layerIndex,
+            d.band,
+            d.bounds,
+            d.scale,
+          );
+          this.post({
+            type: 'vizClasses',
+            data: { layerIndex: d.layerIndex, values, truncated },
+          });
+        } catch (err) {
+          this.post({
+            type: 'vizClasses',
+            data: {
+              layerIndex: d.layerIndex,
+              values: null,
+              error: err instanceof Error ? err.message : String(err),
+            },
+          });
         }
       } else if (msg.type === 'updateViz') {
         const d = msg.data as Record<string, unknown>;
         const layerIndex = d.layerIndex as number;
+        if (typeof d.opacity === 'number') {
+          this.layerManager.setLayerOpacity(layerIndex, d.opacity);
+        }
         try {
           await this.layerManager.updateLayer(layerIndex, d, (m) => this.post(m));
         } catch (err) {

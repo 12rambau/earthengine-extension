@@ -3,8 +3,9 @@
   import L from 'leaflet';
   import { vscode } from '../../shared/vscode.ts';
   import {
-    mdiAlertCircleOutline, mdiClose, mdiCrosshairsGps, mdiEye, mdiEyeOff, mdiLayers,
-    mdiLoading, mdiMap, mdiRuler, mdiSatelliteVariant, mdiTrashCan, mdiTune,
+    mdiAlertCircleOutline, mdiCheck, mdiChevronDown, mdiClose, mdiCodeTags, mdiContentCopy,
+    mdiCrosshairsGps, mdiEye, mdiEyeOff,
+    mdiLayers, mdiLoading, mdiMap, mdiRuler, mdiSatelliteVariant, mdiTrashCan, mdiTune,
   } from '../../shared/icons.ts';
   import {
     interpolateViridis, interpolateMagma, interpolatePlasma, interpolateInferno,
@@ -25,30 +26,32 @@
   }
 
   function sample(fn, n) {
+    if (n < 2) {return [rgbToHex(fn(0.5))];}
     const colors = [];
     for (let i = 0; i < n; i++) {colors.push(rgbToHex(fn(i / (n - 1))));}
     return colors;
   }
 
-  const N = 10;
+  // Continuous ramps stay as interpolators so they can be resampled at any
+  // number of stops; categorical schemes are fixed discrete lists.
   const SEQUENTIAL_PALETTES = [
-    { name: 'Viridis', category: 'Sequential', colors: sample(interpolateViridis, N) },
-    { name: 'Magma', category: 'Sequential', colors: sample(interpolateMagma, N) },
-    { name: 'Plasma', category: 'Sequential', colors: sample(interpolatePlasma, N) },
-    { name: 'Inferno', category: 'Sequential', colors: sample(interpolateInferno, N) },
-    { name: 'Cividis', category: 'Sequential', colors: sample(interpolateCividis, N) },
-    { name: 'Turbo', category: 'Sequential', colors: sample(interpolateTurbo, N) },
-    { name: 'Greys', category: 'Sequential', colors: sample(interpolateGreys, N) },
-    { name: 'YlGnBu', category: 'Sequential', colors: sample(interpolateYlGnBu, N) },
-    { name: 'YlOrRd', category: 'Sequential', colors: sample(interpolateYlOrRd, N) },
+    { name: 'Viridis', category: 'Sequential', interpolate: interpolateViridis },
+    { name: 'Magma', category: 'Sequential', interpolate: interpolateMagma },
+    { name: 'Plasma', category: 'Sequential', interpolate: interpolatePlasma },
+    { name: 'Inferno', category: 'Sequential', interpolate: interpolateInferno },
+    { name: 'Cividis', category: 'Sequential', interpolate: interpolateCividis },
+    { name: 'Turbo', category: 'Sequential', interpolate: interpolateTurbo },
+    { name: 'Greys', category: 'Sequential', interpolate: interpolateGreys },
+    { name: 'YlGnBu', category: 'Sequential', interpolate: interpolateYlGnBu },
+    { name: 'YlOrRd', category: 'Sequential', interpolate: interpolateYlOrRd },
   ];
   const DIVERGING_PALETTES = [
-    { name: 'RdBu', category: 'Diverging', colors: sample(interpolateRdBu, N) },
-    { name: 'RdYlGn', category: 'Diverging', colors: sample(interpolateRdYlGn, N) },
-    { name: 'BrBG', category: 'Diverging', colors: sample(interpolateBrBG, N) },
-    { name: 'PiYG', category: 'Diverging', colors: sample(interpolatePiYG, N) },
-    { name: 'RdYlBu', category: 'Diverging', colors: sample(interpolateRdYlBu, N) },
-    { name: 'Spectral', category: 'Diverging', colors: sample(interpolateSpectral, N) },
+    { name: 'RdBu', category: 'Diverging', interpolate: interpolateRdBu },
+    { name: 'RdYlGn', category: 'Diverging', interpolate: interpolateRdYlGn },
+    { name: 'BrBG', category: 'Diverging', interpolate: interpolateBrBG },
+    { name: 'PiYG', category: 'Diverging', interpolate: interpolatePiYG },
+    { name: 'RdYlBu', category: 'Diverging', interpolate: interpolateRdYlBu },
+    { name: 'Spectral', category: 'Diverging', interpolate: interpolateSpectral },
   ];
   const CATEGORICAL_PALETTES = [
     { name: 'Category10', category: 'Categorical', colors: [...schemeCategory10] },
@@ -59,6 +62,30 @@
     { name: 'Dark2', category: 'Categorical', colors: [...schemeDark2] },
   ];
   const CONTINUOUS_PALETTES = [...SEQUENTIAL_PALETTES, ...DIVERGING_PALETTES];
+  const MIN_PALETTE_COLORS = 2;
+  const MAX_PALETTE_COLORS = 12;
+  const CONTINUOUS_PALETTE_GROUPS = [
+    { label: 'Sequential', items: SEQUENTIAL_PALETTES },
+    { label: 'Diverging', items: DIVERGING_PALETTES },
+  ];
+  const CATEGORICAL_PALETTE_GROUPS = [
+    { label: 'Categorical', items: CATEGORICAL_PALETTES },
+    ...CONTINUOUS_PALETTE_GROUPS,
+  ];
+  const PALETTE_PREVIEW_STOPS = 9;
+  const MENU_MAX_HEIGHT = 320;
+  const MENU_MIN_WIDTH = 220;
+
+  // Range presets computed from the pixels currently visible on the map.
+  const STRETCH_MODES = [
+    { id: 'custom', label: 'Custom' },
+    { id: 'sigma-1', label: 'Stretch: 1 \u03c3' },
+    { id: 'sigma-2', label: 'Stretch: 2 \u03c3' },
+    { id: 'sigma-3', label: 'Stretch: 3 \u03c3' },
+    { id: 'percent-90', label: 'Stretch: 90%' },
+    { id: 'percent-98', label: 'Stretch: 98%' },
+    { id: 'percent-100', label: 'Stretch: 100%' },
+  ];
 
   // ----------------------------------------------------------------
   // STATE
@@ -86,12 +113,12 @@
 
   // Viz editor
   let vizVisible = $state(false);
+  let vizCodeVisible = $state(false);
+  let vizCodeCopied = $state(false);
   let vizLayerIndex = $state(-1);
   let vizBands = $state([]);
   let vizPresets = $state([]);
   let vizType = $state('rgb');
-  let vizSelectedPalette = $state(null);
-  let vizMinMaxData = $state(null);
   // RGB fields
   let vizRgbR = $state('');
   let vizRgbG = $state('');
@@ -117,10 +144,23 @@
   let vizContBand = $state('');
   let vizContMin = $state('');
   let vizContMax = $state('');
+  // Colour ramp built from a preset resampled to `vizContColorCount` stops.
+  let vizContColorCount = $state(7);
+  let vizContPaletteName = $state('');
+  let vizContPaletteOpen = $state(false);
+  let vizContColors = $state([]);
   // Categorical fields
   let vizCatBand = $state('');
   let vizCatRows = $state([]);
+  let vizCatPaletteName = $state('');
+  let vizCatPaletteOpen = $state(false);
+  let vizCatDetecting = $state(false);
+  let vizCatNotice = $state('');
   let vizComputing = $state(false);
+  // Layer opacity in percent — shared by every viz type, previewed live.
+  let vizOpacity = $state(100);
+  let vizStretch = $state('custom');
+  let vizStretchError = $state('');
 
   // Internal refs
   let basemapTileLayers = {};
@@ -132,6 +172,8 @@
   let attributionTimer = null;
   let nativeLayerControl = null;
   let _sampleCanvas = null;
+  // Opacity the edited layer had when the dialog opened, restored on Cancel.
+  let vizOpacityOriginal = 100;
 
   // ----------------------------------------------------------------
   // DERIVED
@@ -178,6 +220,47 @@
     if (!palette || palette.length === 0) {return 'linear-gradient(to right, #000, #fff)';}
     const colors = palette.map(c => c.startsWith('#') ? c : '#' + c);
     return 'linear-gradient(to right, ' + colors.join(', ') + ')';
+  }
+
+  /** Hard-edged bands, so a discrete scheme never reads as a smooth ramp. */
+  function paletteBlocks(colors) {
+    const step = 100 / colors.length;
+    return 'linear-gradient(to right, '
+      + colors.map((c, i) => `${c} ${i * step}% ${(i + 1) * step}%`).join(', ') + ')';
+  }
+
+  /** Preview strip shown under a palette name in the palette dropdown. */
+  function palettePreview(pal, discrete) {
+    if (pal.colors) {return paletteBlocks(pal.colors.map(normalizeHex));}
+    const colors = sample(pal.interpolate, PALETTE_PREVIEW_STOPS);
+    return discrete ? paletteBlocks(colors) : paletteGradient(colors);
+  }
+
+  /** Pins the palette menu to its trigger in viewport space, so the dialog cannot clip it. */
+  function anchorMenu(node) {
+    const place = () => {
+      const trigger = node.parentElement?.querySelector('.viz-palette-trigger');
+      if (!trigger) {return;}
+      const r = trigger.getBoundingClientRect();
+      const gap = 4;
+      const below = window.innerHeight - r.bottom - gap * 2;
+      const above = r.top - gap * 2;
+      const flipUp = below < Math.min(MENU_MAX_HEIGHT, above);
+      node.style.left = Math.round(r.left) + 'px';
+      node.style.width = Math.round(Math.max(r.width, MENU_MIN_WIDTH)) + 'px';
+      node.style.maxHeight = Math.round(Math.min(MENU_MAX_HEIGHT, flipUp ? above : below)) + 'px';
+      node.style.top = flipUp ? 'auto' : Math.round(r.bottom + gap) + 'px';
+      node.style.bottom = flipUp ? Math.round(window.innerHeight - r.top + gap) + 'px' : 'auto';
+    };
+    place();
+    window.addEventListener('resize', place);
+    window.addEventListener('scroll', place, true);
+    return {
+      destroy() {
+        window.removeEventListener('resize', place);
+        window.removeEventListener('scroll', place, true);
+      },
+    };
   }
 
   function fmtVal(v) {
@@ -353,7 +436,7 @@
 
   function setLayerOpacity(idx, val) {
     const entry = overlays[idx];
-    entry.opacity = val / 10;
+    entry.opacity = val / 100;
     entry.tileLayer.setOpacity(entry.opacity);
     overlays = overlays;
     vscode.postMessage({
@@ -585,6 +668,7 @@
     vizRgbBMin = String(minArr[2] ?? minArr[0] ?? '');
     vizRgbBMax = String(maxArr[2] ?? maxArr[0] ?? '');
     if (vp.gamma) {vizRgbGamma = String(Array.isArray(vp.gamma) ? vp.gamma[0] : vp.gamma);}
+    else {vizRgbGamma = '1';}
 
     // HSV
     if (bands.length >= 3) { vizHsvH = bands[0]; vizHsvS = bands[1]; vizHsvV = bands[2]; }
@@ -599,6 +683,13 @@
     if (bands.length >= 1) {vizContBand = bands[0];}
     vizContMin = minArr[0] != null ? String(minArr[0]) : '';
     vizContMax = maxArr[0] != null ? String(maxArr[0]) : '';
+    if (!isCat && Array.isArray(vp.palette) && vp.palette.length > 0) {
+      vizContColors = vp.palette.map(normalizeHex);
+      vizContColorCount = vizContColors.length;
+    } else {
+      vizContColors = [];
+    }
+    vizContPaletteName = '';
 
     // Categorical
     if (bands.length >= 1) {vizCatBand = bands[0];}
@@ -608,12 +699,15 @@
       const values = vp.values || [];
       const n = Math.max(palette.length, values.length);
       vizCatRows = Array.from({ length: n }, (_, i) => ({
-        color: palette[i] || '#4285f4',
+        color: palette[i] ? normalizeHex(palette[i]) : '#4285f4',
         value: values[i] != null ? String(values[i]) : '',
         label: labels[i] || '',
       }));
+    } else {
+      vizCatRows = [];
     }
-    vizSelectedPalette = null;
+    vizCatPaletteName = '';
+    vizCatNotice = '';
   }
 
   function collectVisParams() {
@@ -638,8 +732,13 @@
       const min = parseFloat(vizContMin);
       const max = parseFloat(vizContMax);
       if (!Number.isFinite(min) || !Number.isFinite(max)) {return null;}
-      const palette = vizSelectedPalette ? vizSelectedPalette.colors : [];
-      return { vizType: 'continuous', bands: [vizContBand], min: [min], max: [max], palette };
+      return {
+        vizType: 'continuous',
+        bands: [vizContBand],
+        min: [min],
+        max: [max],
+        palette: [...vizContColors],
+      };
     }
     if (vizType === 'categorical') {
       const values = [], labels = [], palette = [];
@@ -659,15 +758,173 @@
   function vizApply() {
     const config = collectVisParams();
     if (!config) {return;}
-    vscode.postMessage({ type: 'updateViz', data: { layerIndex: vizLayerIndex, ...config } });
+    const opacity = clampOpacityPercent(vizOpacity) / 100;
+    vscode.postMessage({ type: 'updateViz', data: { layerIndex: vizLayerIndex, opacity, ...config } });
     vizVisible = false;
   }
 
-  function vizClose() { vizVisible = false; }
+  function vizClose() {
+    setVizOpacity(vizOpacityOriginal);
+    vizVisible = false;
+  }
 
-  function vizComputeMinMax() {
+  /* ==================================================================
+     VISUALIZATION PARAMETERS AS JSON
+     ================================================================== */
+
+  function jsonStr(value) {
+    return JSON.stringify(String(value));
+  }
+
+  function jsonList(items, quote) {
+    return '[' + items.map((v) => (quote ? jsonStr(v) : String(v))).join(', ') + ']';
+  }
+
+  function jsonDict(entries) {
+    return '{\n' + entries.map(([k, v]) => `  ${jsonStr(k)}: ${v}`).join(',\n') + '\n}';
+  }
+
+  /** Renders the current editor state as a vis_params object, valid both as JSON and as a Python dict. */
+  function buildVizJson() {
+    const config = collectVisParams();
+    if (!config) {return 'Complete the visualization parameters first.';}
+    const opacity = String(clampOpacityPercent(vizOpacity) / 100);
+    const entries = [['bands', jsonList(config.bands, true)]];
+
+    if (config.vizType === 'categorical') {
+      if (config.values.length === 0) {return 'Add at least one class first.';}
+      entries.push(['min', String(Math.min(...config.values))]);
+      entries.push(['max', String(Math.max(...config.values))]);
+      entries.push(['palette', jsonList(config.palette, true)]);
+      entries.push(['opacity', opacity]);
+      return jsonDict(entries);
+    }
+
+    const single = config.bands.length === 1;
+    entries.push(['min', single ? String(config.min[0]) : jsonList(config.min)]);
+    entries.push(['max', single ? String(config.max[0]) : jsonList(config.max)]);
+    if (config.gamma) {entries.push(['gamma', String(config.gamma)]);}
+    if (config.palette) {entries.push(['palette', jsonList(config.palette, true)]);}
+    entries.push(['opacity', opacity]);
+    return jsonDict(entries);
+  }
+
+  const JSON_TOKEN = /("(?:\\.|[^"\\])*")(?=\s*:)|"(?:\\.|[^"\\])*"|-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?|\btrue\b|\bfalse\b|\bnull\b/g;
+
+  function highlightJson(text) {
+    const tokens = [];
+    let last = 0;
+    JSON_TOKEN.lastIndex = 0;
+    let match;
+    while ((match = JSON_TOKEN.exec(text)) !== null) {
+      if (match.index > last) {tokens.push({ kind: 'punct', text: text.slice(last, match.index) });}
+      const raw = match[0];
+      let kind = 'num';
+      if (match[1]) {kind = 'key';}
+      else if (raw.startsWith('"')) {kind = 'str';}
+      else if (raw === 'true' || raw === 'false' || raw === 'null') {kind = 'bool';}
+      tokens.push({ kind, text: raw });
+      last = match.index + raw.length;
+    }
+    if (last < text.length) {tokens.push({ kind: 'punct', text: text.slice(last) });}
+    return tokens;
+  }
+
+  const vizJsonText = $derived.by(() => (vizCodeVisible ? buildVizJson() : ''));
+  const vizJsonTokens = $derived.by(() => highlightJson(vizJsonText));
+
+  async function copyVizJson() {
+    try {
+      await navigator.clipboard.writeText(vizJsonText);
+      vizCodeCopied = true;
+      setTimeout(() => { vizCodeCopied = false; }, 1500);
+    } catch {
+      vizCodeCopied = false;
+    }
+  }
+
+  /** Bands whose range the active viz type exposes, deduplicated. */  function stretchBands() {
+    let bands = [];
+    if (vizType === 'rgb') {bands = [vizRgbR, vizRgbG, vizRgbB];}
+    else if (vizType === 'hsv') {bands = [vizHsvH, vizHsvS, vizHsvV];}
+    else if (vizType === 'continuous') {bands = [vizContBand];}
+    return [...new Set(bands.filter(Boolean))];
+  }
+
+  /** Metres per screen pixel at the current zoom and latitude. */
+  function viewportScale() {
+    const lat = map.getCenter().lat;
+    return 156543.03392 * Math.cos(lat * Math.PI / 180) / Math.pow(2, map.getZoom());
+  }
+
+  function applyStretch(mode) {
+    vizStretch = mode;
+    vizStretchError = '';
+    if (mode === 'custom') {return;}
+    const bands = stretchBands();
+    if (bands.length === 0) {
+      vizStretchError = 'Select a band first.';
+      vizStretch = 'custom';
+      return;
+    }
+    const b = map.getBounds();
     vizComputing = true;
-    vscode.postMessage({ type: 'computeMinMax', data: { layerIndex: vizLayerIndex } });
+    vscode.postMessage({
+      type: 'computeStretch',
+      data: {
+        layerIndex: vizLayerIndex,
+        bands,
+        mode,
+        bounds: [b.getSouth(), b.getWest(), b.getNorth(), b.getEast()],
+        scale: viewportScale(),
+      },
+    });
+  }
+
+  function applyStretchResult(ranges) {
+    const pick = (band) => (band && ranges[band]) || null;
+    if (vizType === 'rgb') {
+      const r = pick(vizRgbR), g = pick(vizRgbG), b = pick(vizRgbB);
+      if (r) { vizRgbRMin = fmtVal(r.min); vizRgbRMax = fmtVal(r.max); }
+      if (g) { vizRgbGMin = fmtVal(g.min); vizRgbGMax = fmtVal(g.max); }
+      if (b) { vizRgbBMin = fmtVal(b.min); vizRgbBMax = fmtVal(b.max); }
+    } else if (vizType === 'hsv') {
+      const h = pick(vizHsvH), s = pick(vizHsvS), v = pick(vizHsvV);
+      if (h) { vizHsvHMin = fmtVal(h.min); vizHsvHMax = fmtVal(h.max); }
+      if (s) { vizHsvSMin = fmtVal(s.min); vizHsvSMax = fmtVal(s.max); }
+      if (v) { vizHsvVMin = fmtVal(v.min); vizHsvVMax = fmtVal(v.max); }
+    } else if (vizType === 'continuous') {
+      const c = pick(vizContBand);
+      if (c) { vizContMin = fmtVal(c.min); vizContMax = fmtVal(c.max); }
+    }
+  }
+
+  /** A hand-edited bound no longer matches the selected stretch preset. */
+  function markRangeCustom() {
+    vizStretch = 'custom';
+    vizStretchError = '';
+  }
+
+  function clampOpacityPercent(value) {
+    const n = Number(value);
+    if (!Number.isFinite(n)) {return 100;}
+    return Math.max(0, Math.min(100, Math.round(n)));
+  }
+
+  /** Applies an opacity percentage to the edited layer without leaving the dialog. */
+  function setVizOpacity(percent) {
+    vizOpacity = clampOpacityPercent(percent);
+    const entry = overlays.find(o => o.layerIndex === vizLayerIndex);
+    if (!entry) {return;}
+    entry.opacity = vizOpacity / 100;
+    entry.tileLayer.setOpacity(entry.opacity);
+    overlays = [...overlays];
+  }
+
+  function setVizGamma(value) {
+    const n = Number(value);
+    if (!Number.isFinite(n)) {return;}
+    vizRgbGamma = String(Math.max(0.1, Math.min(5, Math.round(n * 10) / 10)));
   }
 
   function vizApplyPreset(idx) {
@@ -685,16 +942,107 @@
     applyVisParams(vp);
   }
 
-  function vizSelectPalette(pal) {
-    vizSelectedPalette = pal;
-    if (pal.category === 'Categorical') {
-      const existing = [...vizCatRows];
-      vizCatRows = pal.colors.map((c, i) => ({
-        color: c,
-        value: existing[i]?.value ?? '',
-        label: existing[i]?.label ?? '',
-      }));
+  /** `<input type="color">` only accepts a 6-digit `#rrggbb` value. */
+  function normalizeHex(color) {
+    let hex = String(color).trim();
+    if (!hex.startsWith('#')) {hex = '#' + hex;}
+    if (hex.length === 4) {hex = '#' + hex.slice(1).split('').map(c => c + c).join('');}
+    return hex.slice(0, 7).toLowerCase();
+  }
+
+  function selectContPalette(name) {
+    vizContPaletteName = name;
+    const pal = CONTINUOUS_PALETTES.find(p => p.name === name);
+    if (pal) {vizContColors = sample(pal.interpolate, vizContColorCount);}
+  }
+
+  function setContColorCount(value) {
+    const n = Math.max(MIN_PALETTE_COLORS, Math.min(MAX_PALETTE_COLORS, Math.round(Number(value) || 0)));
+    vizContColorCount = n;
+    const pal = CONTINUOUS_PALETTES.find(p => p.name === vizContPaletteName);
+    if (pal) {
+      vizContColors = sample(pal.interpolate, n);
+    } else if (vizContColors.length > 0) {
+      // Hand-picked stops: keep the ends and drop or repeat the middle.
+      const last = vizContColors[vizContColors.length - 1];
+      vizContColors = Array.from({ length: n }, (_, i) => vizContColors[i] ?? last);
     }
+  }
+
+  /** Editing a swatch detaches the ramp from its preset. */
+  function markPaletteCustom() {
+    vizContPaletteName = '';
+  }
+
+  function removeContColor(index) {
+    if (vizContColors.length <= MIN_PALETTE_COLORS) {return;}
+    vizContColors = vizContColors.filter((_, i) => i !== index);
+    vizContColorCount = vizContColors.length;
+    markPaletteCustom();
+  }
+
+  function addContColor() {
+    if (vizContColors.length >= MAX_PALETTE_COLORS) {return;}
+    vizContColors = [...vizContColors, vizContColors[vizContColors.length - 1] ?? '#4285f4'];
+    vizContColorCount = vizContColors.length;
+    markPaletteCustom();
+  }
+
+  // ----------------------------------------------------------------
+  // VIZ EDITOR — CLASSIFICATION
+  // ----------------------------------------------------------------
+
+  /** `n` discrete colours from a scheme, cycling schemes and sampling ramps. */
+  function schemeColors(name, n) {
+    const discrete = CATEGORICAL_PALETTES.find(p => p.name === name);
+    if (discrete) {
+      return Array.from({ length: n }, (_, i) => normalizeHex(discrete.colors[i % discrete.colors.length]));
+    }
+    const ramp = CONTINUOUS_PALETTES.find(p => p.name === name);
+    return ramp ? sample(ramp.interpolate, n) : [];
+  }
+
+  function selectCatPalette(name) {
+    vizCatPaletteName = name;
+    const colors = schemeColors(name, vizCatRows.length);
+    if (colors.length === 0) {return;}
+    vizCatRows = vizCatRows.map((row, i) => ({ ...row, color: colors[i] }));
+  }
+
+  /** Reads back the class values actually drawn in the current viewport. */
+  function autoDetectClasses() {
+    vizCatNotice = '';
+    if (!vizCatBand) {
+      vizCatNotice = 'Select a band first.';
+      return;
+    }
+    const b = map.getBounds();
+    vizCatDetecting = true;
+    vscode.postMessage({
+      type: 'computeClasses',
+      data: {
+        layerIndex: vizLayerIndex,
+        band: vizCatBand,
+        bounds: [b.getSouth(), b.getWest(), b.getNorth(), b.getEast()],
+        scale: viewportScale(),
+      },
+    });
+  }
+
+  function applyDetectedClasses(values, truncated) {
+    if (values.length === 0) {
+      vizCatNotice = 'No classes found in the visible area.';
+      return;
+    }
+    const scheme = vizCatPaletteName || CATEGORICAL_PALETTES[0].name;
+    vizCatPaletteName = scheme;
+    const colors = schemeColors(scheme, values.length);
+    vizCatRows = values.map((value, i) => ({
+      color: colors[i],
+      value: String(value),
+      label: 'Class ' + value,
+    }));
+    vizCatNotice = truncated ? `Showing the ${values.length} most frequent classes.` : '';
   }
 
   function vizAddCatRow() {
@@ -703,35 +1051,6 @@
 
   function vizRemoveCatRow(idx) {
     vizCatRows = vizCatRows.filter((_, i) => i !== idx);
-  }
-
-  function autoFillMinMax(minMax) {
-    if (vizType === 'continuous') {
-      if (vizContBand && minMax[vizContBand]) {
-        if (!vizContMin) {vizContMin = String(minMax[vizContBand].min);}
-        if (!vizContMax) {vizContMax = String(minMax[vizContBand].max);}
-      }
-    } else if (vizType === 'rgb') {
-      const bands = [vizRgbR, vizRgbG, vizRgbB];
-      const mins = [vizRgbRMin, vizRgbGMin, vizRgbBMin];
-      const maxs = [vizRgbRMax, vizRgbGMax, vizRgbBMax];
-      bands.forEach((b, i) => {
-        if (b && minMax[b]) {
-          if (!mins[i]) { if (i === 0) {vizRgbRMin = String(minMax[b].min);} else if (i === 1) {vizRgbGMin = String(minMax[b].min);} else {vizRgbBMin = String(minMax[b].min);} }
-          if (!maxs[i]) { if (i === 0) {vizRgbRMax = String(minMax[b].max);} else if (i === 1) {vizRgbGMax = String(minMax[b].max);} else {vizRgbBMax = String(minMax[b].max);} }
-        }
-      });
-    } else if (vizType === 'hsv') {
-      const bands = [vizHsvH, vizHsvS, vizHsvV];
-      const mins = [vizHsvHMin, vizHsvSMin, vizHsvVMin];
-      const maxs = [vizHsvHMax, vizHsvSMax, vizHsvVMax];
-      bands.forEach((b, i) => {
-        if (b && minMax[b]) {
-          if (!mins[i]) { if (i === 0) {vizHsvHMin = String(minMax[b].min);} else if (i === 1) {vizHsvSMin = String(minMax[b].min);} else {vizHsvVMin = String(minMax[b].min);} }
-          if (!maxs[i]) { if (i === 0) {vizHsvHMax = String(minMax[b].max);} else if (i === 1) {vizHsvSMax = String(minMax[b].max);} else {vizHsvVMax = String(minMax[b].max);} }
-        }
-      });
-    }
   }
 
   // ----------------------------------------------------------------
@@ -795,12 +1114,28 @@
       vizBands = msg.data.bands || [];
       vizPresets = msg.data.presets || [];
       applyVisParams(msg.data.currentVisParams || {});
+      vizOpacityOriginal = clampOpacityPercent((msg.data.opacity ?? 1) * 100);
+      vizOpacity = vizOpacityOriginal;
+      vizStretch = 'custom';
+      vizStretchError = '';
       vizVisible = true;
-    } else if (msg.type === 'vizMinMax') {
-      vizComputing = false;
-      if (msg.data.layerIndex === vizLayerIndex && msg.data.minMax) {
-        vizMinMaxData = msg.data.minMax;
-        autoFillMinMax(msg.data.minMax);
+    } else if (msg.type === 'vizStretch') {      vizComputing = false;
+      if (msg.data.layerIndex === vizLayerIndex) {
+        if (msg.data.ranges) {
+          applyStretchResult(msg.data.ranges);
+        } else {
+          vizStretchError = msg.data.error || 'Stretch computation failed.';
+          vizStretch = 'custom';
+        }
+      }
+    } else if (msg.type === 'vizClasses') {
+      vizCatDetecting = false;
+      if (msg.data.layerIndex === vizLayerIndex) {
+        if (msg.data.values) {
+          applyDetectedClasses(msg.data.values, msg.data.truncated === true);
+        } else {
+          vizCatNotice = msg.data.error || 'Class detection failed.';
+        }
       }
     } else if (msg.type === 'replaceTileLayer') {
       const d = msg.data;
@@ -1040,6 +1375,50 @@
 </div>
 
 <!-- VIZ EDITOR OVERLAY -->
+{#snippet stretchRow()}
+  <div class="viz-channel-row">
+    <span class="viz-channel-label">Range</span>
+    <select class="viz-band-select" disabled={vizComputing}
+      value={vizStretch} onchange={(e) => applyStretch(e.target.value)}>
+      {#each STRETCH_MODES as mode}
+        <option value={mode.id}>{mode.label}</option>
+      {/each}
+    </select>
+    {#if vizComputing}
+      <span class="viz-stretch-status">
+        <svg class="mdi-spin" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" fill="currentColor"><path d={mdiLoading}/></svg>
+      </span>
+    {/if}
+  </div>
+  {#if vizStretchError}
+    <p class="viz-stretch-error">{vizStretchError}</p>
+  {/if}
+{/snippet}
+
+{#snippet paletteSelect(current, open, groups, discrete, toggle, pick)}
+  <div class="viz-palette-select">
+    <button type="button" class="viz-palette-trigger" onclick={toggle}>
+      <span class="viz-palette-current">{current || 'Custom…'}</span>
+      <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" fill="currentColor"><path d={mdiChevronDown}/></svg>
+    </button>
+    {#if open}
+      <div class="viz-palette-backdrop" role="presentation" onclick={toggle}></div>
+      <div class="viz-palette-menu" use:anchorMenu>
+        {#each groups as group}
+          <div class="viz-palette-group">{group.label}</div>
+          {#each group.items as pal}
+            <button type="button" class="viz-palette-option" class:selected={pal.name === current}
+              onclick={() => pick(pal.name)}>
+              <span class="viz-palette-option-name">{pal.name}</span>
+              <span class="viz-palette-strip" style="background:{palettePreview(pal, discrete)}"></span>
+            </button>
+          {/each}
+        {/each}
+      </div>
+    {/if}
+  </div>
+{/snippet}
+
 {#if vizVisible}
 <div class="viz-editor-overlay visible">
   <div class="viz-editor-dialog">
@@ -1074,8 +1453,8 @@
             <option value="">—</option>
             {#each vizBands as b}<option value={b}>{b}</option>{/each}
           </select>
-          <input class="viz-input" placeholder="Min" bind:value={vizRgbRMin} />
-          <input class="viz-input" placeholder="Max" bind:value={vizRgbRMax} />
+          <input class="viz-input" placeholder="Min" bind:value={vizRgbRMin} oninput={markRangeCustom} />
+          <input class="viz-input" placeholder="Max" bind:value={vizRgbRMax} oninput={markRangeCustom} />
         </div>
         <div class="viz-channel-row">
           <span class="viz-channel-label">Green</span>
@@ -1083,8 +1462,8 @@
             <option value="">—</option>
             {#each vizBands as b}<option value={b}>{b}</option>{/each}
           </select>
-          <input class="viz-input" placeholder="Min" bind:value={vizRgbGMin} />
-          <input class="viz-input" placeholder="Max" bind:value={vizRgbGMax} />
+          <input class="viz-input" placeholder="Min" bind:value={vizRgbGMin} oninput={markRangeCustom} />
+          <input class="viz-input" placeholder="Max" bind:value={vizRgbGMax} oninput={markRangeCustom} />
         </div>
         <div class="viz-channel-row">
           <span class="viz-channel-label">Blue</span>
@@ -1092,16 +1471,19 @@
             <option value="">—</option>
             {#each vizBands as b}<option value={b}>{b}</option>{/each}
           </select>
-          <input class="viz-input" placeholder="Min" bind:value={vizRgbBMin} />
-          <input class="viz-input" placeholder="Max" bind:value={vizRgbBMax} />
+          <input class="viz-input" placeholder="Min" bind:value={vizRgbBMin} oninput={markRangeCustom} />
+          <input class="viz-input" placeholder="Max" bind:value={vizRgbBMax} oninput={markRangeCustom} />
         </div>
+        {@render stretchRow()}
         <div class="viz-channel-row">
           <span class="viz-channel-label">Gamma</span>
-          <input class="viz-input" placeholder="1" bind:value={vizRgbGamma} />
+          <input type="range" class="viz-range" min="0.1" max="5" step="0.1"
+            value={vizRgbGamma}
+            oninput={(e) => setVizGamma(e.target.value)} />
+          <input type="number" class="viz-input viz-range-value" min="0.1" max="5" step="0.1"
+            value={vizRgbGamma}
+            oninput={(e) => setVizGamma(e.target.value)} />
         </div>
-        <button class="viz-btn viz-btn-secondary viz-compute-btn" disabled={vizComputing} onclick={vizComputeMinMax}>
-          {vizComputing ? 'Computing…' : 'Compute min/max'}
-        </button>
       {/if}
       <!-- HSV -->
       {#if vizType === 'hsv'}
@@ -1111,8 +1493,8 @@
             <option value="">—</option>
             {#each vizBands as b}<option value={b}>{b}</option>{/each}
           </select>
-          <input class="viz-input" placeholder="Min" bind:value={vizHsvHMin} />
-          <input class="viz-input" placeholder="Max" bind:value={vizHsvHMax} />
+          <input class="viz-input" placeholder="Min" bind:value={vizHsvHMin} oninput={markRangeCustom} />
+          <input class="viz-input" placeholder="Max" bind:value={vizHsvHMax} oninput={markRangeCustom} />
         </div>
         <div class="viz-channel-row">
           <span class="viz-channel-label">Saturation</span>
@@ -1120,8 +1502,8 @@
             <option value="">—</option>
             {#each vizBands as b}<option value={b}>{b}</option>{/each}
           </select>
-          <input class="viz-input" placeholder="Min" bind:value={vizHsvSMin} />
-          <input class="viz-input" placeholder="Max" bind:value={vizHsvSMax} />
+          <input class="viz-input" placeholder="Min" bind:value={vizHsvSMin} oninput={markRangeCustom} />
+          <input class="viz-input" placeholder="Max" bind:value={vizHsvSMax} oninput={markRangeCustom} />
         </div>
         <div class="viz-channel-row">
           <span class="viz-channel-label">Value</span>
@@ -1129,12 +1511,10 @@
             <option value="">—</option>
             {#each vizBands as b}<option value={b}>{b}</option>{/each}
           </select>
-          <input class="viz-input" placeholder="Min" bind:value={vizHsvVMin} />
-          <input class="viz-input" placeholder="Max" bind:value={vizHsvVMax} />
+          <input class="viz-input" placeholder="Min" bind:value={vizHsvVMin} oninput={markRangeCustom} />
+          <input class="viz-input" placeholder="Max" bind:value={vizHsvVMax} oninput={markRangeCustom} />
         </div>
-        <button class="viz-btn viz-btn-secondary viz-compute-btn" disabled={vizComputing} onclick={vizComputeMinMax}>
-          {vizComputing ? 'Computing…' : 'Compute min/max'}
-        </button>
+        {@render stretchRow()}
       {/if}
       <!-- Continuous -->
       {#if vizType === 'continuous'}
@@ -1144,24 +1524,43 @@
             <option value="">—</option>
             {#each vizBands as b}<option value={b}>{b}</option>{/each}
           </select>
-          <input class="viz-input" placeholder="Min" bind:value={vizContMin} />
-          <input class="viz-input" placeholder="Max" bind:value={vizContMax} />
+          <input class="viz-input" placeholder="Min" bind:value={vizContMin} oninput={markRangeCustom} />
+          <input class="viz-input" placeholder="Max" bind:value={vizContMax} oninput={markRangeCustom} />
         </div>
-        <button class="viz-btn viz-btn-secondary viz-compute-btn" disabled={vizComputing} onclick={vizComputeMinMax}>
-          {vizComputing ? 'Computing…' : 'Compute min/max'}
-        </button>
+        {@render stretchRow()}
         <div class="viz-section-label">Palette</div>
-        <div class="viz-palette-grid">
-          {#each CONTINUOUS_PALETTES as pal}
-            <div class="viz-palette-item" class:selected={vizSelectedPalette === pal}
-              title={pal.name} role="option" aria-selected={vizSelectedPalette === pal} tabindex="0"
-              onclick={() => vizSelectPalette(pal)}
-              onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); vizSelectPalette(pal); } }}>
-              <div class="viz-palette-bar" style="background:linear-gradient(to right, {pal.colors.join(', ')})"></div>
-              <span class="viz-palette-name">{pal.name}</span>
-            </div>
-          {/each}
+        <div class="viz-channel-row">
+          <span class="viz-channel-label">Colours</span>
+          <input type="number" class="viz-input" min={MIN_PALETTE_COLORS} max={MAX_PALETTE_COLORS} step="1"
+            value={vizContColorCount}
+            oninput={(e) => setContColorCount(e.target.value)} />
+          {@render paletteSelect(
+            vizContPaletteName, vizContPaletteOpen, CONTINUOUS_PALETTE_GROUPS, false,
+            () => { vizContPaletteOpen = !vizContPaletteOpen; },
+            (name) => { vizContPaletteOpen = false; selectContPalette(name); })}
         </div>
+        {#if vizContColors.length > 0}
+          <div class="viz-ramp-preview" style="background:{paletteGradient(vizContColors)}"></div>
+          <div class="viz-legend">
+            {#each vizContColors as color, i}
+              <div class="viz-legend-row">
+                <input type="color" class="viz-legend-color"
+                  bind:value={vizContColors[i]} oninput={markPaletteCustom} />
+                <span class="viz-legend-index">{i + 1}</span>
+                <span class="viz-legend-hex">{color}</span>
+                <button class="map-btn viz-legend-del" title="Remove colour"
+                  disabled={vizContColors.length <= MIN_PALETTE_COLORS}
+                  onclick={() => removeContColor(i)}>
+                  <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" fill="currentColor"><path d={mdiTrashCan}/></svg>
+                </button>
+              </div>
+            {/each}
+          </div>
+        {:else}
+          <p class="viz-ramp-hint">Pick a preset to build the colour ramp.</p>
+        {/if}
+        <button class="viz-btn viz-btn-secondary viz-legend-add"
+          disabled={vizContColors.length >= MAX_PALETTE_COLORS} onclick={addContColor}>+ Add colour</button>
       {/if}
       <!-- Categorical -->
       {#if vizType === 'categorical'}
@@ -1172,38 +1571,85 @@
             {#each vizBands as b}<option value={b}>{b}</option>{/each}
           </select>
         </div>
-        <div class="viz-section-label">Colour scheme</div>
-        <div class="viz-palette-grid">
-          {#each CATEGORICAL_PALETTES as pal}
-            <div class="viz-palette-item" class:selected={vizSelectedPalette === pal}
-              title={pal.name} role="option" aria-selected={vizSelectedPalette === pal} tabindex="0"
-              onclick={() => vizSelectPalette(pal)}
-              onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); vizSelectPalette(pal); } }}>
-              <div class="viz-palette-bar" style="background:linear-gradient(to right, {pal.colors.join(', ')})"></div>
-              <span class="viz-palette-name">{pal.name}</span>
-            </div>
-          {/each}
+        <div class="viz-section-label">Classes</div>
+        <div class="viz-channel-row">
+          <span class="viz-channel-label">Scheme</span>
+          {@render paletteSelect(
+            vizCatPaletteName, vizCatPaletteOpen, CATEGORICAL_PALETTE_GROUPS, true,
+            () => { vizCatPaletteOpen = !vizCatPaletteOpen; },
+            (name) => { vizCatPaletteOpen = false; selectCatPalette(name); })}
+          <button class="viz-btn viz-btn-secondary" disabled={vizCatDetecting} onclick={autoDetectClasses}
+            title="Replace the legend with the classes present in the visible area">
+            {vizCatDetecting ? 'Detecting…' : 'Detect'}
+          </button>
         </div>
-        <div class="viz-section-label">Legend</div>
-        <div class="viz-cat-legend">
+        {#if vizCatNotice}
+          <p class="viz-stretch-error">{vizCatNotice}</p>
+        {/if}
+        {#if vizCatRows.length > 0}
+          <div class="viz-ramp-preview" style="background:{paletteBlocks(vizCatRows.map((r) => normalizeHex(r.color)))}"></div>
+        {/if}
+        <div class="viz-legend">
           {#each vizCatRows as row, i}
-            <div class="viz-cat-row">
-              <input type="color" class="viz-cat-color" bind:value={row.color} />
-              <input type="number" class="viz-cat-value" placeholder="Value" bind:value={row.value} />
-              <input type="text" class="viz-cat-label-input" placeholder="Label" bind:value={row.label} />
-              <button class="map-btn viz-cat-del" title="Remove class" onclick={() => vizRemoveCatRow(i)}>
+            <div class="viz-legend-row">
+              <input type="color" class="viz-legend-color" bind:value={row.color}
+                oninput={() => { vizCatPaletteName = ''; }} />
+              <input type="number" class="viz-legend-value" placeholder="Value" bind:value={row.value} />
+              <input type="text" class="viz-legend-name" placeholder="Name" bind:value={row.label} />
+              <button class="map-btn viz-legend-del" title="Remove class" onclick={() => vizRemoveCatRow(i)}>
                 <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" fill="currentColor"><path d={mdiTrashCan}/></svg>
               </button>
             </div>
           {/each}
         </div>
-        <button class="viz-btn viz-btn-secondary viz-cat-add" onclick={vizAddCatRow}>+ Add class</button>
+        <button class="viz-btn viz-btn-secondary viz-legend-add" onclick={vizAddCatRow}>+ Add class</button>
       {/if}
+    </div>
+    <!-- Opacity (all viz types) -->
+    <div class="viz-opacity-bar">
+      <span class="viz-channel-label">Opacity</span>
+      <input type="range" class="viz-range" min="0" max="100" step="1"
+        value={vizOpacity}
+        oninput={(e) => setVizOpacity(e.target.value)} />
+      <input type="number" class="viz-input viz-range-value" min="0" max="100" step="1"
+        value={vizOpacity}
+        oninput={(e) => setVizOpacity(e.target.value)} />
+      <span class="viz-opacity-unit">%</span>
     </div>
     <!-- Footer -->
     <div class="viz-editor-footer">
+      <button class="viz-btn viz-btn-secondary viz-btn-code" title="Show these parameters as JSON"
+        onclick={() => { vizCodeVisible = true; }}>
+        <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" fill="currentColor"><path d={mdiCodeTags}/></svg>
+        JSON
+      </button>
       <button class="viz-btn viz-btn-secondary" onclick={vizClose}>Cancel</button>
       <button class="viz-btn viz-btn-primary" onclick={vizApply}>Apply</button>
+    </div>
+  </div>
+</div>
+{/if}
+
+<!-- VIZ PARAMETERS AS JSON -->
+{#if vizCodeVisible}
+<div class="viz-editor-overlay visible viz-code-overlay">
+  <div class="viz-editor-dialog viz-code-dialog">
+    <div class="viz-editor-header">
+      <span>Python visualization parameters</span>
+      <button class="map-btn viz-close-btn" title="Close" onclick={() => { vizCodeVisible = false; }}>
+        <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" fill="currentColor"><path d={mdiClose}/></svg>
+      </button>
+    </div>
+    <div class="viz-editor-body">
+      <div class="viz-code-wrap">
+        <button class="map-btn viz-code-copy" title={vizCodeCopied ? 'Copied' : 'Copy'} onclick={copyVizJson}>
+          <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" fill="currentColor"><path d={vizCodeCopied ? mdiCheck : mdiContentCopy}/></svg>
+        </button>
+        <pre class="viz-code-block">{#each vizJsonTokens as token}<span class="json-{token.kind}">{token.text}</span>{/each}</pre>
+      </div>
+    </div>
+    <div class="viz-editor-footer">
+      <button class="viz-btn viz-btn-primary" onclick={() => { vizCodeVisible = false; }}>Close</button>
     </div>
   </div>
 </div>
@@ -1448,6 +1894,32 @@
     .viz-btn-primary { background: var(--vscode-button-background); color: var(--vscode-button-foreground); }
     .viz-btn-primary:hover { background: var(--vscode-button-hoverBackground); }
     .viz-btn-secondary { background: var(--vscode-button-secondaryBackground); color: var(--vscode-button-secondaryForeground); }
+    .viz-btn-code {
+      display: inline-flex; align-items: center; gap: var(--vscee-space-xs);
+      margin-right: auto; padding-inline: var(--vscee-space-md);
+    }
+    .viz-code-overlay { z-index: 2600; }
+    .viz-code-dialog { width: 520px; }
+    .viz-code-wrap {
+      position: relative;
+
+      .viz-code-copy { position: absolute; top: var(--vscee-space-xs); right: var(--vscee-space-xs); width: 24px; height: 24px; }
+    }
+    .viz-code-block {
+      font-family: var(--vscode-editor-font-family, monospace);
+      font-size: var(--vscee-font-compact-sm); line-height: 1.5;
+      white-space: pre; overflow-x: auto; tab-size: 4;
+      color: var(--vscode-editor-foreground); background: var(--vscode-textCodeBlock-background);
+      border: var(--vscee-border-sm) solid var(--vscode-widget-border);
+      border-radius: var(--vscee-radius-md); padding: var(--vscee-space-md);
+      padding-right: calc(var(--vscee-space-md) + 24px);
+
+      .json-key { color: var(--vscode-debugTokenExpression-name, var(--vscode-charts-blue)); }
+      .json-str { color: var(--vscode-debugTokenExpression-string, var(--vscode-charts-orange)); }
+      .json-num { color: var(--vscode-debugTokenExpression-number, var(--vscode-charts-green)); }
+      .json-bool { color: var(--vscode-debugTokenExpression-boolean, var(--vscode-charts-purple)); }
+      .json-punct { color: var(--vscode-descriptionForeground); }
+    }
     .viz-section-label {
       font-size: var(--vscee-font-compact-xs); font-weight: 600; color: var(--vscode-descriptionForeground);
       text-transform: uppercase; margin: var(--vscee-space-lg) 0 var(--vscee-space-xs);
@@ -1462,28 +1934,94 @@
       width: 60px; background: var(--vscode-input-background); color: var(--vscode-input-foreground);
       border: var(--vscee-border-sm) solid var(--vscode-input-border); border-radius: var(--vscee-radius-md); font-size: var(--vscee-font-compact-sm); padding: var(--vscee-space-xxs) var(--vscee-space-xs);
     }
-    .viz-compute-btn { margin-top: var(--vscee-space-xs); }
-    .viz-palette-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--vscee-space-xs); margin-top: var(--vscee-space-xs); }
-    .viz-palette-item {
-      cursor: pointer; border: var(--vscee-border-sm) solid transparent; border-radius: var(--vscee-radius-md); padding: var(--vscee-space-xxs); text-align: center;
+    .viz-stretch-status { display: inline-flex; color: var(--vscode-descriptionForeground); }
+    .viz-stretch-error {
+      font-size: var(--vscee-font-compact-xs); color: var(--vscode-errorForeground);
+      margin-bottom: var(--vscee-space-sm);
     }
-    .viz-palette-item:hover { border-color: var(--vscode-focusBorder); }
-    .viz-palette-item.selected { border-color: var(--vscode-focusBorder); background: var(--vscode-list-hoverBackground); }
-    .viz-palette-bar { height: 10px; border-radius: var(--vscee-radius-sm); }
-    .viz-palette-name { font-size: var(--vscee-font-compact-xxs); color: var(--vscode-descriptionForeground); display: block; margin-top: var(--vscee-space-xxs); }
-    .viz-cat-legend { display: flex; flex-direction: column; gap: var(--vscee-space-xs); max-height: 200px; overflow-y: auto; }
-    .viz-cat-row { display: flex; align-items: center; gap: var(--vscee-space-xs); }
-    .viz-cat-color { width: 28px; height: 22px; border: none; padding: 0; cursor: pointer; border-radius: var(--vscee-radius-md); }
-    .viz-cat-value {
+    .viz-ramp-preview {
+      height: 14px; border-radius: var(--vscee-radius-sm); margin-top: var(--vscee-space-xs);
+      border: var(--vscee-border-sm) solid var(--vscode-widget-border);
+    }
+    .viz-ramp-hint { font-size: var(--vscee-font-compact-xs); color: var(--vscode-descriptionForeground); margin-top: var(--vscee-space-xs); }
+    .viz-palette-select {
+      position: relative; flex: 1; min-width: 0;
+
+      .viz-palette-trigger {
+        display: flex; align-items: center; justify-content: space-between; gap: var(--vscee-space-xs);
+        width: 100%; cursor: pointer; text-align: left;
+        background: var(--vscode-dropdown-background); color: var(--vscode-dropdown-foreground);
+        border: var(--vscee-border-sm) solid var(--vscode-dropdown-border); border-radius: var(--vscee-radius-md);
+        font-size: var(--vscee-font-compact-sm); padding: var(--vscee-space-xxs) var(--vscee-space-xs);
+      }
+      .viz-palette-current { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      /* Swallows the next click so the menu closes when focus goes elsewhere. */
+      .viz-palette-backdrop { position: fixed; inset: 0; z-index: 3000; }
+      .viz-palette-menu {
+        position: fixed; z-index: 3001;
+        overflow-y: auto; padding: var(--vscee-space-xxs);
+        background: var(--vscode-dropdown-background);
+        border: var(--vscee-border-sm) solid var(--vscode-dropdown-border);
+        border-radius: var(--vscee-radius-md); box-shadow: 0 2px 8px rgb(0 0 0 / 40%);
+      }
+      .viz-palette-group {
+        font-size: var(--vscee-font-compact-xxs); font-weight: 600; text-transform: uppercase;
+        color: var(--vscode-descriptionForeground);
+        padding: var(--vscee-space-xs) var(--vscee-space-xs) var(--vscee-space-xxs);
+      }
+      .viz-palette-option {
+        display: flex; flex-direction: column; gap: 2px; width: 100%; cursor: pointer; text-align: left;
+        background: transparent; border: none; color: var(--vscode-dropdown-foreground);
+        padding: var(--vscee-space-xxs) var(--vscee-space-xs); border-radius: var(--vscee-radius-sm);
+
+        &:hover { background: var(--vscode-list-hoverBackground); }
+        &.selected { background: var(--vscode-list-activeSelectionBackground); color: var(--vscode-list-activeSelectionForeground); }
+      }
+      .viz-palette-option-name { font-size: var(--vscee-font-compact-sm); }
+      .viz-palette-strip { display: block; height: 8px; border-radius: var(--vscee-radius-sm); }
+    }
+    .viz-legend {
+      display: flex; flex-direction: column; gap: var(--vscee-space-xxs);
+      max-height: 220px; overflow-y: auto; margin-top: var(--vscee-space-xs);
+    }
+    .viz-legend-row {
+      display: flex; align-items: center; gap: var(--vscee-space-xxs);
+      padding: var(--vscee-space-xxs); border-radius: var(--vscee-radius-sm);
+      background: var(--vscode-editorWidget-background);
+    }
+    .viz-legend-color { width: 28px; height: 22px; border: none; padding: 0; cursor: pointer; border-radius: var(--vscee-radius-md); flex-shrink: 0; }
+    .viz-legend-value {
       width: 50px; background: var(--vscode-input-background); color: var(--vscode-input-foreground);
       border: var(--vscee-border-sm) solid var(--vscode-input-border); border-radius: var(--vscee-radius-md); font-size: var(--vscee-font-compact-sm); padding: var(--vscee-space-xxs) var(--vscee-space-xs);
     }
-    .viz-cat-label-input {
+    .viz-legend-name {
       flex: 1; background: var(--vscode-input-background); color: var(--vscode-input-foreground);
       border: var(--vscee-border-sm) solid var(--vscode-input-border); border-radius: var(--vscee-radius-md); font-size: var(--vscee-font-compact-sm); padding: var(--vscee-space-xxs) var(--vscee-space-xs);
     }
-    .viz-cat-del { width: 22px; height: 22px; box-shadow: none; opacity: 0.5; }
-    .viz-cat-add { margin-top: var(--vscee-space-xs); align-self: flex-start; }
+    .viz-legend-index {
+      width: 50px; flex-shrink: 0; padding-left: var(--vscee-space-xs);
+      font-size: var(--vscee-font-compact-sm); color: var(--vscode-descriptionForeground);
+      font-variant-numeric: tabular-nums;
+    }
+    .viz-legend-hex {
+      flex: 1; font-family: var(--vscode-editor-font-family); font-size: var(--vscee-font-compact-sm);
+      color: var(--vscode-descriptionForeground);
+    }
+    .viz-legend-del {
+      width: 22px; height: 22px; box-shadow: none; opacity: 0.5;
+
+      &:disabled { opacity: 0.2; cursor: default; }
+    }
+    .viz-legend-add { margin-top: var(--vscee-space-xs); align-self: flex-start; }
+    .viz-range { flex: 1; min-width: 0; accent-color: var(--vscode-button-background); cursor: pointer; }
+    .viz-range-value { width: 56px; font-variant-numeric: tabular-nums; }
+    .viz-opacity-bar {
+      display: flex; align-items: center; gap: var(--vscee-space-sm);
+      padding: var(--vscee-space-md) var(--vscee-space-lg);
+      border-top: var(--vscee-border-sm) solid var(--vscode-widget-border);
+
+      .viz-opacity-unit { font-size: var(--vscee-font-compact-sm); color: var(--vscode-descriptionForeground); }
+    }
     @keyframes mdi-spin { to { transform: rotate(360deg); } }
     .mdi-spin { animation: mdi-spin 1s linear infinite; display: inline-block; vertical-align: middle; }
   }
