@@ -3,8 +3,8 @@
   import L from 'leaflet';
   import { vscode } from '../../shared/vscode.ts';
   import {
-    mdiAlertCircleOutline, mdiClose, mdiCrosshairsGps, mdiEye, mdiEyeOff, mdiLayers,
-    mdiLoading, mdiMap, mdiRuler, mdiSatelliteVariant, mdiTrashCan, mdiTune,
+    mdiAlertCircleOutline, mdiChevronDown, mdiClose, mdiCrosshairsGps, mdiEye, mdiEyeOff,
+    mdiLayers, mdiLoading, mdiMap, mdiRuler, mdiSatelliteVariant, mdiTrashCan, mdiTune,
   } from '../../shared/icons.ts';
   import {
     interpolateViridis, interpolateMagma, interpolatePlasma, interpolateInferno,
@@ -63,6 +63,17 @@
   const CONTINUOUS_PALETTES = [...SEQUENTIAL_PALETTES, ...DIVERGING_PALETTES];
   const MIN_PALETTE_COLORS = 2;
   const MAX_PALETTE_COLORS = 12;
+  const CONTINUOUS_PALETTE_GROUPS = [
+    { label: 'Sequential', items: SEQUENTIAL_PALETTES },
+    { label: 'Diverging', items: DIVERGING_PALETTES },
+  ];
+  const CATEGORICAL_PALETTE_GROUPS = [
+    { label: 'Categorical', items: CATEGORICAL_PALETTES },
+    ...CONTINUOUS_PALETTE_GROUPS,
+  ];
+  const PALETTE_PREVIEW_STOPS = 9;
+  const MENU_MAX_HEIGHT = 320;
+  const MENU_MIN_WIDTH = 220;
 
   // Range presets computed from the pixels currently visible on the map.
   const STRETCH_MODES = [
@@ -105,7 +116,6 @@
   let vizBands = $state([]);
   let vizPresets = $state([]);
   let vizType = $state('rgb');
-  let vizSelectedPalette = $state(null);
   // RGB fields
   let vizRgbR = $state('');
   let vizRgbG = $state('');
@@ -134,10 +144,15 @@
   // Colour ramp built from a preset resampled to `vizContColorCount` stops.
   let vizContColorCount = $state(7);
   let vizContPaletteName = $state('');
+  let vizContPaletteOpen = $state(false);
   let vizContColors = $state([]);
   // Categorical fields
   let vizCatBand = $state('');
   let vizCatRows = $state([]);
+  let vizCatPaletteName = $state('');
+  let vizCatPaletteOpen = $state(false);
+  let vizCatDetecting = $state(false);
+  let vizCatNotice = $state('');
   let vizComputing = $state(false);
   // Layer opacity in percent — shared by every viz type, previewed live.
   let vizOpacity = $state(100);
@@ -202,6 +217,47 @@
     if (!palette || palette.length === 0) {return 'linear-gradient(to right, #000, #fff)';}
     const colors = palette.map(c => c.startsWith('#') ? c : '#' + c);
     return 'linear-gradient(to right, ' + colors.join(', ') + ')';
+  }
+
+  /** Hard-edged bands, so a discrete scheme never reads as a smooth ramp. */
+  function paletteBlocks(colors) {
+    const step = 100 / colors.length;
+    return 'linear-gradient(to right, '
+      + colors.map((c, i) => `${c} ${i * step}% ${(i + 1) * step}%`).join(', ') + ')';
+  }
+
+  /** Preview strip shown under a palette name in the palette dropdown. */
+  function palettePreview(pal, discrete) {
+    if (pal.colors) {return paletteBlocks(pal.colors.map(normalizeHex));}
+    const colors = sample(pal.interpolate, PALETTE_PREVIEW_STOPS);
+    return discrete ? paletteBlocks(colors) : paletteGradient(colors);
+  }
+
+  /** Pins the palette menu to its trigger in viewport space, so the dialog cannot clip it. */
+  function anchorMenu(node) {
+    const place = () => {
+      const trigger = node.parentElement?.querySelector('.viz-palette-trigger');
+      if (!trigger) {return;}
+      const r = trigger.getBoundingClientRect();
+      const gap = 4;
+      const below = window.innerHeight - r.bottom - gap * 2;
+      const above = r.top - gap * 2;
+      const flipUp = below < Math.min(MENU_MAX_HEIGHT, above);
+      node.style.left = Math.round(r.left) + 'px';
+      node.style.width = Math.round(Math.max(r.width, MENU_MIN_WIDTH)) + 'px';
+      node.style.maxHeight = Math.round(Math.min(MENU_MAX_HEIGHT, flipUp ? above : below)) + 'px';
+      node.style.top = flipUp ? 'auto' : Math.round(r.bottom + gap) + 'px';
+      node.style.bottom = flipUp ? Math.round(window.innerHeight - r.top + gap) + 'px' : 'auto';
+    };
+    place();
+    window.addEventListener('resize', place);
+    window.addEventListener('scroll', place, true);
+    return {
+      destroy() {
+        window.removeEventListener('resize', place);
+        window.removeEventListener('scroll', place, true);
+      },
+    };
   }
 
   function fmtVal(v) {
@@ -615,12 +671,15 @@
       const values = vp.values || [];
       const n = Math.max(palette.length, values.length);
       vizCatRows = Array.from({ length: n }, (_, i) => ({
-        color: palette[i] || '#4285f4',
+        color: palette[i] ? normalizeHex(palette[i]) : '#4285f4',
         value: values[i] != null ? String(values[i]) : '',
         label: labels[i] || '',
       }));
+    } else {
+      vizCatRows = [];
     }
-    vizSelectedPalette = null;
+    vizCatPaletteName = '';
+    vizCatNotice = '';
   }
 
   function collectVisParams() {
@@ -780,18 +839,6 @@
     applyVisParams(vp);
   }
 
-  function vizSelectPalette(pal) {
-    vizSelectedPalette = pal;
-    if (pal.category === 'Categorical') {
-      const existing = [...vizCatRows];
-      vizCatRows = pal.colors.map((c, i) => ({
-        color: c,
-        value: existing[i]?.value ?? '',
-        label: existing[i]?.label ?? '',
-      }));
-    }
-  }
-
   /** `<input type="color">` only accepts a 6-digit `#rrggbb` value. */
   function normalizeHex(color) {
     let hex = String(color).trim();
@@ -822,6 +869,63 @@
   /** Editing a swatch detaches the ramp from its preset. */
   function markPaletteCustom() {
     vizContPaletteName = '';
+  }
+
+  // ----------------------------------------------------------------
+  // VIZ EDITOR — CLASSIFICATION
+  // ----------------------------------------------------------------
+
+  /** `n` discrete colours from a scheme, cycling schemes and sampling ramps. */
+  function schemeColors(name, n) {
+    const discrete = CATEGORICAL_PALETTES.find(p => p.name === name);
+    if (discrete) {
+      return Array.from({ length: n }, (_, i) => normalizeHex(discrete.colors[i % discrete.colors.length]));
+    }
+    const ramp = CONTINUOUS_PALETTES.find(p => p.name === name);
+    return ramp ? sample(ramp.interpolate, n) : [];
+  }
+
+  function selectCatPalette(name) {
+    vizCatPaletteName = name;
+    const colors = schemeColors(name, vizCatRows.length);
+    if (colors.length === 0) {return;}
+    vizCatRows = vizCatRows.map((row, i) => ({ ...row, color: colors[i] }));
+  }
+
+  /** Reads back the class values actually drawn in the current viewport. */
+  function autoDetectClasses() {
+    vizCatNotice = '';
+    if (!vizCatBand) {
+      vizCatNotice = 'Select a band first.';
+      return;
+    }
+    const b = map.getBounds();
+    vizCatDetecting = true;
+    vscode.postMessage({
+      type: 'computeClasses',
+      data: {
+        layerIndex: vizLayerIndex,
+        band: vizCatBand,
+        bounds: [b.getSouth(), b.getWest(), b.getNorth(), b.getEast()],
+        scale: viewportScale(),
+      },
+    });
+  }
+
+  function applyDetectedClasses(values, truncated) {
+    if (values.length === 0) {
+      vizCatNotice = 'No classes found in the visible area.';
+      return;
+    }
+    const scheme = vizCatPaletteName || CATEGORICAL_PALETTES[0].name;
+    vizCatPaletteName = scheme;
+    const colors = schemeColors(scheme, values.length);
+    vizCatRows = values.map((value, i) => ({
+      color: colors[i],
+      value: String(value),
+      label: 'Class ' + value,
+    }));
+    vizCatNotice = truncated ? `Showing the ${values.length} most frequent classes.` : '';
   }
 
   function vizAddCatRow() {
@@ -898,14 +1002,22 @@
       vizStretch = 'custom';
       vizStretchError = '';
       vizVisible = true;
-    } else if (msg.type === 'vizStretch') {
-      vizComputing = false;
+    } else if (msg.type === 'vizStretch') {      vizComputing = false;
       if (msg.data.layerIndex === vizLayerIndex) {
         if (msg.data.ranges) {
           applyStretchResult(msg.data.ranges);
         } else {
           vizStretchError = msg.data.error || 'Stretch computation failed.';
           vizStretch = 'custom';
+        }
+      }
+    } else if (msg.type === 'vizClasses') {
+      vizCatDetecting = false;
+      if (msg.data.layerIndex === vizLayerIndex) {
+        if (msg.data.values) {
+          applyDetectedClasses(msg.data.values, msg.data.truncated === true);
+        } else {
+          vizCatNotice = msg.data.error || 'Class detection failed.';
         }
       }
     } else if (msg.type === 'replaceTileLayer') {
@@ -1154,6 +1266,30 @@
   {/if}
 {/snippet}
 
+{#snippet paletteSelect(current, open, groups, discrete, toggle, pick)}
+  <div class="viz-palette-select">
+    <button type="button" class="viz-palette-trigger" onclick={toggle}>
+      <span class="viz-palette-current">{current || 'Custom…'}</span>
+      <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" fill="currentColor"><path d={mdiChevronDown}/></svg>
+    </button>
+    {#if open}
+      <div class="viz-palette-backdrop" role="presentation" onclick={toggle}></div>
+      <div class="viz-palette-menu" use:anchorMenu>
+        {#each groups as group}
+          <div class="viz-palette-group">{group.label}</div>
+          {#each group.items as pal}
+            <button type="button" class="viz-palette-option" class:selected={pal.name === current}
+              onclick={() => pick(pal.name)}>
+              <span class="viz-palette-option-name">{pal.name}</span>
+              <span class="viz-palette-strip" style="background:{palettePreview(pal, discrete)}"></span>
+            </button>
+          {/each}
+        {/each}
+      </div>
+    {/if}
+  </div>
+{/snippet}
+
 {#if vizVisible}
 <div class="viz-editor-overlay visible">
   <div class="viz-editor-dialog">
@@ -1269,16 +1405,10 @@
           <input type="number" class="viz-input" min={MIN_PALETTE_COLORS} max={MAX_PALETTE_COLORS} step="1"
             value={vizContColorCount}
             oninput={(e) => setContColorCount(e.target.value)} />
-          <select class="viz-band-select" value={vizContPaletteName}
-            onchange={(e) => selectContPalette(e.target.value)}>
-            <option value="">Custom…</option>
-            <optgroup label="Sequential">
-              {#each SEQUENTIAL_PALETTES as pal}<option value={pal.name}>{pal.name}</option>{/each}
-            </optgroup>
-            <optgroup label="Diverging">
-              {#each DIVERGING_PALETTES as pal}<option value={pal.name}>{pal.name}</option>{/each}
-            </optgroup>
-          </select>
+          {@render paletteSelect(
+            vizContPaletteName, vizContPaletteOpen, CONTINUOUS_PALETTE_GROUPS, false,
+            () => { vizContPaletteOpen = !vizContPaletteOpen; },
+            (name) => { vizContPaletteOpen = false; selectContPalette(name); })}
         </div>
         {#if vizContColors.length > 0}
           <div class="viz-ramp-preview" style="background:{paletteGradient(vizContColors)}"></div>
@@ -1305,25 +1435,28 @@
             {#each vizBands as b}<option value={b}>{b}</option>{/each}
           </select>
         </div>
-        <div class="viz-section-label">Colour scheme</div>
-        <div class="viz-palette-grid">
-          {#each CATEGORICAL_PALETTES as pal}
-            <div class="viz-palette-item" class:selected={vizSelectedPalette === pal}
-              title={pal.name} role="option" aria-selected={vizSelectedPalette === pal} tabindex="0"
-              onclick={() => vizSelectPalette(pal)}
-              onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); vizSelectPalette(pal); } }}>
-              <div class="viz-palette-bar" style="background:linear-gradient(to right, {pal.colors.join(', ')})"></div>
-              <span class="viz-palette-name">{pal.name}</span>
-            </div>
-          {/each}
+        <div class="viz-section-label">Classes</div>
+        <div class="viz-channel-row">
+          <span class="viz-channel-label">Scheme</span>
+          {@render paletteSelect(
+            vizCatPaletteName, vizCatPaletteOpen, CATEGORICAL_PALETTE_GROUPS, true,
+            () => { vizCatPaletteOpen = !vizCatPaletteOpen; },
+            (name) => { vizCatPaletteOpen = false; selectCatPalette(name); })}
+          <button class="viz-btn viz-btn-secondary" disabled={vizCatDetecting} onclick={autoDetectClasses}
+            title="Replace the legend with the classes present in the visible area">
+            {vizCatDetecting ? 'Detecting…' : 'Detect'}
+          </button>
         </div>
-        <div class="viz-section-label">Legend</div>
+        {#if vizCatNotice}
+          <p class="viz-stretch-error">{vizCatNotice}</p>
+        {/if}
         <div class="viz-cat-legend">
           {#each vizCatRows as row, i}
             <div class="viz-cat-row">
-              <input type="color" class="viz-cat-color" bind:value={row.color} />
+              <input type="color" class="viz-cat-color" bind:value={row.color}
+                oninput={() => { vizCatPaletteName = ''; }} />
               <input type="number" class="viz-cat-value" placeholder="Value" bind:value={row.value} />
-              <input type="text" class="viz-cat-label-input" placeholder="Label" bind:value={row.label} />
+              <input type="text" class="viz-cat-label-input" placeholder="Name" bind:value={row.label} />
               <button class="map-btn viz-cat-del" title="Remove class" onclick={() => vizRemoveCatRow(i)}>
                 <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" fill="currentColor"><path d={mdiTrashCan}/></svg>
               </button>
@@ -1578,19 +1711,47 @@
       font-size: var(--vscee-font-compact-xs); color: var(--vscode-errorForeground);
       margin-bottom: var(--vscee-space-sm);
     }
-    .viz-palette-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--vscee-space-xs); margin-top: var(--vscee-space-xs); }
-    .viz-palette-item {
-      cursor: pointer; border: var(--vscee-border-sm) solid transparent; border-radius: var(--vscee-radius-md); padding: var(--vscee-space-xxs); text-align: center;
-    }
-    .viz-palette-item:hover { border-color: var(--vscode-focusBorder); }
-    .viz-palette-item.selected { border-color: var(--vscode-focusBorder); background: var(--vscode-list-hoverBackground); }
-    .viz-palette-bar { height: 10px; border-radius: var(--vscee-radius-sm); }
-    .viz-palette-name { font-size: var(--vscee-font-compact-xxs); color: var(--vscode-descriptionForeground); display: block; margin-top: var(--vscee-space-xxs); }
     .viz-ramp-preview {
       height: 14px; border-radius: var(--vscee-radius-sm); margin-top: var(--vscee-space-xs);
       border: var(--vscee-border-sm) solid var(--vscode-widget-border);
     }
     .viz-ramp-hint { font-size: var(--vscee-font-compact-xs); color: var(--vscode-descriptionForeground); margin-top: var(--vscee-space-xs); }
+    .viz-palette-select {
+      position: relative; flex: 1; min-width: 0;
+
+      .viz-palette-trigger {
+        display: flex; align-items: center; justify-content: space-between; gap: var(--vscee-space-xs);
+        width: 100%; cursor: pointer; text-align: left;
+        background: var(--vscode-dropdown-background); color: var(--vscode-dropdown-foreground);
+        border: var(--vscee-border-sm) solid var(--vscode-dropdown-border); border-radius: var(--vscee-radius-md);
+        font-size: var(--vscee-font-compact-sm); padding: var(--vscee-space-xxs) var(--vscee-space-xs);
+      }
+      .viz-palette-current { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      /* Swallows the next click so the menu closes when focus goes elsewhere. */
+      .viz-palette-backdrop { position: fixed; inset: 0; z-index: 3000; }
+      .viz-palette-menu {
+        position: fixed; z-index: 3001;
+        overflow-y: auto; padding: var(--vscee-space-xxs);
+        background: var(--vscode-dropdown-background);
+        border: var(--vscee-border-sm) solid var(--vscode-dropdown-border);
+        border-radius: var(--vscee-radius-md); box-shadow: 0 2px 8px rgb(0 0 0 / 40%);
+      }
+      .viz-palette-group {
+        font-size: var(--vscee-font-compact-xxs); font-weight: 600; text-transform: uppercase;
+        color: var(--vscode-descriptionForeground);
+        padding: var(--vscee-space-xs) var(--vscee-space-xs) var(--vscee-space-xxs);
+      }
+      .viz-palette-option {
+        display: flex; flex-direction: column; gap: 2px; width: 100%; cursor: pointer; text-align: left;
+        background: transparent; border: none; color: var(--vscode-dropdown-foreground);
+        padding: var(--vscee-space-xxs) var(--vscee-space-xs); border-radius: var(--vscee-radius-sm);
+
+        &:hover { background: var(--vscode-list-hoverBackground); }
+        &.selected { background: var(--vscode-list-activeSelectionBackground); color: var(--vscode-list-activeSelectionForeground); }
+      }
+      .viz-palette-option-name { font-size: var(--vscee-font-compact-sm); }
+      .viz-palette-strip { display: block; height: 8px; border-radius: var(--vscee-radius-sm); }
+    }
     .viz-color-table {
       display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--vscee-space-xxs);
       margin-top: var(--vscee-space-xs);
@@ -1611,8 +1772,15 @@
         font-family: var(--vscode-editor-font-family); overflow: hidden; text-overflow: ellipsis;
       }
     }
-    .viz-cat-legend { display: flex; flex-direction: column; gap: var(--vscee-space-xs); max-height: 200px; overflow-y: auto; }
-    .viz-cat-row { display: flex; align-items: center; gap: var(--vscee-space-xs); }
+    .viz-cat-legend {
+      display: flex; flex-direction: column; gap: var(--vscee-space-xxs);
+      max-height: 220px; overflow-y: auto; margin-top: var(--vscee-space-xs);
+    }
+    .viz-cat-row {
+      display: flex; align-items: center; gap: var(--vscee-space-xxs);
+      padding: var(--vscee-space-xxs); border-radius: var(--vscee-radius-sm);
+      background: var(--vscode-editorWidget-background);
+    }
     .viz-cat-color { width: 28px; height: 22px; border: none; padding: 0; cursor: pointer; border-radius: var(--vscee-radius-md); }
     .viz-cat-value {
       width: 50px; background: var(--vscode-input-background); color: var(--vscode-input-foreground);

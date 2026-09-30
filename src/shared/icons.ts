@@ -4,6 +4,7 @@ export {
   mdiAlertCircleOutline,
   mdiClose,
   mdiChartTree,
+  mdiChevronDown,
   mdiCrosshairsGps,
   mdiEarth,
   mdiEye,

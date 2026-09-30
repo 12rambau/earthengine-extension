@@ -33,6 +33,9 @@ const PERCENTILE_BOUNDS: Record<string, [number, number]> = {
 /** Metres of slack allowed when intersecting the viewport with a footprint. */
 const STRETCH_ERROR_MARGIN = 1000;
 
+/** Upper bound on the classes `computeClasses` reports, keeping the legend usable. */
+const MAX_AUTO_CLASSES = 30;
+
 // ==================================================================
 // MAPLAYERMANAGER
 // ==================================================================
@@ -196,23 +199,19 @@ export class MapLayerManager {
   }
 
   /**
-   * Computes a display range for `bands` from the pixels inside `bounds`,
-   * mirroring the Code Editor stretch presets.
+   * Returns the image at `layerIndex` restricted to `bands`, together with the
+   * region where it overlaps the viewport.
    *
-   * @param mode - `sigma-1|2|3` (mean ± n·σ) or `percent-90|98|100`.
    * @param bounds - Viewport as `[south, west, north, east]` in degrees.
-   * @param scale - Metres per screen pixel at the current zoom.
    */
-  async computeStretch(
+  private async viewportTarget(
     layerIndex: number,
     bands: string[],
-    mode: string,
     bounds: [number, number, number, number],
-    scale: number,
-  ): Promise<Record<string, { min: number; max: number }>> {
+  ): Promise<{ image: any; region: unknown } | null> {
     const layer = this._layers.get(layerIndex);
     if (!layer || bands.length === 0) {
-      return {};
+      return null;
     }
     const ee = await ensureEe();
     const eeAny = ee as any;
@@ -230,16 +229,38 @@ export class MapLayerManager {
     const window = eeAny.Geometry.Rectangle([w, s, e, n], null, false);
     // Intersecting with the footprint keeps unbounded images from reducing
     // over empty space, which is what blows the response size up.
-    const region = window.intersection(image.geometry(), STRETCH_ERROR_MARGIN);
+    return { image, region: window.intersection(image.geometry(), STRETCH_ERROR_MARGIN) };
+  }
+
+  /**
+   * Computes a display range for `bands` from the pixels inside `bounds`,
+   * mirroring the Code Editor stretch presets.
+   *
+   * @param mode - `sigma-1|2|3` (mean ± n·σ) or `percent-90|98|100`.
+   * @param bounds - Viewport as `[south, west, north, east]` in degrees.
+   * @param scale - Metres per screen pixel at the current zoom.
+   */
+  async computeStretch(
+    layerIndex: number,
+    bands: string[],
+    mode: string,
+    bounds: [number, number, number, number],
+    scale: number,
+  ): Promise<Record<string, { min: number; max: number }>> {
+    const target = await this.viewportTarget(layerIndex, bands, bounds);
+    if (!target) {
+      return {};
+    }
+    const ee = await ensureEe();
 
     const isSigma = mode.startsWith('sigma-');
     const reducer = isSigma
       ? ee.Reducer.mean().combine({ reducer2: ee.Reducer.stdDev(), sharedInputs: true })
       : ee.Reducer.percentile(PERCENTILE_BOUNDS[mode] ?? [0, 100]);
 
-    const reduced = image.reduceRegion({
+    const reduced = target.image.reduceRegion({
       reducer,
-      geometry: region,
+      geometry: target.region,
       scale: Math.max(1, scale),
       bestEffort: true,
       maxPixels: 1e8,
@@ -270,6 +291,45 @@ export class MapLayerManager {
       }
     }
     return result;
+  }
+
+  /**
+   * Lists the distinct values of `band` present in the viewport, most frequent
+   * first, capped at `MAX_AUTO_CLASSES`.
+   *
+   * @param bounds - Viewport as `[south, west, north, east]` in degrees.
+   * @param scale - Metres per screen pixel at the current zoom.
+   */
+  async computeClasses(
+    layerIndex: number,
+    band: string,
+    bounds: [number, number, number, number],
+    scale: number,
+  ): Promise<{ values: number[]; truncated: boolean }> {
+    const target = await this.viewportTarget(layerIndex, [band], bounds);
+    if (!target) {
+      return { values: [], truncated: false };
+    }
+    const ee = await ensureEe();
+    const reduced = target.image.reduceRegion({
+      reducer: ee.Reducer.frequencyHistogram(),
+      geometry: target.region,
+      scale: Math.max(1, scale),
+      bestEffort: true,
+      maxPixels: 1e8,
+      tileScale: 4,
+    });
+    const result = await computeValue<Record<string, Record<string, number> | null>>(reduced);
+    const histogram = result?.[band] ?? {};
+
+    // Keep the dominant classes, then present them in value order.
+    const counted = Object.entries(histogram)
+      .map(([key, count]) => ({ value: Number(key), count: Number(count) }))
+      .filter((entry) => Number.isFinite(entry.value));
+    counted.sort((a, b) => b.count - a.count);
+    const kept = counted.slice(0, MAX_AUTO_CLASSES).map((entry) => entry.value);
+    kept.sort((a, b) => a - b);
+    return { values: kept, truncated: counted.length > MAX_AUTO_CLASSES };
   }
 
   /** Returns parsed SEPAL visualization presets for the image at `layerIndex`. */

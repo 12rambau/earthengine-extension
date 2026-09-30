@@ -68,6 +68,7 @@ declare module '@google/earthengine' {
     mean(): EeReducer;
     stdDev(): EeReducer;
     percentile(percentiles: number[]): EeReducer;
+    frequencyHistogram(): EeReducer;
     combine(params: Record<string, unknown>): EeReducer;
     [key: string]: unknown;
   }

@@ -168,6 +168,34 @@ export class MapPanel extends EditorPanel {
             },
           });
         }
+      } else if (msg.type === 'computeClasses') {
+        const d = msg.data as {
+          layerIndex: number;
+          band: string;
+          bounds: [number, number, number, number];
+          scale: number;
+        };
+        try {
+          const { values, truncated } = await this.layerManager.computeClasses(
+            d.layerIndex,
+            d.band,
+            d.bounds,
+            d.scale,
+          );
+          this.post({
+            type: 'vizClasses',
+            data: { layerIndex: d.layerIndex, values, truncated },
+          });
+        } catch (err) {
+          this.post({
+            type: 'vizClasses',
+            data: {
+              layerIndex: d.layerIndex,
+              values: null,
+              error: err instanceof Error ? err.message : String(err),
+            },
+          });
+        }
       } else if (msg.type === 'updateViz') {
         const d = msg.data as Record<string, unknown>;
         const layerIndex = d.layerIndex as number;
