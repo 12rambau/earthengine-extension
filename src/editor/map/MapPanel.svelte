@@ -949,6 +949,20 @@
     vizContPaletteName = '';
   }
 
+  function removeContColor(index) {
+    if (vizContColors.length <= MIN_PALETTE_COLORS) {return;}
+    vizContColors = vizContColors.filter((_, i) => i !== index);
+    vizContColorCount = vizContColors.length;
+    markPaletteCustom();
+  }
+
+  function addContColor() {
+    if (vizContColors.length >= MAX_PALETTE_COLORS) {return;}
+    vizContColors = [...vizContColors, vizContColors[vizContColors.length - 1] ?? '#4285f4'];
+    vizContColorCount = vizContColors.length;
+    markPaletteCustom();
+  }
+
   // ----------------------------------------------------------------
   // VIZ EDITOR — CLASSIFICATION
   // ----------------------------------------------------------------
@@ -1490,19 +1504,26 @@
         </div>
         {#if vizContColors.length > 0}
           <div class="viz-ramp-preview" style="background:{paletteGradient(vizContColors)}"></div>
-          <div class="viz-color-table">
+          <div class="viz-legend">
             {#each vizContColors as color, i}
-              <div class="viz-color-cell">
-                <span class="viz-color-index">{i + 1}</span>
-                <input type="color" class="viz-color-swatch"
+              <div class="viz-legend-row">
+                <input type="color" class="viz-legend-color"
                   bind:value={vizContColors[i]} oninput={markPaletteCustom} />
-                <span class="viz-color-hex">{color}</span>
+                <span class="viz-legend-index">{i + 1}</span>
+                <span class="viz-legend-hex">{color}</span>
+                <button class="map-btn viz-legend-del" title="Remove colour"
+                  disabled={vizContColors.length <= MIN_PALETTE_COLORS}
+                  onclick={() => removeContColor(i)}>
+                  <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" fill="currentColor"><path d={mdiTrashCan}/></svg>
+                </button>
               </div>
             {/each}
           </div>
         {:else}
           <p class="viz-ramp-hint">Pick a preset to build the colour ramp.</p>
         {/if}
+        <button class="viz-btn viz-btn-secondary viz-legend-add"
+          disabled={vizContColors.length >= MAX_PALETTE_COLORS} onclick={addContColor}>+ Add colour</button>
       {/if}
       <!-- Categorical -->
       {#if vizType === 'categorical'}
@@ -1528,20 +1549,23 @@
         {#if vizCatNotice}
           <p class="viz-stretch-error">{vizCatNotice}</p>
         {/if}
-        <div class="viz-cat-legend">
+        {#if vizCatRows.length > 0}
+          <div class="viz-ramp-preview" style="background:{paletteBlocks(vizCatRows.map((r) => normalizeHex(r.color)))}"></div>
+        {/if}
+        <div class="viz-legend">
           {#each vizCatRows as row, i}
-            <div class="viz-cat-row">
-              <input type="color" class="viz-cat-color" bind:value={row.color}
+            <div class="viz-legend-row">
+              <input type="color" class="viz-legend-color" bind:value={row.color}
                 oninput={() => { vizCatPaletteName = ''; }} />
-              <input type="number" class="viz-cat-value" placeholder="Value" bind:value={row.value} />
-              <input type="text" class="viz-cat-label-input" placeholder="Name" bind:value={row.label} />
-              <button class="map-btn viz-cat-del" title="Remove class" onclick={() => vizRemoveCatRow(i)}>
+              <input type="number" class="viz-legend-value" placeholder="Value" bind:value={row.value} />
+              <input type="text" class="viz-legend-name" placeholder="Name" bind:value={row.label} />
+              <button class="map-btn viz-legend-del" title="Remove class" onclick={() => vizRemoveCatRow(i)}>
                 <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" fill="currentColor"><path d={mdiTrashCan}/></svg>
               </button>
             </div>
           {/each}
         </div>
-        <button class="viz-btn viz-btn-secondary viz-cat-add" onclick={vizAddCatRow}>+ Add class</button>
+        <button class="viz-btn viz-btn-secondary viz-legend-add" onclick={vizAddCatRow}>+ Add class</button>
       {/if}
     </div>
     <!-- Opacity (all viz types) -->
@@ -1886,46 +1910,39 @@
       .viz-palette-option-name { font-size: var(--vscee-font-compact-sm); }
       .viz-palette-strip { display: block; height: 8px; border-radius: var(--vscee-radius-sm); }
     }
-    .viz-color-table {
-      display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--vscee-space-xxs);
-      margin-top: var(--vscee-space-xs);
-
-      .viz-color-cell {
-        display: flex; align-items: center; gap: var(--vscee-space-xxs);
-        padding: var(--vscee-space-xxs); border-radius: var(--vscee-radius-sm);
-        background: var(--vscode-editorWidget-background);
-      }
-      .viz-color-index {
-        width: 14px; flex-shrink: 0; text-align: right;
-        font-size: var(--vscee-font-compact-xxs); color: var(--vscode-descriptionForeground);
-        font-variant-numeric: tabular-nums;
-      }
-      .viz-color-swatch { width: 20px; height: 18px; border: none; padding: 0; cursor: pointer; border-radius: var(--vscee-radius-sm); flex-shrink: 0; }
-      .viz-color-hex {
-        font-size: var(--vscee-font-compact-xxs); color: var(--vscode-descriptionForeground);
-        font-family: var(--vscode-editor-font-family); overflow: hidden; text-overflow: ellipsis;
-      }
-    }
-    .viz-cat-legend {
+    .viz-legend {
       display: flex; flex-direction: column; gap: var(--vscee-space-xxs);
       max-height: 220px; overflow-y: auto; margin-top: var(--vscee-space-xs);
     }
-    .viz-cat-row {
+    .viz-legend-row {
       display: flex; align-items: center; gap: var(--vscee-space-xxs);
       padding: var(--vscee-space-xxs); border-radius: var(--vscee-radius-sm);
       background: var(--vscode-editorWidget-background);
     }
-    .viz-cat-color { width: 28px; height: 22px; border: none; padding: 0; cursor: pointer; border-radius: var(--vscee-radius-md); }
-    .viz-cat-value {
+    .viz-legend-color { width: 28px; height: 22px; border: none; padding: 0; cursor: pointer; border-radius: var(--vscee-radius-md); flex-shrink: 0; }
+    .viz-legend-value {
       width: 50px; background: var(--vscode-input-background); color: var(--vscode-input-foreground);
       border: var(--vscee-border-sm) solid var(--vscode-input-border); border-radius: var(--vscee-radius-md); font-size: var(--vscee-font-compact-sm); padding: var(--vscee-space-xxs) var(--vscee-space-xs);
     }
-    .viz-cat-label-input {
+    .viz-legend-name {
       flex: 1; background: var(--vscode-input-background); color: var(--vscode-input-foreground);
       border: var(--vscee-border-sm) solid var(--vscode-input-border); border-radius: var(--vscee-radius-md); font-size: var(--vscee-font-compact-sm); padding: var(--vscee-space-xxs) var(--vscee-space-xs);
     }
-    .viz-cat-del { width: 22px; height: 22px; box-shadow: none; opacity: 0.5; }
-    .viz-cat-add { margin-top: var(--vscee-space-xs); align-self: flex-start; }
+    .viz-legend-index {
+      width: 50px; flex-shrink: 0; padding-left: var(--vscee-space-xs);
+      font-size: var(--vscee-font-compact-sm); color: var(--vscode-descriptionForeground);
+      font-variant-numeric: tabular-nums;
+    }
+    .viz-legend-hex {
+      flex: 1; font-family: var(--vscode-editor-font-family); font-size: var(--vscee-font-compact-sm);
+      color: var(--vscode-descriptionForeground);
+    }
+    .viz-legend-del {
+      width: 22px; height: 22px; box-shadow: none; opacity: 0.5;
+
+      &:disabled { opacity: 0.2; cursor: default; }
+    }
+    .viz-legend-add { margin-top: var(--vscee-space-xs); align-self: flex-start; }
     .viz-range { flex: 1; min-width: 0; accent-color: var(--vscode-button-background); cursor: pointer; }
     .viz-range-value { width: 56px; font-variant-numeric: tabular-nums; }
     .viz-opacity-bar {
