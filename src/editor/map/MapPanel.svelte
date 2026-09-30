@@ -121,6 +121,8 @@
   let vizCatBand = $state('');
   let vizCatRows = $state([]);
   let vizComputing = $state(false);
+  // Layer opacity in percent — shared by every viz type, previewed live.
+  let vizOpacity = $state(100);
 
   // Internal refs
   let basemapTileLayers = {};
@@ -132,6 +134,8 @@
   let attributionTimer = null;
   let nativeLayerControl = null;
   let _sampleCanvas = null;
+  // Opacity the edited layer had when the dialog opened, restored on Cancel.
+  let vizOpacityOriginal = 100;
 
   // ----------------------------------------------------------------
   // DERIVED
@@ -353,7 +357,7 @@
 
   function setLayerOpacity(idx, val) {
     const entry = overlays[idx];
-    entry.opacity = val / 10;
+    entry.opacity = val / 100;
     entry.tileLayer.setOpacity(entry.opacity);
     overlays = overlays;
     vscode.postMessage({
@@ -634,11 +638,31 @@
   function vizApply() {
     const config = collectVisParams();
     if (!config) {return;}
-    vscode.postMessage({ type: 'updateViz', data: { layerIndex: vizLayerIndex, ...config } });
+    const opacity = clampOpacityPercent(vizOpacity) / 100;
+    vscode.postMessage({ type: 'updateViz', data: { layerIndex: vizLayerIndex, opacity, ...config } });
     vizVisible = false;
   }
 
-  function vizClose() { vizVisible = false; }
+  function vizClose() {
+    setVizOpacity(vizOpacityOriginal);
+    vizVisible = false;
+  }
+
+  function clampOpacityPercent(value) {
+    const n = Number(value);
+    if (!Number.isFinite(n)) {return 100;}
+    return Math.max(0, Math.min(100, Math.round(n)));
+  }
+
+  /** Applies an opacity percentage to the edited layer without leaving the dialog. */
+  function setVizOpacity(percent) {
+    vizOpacity = clampOpacityPercent(percent);
+    const entry = overlays.find(o => o.layerIndex === vizLayerIndex);
+    if (!entry) {return;}
+    entry.opacity = vizOpacity / 100;
+    entry.tileLayer.setOpacity(entry.opacity);
+    overlays = [...overlays];
+  }
 
   function vizComputeMinMax() {
     vizComputing = true;
@@ -770,6 +794,8 @@
       vizBands = msg.data.bands || [];
       vizPresets = msg.data.presets || [];
       applyVisParams(msg.data.currentVisParams || {});
+      vizOpacityOriginal = clampOpacityPercent((msg.data.opacity ?? 1) * 100);
+      vizOpacity = vizOpacityOriginal;
       vizVisible = true;
     } else if (msg.type === 'vizMinMax') {
       vizComputing = false;
@@ -887,8 +913,8 @@
         <div class="layer-row">
           <span class="layer-name" title={entry.name}>{entry.name}</span>
           <div class="layer-controls">
-            <input type="range" class="layer-opacity" min="0" max="10"
-              value={Math.round(entry.opacity * 10)}
+            <input type="range" class="layer-opacity" min="0" max="100"
+              value={Math.round(entry.opacity * 100)}
               oninput={(e) => setLayerOpacity(idx, Number(e.target.value))} />
             <button class="map-btn layer-vis-btn" class:active={entry.visible}
               title="Toggle visibility" onclick={() => toggleLayerVisibility(idx)}>
@@ -1163,6 +1189,17 @@
         <button class="viz-btn viz-btn-secondary viz-cat-add" onclick={vizAddCatRow}>+ Add class</button>
       {/if}
     </div>
+    <!-- Opacity (all viz types) -->
+    <div class="viz-opacity-bar">
+      <span class="viz-channel-label">Opacity</span>
+      <input type="range" class="viz-opacity-slider" min="0" max="100" step="1"
+        value={vizOpacity}
+        oninput={(e) => setVizOpacity(e.target.value)} />
+      <input type="number" class="viz-input viz-opacity-value" min="0" max="100" step="1"
+        value={vizOpacity}
+        oninput={(e) => setVizOpacity(e.target.value)} />
+      <span class="viz-opacity-unit">%</span>
+    </div>
     <!-- Footer -->
     <div class="viz-editor-footer">
       <button class="viz-btn viz-btn-secondary" onclick={vizClose}>Cancel</button>
@@ -1414,6 +1451,15 @@
     }
     .viz-cat-del { width: 22px; height: 22px; box-shadow: none; opacity: 0.5; }
     .viz-cat-add { margin-top: var(--vscee-space-xs); align-self: flex-start; }
+    .viz-opacity-bar {
+      display: flex; align-items: center; gap: var(--vscee-space-sm);
+      padding: var(--vscee-space-md) var(--vscee-space-lg);
+      border-top: var(--vscee-border-sm) solid var(--vscode-widget-border);
+
+      .viz-opacity-slider { flex: 1; min-width: 0; accent-color: var(--vscode-button-background); cursor: pointer; }
+      .viz-opacity-value { width: 56px; font-variant-numeric: tabular-nums; }
+      .viz-opacity-unit { font-size: var(--vscee-font-compact-sm); color: var(--vscode-descriptionForeground); }
+    }
     @keyframes mdi-spin { to { transform: rotate(360deg); } }
     .mdi-spin { animation: mdi-spin 1s linear infinite; display: inline-block; vertical-align: middle; }
   }

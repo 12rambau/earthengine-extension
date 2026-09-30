@@ -134,6 +134,7 @@ export class MapPanel extends EditorPanel {
             bands,
             presets,
             currentVisParams: layer?.visParams ?? {},
+            opacity: layer?.opacity ?? 1,
           },
         });
       } else if (msg.type === 'computeMinMax') {
@@ -147,6 +148,9 @@ export class MapPanel extends EditorPanel {
       } else if (msg.type === 'updateViz') {
         const d = msg.data as Record<string, unknown>;
         const layerIndex = d.layerIndex as number;
+        if (typeof d.opacity === 'number') {
+          this.layerManager.setLayerOpacity(layerIndex, d.opacity);
+        }
         try {
           await this.layerManager.updateLayer(layerIndex, d, (m) => this.post(m));
         } catch (err) {
