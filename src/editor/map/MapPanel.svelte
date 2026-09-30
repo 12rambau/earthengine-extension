@@ -25,30 +25,32 @@
   }
 
   function sample(fn, n) {
+    if (n < 2) {return [rgbToHex(fn(0.5))];}
     const colors = [];
     for (let i = 0; i < n; i++) {colors.push(rgbToHex(fn(i / (n - 1))));}
     return colors;
   }
 
-  const N = 10;
+  // Continuous ramps stay as interpolators so they can be resampled at any
+  // number of stops; categorical schemes are fixed discrete lists.
   const SEQUENTIAL_PALETTES = [
-    { name: 'Viridis', category: 'Sequential', colors: sample(interpolateViridis, N) },
-    { name: 'Magma', category: 'Sequential', colors: sample(interpolateMagma, N) },
-    { name: 'Plasma', category: 'Sequential', colors: sample(interpolatePlasma, N) },
-    { name: 'Inferno', category: 'Sequential', colors: sample(interpolateInferno, N) },
-    { name: 'Cividis', category: 'Sequential', colors: sample(interpolateCividis, N) },
-    { name: 'Turbo', category: 'Sequential', colors: sample(interpolateTurbo, N) },
-    { name: 'Greys', category: 'Sequential', colors: sample(interpolateGreys, N) },
-    { name: 'YlGnBu', category: 'Sequential', colors: sample(interpolateYlGnBu, N) },
-    { name: 'YlOrRd', category: 'Sequential', colors: sample(interpolateYlOrRd, N) },
+    { name: 'Viridis', category: 'Sequential', interpolate: interpolateViridis },
+    { name: 'Magma', category: 'Sequential', interpolate: interpolateMagma },
+    { name: 'Plasma', category: 'Sequential', interpolate: interpolatePlasma },
+    { name: 'Inferno', category: 'Sequential', interpolate: interpolateInferno },
+    { name: 'Cividis', category: 'Sequential', interpolate: interpolateCividis },
+    { name: 'Turbo', category: 'Sequential', interpolate: interpolateTurbo },
+    { name: 'Greys', category: 'Sequential', interpolate: interpolateGreys },
+    { name: 'YlGnBu', category: 'Sequential', interpolate: interpolateYlGnBu },
+    { name: 'YlOrRd', category: 'Sequential', interpolate: interpolateYlOrRd },
   ];
   const DIVERGING_PALETTES = [
-    { name: 'RdBu', category: 'Diverging', colors: sample(interpolateRdBu, N) },
-    { name: 'RdYlGn', category: 'Diverging', colors: sample(interpolateRdYlGn, N) },
-    { name: 'BrBG', category: 'Diverging', colors: sample(interpolateBrBG, N) },
-    { name: 'PiYG', category: 'Diverging', colors: sample(interpolatePiYG, N) },
-    { name: 'RdYlBu', category: 'Diverging', colors: sample(interpolateRdYlBu, N) },
-    { name: 'Spectral', category: 'Diverging', colors: sample(interpolateSpectral, N) },
+    { name: 'RdBu', category: 'Diverging', interpolate: interpolateRdBu },
+    { name: 'RdYlGn', category: 'Diverging', interpolate: interpolateRdYlGn },
+    { name: 'BrBG', category: 'Diverging', interpolate: interpolateBrBG },
+    { name: 'PiYG', category: 'Diverging', interpolate: interpolatePiYG },
+    { name: 'RdYlBu', category: 'Diverging', interpolate: interpolateRdYlBu },
+    { name: 'Spectral', category: 'Diverging', interpolate: interpolateSpectral },
   ];
   const CATEGORICAL_PALETTES = [
     { name: 'Category10', category: 'Categorical', colors: [...schemeCategory10] },
@@ -59,6 +61,8 @@
     { name: 'Dark2', category: 'Categorical', colors: [...schemeDark2] },
   ];
   const CONTINUOUS_PALETTES = [...SEQUENTIAL_PALETTES, ...DIVERGING_PALETTES];
+  const MIN_PALETTE_COLORS = 2;
+  const MAX_PALETTE_COLORS = 12;
 
   // Range presets computed from the pixels currently visible on the map.
   const STRETCH_MODES = [
@@ -127,6 +131,10 @@
   let vizContBand = $state('');
   let vizContMin = $state('');
   let vizContMax = $state('');
+  // Colour ramp built from a preset resampled to `vizContColorCount` stops.
+  let vizContColorCount = $state(7);
+  let vizContPaletteName = $state('');
+  let vizContColors = $state([]);
   // Categorical fields
   let vizCatBand = $state('');
   let vizCatRows = $state([]);
@@ -591,6 +599,13 @@
     if (bands.length >= 1) {vizContBand = bands[0];}
     vizContMin = minArr[0] != null ? String(minArr[0]) : '';
     vizContMax = maxArr[0] != null ? String(maxArr[0]) : '';
+    if (!isCat && Array.isArray(vp.palette) && vp.palette.length > 0) {
+      vizContColors = vp.palette.map(normalizeHex);
+      vizContColorCount = vizContColors.length;
+    } else {
+      vizContColors = [];
+    }
+    vizContPaletteName = '';
 
     // Categorical
     if (bands.length >= 1) {vizCatBand = bands[0];}
@@ -630,8 +645,13 @@
       const min = parseFloat(vizContMin);
       const max = parseFloat(vizContMax);
       if (!Number.isFinite(min) || !Number.isFinite(max)) {return null;}
-      const palette = vizSelectedPalette ? vizSelectedPalette.colors : [];
-      return { vizType: 'continuous', bands: [vizContBand], min: [min], max: [max], palette };
+      return {
+        vizType: 'continuous',
+        bands: [vizContBand],
+        min: [min],
+        max: [max],
+        palette: [...vizContColors],
+      };
     }
     if (vizType === 'categorical') {
       const values = [], labels = [], palette = [];
@@ -661,8 +681,7 @@
     vizVisible = false;
   }
 
-  /** Bands whose range the active viz type exposes, deduplicated. */
-  function stretchBands() {
+  /** Bands whose range the active viz type exposes, deduplicated. */  function stretchBands() {
     let bands = [];
     if (vizType === 'rgb') {bands = [vizRgbR, vizRgbG, vizRgbB];}
     else if (vizType === 'hsv') {bands = [vizHsvH, vizHsvS, vizHsvV];}
@@ -771,6 +790,38 @@
         label: existing[i]?.label ?? '',
       }));
     }
+  }
+
+  /** `<input type="color">` only accepts a 6-digit `#rrggbb` value. */
+  function normalizeHex(color) {
+    let hex = String(color).trim();
+    if (!hex.startsWith('#')) {hex = '#' + hex;}
+    if (hex.length === 4) {hex = '#' + hex.slice(1).split('').map(c => c + c).join('');}
+    return hex.slice(0, 7).toLowerCase();
+  }
+
+  function selectContPalette(name) {
+    vizContPaletteName = name;
+    const pal = CONTINUOUS_PALETTES.find(p => p.name === name);
+    if (pal) {vizContColors = sample(pal.interpolate, vizContColorCount);}
+  }
+
+  function setContColorCount(value) {
+    const n = Math.max(MIN_PALETTE_COLORS, Math.min(MAX_PALETTE_COLORS, Math.round(Number(value) || 0)));
+    vizContColorCount = n;
+    const pal = CONTINUOUS_PALETTES.find(p => p.name === vizContPaletteName);
+    if (pal) {
+      vizContColors = sample(pal.interpolate, n);
+    } else if (vizContColors.length > 0) {
+      // Hand-picked stops: keep the ends and drop or repeat the middle.
+      const last = vizContColors[vizContColors.length - 1];
+      vizContColors = Array.from({ length: n }, (_, i) => vizContColors[i] ?? last);
+    }
+  }
+
+  /** Editing a swatch detaches the ramp from its preset. */
+  function markPaletteCustom() {
+    vizContPaletteName = '';
   }
 
   function vizAddCatRow() {
@@ -1213,17 +1264,37 @@
         </div>
         {@render stretchRow()}
         <div class="viz-section-label">Palette</div>
-        <div class="viz-palette-grid">
-          {#each CONTINUOUS_PALETTES as pal}
-            <div class="viz-palette-item" class:selected={vizSelectedPalette === pal}
-              title={pal.name} role="option" aria-selected={vizSelectedPalette === pal} tabindex="0"
-              onclick={() => vizSelectPalette(pal)}
-              onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); vizSelectPalette(pal); } }}>
-              <div class="viz-palette-bar" style="background:linear-gradient(to right, {pal.colors.join(', ')})"></div>
-              <span class="viz-palette-name">{pal.name}</span>
-            </div>
-          {/each}
+        <div class="viz-channel-row">
+          <span class="viz-channel-label">Colours</span>
+          <input type="number" class="viz-input" min={MIN_PALETTE_COLORS} max={MAX_PALETTE_COLORS} step="1"
+            value={vizContColorCount}
+            oninput={(e) => setContColorCount(e.target.value)} />
+          <select class="viz-band-select" value={vizContPaletteName}
+            onchange={(e) => selectContPalette(e.target.value)}>
+            <option value="">Custom…</option>
+            <optgroup label="Sequential">
+              {#each SEQUENTIAL_PALETTES as pal}<option value={pal.name}>{pal.name}</option>{/each}
+            </optgroup>
+            <optgroup label="Diverging">
+              {#each DIVERGING_PALETTES as pal}<option value={pal.name}>{pal.name}</option>{/each}
+            </optgroup>
+          </select>
         </div>
+        {#if vizContColors.length > 0}
+          <div class="viz-ramp-preview" style="background:{paletteGradient(vizContColors)}"></div>
+          <div class="viz-color-table">
+            {#each vizContColors as color, i}
+              <div class="viz-color-cell">
+                <span class="viz-color-index">{i + 1}</span>
+                <input type="color" class="viz-color-swatch"
+                  bind:value={vizContColors[i]} oninput={markPaletteCustom} />
+                <span class="viz-color-hex">{color}</span>
+              </div>
+            {/each}
+          </div>
+        {:else}
+          <p class="viz-ramp-hint">Pick a preset to build the colour ramp.</p>
+        {/if}
       {/if}
       <!-- Categorical -->
       {#if vizType === 'categorical'}
@@ -1515,6 +1586,31 @@
     .viz-palette-item.selected { border-color: var(--vscode-focusBorder); background: var(--vscode-list-hoverBackground); }
     .viz-palette-bar { height: 10px; border-radius: var(--vscee-radius-sm); }
     .viz-palette-name { font-size: var(--vscee-font-compact-xxs); color: var(--vscode-descriptionForeground); display: block; margin-top: var(--vscee-space-xxs); }
+    .viz-ramp-preview {
+      height: 14px; border-radius: var(--vscee-radius-sm); margin-top: var(--vscee-space-xs);
+      border: var(--vscee-border-sm) solid var(--vscode-widget-border);
+    }
+    .viz-ramp-hint { font-size: var(--vscee-font-compact-xs); color: var(--vscode-descriptionForeground); margin-top: var(--vscee-space-xs); }
+    .viz-color-table {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--vscee-space-xxs);
+      margin-top: var(--vscee-space-xs);
+
+      .viz-color-cell {
+        display: flex; align-items: center; gap: var(--vscee-space-xxs);
+        padding: var(--vscee-space-xxs); border-radius: var(--vscee-radius-sm);
+        background: var(--vscode-editorWidget-background);
+      }
+      .viz-color-index {
+        width: 14px; flex-shrink: 0; text-align: right;
+        font-size: var(--vscee-font-compact-xxs); color: var(--vscode-descriptionForeground);
+        font-variant-numeric: tabular-nums;
+      }
+      .viz-color-swatch { width: 20px; height: 18px; border: none; padding: 0; cursor: pointer; border-radius: var(--vscee-radius-sm); flex-shrink: 0; }
+      .viz-color-hex {
+        font-size: var(--vscee-font-compact-xxs); color: var(--vscode-descriptionForeground);
+        font-family: var(--vscode-editor-font-family); overflow: hidden; text-overflow: ellipsis;
+      }
+    }
     .viz-cat-legend { display: flex; flex-direction: column; gap: var(--vscee-space-xs); max-height: 200px; overflow-y: auto; }
     .viz-cat-row { display: flex; align-items: center; gap: var(--vscee-space-xs); }
     .viz-cat-color { width: 28px; height: 22px; border: none; padding: 0; cursor: pointer; border-radius: var(--vscee-radius-md); }
