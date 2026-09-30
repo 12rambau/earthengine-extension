@@ -1,5 +1,31 @@
 # Changelog
 
+## [0.7.0](https://github.com/12rambau/earthengine-extension/compare/v0.6.11...v0.7.0) (2026-09-30)
+
+### Features
+
+- add a marker to the inspector ([67b8ef2](https://github.com/12rambau/earthengine-extension/commit/67b8ef25997998c6cce3bfff5afe6bb28eb85d5e))
+- add code snipet for viz params ([bdb6f0f](https://github.com/12rambau/earthengine-extension/commit/bdb6f0f50100d9f86d6d5d207972a2c6f3e2fae4))
+- add fallback basemaps and enhance map attribution handling ([10a8764](https://github.com/12rambau/earthengine-extension/commit/10a8764f60318daf61f4f78c0776c27c60282f4a))
+- add gamma control ([5e76dfb](https://github.com/12rambau/earthengine-extension/commit/5e76dfbe2cc0ed880422f299fcffa2fdb087e1e2))
+- add stretch options ([13a178b](https://github.com/12rambau/earthengine-extension/commit/13a178bfcc485de9e756f9481689c756afbc93c4))
+- add the palette management ([3109860](https://github.com/12rambau/earthengine-extension/commit/3109860143238e74e95e3c0be110239086ffc183))
+- ajouter la gestion de l'opacité des couches dans le panneau de carte ([42239de](https://github.com/12rambau/earthengine-extension/commit/42239de61bde5754174a5c844a79980192e48d1e))
+- improve color management ([b03fcc0](https://github.com/12rambau/earthengine-extension/commit/b03fcc0f5c553b387ec78b9ac57bdfaabe87e6db))
+- manage color palette ([484e3bc](https://github.com/12rambau/earthengine-extension/commit/484e3bcfc59b3ae3c54fc09880d27198ae5fe74c))
+- **map:** add layer removal controls ([206f8d0](https://github.com/12rambau/earthengine-extension/commit/206f8d00e2235ae09e413ce5759ab709b5227a98))
+
+### Bug Fixes
+
+- add slider uniformisation ([d79c08d](https://github.com/12rambau/earthengine-extension/commit/d79c08db7983b235e0fbdf0cb6781b7079a89b7e))
+- enhance layer opacity slider styling and functionality ([d3157d5](https://github.com/12rambau/earthengine-extension/commit/d3157d56bc1938829dc73f91f69248248206dc3c))
+- improve attribution handling and optimize session creation in MapTilesService ([77a990f](https://github.com/12rambau/earthengine-extension/commit/77a990fbddc1b478f110ccac2ce7f1e8556e50a9))
+- make map tools mutually exclusive ([d2e34f6](https://github.com/12rambau/earthengine-extension/commit/d2e34f6a00633e91a45a7b346cab8ed627b47d9a))
+- show layer when selecting scale ([90a0ad3](https://github.com/12rambau/earthengine-extension/commit/90a0ad3a45fdd3ce0ac36545bd4fe4dc8592f71f))
+- update @google/earthengine dependency to version 1.7.46 ([9f11bb0](https://github.com/12rambau/earthengine-extension/commit/9f11bb02f04465f9e79d2000847e7b03f4e13fc5))
+- update layer visibility and opacity handling in MapPanel and MapLayerManager ([16832d1](https://github.com/12rambau/earthengine-extension/commit/16832d162bf9197ee2198dffc79a247391088641))
+- use the google map ([5f1aa32](https://github.com/12rambau/earthengine-extension/commit/5f1aa32f9b40753e16c404225cc8489970c84151))
+
 ## [0.6.11](https://github.com/12rambau/earthengine-extension/compare/v0.6.10...v0.6.11) (2026-09-23)
 
 ### Bug Fixes
