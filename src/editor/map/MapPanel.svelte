@@ -60,6 +60,17 @@
   ];
   const CONTINUOUS_PALETTES = [...SEQUENTIAL_PALETTES, ...DIVERGING_PALETTES];
 
+  // Range presets computed from the pixels currently visible on the map.
+  const STRETCH_MODES = [
+    { id: 'custom', label: 'Custom' },
+    { id: 'sigma-1', label: 'Stretch: 1 \u03c3' },
+    { id: 'sigma-2', label: 'Stretch: 2 \u03c3' },
+    { id: 'sigma-3', label: 'Stretch: 3 \u03c3' },
+    { id: 'percent-90', label: 'Stretch: 90%' },
+    { id: 'percent-98', label: 'Stretch: 98%' },
+    { id: 'percent-100', label: 'Stretch: 100%' },
+  ];
+
   // ----------------------------------------------------------------
   // STATE
   // ----------------------------------------------------------------
@@ -91,7 +102,6 @@
   let vizPresets = $state([]);
   let vizType = $state('rgb');
   let vizSelectedPalette = $state(null);
-  let vizMinMaxData = $state(null);
   // RGB fields
   let vizRgbR = $state('');
   let vizRgbG = $state('');
@@ -123,6 +133,8 @@
   let vizComputing = $state(false);
   // Layer opacity in percent — shared by every viz type, previewed live.
   let vizOpacity = $state(100);
+  let vizStretch = $state('custom');
+  let vizStretchError = $state('');
 
   // Internal refs
   let basemapTileLayers = {};
@@ -649,6 +661,69 @@
     vizVisible = false;
   }
 
+  /** Bands whose range the active viz type exposes, deduplicated. */
+  function stretchBands() {
+    let bands = [];
+    if (vizType === 'rgb') {bands = [vizRgbR, vizRgbG, vizRgbB];}
+    else if (vizType === 'hsv') {bands = [vizHsvH, vizHsvS, vizHsvV];}
+    else if (vizType === 'continuous') {bands = [vizContBand];}
+    return [...new Set(bands.filter(Boolean))];
+  }
+
+  /** Metres per screen pixel at the current zoom and latitude. */
+  function viewportScale() {
+    const lat = map.getCenter().lat;
+    return 156543.03392 * Math.cos(lat * Math.PI / 180) / Math.pow(2, map.getZoom());
+  }
+
+  function applyStretch(mode) {
+    vizStretch = mode;
+    vizStretchError = '';
+    if (mode === 'custom') {return;}
+    const bands = stretchBands();
+    if (bands.length === 0) {
+      vizStretchError = 'Select a band first.';
+      vizStretch = 'custom';
+      return;
+    }
+    const b = map.getBounds();
+    vizComputing = true;
+    vscode.postMessage({
+      type: 'computeStretch',
+      data: {
+        layerIndex: vizLayerIndex,
+        bands,
+        mode,
+        bounds: [b.getSouth(), b.getWest(), b.getNorth(), b.getEast()],
+        scale: viewportScale(),
+      },
+    });
+  }
+
+  function applyStretchResult(ranges) {
+    const pick = (band) => (band && ranges[band]) || null;
+    if (vizType === 'rgb') {
+      const r = pick(vizRgbR), g = pick(vizRgbG), b = pick(vizRgbB);
+      if (r) { vizRgbRMin = fmtVal(r.min); vizRgbRMax = fmtVal(r.max); }
+      if (g) { vizRgbGMin = fmtVal(g.min); vizRgbGMax = fmtVal(g.max); }
+      if (b) { vizRgbBMin = fmtVal(b.min); vizRgbBMax = fmtVal(b.max); }
+    } else if (vizType === 'hsv') {
+      const h = pick(vizHsvH), s = pick(vizHsvS), v = pick(vizHsvV);
+      if (h) { vizHsvHMin = fmtVal(h.min); vizHsvHMax = fmtVal(h.max); }
+      if (s) { vizHsvSMin = fmtVal(s.min); vizHsvSMax = fmtVal(s.max); }
+      if (v) { vizHsvVMin = fmtVal(v.min); vizHsvVMax = fmtVal(v.max); }
+    } else if (vizType === 'continuous') {
+      const c = pick(vizContBand);
+      if (c) { vizContMin = fmtVal(c.min); vizContMax = fmtVal(c.max); }
+    }
+  }
+
+  /** A hand-edited bound no longer matches the selected stretch preset. */
+  function markRangeCustom() {
+    vizStretch = 'custom';
+    vizStretchError = '';
+  }
+
   function clampOpacityPercent(value) {
     const n = Number(value);
     if (!Number.isFinite(n)) {return 100;}
@@ -669,11 +744,6 @@
     const n = Number(value);
     if (!Number.isFinite(n)) {return;}
     vizRgbGamma = String(Math.max(0.1, Math.min(5, Math.round(n * 10) / 10)));
-  }
-
-  function vizComputeMinMax() {
-    vizComputing = true;
-    vscode.postMessage({ type: 'computeMinMax', data: { layerIndex: vizLayerIndex } });
   }
 
   function vizApplyPreset(idx) {
@@ -709,35 +779,6 @@
 
   function vizRemoveCatRow(idx) {
     vizCatRows = vizCatRows.filter((_, i) => i !== idx);
-  }
-
-  function autoFillMinMax(minMax) {
-    if (vizType === 'continuous') {
-      if (vizContBand && minMax[vizContBand]) {
-        if (!vizContMin) {vizContMin = String(minMax[vizContBand].min);}
-        if (!vizContMax) {vizContMax = String(minMax[vizContBand].max);}
-      }
-    } else if (vizType === 'rgb') {
-      const bands = [vizRgbR, vizRgbG, vizRgbB];
-      const mins = [vizRgbRMin, vizRgbGMin, vizRgbBMin];
-      const maxs = [vizRgbRMax, vizRgbGMax, vizRgbBMax];
-      bands.forEach((b, i) => {
-        if (b && minMax[b]) {
-          if (!mins[i]) { if (i === 0) {vizRgbRMin = String(minMax[b].min);} else if (i === 1) {vizRgbGMin = String(minMax[b].min);} else {vizRgbBMin = String(minMax[b].min);} }
-          if (!maxs[i]) { if (i === 0) {vizRgbRMax = String(minMax[b].max);} else if (i === 1) {vizRgbGMax = String(minMax[b].max);} else {vizRgbBMax = String(minMax[b].max);} }
-        }
-      });
-    } else if (vizType === 'hsv') {
-      const bands = [vizHsvH, vizHsvS, vizHsvV];
-      const mins = [vizHsvHMin, vizHsvSMin, vizHsvVMin];
-      const maxs = [vizHsvHMax, vizHsvSMax, vizHsvVMax];
-      bands.forEach((b, i) => {
-        if (b && minMax[b]) {
-          if (!mins[i]) { if (i === 0) {vizHsvHMin = String(minMax[b].min);} else if (i === 1) {vizHsvSMin = String(minMax[b].min);} else {vizHsvVMin = String(minMax[b].min);} }
-          if (!maxs[i]) { if (i === 0) {vizHsvHMax = String(minMax[b].max);} else if (i === 1) {vizHsvSMax = String(minMax[b].max);} else {vizHsvVMax = String(minMax[b].max);} }
-        }
-      });
-    }
   }
 
   // ----------------------------------------------------------------
@@ -803,12 +844,18 @@
       applyVisParams(msg.data.currentVisParams || {});
       vizOpacityOriginal = clampOpacityPercent((msg.data.opacity ?? 1) * 100);
       vizOpacity = vizOpacityOriginal;
+      vizStretch = 'custom';
+      vizStretchError = '';
       vizVisible = true;
-    } else if (msg.type === 'vizMinMax') {
+    } else if (msg.type === 'vizStretch') {
       vizComputing = false;
-      if (msg.data.layerIndex === vizLayerIndex && msg.data.minMax) {
-        vizMinMaxData = msg.data.minMax;
-        autoFillMinMax(msg.data.minMax);
+      if (msg.data.layerIndex === vizLayerIndex) {
+        if (msg.data.ranges) {
+          applyStretchResult(msg.data.ranges);
+        } else {
+          vizStretchError = msg.data.error || 'Stretch computation failed.';
+          vizStretch = 'custom';
+        }
       }
     } else if (msg.type === 'replaceTileLayer') {
       const d = msg.data;
@@ -1036,6 +1083,26 @@
 </div>
 
 <!-- VIZ EDITOR OVERLAY -->
+{#snippet stretchRow()}
+  <div class="viz-channel-row">
+    <span class="viz-channel-label">Range</span>
+    <select class="viz-band-select" disabled={vizComputing}
+      value={vizStretch} onchange={(e) => applyStretch(e.target.value)}>
+      {#each STRETCH_MODES as mode}
+        <option value={mode.id}>{mode.label}</option>
+      {/each}
+    </select>
+    {#if vizComputing}
+      <span class="viz-stretch-status">
+        <svg class="mdi-spin" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" fill="currentColor"><path d={mdiLoading}/></svg>
+      </span>
+    {/if}
+  </div>
+  {#if vizStretchError}
+    <p class="viz-stretch-error">{vizStretchError}</p>
+  {/if}
+{/snippet}
+
 {#if vizVisible}
 <div class="viz-editor-overlay visible">
   <div class="viz-editor-dialog">
@@ -1070,8 +1137,8 @@
             <option value="">—</option>
             {#each vizBands as b}<option value={b}>{b}</option>{/each}
           </select>
-          <input class="viz-input" placeholder="Min" bind:value={vizRgbRMin} />
-          <input class="viz-input" placeholder="Max" bind:value={vizRgbRMax} />
+          <input class="viz-input" placeholder="Min" bind:value={vizRgbRMin} oninput={markRangeCustom} />
+          <input class="viz-input" placeholder="Max" bind:value={vizRgbRMax} oninput={markRangeCustom} />
         </div>
         <div class="viz-channel-row">
           <span class="viz-channel-label">Green</span>
@@ -1079,8 +1146,8 @@
             <option value="">—</option>
             {#each vizBands as b}<option value={b}>{b}</option>{/each}
           </select>
-          <input class="viz-input" placeholder="Min" bind:value={vizRgbGMin} />
-          <input class="viz-input" placeholder="Max" bind:value={vizRgbGMax} />
+          <input class="viz-input" placeholder="Min" bind:value={vizRgbGMin} oninput={markRangeCustom} />
+          <input class="viz-input" placeholder="Max" bind:value={vizRgbGMax} oninput={markRangeCustom} />
         </div>
         <div class="viz-channel-row">
           <span class="viz-channel-label">Blue</span>
@@ -1088,9 +1155,10 @@
             <option value="">—</option>
             {#each vizBands as b}<option value={b}>{b}</option>{/each}
           </select>
-          <input class="viz-input" placeholder="Min" bind:value={vizRgbBMin} />
-          <input class="viz-input" placeholder="Max" bind:value={vizRgbBMax} />
+          <input class="viz-input" placeholder="Min" bind:value={vizRgbBMin} oninput={markRangeCustom} />
+          <input class="viz-input" placeholder="Max" bind:value={vizRgbBMax} oninput={markRangeCustom} />
         </div>
+        {@render stretchRow()}
         <div class="viz-channel-row">
           <span class="viz-channel-label">Gamma</span>
           <input type="range" class="viz-range" min="0.1" max="5" step="0.1"
@@ -1100,9 +1168,6 @@
             value={vizRgbGamma}
             oninput={(e) => setVizGamma(e.target.value)} />
         </div>
-        <button class="viz-btn viz-btn-secondary viz-compute-btn" disabled={vizComputing} onclick={vizComputeMinMax}>
-          {vizComputing ? 'Computing…' : 'Compute min/max'}
-        </button>
       {/if}
       <!-- HSV -->
       {#if vizType === 'hsv'}
@@ -1112,8 +1177,8 @@
             <option value="">—</option>
             {#each vizBands as b}<option value={b}>{b}</option>{/each}
           </select>
-          <input class="viz-input" placeholder="Min" bind:value={vizHsvHMin} />
-          <input class="viz-input" placeholder="Max" bind:value={vizHsvHMax} />
+          <input class="viz-input" placeholder="Min" bind:value={vizHsvHMin} oninput={markRangeCustom} />
+          <input class="viz-input" placeholder="Max" bind:value={vizHsvHMax} oninput={markRangeCustom} />
         </div>
         <div class="viz-channel-row">
           <span class="viz-channel-label">Saturation</span>
@@ -1121,8 +1186,8 @@
             <option value="">—</option>
             {#each vizBands as b}<option value={b}>{b}</option>{/each}
           </select>
-          <input class="viz-input" placeholder="Min" bind:value={vizHsvSMin} />
-          <input class="viz-input" placeholder="Max" bind:value={vizHsvSMax} />
+          <input class="viz-input" placeholder="Min" bind:value={vizHsvSMin} oninput={markRangeCustom} />
+          <input class="viz-input" placeholder="Max" bind:value={vizHsvSMax} oninput={markRangeCustom} />
         </div>
         <div class="viz-channel-row">
           <span class="viz-channel-label">Value</span>
@@ -1130,12 +1195,10 @@
             <option value="">—</option>
             {#each vizBands as b}<option value={b}>{b}</option>{/each}
           </select>
-          <input class="viz-input" placeholder="Min" bind:value={vizHsvVMin} />
-          <input class="viz-input" placeholder="Max" bind:value={vizHsvVMax} />
+          <input class="viz-input" placeholder="Min" bind:value={vizHsvVMin} oninput={markRangeCustom} />
+          <input class="viz-input" placeholder="Max" bind:value={vizHsvVMax} oninput={markRangeCustom} />
         </div>
-        <button class="viz-btn viz-btn-secondary viz-compute-btn" disabled={vizComputing} onclick={vizComputeMinMax}>
-          {vizComputing ? 'Computing…' : 'Compute min/max'}
-        </button>
+        {@render stretchRow()}
       {/if}
       <!-- Continuous -->
       {#if vizType === 'continuous'}
@@ -1145,12 +1208,10 @@
             <option value="">—</option>
             {#each vizBands as b}<option value={b}>{b}</option>{/each}
           </select>
-          <input class="viz-input" placeholder="Min" bind:value={vizContMin} />
-          <input class="viz-input" placeholder="Max" bind:value={vizContMax} />
+          <input class="viz-input" placeholder="Min" bind:value={vizContMin} oninput={markRangeCustom} />
+          <input class="viz-input" placeholder="Max" bind:value={vizContMax} oninput={markRangeCustom} />
         </div>
-        <button class="viz-btn viz-btn-secondary viz-compute-btn" disabled={vizComputing} onclick={vizComputeMinMax}>
-          {vizComputing ? 'Computing…' : 'Compute min/max'}
-        </button>
+        {@render stretchRow()}
         <div class="viz-section-label">Palette</div>
         <div class="viz-palette-grid">
           {#each CONTINUOUS_PALETTES as pal}
@@ -1441,7 +1502,11 @@
       width: 60px; background: var(--vscode-input-background); color: var(--vscode-input-foreground);
       border: var(--vscee-border-sm) solid var(--vscode-input-border); border-radius: var(--vscee-radius-md); font-size: var(--vscee-font-compact-sm); padding: var(--vscee-space-xxs) var(--vscee-space-xs);
     }
-    .viz-compute-btn { margin-top: var(--vscee-space-xs); }
+    .viz-stretch-status { display: inline-flex; color: var(--vscode-descriptionForeground); }
+    .viz-stretch-error {
+      font-size: var(--vscee-font-compact-xs); color: var(--vscode-errorForeground);
+      margin-bottom: var(--vscee-space-sm);
+    }
     .viz-palette-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--vscee-space-xs); margin-top: var(--vscee-space-xs); }
     .viz-palette-item {
       cursor: pointer; border: var(--vscee-border-sm) solid transparent; border-radius: var(--vscee-radius-md); padding: var(--vscee-space-xxs); text-align: center;

@@ -137,13 +137,36 @@ export class MapPanel extends EditorPanel {
             opacity: layer?.opacity ?? 1,
           },
         });
-      } else if (msg.type === 'computeMinMax') {
-        const { layerIndex } = msg.data as { layerIndex: number };
+      } else if (msg.type === 'computeStretch') {
+        const d = msg.data as {
+          layerIndex: number;
+          bands: string[];
+          mode: string;
+          bounds: [number, number, number, number];
+          scale: number;
+        };
         try {
-          const minMax = await this.layerManager.computeMinMax(layerIndex);
-          this.post({ type: 'vizMinMax', data: { layerIndex, minMax } });
-        } catch {
-          this.post({ type: 'vizMinMax', data: { layerIndex, minMax: null } });
+          const ranges = await this.layerManager.computeStretch(
+            d.layerIndex,
+            d.bands,
+            d.mode,
+            d.bounds,
+            d.scale,
+          );
+          this.post({
+            type: 'vizStretch',
+            data: { layerIndex: d.layerIndex, mode: d.mode, ranges },
+          });
+        } catch (err) {
+          this.post({
+            type: 'vizStretch',
+            data: {
+              layerIndex: d.layerIndex,
+              mode: d.mode,
+              ranges: null,
+              error: err instanceof Error ? err.message : String(err),
+            },
+          });
         }
       } else if (msg.type === 'updateViz') {
         const d = msg.data as Record<string, unknown>;

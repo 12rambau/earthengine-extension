@@ -65,6 +65,10 @@ declare module '@google/earthengine' {
 
   interface EeReducer {
     minMax(): EeReducer;
+    mean(): EeReducer;
+    stdDev(): EeReducer;
+    percentile(percentiles: number[]): EeReducer;
+    combine(params: Record<string, unknown>): EeReducer;
     [key: string]: unknown;
   }
 
