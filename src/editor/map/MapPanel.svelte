@@ -445,16 +445,40 @@
     });
   }
 
+  function removeLayer(idx) {
+    const entry = overlays[idx];
+    if (entry.visible) {map.removeLayer(entry.tileLayer);}
+    nativeLayerControl.removeLayer(entry.tileLayer);
+    overlays = overlays.filter((_, index) => index !== idx);
+    if (activeScaleIndex === idx) {
+      activeScaleIndex = -1;
+    } else if (activeScaleIndex > idx) {
+      activeScaleIndex--;
+    }
+    if (vizLayerIndex === entry.layerIndex) {
+      vizVisible = false;
+    }
+    vscode.postMessage({ type: 'removeLayer', data: { layerIndex: entry.layerIndex } });
+  }
+
   function toggleScale(idx) {
     if (activeScaleIndex === idx) {
       activeScaleIndex = -1;
     } else {
+      if (!overlays[idx].visible) {
+        toggleLayerVisibility(idx);
+      }
       activeScaleIndex = idx;
     }
   }
 
   function openVizEditorForLayer(layerIndex) {
     vscode.postMessage({ type: 'openVizEditor', data: { layerIndex } });
+  }
+
+  function toggleLayersPanel() {
+    layersPanelVisible = !layersPanelVisible;
+    if (layersPanelVisible) {closeInspector();}
   }
 
   // ----------------------------------------------------------------
@@ -464,6 +488,7 @@
   function toggleInspector() {
     inspectorActive = !inspectorActive;
     inspectorPanelVisible = inspectorActive;
+    if (inspectorActive) {layersPanelVisible = false;}
     if (map) {map.getContainer().style.cursor = inspectorActive ? 'crosshair' : '';}
   }
 
@@ -1117,12 +1142,19 @@
       const idx = overlays.findIndex(o => o.layerIndex === d.layerIndex);
       if (idx >= 0) {
         const entry = overlays[idx];
+        // `shown`/`opacity` are only sent by addLayer replacements; updateLayer omits them.
+        const opacity = d.opacity ?? entry.opacity;
+        const visible = d.shown === undefined ? entry.visible : d.shown !== false;
         if (entry.visible) {map.removeLayer(entry.tileLayer);}
+        nativeLayerControl.removeLayer(entry.tileLayer);
         entry.tileLayer = L.tileLayer(d.url, {
-          maxZoom: 24, opacity: entry.opacity, attribution: 'Google Earth Engine', crossOrigin: 'anonymous',
+          maxZoom: 24, opacity, attribution: 'Google Earth Engine', crossOrigin: 'anonymous',
         });
+        entry.opacity = opacity;
+        entry.visible = visible;
+        nativeLayerControl.addOverlay(entry.tileLayer, entry.name);
         entry.visParams = d.visParams;
-        if (entry.visible) {entry.tileLayer.addTo(map);}
+        if (visible) {entry.tileLayer.addTo(map);}
         overlays = [...overlays];
         if (activeScaleIndex === idx) {
           if (entry.visParams && (entry.visParams.palette || entry.visParams.bands)) {
@@ -1180,7 +1212,7 @@
 <!-- CONTROLS -->
 <div class="map-controls">
   <button class="map-btn" class:active={layersPanelVisible} title="Manage layers"
-    onclick={() => { layersPanelVisible = !layersPanelVisible; }}>
+    onclick={toggleLayersPanel}>
     <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="currentColor"><path d={mdiLayers}/></svg>
   </button>
   <button class="map-btn" class:active={inspectorActive} title="Pixel inspector"
@@ -1222,8 +1254,9 @@
         <div class="layer-row">
           <span class="layer-name" title={entry.name}>{entry.name}</span>
           <div class="layer-controls">
-            <input type="range" class="layer-opacity" min="0" max="100"
-              value={Math.round(entry.opacity * 100)}
+            <input type="range" class="layer-opacity" min="0" max="10"
+              style="--slider-fill: {Math.round(entry.opacity * 100)}%"
+              value={Math.round(entry.opacity * 10)}
               oninput={(e) => setLayerOpacity(idx, Number(e.target.value))} />
             <button class="map-btn layer-vis-btn" class:active={entry.visible}
               title="Toggle visibility" onclick={() => toggleLayerVisibility(idx)}>
@@ -1242,6 +1275,10 @@
             <button class="map-btn layer-vis-btn" title="Edit visualization"
               onclick={() => openVizEditorForLayer(entry.layerIndex)}>
               <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" fill="currentColor"><path d={mdiTune}/></svg>
+            </button>
+            <button class="map-btn layer-vis-btn" title="Remove layer"
+              onclick={() => removeLayer(idx)}>
+              <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" fill="currentColor"><path d={mdiTrashCan}/></svg>
             </button>
           </div>
         </div>
@@ -1749,7 +1786,40 @@
       overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
     }
     .layer-controls { display: flex; align-items: center; gap: var(--vscee-space-xs); flex-shrink: 0; margin-left: auto; }
-    .layer-opacity { width: 60px; flex-shrink: 0; accent-color: var(--vscode-button-background); cursor: pointer; }
+    .layer-opacity {
+      width: 60px; height: 12px; flex-shrink: 0; cursor: pointer;
+      appearance: none; background: transparent;
+
+      /* Track is painted up to --slider-fill so the filled side survives the custom thumb. */
+      &::-webkit-slider-runnable-track {
+        height: 3px; border-radius: var(--vscee-radius-sm);
+        background: linear-gradient(to right,
+          var(--vscode-button-background) 0 var(--slider-fill),
+          var(--vscode-scrollbarSlider-background) var(--slider-fill));
+      }
+      &::-moz-range-track {
+        height: 3px; border-radius: var(--vscee-radius-sm);
+        background: linear-gradient(to right,
+          var(--vscode-button-background) 0 var(--slider-fill),
+          var(--vscode-scrollbarSlider-background) var(--slider-fill));
+      }
+      &::-webkit-slider-thumb {
+        appearance: none; width: 12px; height: 12px; margin-top: -4.5px; box-sizing: border-box;
+        border: var(--vscee-border-sm) solid var(--vscode-button-background); border-radius: 50%;
+        background: var(--vscode-button-background);
+        /* Carves the ring out of the disc, leaving a round dot in the middle. */
+        box-shadow: inset 0 0 0 3px var(--vscode-editor-background), var(--vscee-shadow-xs);
+      }
+      &::-moz-range-thumb {
+        width: 12px; height: 12px; box-sizing: border-box;
+        border: var(--vscee-border-sm) solid var(--vscode-button-background); border-radius: 50%;
+        background: var(--vscode-button-background);
+        box-shadow: inset 0 0 0 3px var(--vscode-editor-background), var(--vscee-shadow-xs);
+      }
+      &:focus { outline: none; }
+      &:focus-visible::-webkit-slider-thumb { box-shadow: inset 0 0 0 3px var(--vscode-editor-background), var(--vscee-shadow-sm); }
+      &:focus-visible::-moz-range-thumb { box-shadow: inset 0 0 0 3px var(--vscode-editor-background), var(--vscee-shadow-sm); }
+    }
 
     /* ==================================================================
        INSPECTOR PANEL

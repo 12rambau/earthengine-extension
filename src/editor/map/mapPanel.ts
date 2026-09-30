@@ -111,6 +111,9 @@ export class MapPanel extends EditorPanel {
       } else if (msg.type === 'layerOpacity') {
         const d = msg.data as { layerIndex: number; opacity: number };
         this.layerManager.setLayerOpacity(d.layerIndex, d.opacity);
+      } else if (msg.type === 'removeLayer') {
+        const d = msg.data as { layerIndex: number };
+        this.layerManager.remove(d.layerIndex);
       } else if (msg.type === 'inspect') {
         const d = msg.data as { lat: number; lng: number; zoom: number };
         await this.inspector.inspect(d.lat, d.lng, d.zoom, this.layerManager.layers, (m) =>

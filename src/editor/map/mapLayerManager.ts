@@ -47,6 +47,7 @@ const MAX_AUTO_CLASSES = 30;
  */
 export class MapLayerManager {
   private readonly _layers = new Map<number, EeLayer>();
+  private readonly pendingAdds = new Map<string, Promise<void>>();
   private layerCount = 0;
 
   /** All registered layers, keyed by insertion index. */
@@ -57,13 +58,35 @@ export class MapLayerManager {
   /**
    * Registers a new layer, resolves its tile URL, and notifies the WebView.
    *
+   * Calls targeting the same layer name run one after another, so a slower
+   * earlier call can never overwrite the tiles produced by a later one.
+   *
    * @param payload - The `addLayer` command data from the bridge server.
    * @param postMessage - Callback that sends a message to the WebView.
    */
-  async add(payload: AddLayerPayload, postMessage: (msg: unknown) => void): Promise<void> {
-    const layerIndex = this.layerCount++;
-    const eeLayer = new EeLayer(layerIndex, payload.serialized, payload.name);
-    this._layers.set(layerIndex, eeLayer);
+  add(payload: AddLayerPayload, postMessage: (msg: unknown) => void): Promise<void> {
+    const previous = this.pendingAdds.get(payload.name) ?? Promise.resolve();
+    const run = previous.then(() => this.resolveAndPost(payload, postMessage));
+    // The queued chain swallows rejections so one failure does not reject the next caller.
+    const settled = run.then(
+      () => undefined,
+      () => undefined,
+    );
+    this.pendingAdds.set(payload.name, settled);
+    void settled.then(() => {
+      if (this.pendingAdds.get(payload.name) === settled) {
+        this.pendingAdds.delete(payload.name);
+      }
+    });
+    return run;
+  }
+
+  /** Resolves the tile URL for one `addLayer` payload and posts the result. */
+  private async resolveAndPost(
+    payload: AddLayerPayload,
+    postMessage: (msg: unknown) => void,
+  ): Promise<void> {
+    const existingLayer = [...this._layers.values()].find((layer) => layer.name === payload.name);
 
     const ee = await ensureEe();
     const image = ee.Deserializer.fromJSON(payload.serialized);
@@ -121,13 +144,23 @@ export class MapLayerManager {
     const url = await getMapIdUrl(resolvedImage, resolvedVisParams);
 
     const finalVisParams = displayVisParams ?? resolvedVisParams;
-    eeLayer.url = url;
-    eeLayer.visParams = finalVisParams;
-    eeLayer.shown = payload.shown;
-    eeLayer.opacity = payload.opacity;
+    // Commit only now: on failure above the previous entry stays usable for replay().
+    const layerIndex = existingLayer?.index ?? this.layerCount++;
+    this._layers.set(
+      layerIndex,
+      new EeLayer(
+        layerIndex,
+        payload.serialized,
+        payload.name,
+        url,
+        finalVisParams,
+        payload.shown,
+        payload.opacity,
+      ),
+    );
 
     postMessage({
-      type: 'addTileLayer',
+      type: existingLayer ? 'replaceTileLayer' : 'addTileLayer',
       data: {
         url,
         name: payload.name,
@@ -173,6 +206,11 @@ export class MapLayerManager {
     if (layer) {
       layer.opacity = opacity;
     }
+  }
+
+  /** Removes the layer identified by `layerIndex`. */
+  remove(layerIndex: number): void {
+    this._layers.delete(layerIndex);
   }
 
   /** Clears all layers and resets the insertion counter. */
