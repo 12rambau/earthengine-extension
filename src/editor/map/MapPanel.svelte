@@ -5,7 +5,7 @@
   import {
     mdiAlertCircleOutline, mdiCheck, mdiChevronDown, mdiClose, mdiCodeTags, mdiContentCopy,
     mdiCrosshairsGps, mdiEye, mdiEyeOff,
-    mdiLayers, mdiLoading, mdiMap, mdiRuler, mdiSatelliteVariant, mdiTrashCan, mdiTune,
+    mdiLayers, mdiLoading, mdiMap, mdiMapMarker, mdiRuler, mdiSatelliteVariant, mdiTrashCan, mdiTune,
   } from '../../shared/icons.ts';
   import {
     interpolateViridis, interpolateMagma, interpolatePlasma, interpolateInferno,
@@ -314,7 +314,7 @@
       if (inspectorMarker) {
         inspectorMarker.setLatLng([lat, lng]);
       } else {
-        inspectorMarker = L.marker([lat, lng]).addTo(map);
+        inspectorMarker = L.marker([lat, lng], { icon: inspectorMarkerIcon }).addTo(map);
       }
       inspectorContent = { type: 'loading' };
       pendingInspect = { lat, lng };
@@ -491,6 +491,14 @@
     if (inspectorActive) {layersPanelVisible = false;}
     if (map) {map.getContainer().style.cursor = inspectorActive ? 'crosshair' : '';}
   }
+
+  // Leaflet's default marker loads bundled PNGs we no longer ship, so draw the pin ourselves.
+  const inspectorMarkerIcon = L.divIcon({
+    className: 'inspector-marker',
+    html: `<svg viewBox="0 0 24 24" width="28" height="28" aria-hidden="true"><path d="${mdiMapMarker}"/></svg>`,
+    iconSize: [28, 28],
+    iconAnchor: [14, 28],
+  });
 
   function closeInspector() {
     inspectorActive = false;
@@ -1838,6 +1846,17 @@
     /* ==================================================================
        INSPECTOR PANEL
        ================================================================== */
+    .inspector-marker {
+      background: none; border: none;
+
+      svg {
+        display: block;
+        fill: var(--vscode-button-background);
+        /* Outline keeps the pin readable over dark imagery. */
+        stroke: var(--vscode-button-foreground); stroke-width: 0.7;
+        filter: drop-shadow(0 1px 2px var(--vscode-widget-shadow));
+      }
+    }
     .inspector-panel {
       position: absolute; top: 10px; left: 48px; z-index: 1000; width: 220px;
       background: var(--vscode-editor-background); border: var(--vscee-border-sm) solid var(--vscode-widget-border);

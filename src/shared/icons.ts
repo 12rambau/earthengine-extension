@@ -17,6 +17,7 @@ export {
   mdiLayers,
   mdiLoading,
   mdiMap,
+  mdiMapMarker,
   mdiMapOutline,
   mdiRuler,
   mdiSatelliteVariant,
