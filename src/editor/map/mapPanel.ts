@@ -89,7 +89,7 @@ export class MapPanel extends EditorPanel {
         const d = msg.data as { id: BasemapId; bounds: ViewportBounds; zoom: number };
         const copyright = await this.tiles.getAttribution(d.id, d.bounds, d.zoom);
         if (copyright) {
-          this.post({ type: 'attribution', data: { copyright } });
+          this.post({ type: 'attribution', data: { id: d.id, copyright } });
         }
       } else if (msg.type === 'setApiKey') {
         await this.setApiKey();

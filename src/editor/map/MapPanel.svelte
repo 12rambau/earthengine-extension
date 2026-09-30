@@ -735,7 +735,9 @@
     } else if (msg.type === 'basemapReset') {
       resetBasemaps();
     } else if (msg.type === 'attribution') {
-      setCopyright(msg.data.copyright);
+      if (msg.data.id === currentBasemapId && !basemapIsFallback[msg.data.id]) {
+        setCopyright(msg.data.copyright);
+      }
     } else if (msg.type === 'addTileLayer') {
       const d = msg.data;
       const opacity = d.opacity ?? 1.0;

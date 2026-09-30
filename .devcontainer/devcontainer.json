@@ -5,7 +5,7 @@
     "ghcr.io/devcontainers/features/desktop-lite:1": {}
   },
   "postCreateCommand": "npm install && sudo apt-get install -y python3-pip && pip3 install -r python/requirements.txt",
-  "postStartCommand": "pgrep -f inspect-bridge.js > /dev/null || (nohup node .devcontainer/inspect-bridge.js > /tmp/inspect-bridge.log 2>&1 &)",
+  "postStartCommand": "pgrep -f '^node .*inspect-bridge\\.js' > /dev/null || (nohup node .devcontainer/inspect-bridge.js > /tmp/inspect-bridge.log 2>&1 &)",
   "customizations": {
     "vscode": {
       "extensions": ["dbaeumer.vscode-eslint", "ms-python.python"]

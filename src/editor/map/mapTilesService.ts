@@ -76,6 +76,8 @@ export interface ViewportBounds {
 /** Resolves basemap tile URLs from the Google Map Tiles API. */
 export class MapTilesService {
   private sessions: Partial<Record<BasemapId, CachedSession>> | undefined;
+  /** In-flight `createSession` calls, keyed by basemap id and fingerprint, so concurrent callers share one request. */
+  private pendingSessions = new Map<string, Promise<string>>();
 
   // ── API key ─────────────────────────────────────────────────────
 
@@ -212,14 +214,29 @@ export class MapTilesService {
       return cached.session;
     }
 
-    const created = await this.createSession(apiKey, body);
-    cache[id] = {
-      session: created.session,
-      expiry: Number(created.expiry),
-      fingerprint,
-    };
-    await getGlobalState().update(CACHE_KEY, cache);
-    return created.session;
+    const pendingKey = `${id}\n${fingerprint}`;
+    const pending = this.pendingSessions.get(pendingKey);
+    if (pending) {
+      return pending;
+    }
+
+    const operation = (async () => {
+      const created = await this.createSession(apiKey, body);
+      const latestCache = await this.loadCache();
+      latestCache[id] = {
+        session: created.session,
+        expiry: Number(created.expiry),
+        fingerprint,
+      };
+      await getGlobalState().update(CACHE_KEY, latestCache);
+      return created.session;
+    })();
+    this.pendingSessions.set(pendingKey, operation);
+    try {
+      return await operation;
+    } finally {
+      this.pendingSessions.delete(pendingKey);
+    }
   }
 
   private async createSession(apiKey: string, body: string): Promise<SessionResponse> {
