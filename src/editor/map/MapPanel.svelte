@@ -564,6 +564,7 @@
     vizRgbBMin = String(minArr[2] ?? minArr[0] ?? '');
     vizRgbBMax = String(maxArr[2] ?? maxArr[0] ?? '');
     if (vp.gamma) {vizRgbGamma = String(Array.isArray(vp.gamma) ? vp.gamma[0] : vp.gamma);}
+    else {vizRgbGamma = '1';}
 
     // HSV
     if (bands.length >= 3) { vizHsvH = bands[0]; vizHsvS = bands[1]; vizHsvV = bands[2]; }
@@ -662,6 +663,12 @@
     entry.opacity = vizOpacity / 100;
     entry.tileLayer.setOpacity(entry.opacity);
     overlays = [...overlays];
+  }
+
+  function setVizGamma(value) {
+    const n = Number(value);
+    if (!Number.isFinite(n)) {return;}
+    vizRgbGamma = String(Math.max(0.1, Math.min(5, Math.round(n * 10) / 10)));
   }
 
   function vizComputeMinMax() {
@@ -1086,7 +1093,12 @@
         </div>
         <div class="viz-channel-row">
           <span class="viz-channel-label">Gamma</span>
-          <input class="viz-input" placeholder="1" bind:value={vizRgbGamma} />
+          <input type="range" class="viz-range" min="0.1" max="5" step="0.1"
+            value={vizRgbGamma}
+            oninput={(e) => setVizGamma(e.target.value)} />
+          <input type="number" class="viz-input viz-range-value" min="0.1" max="5" step="0.1"
+            value={vizRgbGamma}
+            oninput={(e) => setVizGamma(e.target.value)} />
         </div>
         <button class="viz-btn viz-btn-secondary viz-compute-btn" disabled={vizComputing} onclick={vizComputeMinMax}>
           {vizComputing ? 'Computing…' : 'Compute min/max'}
@@ -1192,10 +1204,10 @@
     <!-- Opacity (all viz types) -->
     <div class="viz-opacity-bar">
       <span class="viz-channel-label">Opacity</span>
-      <input type="range" class="viz-opacity-slider" min="0" max="100" step="1"
+      <input type="range" class="viz-range" min="0" max="100" step="1"
         value={vizOpacity}
         oninput={(e) => setVizOpacity(e.target.value)} />
-      <input type="number" class="viz-input viz-opacity-value" min="0" max="100" step="1"
+      <input type="number" class="viz-input viz-range-value" min="0" max="100" step="1"
         value={vizOpacity}
         oninput={(e) => setVizOpacity(e.target.value)} />
       <span class="viz-opacity-unit">%</span>
@@ -1451,13 +1463,13 @@
     }
     .viz-cat-del { width: 22px; height: 22px; box-shadow: none; opacity: 0.5; }
     .viz-cat-add { margin-top: var(--vscee-space-xs); align-self: flex-start; }
+    .viz-range { flex: 1; min-width: 0; accent-color: var(--vscode-button-background); cursor: pointer; }
+    .viz-range-value { width: 56px; font-variant-numeric: tabular-nums; }
     .viz-opacity-bar {
       display: flex; align-items: center; gap: var(--vscee-space-sm);
       padding: var(--vscee-space-md) var(--vscee-space-lg);
       border-top: var(--vscee-border-sm) solid var(--vscode-widget-border);
 
-      .viz-opacity-slider { flex: 1; min-width: 0; accent-color: var(--vscode-button-background); cursor: pointer; }
-      .viz-opacity-value { width: 56px; font-variant-numeric: tabular-nums; }
       .viz-opacity-unit { font-size: var(--vscee-font-compact-sm); color: var(--vscode-descriptionForeground); }
     }
     @keyframes mdi-spin { to { transform: rotate(360deg); } }
