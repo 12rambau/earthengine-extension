@@ -56,7 +56,7 @@ The extension reaches Earth Engine two different ways, and the split is delibera
 
 Root cause is still open (escalated to EE API experts). Until it's resolved: **keep metadata on the REST client**, use the EE JS client only for computation — except for `ee.data.getAlgorithms()` which is explicitly patched (see exception above).
 
-**Cost:** bundling the EE client adds ~7.7 MB minified (~18 MB dev) to `dist/extension.js` — the Google Closure library it carries. Accepted for the computation-readability win.
+**Cost:** bundling the EE client adds ~12 MB minified (~24 MB dev) to `dist/extension.js` — the Google Closure library it carries. Accepted for the computation-readability win.
 
 ## Testing changes
 
