@@ -382,6 +382,9 @@
     if (activeScaleIndex === idx) {
       activeScaleIndex = -1;
     } else {
+      if (!overlays[idx].visible) {
+        toggleLayerVisibility(idx);
+      }
       activeScaleIndex = idx;
     }
   }
