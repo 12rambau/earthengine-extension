@@ -51,6 +51,67 @@
   --vscee-font-icon-md: 16px;
 
   /* ==================================================================
+     VS CODE THEME TOKENS
+     ================================================================== */
+  --vscee-font-family: var(--vscode-font-family);
+  --vscee-editor-font-family: var(--vscode-editor-font-family);
+  --vscee-editor-font-size: var(--vscode-editor-font-size);
+  --vscee-color-foreground: var(--vscode-foreground);
+  --vscee-color-muted: var(--vscode-descriptionForeground);
+  --vscee-color-disabled: var(--vscode-disabledForeground);
+  --vscee-color-editor-background: var(--vscode-editor-background);
+  --vscee-color-editor-foreground: var(--vscode-editor-foreground);
+  --vscee-color-editor-widget-background: var(--vscode-editorWidget-background);
+  --vscee-color-panel-border: var(--vscode-panel-border);
+  --vscee-color-widget-border: var(--vscode-widget-border);
+  --vscee-color-widget-shadow: var(--vscode-widget-shadow);
+  --vscee-color-statusbar-background: var(--vscode-statusBar-background);
+  --vscee-color-statusbar-foreground: var(--vscode-statusBar-foreground);
+  --vscee-color-progress: var(--vscode-progressBar-background);
+  --vscee-color-dropdown-background: var(--vscode-dropdown-background);
+  --vscee-color-dropdown-foreground: var(--vscode-dropdown-foreground);
+  --vscee-color-dropdown-border: var(--vscode-dropdown-border);
+  --vscee-color-code-background: var(--vscode-textCodeBlock-background);
+  --vscee-color-button-background: var(--vscode-button-background);
+  --vscee-color-button-foreground: var(--vscode-button-foreground);
+  --vscee-color-button-hover: var(--vscode-button-hoverBackground);
+  --vscee-color-button-border: var(--vscode-button-border);
+  --vscee-color-button-secondary-background: var(--vscode-button-secondaryBackground);
+  --vscee-color-button-secondary-foreground: var(--vscode-button-secondaryForeground);
+  --vscee-color-button-secondary-hover: var(--vscode-button-secondaryHoverBackground);
+  --vscee-color-input-background: var(--vscode-input-background);
+  --vscee-color-input-foreground: var(--vscode-input-foreground);
+  --vscee-color-input-border: var(--vscode-input-border);
+  --vscee-color-focus: var(--vscode-focusBorder);
+  --vscee-color-list-hover: var(--vscode-list-hoverBackground);
+  --vscee-color-list-selection-background: var(--vscode-list-activeSelectionBackground);
+  --vscee-color-list-selection-foreground: var(--vscode-list-activeSelectionForeground);
+  --vscee-color-scrollbar-slider: var(--vscode-scrollbarSlider-background);
+  --vscee-color-link: var(--vscode-textLink-foreground);
+  --vscee-color-error: var(--vscode-errorForeground);
+  --vscee-color-validation-error-background: var(--vscode-inputValidation-errorBackground);
+  --vscee-color-validation-warning-background: var(--vscode-inputValidation-warningBackground);
+  --vscee-color-validation-warning-border: var(--vscode-inputValidation-warningBorder);
+  --vscee-color-badge-background: var(--vscode-badge-background);
+  --vscee-color-badge-foreground: var(--vscode-badge-foreground);
+
+  /* Specialized theme roles used by the editor panels. */
+  --vscee-color-testing-passed: var(--vscode-testing-iconPassed);
+  --vscee-color-testing-failed: var(--vscode-testing-iconFailed);
+  --vscee-color-chart-blue: var(--vscode-charts-blue);
+  --vscee-color-chart-orange: var(--vscode-charts-orange);
+  --vscee-color-chart-green: var(--vscode-charts-green);
+  --vscee-color-chart-purple: var(--vscode-charts-purple);
+  --vscee-color-chart-yellow: var(--vscode-charts-yellow);
+  --vscee-color-code-key: var(--vscode-debugTokenExpression-name, var(--vscode-charts-blue));
+  --vscee-color-code-string: var(--vscode-debugTokenExpression-string, var(--vscode-charts-orange));
+  --vscee-color-code-number: var(--vscode-debugTokenExpression-number, var(--vscode-charts-green));
+  --vscee-color-code-boolean: var(
+    --vscode-debugTokenExpression-boolean,
+    var(--vscode-charts-purple)
+  );
+
+  /* ==================================================================
      BOX SHADOW
      ================================================================== */
   --vscee-shadow-xs: 0 1px 3px var(--vscode-widget-shadow); /* tooltip */

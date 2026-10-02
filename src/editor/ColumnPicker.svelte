@@ -5,7 +5,7 @@
   let open = $state(false);
   let wrap = $state(null);
 
-  const opts = $derived(columns.filter(c => c.label));
+  const opts = $derived(columns.filter((c) => c.label));
 
   function toggle(key) {
     if (visibleCols.has(key)) {
@@ -18,13 +18,22 @@
   }
 </script>
 
-<svelte:document onclick={(e) => { if (!wrap?.contains(e.target)) {open = false;} }} />
+<svelte:document
+  onclick={(e) => {
+    if (!wrap?.contains(e.target)) {
+      open = false;
+    }
+  }}
+/>
 
 <div class="wrap" bind:this={wrap}>
   <button
     class="trigger"
     class:open
-    onclick={(e) => { e.stopPropagation(); open = !open; }}
+    onclick={(e) => {
+      e.stopPropagation();
+      open = !open;
+    }}
   >
     <i class="codicon codicon-list-filter"></i>
     Columns
@@ -59,20 +68,22 @@
     align-items: center;
     gap: var(--vscee-space-sm);
     padding: var(--vscee-space-xs) var(--vscee-space-md);
-    background: var(--vscode-button-secondaryBackground);
-    color: var(--vscode-button-secondaryForeground);
-    border: var(--vscee-border-sm) solid var(--vscode-input-border);
+    background: var(--vscee-color-button-secondary-background);
+    color: var(--vscee-color-button-secondary-foreground);
+    border: var(--vscee-border-sm) solid var(--vscee-color-input-border);
     border-radius: var(--vscee-radius-md);
     cursor: pointer;
     font-size: var(--vscee-font-sm);
-    font-family: var(--vscode-font-family, sans-serif);
+    font-family: var(--vscee-font-family, sans-serif);
     line-height: 1;
     white-space: nowrap;
 
-    &:hover { background: var(--vscode-button-secondaryHoverBackground); }
+    &:hover {
+      background: var(--vscee-color-button-secondary-hover);
+    }
     &.open {
-      background: var(--vscode-button-background);
-      color: var(--vscode-button-foreground);
+      background: var(--vscee-color-button-background);
+      color: var(--vscee-color-button-foreground);
       border-color: transparent;
     }
   }
@@ -81,7 +92,9 @@
     opacity: 0.7;
     transition: transform 0.15s;
 
-    &.open { transform: rotate(180deg); }
+    &.open {
+      transform: rotate(180deg);
+    }
   }
 
   .menu {
@@ -90,8 +103,9 @@
     top: calc(100% + 4px);
     z-index: 20;
     min-width: 160px;
-    background: var(--vscode-editorWidget-background, var(--vscode-editor-background));
-    border: var(--vscee-border-sm) solid var(--vscode-widget-border, var(--vscode-panel-border));
+    background: var(--vscee-color-editor-widget-background, var(--vscee-color-editor-background));
+    border: var(--vscee-border-sm) solid
+      var(--vscee-color-widget-border, var(--vscee-color-panel-border));
     border-radius: var(--vscee-radius-md);
     padding: var(--vscee-space-xs);
     box-shadow: var(--vscee-shadow-lg);
@@ -105,17 +119,21 @@
     border-radius: var(--vscee-radius-md);
     cursor: pointer;
     font-size: var(--vscee-font-sm);
-    font-family: var(--vscode-font-family, sans-serif);
-    color: var(--vscode-foreground);
+    font-family: var(--vscee-font-family, sans-serif);
+    color: var(--vscee-color-foreground);
     white-space: nowrap;
     user-select: none;
 
-    &:hover { background: var(--vscode-list-hoverBackground); }
+    &:hover {
+      background: var(--vscee-color-list-hover);
+    }
     &.dimmed {
       opacity: 0.45;
       cursor: default;
 
-      .check { cursor: default; }
+      .check {
+        cursor: default;
+      }
     }
   }
 
@@ -124,7 +142,7 @@
     height: 14px;
     margin: 0;
     cursor: pointer;
-    accent-color: var(--vscode-button-background);
+    accent-color: var(--vscee-color-button-background);
     flex-shrink: 0;
   }
 </style>

@@ -2,7 +2,12 @@
 <script>
   import { vscode } from '../../shared/vscode.ts';
   import {
-    mdiChartTree, mdiEarth, mdiImage, mdiMapOutline, mdiTable, mdiVideoBox,
+    mdiChartTree,
+    mdiEarth,
+    mdiImage,
+    mdiMapOutline,
+    mdiTable,
+    mdiVideoBox,
   } from '../../shared/icons.ts';
 
   const STATE_ICONS = {
@@ -46,7 +51,7 @@
       isLoading = false;
       tasks = [];
     } else if (msg.type === 'cancelled') {
-      tasks = tasks.map(t => t.name === msg.name ? { ...t, state: 'CANCELLING' } : t);
+      tasks = tasks.map((t) => (t.name === msg.name ? { ...t, state: 'CANCELLING' } : t));
     } else if (msg.type === 'loading') {
       isUnauthenticated = false;
       isLoading = true;
@@ -84,15 +89,28 @@
   {:else}
     {#each tasks as task (task.name)}
       <li class="task-row" title={task.id || ''}>
-        <span class={stateClass(task.state)}><i class={STATE_ICONS[task.state] || 'codicon codicon-question'}></i></span>
-        <span class={stateClass(task.state)}><svg class="task-type-icon" viewBox="0 0 24 24" aria-hidden="true"><path d={TASK_TYPE_ICONS[task.kind] || mdiEarth}/></svg></span>
+        <span class={stateClass(task.state)}
+          ><i class={STATE_ICONS[task.state] || 'codicon codicon-question'}></i></span
+        >
+        <span class={stateClass(task.state)}
+          ><svg class="task-type-icon" viewBox="0 0 24 24" aria-hidden="true"
+            ><path d={TASK_TYPE_ICONS[task.kind] || mdiEarth} /></svg
+          ></span
+        >
         <span class="task-name">{task.description || task.id || ''}</span>
-        <span class="task-elapsed">{task.state !== 'PENDING' ? (task.elapsed || '') : ''}</span>
+        <span class="task-elapsed">{task.state !== 'PENDING' ? task.elapsed || '' : ''}</span>
         <span class="task-actions">
           {#if task.state === 'RUNNING' || task.state === 'PENDING'}
-            <button type="button" class="danger" title="Cancel" onclick={() => cancel(task.name)}><i class="codicon codicon-stop-circle"></i></button>
+            <button type="button" class="danger" title="Cancel" onclick={() => cancel(task.name)}
+              ><i class="codicon codicon-stop-circle"></i></button
+            >
           {:else if task.previewAssetName}
-            <button type="button" title="Preview asset" onclick={() => preview(task.previewAssetName)}><i class="codicon codicon-open-preview"></i></button>
+            <button
+              type="button"
+              title="Preview asset"
+              onclick={() => preview(task.previewAssetName)}
+              ><i class="codicon codicon-open-preview"></i></button
+            >
           {/if}
         </span>
       </li>
@@ -118,9 +136,9 @@
       margin: 0;
     }
     body {
-      font-family: var(--vscode-editor-font-family, 'Courier New', Courier, monospace);
-      font-size: var(--vscode-editor-font-size, 13px);
-      color: var(--vscode-foreground);
+      font-family: var(--vscee-editor-font-family, 'Courier New', Courier, monospace);
+      font-size: var(--vscee-editor-font-size, 13px);
+      color: var(--vscee-color-foreground);
       background: transparent;
       padding: var(--vscee-space-sm);
       display: flex;
@@ -152,13 +170,15 @@
       gap: var(--vscee-space-sm);
       padding: var(--vscee-space-xs) var(--vscee-space-md);
       cursor: default;
-      border-bottom: var(--vscee-border-sm) solid var(--vscode-panel-border);
+      border-bottom: var(--vscee-border-sm) solid var(--vscee-color-panel-border);
       white-space: nowrap;
       overflow: hidden;
 
       &:hover {
-        background: var(--vscode-list-hoverBackground);
-        .task-actions { visibility: visible; }
+        background: var(--vscee-color-list-hover);
+        .task-actions {
+          visibility: visible;
+        }
       }
     }
 
@@ -187,22 +207,22 @@
       }
     }
     .state-PENDING {
-      color: var(--vscode-charts-yellow);
+      color: var(--vscee-color-chart-yellow);
     }
     .state-RUNNING {
-      color: var(--vscode-progressBar-background);
+      color: var(--vscee-color-progress);
     }
     .state-CANCELLING {
-      color: var(--vscode-disabledForeground);
+      color: var(--vscee-color-disabled);
     }
     .state-SUCCEEDED {
-      color: var(--vscode-testing-iconPassed);
+      color: var(--vscee-color-testing-passed);
     }
     .state-FAILED {
-      color: var(--vscode-testing-iconFailed);
+      color: var(--vscee-color-testing-failed);
     }
     .state-CANCELLED {
-      color: var(--vscode-disabledForeground);
+      color: var(--vscee-color-disabled);
     }
     .task-type-icon {
       width: 14px;
@@ -223,7 +243,7 @@
       flex-shrink: 0;
       opacity: 0.6;
       font-size: var(--vscee-font-md);
-      font-family: var(--vscode-editor-font-family, 'Courier New', Courier, monospace);
+      font-family: var(--vscee-editor-font-family, 'Courier New', Courier, monospace);
       min-width: 40px;
       text-align: right;
     }
@@ -241,7 +261,7 @@
       button {
         background: transparent;
         border: none;
-        color: var(--vscode-foreground);
+        color: var(--vscee-color-foreground);
         cursor: pointer;
         padding: var(--vscee-space-xxs) var(--vscee-space-xs);
         border-radius: var(--vscee-radius-md);
@@ -249,11 +269,15 @@
         font-family: inherit;
         font-size: var(--vscee-font-md);
 
-        &:hover { background: var(--vscode-list-hoverBackground); opacity: 1; }
-        &.danger:hover { color: var(--vscode-testing-iconFailed); }
+        &:hover {
+          background: var(--vscee-color-list-hover);
+          opacity: 1;
+        }
+        &.danger:hover {
+          color: var(--vscee-color-testing-failed);
+        }
       }
     }
-
 
     /* ==================================================================
        EMPTY STATE
@@ -277,7 +301,7 @@
       display: inline-block;
       width: 12px;
       height: 12px;
-      border: var(--vscee-border-md) solid var(--vscode-foreground);
+      border: var(--vscee-border-md) solid var(--vscee-color-foreground);
       border-top-color: transparent;
       border-radius: 50%;
       animation: spin 0.8s linear infinite;

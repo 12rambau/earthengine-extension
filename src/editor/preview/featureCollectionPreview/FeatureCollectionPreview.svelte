@@ -16,7 +16,7 @@
   // ----------------------------------------------------------------
   let activeTab = $state('description');
   let thumbnailHtml = $state(
-    '<span class="thumb-loading"><span class="spinner"></span> Loading thumbnail...</span>'
+    '<span class="thumb-loading"><span class="spinner"></span> Loading thumbnail...</span>',
   );
 
   // ----------------------------------------------------------------
@@ -82,7 +82,7 @@
         <button
           class="tab"
           class:active={activeTab === tab.id}
-          onclick={() => activeTab = tab.id}
+          onclick={() => (activeTab = tab.id)}
         >
           {tab.label}
         </button>
@@ -118,9 +118,9 @@
       padding: 0;
     }
     body {
-      font-family: var(--vscode-font-family, sans-serif);
-      color: var(--vscode-foreground);
-      background: var(--vscode-editor-background);
+      font-family: var(--vscee-font-family, sans-serif);
+      color: var(--vscee-color-foreground);
+      background: var(--vscee-color-editor-background);
       line-height: 1.5;
     }
 
@@ -129,9 +129,12 @@
        ================================================================== */
     .title-bar {
       padding: var(--vscee-space-lg) var(--vscee-space-xxl);
-      border-bottom: var(--vscee-border-sm) solid var(--vscode-panel-border);
+      border-bottom: var(--vscee-border-sm) solid var(--vscee-color-panel-border);
 
-      h1 { font-size: var(--vscee-font-xl); font-weight: 500; }
+      h1 {
+        font-size: var(--vscee-font-xl);
+        font-weight: 500;
+      }
     }
 
     /* ==================================================================
@@ -148,14 +151,14 @@
     .sidebar {
       width: 280px;
       min-width: 280px;
-      border-right: var(--vscee-border-sm) solid var(--vscode-panel-border);
+      border-right: var(--vscee-border-sm) solid var(--vscee-color-panel-border);
       padding: var(--vscee-space-xl);
       overflow-y: auto;
     }
     .thumbnail-container {
       width: 100%;
       aspect-ratio: 1;
-      background: var(--vscode-list-hoverBackground);
+      background: var(--vscee-color-list-hover);
       border-radius: var(--vscee-radius-lg);
       display: flex;
       align-items: center;
@@ -195,10 +198,10 @@
       opacity: 0.85;
     }
     .asset-id {
-      font-family: var(--vscode-editor-font-family, monospace);
+      font-family: var(--vscee-editor-font-family, monospace);
       font-size: var(--vscee-font-xxs);
       word-break: break-all;
-      background: var(--vscode-textCodeBlock-background);
+      background: var(--vscee-color-code-background);
       padding: var(--vscee-space-xs) var(--vscee-space-sm);
       border-radius: var(--vscee-radius-md);
     }
@@ -214,13 +217,13 @@
     }
     .tabs {
       display: flex;
-      border-bottom: var(--vscee-border-sm) solid var(--vscode-panel-border);
+      border-bottom: var(--vscee-border-sm) solid var(--vscee-color-panel-border);
       padding: 0 var(--vscee-space-xl);
     }
     .tab {
       background: none;
       border: none;
-      color: var(--vscode-foreground);
+      color: var(--vscee-color-foreground);
       padding: var(--vscee-space-lg) var(--vscee-space-xl);
       cursor: pointer;
       font-size: var(--vscee-font-sm);
@@ -231,8 +234,13 @@
         opacity 0.15s,
         border-color 0.15s;
 
-      &:hover { opacity: 1; }
-      &.active { opacity: 1; border-bottom-color: var(--vscode-focusBorder); }
+      &:hover {
+        opacity: 1;
+      }
+      &.active {
+        opacity: 1;
+        border-bottom-color: var(--vscee-color-focus);
+      }
     }
     .tab-panel {
       display: none;
@@ -240,7 +248,9 @@
       overflow: auto;
       flex: 1;
 
-      &.active { display: block; }
+      &.active {
+        display: block;
+      }
     }
     .empty-state {
       font-size: var(--vscee-font-md);
@@ -255,24 +265,38 @@
       font-size: var(--vscee-font-md);
       line-height: 1.6;
 
-      h2 { font-size: var(--vscee-font-xxl); margin: var(--vscee-space-xl) 0 var(--vscee-space-md); }
-      h3 { font-size: var(--vscee-font-lg); margin: var(--vscee-space-lg) 0 var(--vscee-space-sm); }
-      h4 { font-size: 1em; margin: var(--vscee-space-lg) 0 var(--vscee-space-xs); }
-      p { margin: var(--vscee-space-md) 0; }
+      h2 {
+        font-size: var(--vscee-font-xxl);
+        margin: var(--vscee-space-xl) 0 var(--vscee-space-md);
+      }
+      h3 {
+        font-size: var(--vscee-font-lg);
+        margin: var(--vscee-space-lg) 0 var(--vscee-space-sm);
+      }
+      h4 {
+        font-size: 1em;
+        margin: var(--vscee-space-lg) 0 var(--vscee-space-xs);
+      }
+      p {
+        margin: var(--vscee-space-md) 0;
+      }
       code {
-        background: var(--vscode-textCodeBlock-background);
+        background: var(--vscee-color-code-background);
         padding: var(--vscee-space-xxs) var(--vscee-space-xs);
         border-radius: var(--vscee-radius-md);
         font-size: var(--vscee-font-md);
       }
       pre {
-        background: var(--vscode-textCodeBlock-background);
+        background: var(--vscee-color-code-background);
         padding: var(--vscee-space-lg) var(--vscee-space-lg);
         border-radius: var(--vscee-radius-md);
         overflow-x: auto;
         margin: var(--vscee-space-md) 0;
 
-        code { background: none; padding: 0; }
+        code {
+          background: none;
+          padding: 0;
+        }
       }
     }
 
@@ -294,7 +318,7 @@
     .columns-table th,
     .props-table th {
       text-align: left;
-      background: var(--vscode-list-hoverBackground);
+      background: var(--vscee-color-list-hover);
       padding: var(--vscee-space-sm) var(--vscee-space-lg);
       font-weight: 600;
       position: sticky;
@@ -305,7 +329,7 @@
     .columns-table td,
     .props-table td {
       padding: var(--vscee-space-sm) var(--vscee-space-lg);
-      border-bottom: var(--vscee-border-sm) solid var(--vscode-panel-border);
+      border-bottom: var(--vscee-border-sm) solid var(--vscee-color-panel-border);
       white-space: nowrap;
       max-width: 200px;
       overflow: hidden;
@@ -313,7 +337,7 @@
     }
     .features-table tbody tr:nth-child(even),
     .columns-table tbody tr:nth-child(even) {
-      background: var(--vscode-list-hoverBackground);
+      background: var(--vscee-color-list-hover);
     }
     .idx {
       font-weight: 500;
@@ -332,7 +356,7 @@
       display: inline-block;
       width: 12px;
       height: 12px;
-      border: var(--vscee-border-md) solid var(--vscode-foreground);
+      border: var(--vscee-border-md) solid var(--vscee-color-foreground);
       border-top-color: transparent;
       border-radius: 50%;
       animation: spin 0.8s linear infinite;

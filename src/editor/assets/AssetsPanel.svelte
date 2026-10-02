@@ -15,10 +15,15 @@
       required: true,
       sortable: true,
       filter: { kind: 'text' },
-      accessor: a => a.shortName,
+      accessor: (a) => a.shortName,
       compare: (left, right, direction) => {
-        if (left.isContainer !== right.isContainer) {return left.isContainer ? -1 : 1;}
-        return left.shortName.localeCompare(right.shortName, undefined, { sensitivity: 'base' }) * direction;
+        if (left.isContainer !== right.isContainer) {
+          return left.isContainer ? -1 : 1;
+        }
+        return (
+          left.shortName.localeCompare(right.shortName, undefined, { sensitivity: 'base' }) *
+          direction
+        );
       },
     },
     {
@@ -26,9 +31,15 @@
       label: 'Type',
       sortable: true,
       filter: { kind: 'enum', options: ['FOLDER', 'IMAGE', 'IMAGE_COLLECTION', 'TABLE'] },
-      accessor: a => a.type,
+      accessor: (a) => a.type,
     },
-    { key: 'assetId', label: 'Asset ID', sortable: true, filter: { kind: 'text' }, accessor: a => a.assetId },
+    {
+      key: 'assetId',
+      label: 'Asset ID',
+      sortable: true,
+      filter: { kind: 'text' },
+      accessor: (a) => a.assetId,
+    },
     { key: 'actions', label: 'Actions', required: true },
   ];
 
@@ -72,7 +83,9 @@
   }
 
   function goUp() {
-    if (currentParent === rootPath) {return;}
+    if (currentParent === rootPath) {
+      return;
+    }
     const parts = currentParent.split('/');
     navigate(parts.length <= 4 ? rootPath : parts.slice(0, -1).join('/'));
   }
@@ -138,7 +151,7 @@
   itemLabel="assets"
   loading={isLoading}
   rowKey={(asset) => asset.name}
-  rowClass={(asset) => isBusy(asset.name) ? 'busy' : ''}
+  rowClass={(asset) => (isBusy(asset.name) ? 'busy' : '')}
   onpreferenceschange={saveState}
 >
   {#snippet toolbar()}
@@ -157,17 +170,35 @@
   {/snippet}
 
   {#snippet row(a, columns)}
-    {@const visible = new Set(columns.map(column => column.key))}
+    {@const visible = new Set(columns.map((column) => column.key))}
     {#if visible.has('icon')}
       <td class="icon-col">
         {#if a.type === 'FOLDER'}
           <i class="codicon codicon-folder"></i>
         {:else if a.type === 'IMAGE_COLLECTION'}
-          <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="var(--vscee-color-image-collection)"><path d={mdiImageMultiple}/></svg>
+          <svg
+            viewBox="0 0 24 24"
+            width="16"
+            height="16"
+            aria-hidden="true"
+            fill="var(--vscee-color-image-collection)"><path d={mdiImageMultiple} /></svg
+          >
         {:else if a.type === 'IMAGE'}
-          <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="var(--vscee-color-image)"><path d={mdiImage}/></svg>
+          <svg
+            viewBox="0 0 24 24"
+            width="16"
+            height="16"
+            aria-hidden="true"
+            fill="var(--vscee-color-image)"><path d={mdiImage} /></svg
+          >
         {:else if a.type === 'TABLE'}
-          <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="var(--vscee-color-table)"><path d={mdiTableMultiple}/></svg>
+          <svg
+            viewBox="0 0 24 24"
+            width="16"
+            height="16"
+            aria-hidden="true"
+            fill="var(--vscee-color-table)"><path d={mdiTableMultiple} /></svg
+          >
         {/if}
       </td>
     {/if}
@@ -192,21 +223,46 @@
         </span>
         <span class="action-btns">
           {#if a.type === 'FOLDER'}
-            <button class="action-btn" title="New folder" disabled={isBusy(a.name)} onclick={() => assetAction('createFolder', a.name)}>
+            <button
+              class="action-btn"
+              title="New folder"
+              disabled={isBusy(a.name)}
+              onclick={() => assetAction('createFolder', a.name)}
+            >
               <i class="codicon codicon-new-folder"></i>
             </button>
           {:else}
-            <button class="action-btn" title="Preview" disabled={isBusy(a.name)} onclick={() => preview(a.name)}>
+            <button
+              class="action-btn"
+              title="Preview"
+              disabled={isBusy(a.name)}
+              onclick={() => preview(a.name)}
+            >
               <i class="codicon codicon-open-preview"></i>
             </button>
           {/if}
-          <button class="action-btn" title="Copy asset" disabled={isBusy(a.name)} onclick={() => assetAction('copy', a.name)}>
+          <button
+            class="action-btn"
+            title="Copy asset"
+            disabled={isBusy(a.name)}
+            onclick={() => assetAction('copy', a.name)}
+          >
             <i class="codicon codicon-copy"></i>
           </button>
-          <button class="action-btn" title="Move asset" disabled={isBusy(a.name)} onclick={() => assetAction('move', a.name)}>
+          <button
+            class="action-btn"
+            title="Move asset"
+            disabled={isBusy(a.name)}
+            onclick={() => assetAction('move', a.name)}
+          >
             <i class="codicon codicon-clippy"></i>
           </button>
-          <button class="action-btn danger" title="Delete asset" disabled={isBusy(a.name)} onclick={() => assetAction('delete', a.name)}>
+          <button
+            class="action-btn danger"
+            title="Delete asset"
+            disabled={isBusy(a.name)}
+            onclick={() => assetAction('delete', a.name)}
+          >
             <i class="codicon codicon-trash"></i>
           </button>
         </span>
@@ -231,9 +287,9 @@
       margin: 0;
     }
     body {
-      font-family: var(--vscode-font-family, sans-serif);
-      color: var(--vscode-foreground);
-      background: var(--vscode-editor-background);
+      font-family: var(--vscee-font-family, sans-serif);
+      color: var(--vscee-color-foreground);
+      background: var(--vscee-color-editor-background);
       padding: var(--vscee-space-lg) var(--vscee-space-xl) var(--vscee-space-md);
       display: flex;
       flex-direction: column;
@@ -288,14 +344,18 @@
       button {
         background: none;
         border: none;
-        color: var(--vscode-textLink-foreground);
+        color: var(--vscee-color-link);
         cursor: pointer;
         padding: var(--vscee-space-xxs) var(--vscee-space-xs);
         font-size: var(--vscee-font-md);
 
-        &:hover { text-decoration: underline; }
+        &:hover {
+          text-decoration: underline;
+        }
       }
-      .sep { opacity: 0.5; }
+      .sep {
+        opacity: 0.5;
+      }
     }
 
     /* ==================================================================
@@ -305,7 +365,7 @@
       flex: 1 1 0;
       overflow-y: auto;
       min-height: 120px;
-      border: var(--vscee-border-sm) solid var(--vscode-panel-border);
+      border: var(--vscee-border-sm) solid var(--vscee-color-panel-border);
       border-radius: var(--vscee-radius-md);
 
       &.loading {
@@ -349,8 +409,8 @@
       font-weight: 500;
 
       &:not(:disabled):hover {
-        background: var(--vscode-list-hoverBackground);
-        border-color: var(--vscode-input-border);
+        background: var(--vscee-color-list-hover);
+        border-color: var(--vscee-color-input-border);
       }
     }
     .page-btn {
@@ -366,12 +426,12 @@
       justify-content: center;
 
       &:hover {
-        background: var(--vscode-list-hoverBackground);
-        border-color: var(--vscode-input-border);
+        background: var(--vscee-color-list-hover);
+        border-color: var(--vscee-color-input-border);
       }
       &.active {
-        background: var(--vscode-button-background);
-        color: var(--vscode-button-foreground);
+        background: var(--vscee-color-button-background);
+        color: var(--vscee-color-button-foreground);
         border-color: transparent;
         font-weight: 600;
       }
@@ -404,29 +464,38 @@
        ================================================================== */
     button,
     select {
-      background: var(--vscode-button-secondaryBackground);
-      color: var(--vscode-button-secondaryForeground);
-      border: var(--vscee-border-sm) solid var(--vscode-input-border);
+      background: var(--vscee-color-button-secondary-background);
+      color: var(--vscee-color-button-secondary-foreground);
+      border: var(--vscee-border-sm) solid var(--vscee-color-input-border);
       padding: var(--vscee-space-xs) var(--vscee-space-md);
       border-radius: var(--vscee-radius-md);
       cursor: pointer;
       font-size: var(--vscee-font-sm);
     }
     button {
-      &:hover { background: var(--vscode-button-secondaryHoverBackground); }
-      &:disabled { opacity: 0.4; cursor: default; }
+      &:hover {
+        background: var(--vscee-color-button-secondary-hover);
+      }
+      &:disabled {
+        opacity: 0.4;
+        cursor: default;
+      }
     }
     .btn-primary {
-      background: var(--vscode-button-background);
-      color: var(--vscode-button-foreground);
+      background: var(--vscee-color-button-background);
+      color: var(--vscee-color-button-foreground);
       border-color: transparent;
 
-      &:hover { background: var(--vscode-button-hoverBackground); }
+      &:hover {
+        background: var(--vscee-color-button-hover);
+      }
       &.loading {
         opacity: 0.75;
         cursor: default;
 
-        .refresh-icon { animation: spin 0.8s linear infinite; }
+        .refresh-icon {
+          animation: spin 0.8s linear infinite;
+        }
       }
     }
     .page-info {
@@ -451,11 +520,13 @@
         padding: var(--vscee-space-sm) var(--vscee-space-md);
         cursor: pointer;
         user-select: none;
-        background: var(--vscode-editor-background);
-        border-bottom: var(--vscee-border-md) solid var(--vscode-panel-border);
+        background: var(--vscee-color-editor-background);
+        border-bottom: var(--vscee-border-md) solid var(--vscee-color-panel-border);
         white-space: nowrap;
 
-        &:hover { background: var(--vscode-list-hoverBackground); }
+        &:hover {
+          background: var(--vscee-color-list-hover);
+        }
       }
     }
     th {
@@ -463,11 +534,13 @@
         opacity: 0.5;
         margin-left: var(--vscee-space-xs);
       }
-      &.sorted .sort-arrow { opacity: 1; }
+      &.sorted .sort-arrow {
+        opacity: 1;
+      }
     }
     td {
       padding: var(--vscee-space-sm) var(--vscee-space-md);
-      border-bottom: var(--vscee-border-sm) solid var(--vscode-panel-border);
+      border-bottom: var(--vscee-border-sm) solid var(--vscee-color-panel-border);
     }
 
     /* ==================================================================
@@ -478,7 +551,9 @@
         transform: rotate(360deg);
       }
     }
-    .refresh-icon { display: inline-block; }
+    .refresh-icon {
+      display: inline-block;
+    }
 
     /* ==================================================================
        ASSET NAME & ICONS
@@ -486,13 +561,15 @@
     .name-link {
       background: none;
       border: none;
-      color: var(--vscode-textLink-foreground);
+      color: var(--vscee-color-link);
       cursor: pointer;
       padding: 0;
       font-size: inherit;
       text-align: left;
 
-      &:hover { text-decoration: underline; }
+      &:hover {
+        text-decoration: underline;
+      }
     }
     .name-text {
       padding: 0;
@@ -513,7 +590,7 @@
       }
     }
     .id-cell {
-      font-family: var(--vscode-editor-font-family, monospace);
+      font-family: var(--vscee-editor-font-family, monospace);
       font-size: var(--vscee-font-xxs);
       opacity: 0.75;
     }
@@ -539,7 +616,9 @@
       display: inline-flex;
       align-items: center;
 
-      .codicon { font-size: var(--vscee-font-icon-sm); }
+      .codicon {
+        font-size: var(--vscee-font-icon-sm);
+      }
     }
     .action-btns {
       display: none;
@@ -548,24 +627,38 @@
     }
     tr {
       &:hover {
-        background: var(--vscode-list-hoverBackground);
-        .action-dots { display: none; }
-        .action-btns { display: inline-flex; }
+        background: var(--vscee-color-list-hover);
+        .action-dots {
+          display: none;
+        }
+        .action-btns {
+          display: inline-flex;
+        }
       }
       &:focus-within {
-        .action-dots { display: none; }
-        .action-btns { display: inline-flex; }
+        .action-dots {
+          display: none;
+        }
+        .action-btns {
+          display: inline-flex;
+        }
       }
       &.busy {
-        .action-dots { display: none; }
-        .action-btns { display: inline-flex; }
+        .action-dots {
+          display: none;
+        }
+        .action-btns {
+          display: inline-flex;
+        }
         .action-btn {
           opacity: 0.35;
           pointer-events: none;
 
           &.spinning {
             opacity: 1;
-            .codicon { display: none; }
+            .codicon {
+              display: none;
+            }
           }
         }
       }
@@ -576,16 +669,23 @@
       cursor: pointer;
       padding: var(--vscee-space-xxs) var(--vscee-space-sm);
       border-radius: var(--vscee-radius-md);
-      color: var(--vscode-foreground);
+      color: var(--vscee-color-foreground);
       opacity: 0.7;
       display: inline-flex;
       align-items: center;
 
-      .codicon { font-size: var(--vscee-font-icon-sm); }
-      &:hover { opacity: 1; background: var(--vscode-list-hoverBackground); }
+      .codicon {
+        font-size: var(--vscee-font-icon-sm);
+      }
+      &:hover {
+        opacity: 1;
+        background: var(--vscee-color-list-hover);
+      }
       &.danger {
-        color: var(--vscode-errorForeground);
-        &:hover { background: var(--vscode-inputValidation-errorBackground); }
+        color: var(--vscee-color-error);
+        &:hover {
+          background: var(--vscee-color-validation-error-background);
+        }
       }
     }
   }
