@@ -1005,6 +1005,14 @@
     markPaletteCustom();
   }
 
+  /** Typed hex entry for a class row: mirrors `setContColor`. */
+  function setCatColor(index, text, allowShort = false) {
+    const hex = parseHex(text, allowShort);
+    if (!hex || hex === vizCatRows[index].color) {return;}
+    vizCatRows[index].color = hex;
+    vizCatPaletteName = '';
+  }
+
   function removeContColor(index) {
     if (vizContColors.length <= MIN_PALETTE_COLORS) {return;}
     vizContColors = vizContColors.filter((_, i) => i !== index);
@@ -1630,6 +1638,11 @@
             <div class="viz-legend-row">
               <ColorPicker bind:value={row.color} onChange={() => { vizCatPaletteName = ''; }}
                 label="Colour for class {i + 1}" />
+              <input type="text" class="viz-legend-hex" spellcheck="false" maxlength="7"
+                value={row.color} aria-label="Hex colour for class {i + 1}"
+                oninput={(e) => setCatColor(i, e.target.value)}
+                onblur={(e) => { setCatColor(i, e.target.value, true); e.target.value = row.color; }}
+                onkeydown={(e) => { if (e.key === 'Enter') {e.target.blur();} }} />
               <input type="number" class="viz-legend-value" placeholder="Value" bind:value={row.value} />
               <input type="text" class="viz-legend-name" placeholder="Name" bind:value={row.label} />
               <button class="map-btn viz-legend-del" title="Remove class" onclick={() => vizRemoveCatRow(i)}>
