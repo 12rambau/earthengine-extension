@@ -5,7 +5,7 @@
   import { vscode } from '../../shared/vscode.ts';
   import { mdiClose, mdiLoading, mdiMapMarker } from '../../shared/icons.ts';
 
-  let { map, active = $bindable(false) } = $props();
+  let { map, active = $bindable(false), cursor = '' } = $props();
 
   let inspectorMarker = $state(null);
   let inspectorContent = $state({ type: 'hint' });
@@ -49,7 +49,7 @@
     if (!map) {
       return;
     }
-    map.getContainer().style.cursor = active ? 'crosshair' : '';
+    map.getContainer().style.cursor = active ? 'crosshair' : cursor;
     if (!active) {
       removeMarker();
     }

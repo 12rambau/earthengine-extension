@@ -1432,7 +1432,11 @@
 
 <!-- MAP -->
 <div id="map"></div>
-<MapInspector {map} bind:active={inspectorActive} />
+<MapInspector
+  {map}
+  bind:active={inspectorActive}
+  cursor={activeScaleIndex >= 0 ? 'crosshair' : ''}
+/>
 <MapLayerControl
   {map}
   bind:overlays
