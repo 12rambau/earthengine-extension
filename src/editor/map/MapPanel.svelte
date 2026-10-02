@@ -1,7 +1,7 @@
 <!-- MapPanel: Leaflet-based map with EE tile layers, inspector, scale bar and viz editor -->
 <script>
   import L from 'leaflet';
-  import ColorPicker from '../../shared/ColorPicker.svelte';
+  import ColorPicker from './ColorPicker.svelte';
   import { vscode } from '../../shared/vscode.ts';
   import { trackViewportChanges } from '../../shared/viewportAnchor.ts';
   import {
