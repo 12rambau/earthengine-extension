@@ -1,6 +1,5 @@
 <!-- MapLayerControl: layer list, visibility, opacity and visualization actions -->
 <script>
-  import MapButton from './MapButton.svelte';
   import { vscode } from '../../shared/vscode.ts';
   import {
     mdiClose,
@@ -98,11 +97,11 @@
   <div class="layers-panel visible">
     <div class="layers-panel-header">
       <span>Layers</span>
-      <MapButton class="layers-close-btn" title="Close" onclick={close}>
+      <button class="map-btn layers-close-btn" title="Close" onclick={close}>
         <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" fill="currentColor"
           ><path d={mdiClose} /></svg
         >
-      </MapButton>
+      </button>
     </div>
     <div class="layers-list">
       {#if overlays.length === 0}
@@ -122,9 +121,9 @@
                 value={Math.round(entry.opacity * 100)}
                 oninput={(event) => setLayerOpacity(index, Number(event.target.value))}
               />
-              <MapButton
-                class="layer-vis-btn"
-                active={entry.visible}
+              <button
+                class="map-btn layer-vis-btn"
+                class:active={entry.visible}
                 title="Toggle visibility"
                 onclick={() => toggleLayerVisibility(index)}
               >
@@ -135,11 +134,11 @@
                   aria-hidden="true"
                   fill="currentColor"><path d={entry.visible ? mdiEye : mdiEyeOff} /></svg
                 >
-              </MapButton>
+              </button>
               {#if entry.visParams && (entry.visParams.palette || entry.visParams.bands)}
-                <MapButton
-                  class="layer-vis-btn"
-                  active={activeScaleIndex === index}
+                <button
+                  class="map-btn layer-vis-btn"
+                  class:active={activeScaleIndex === index}
                   title="Toggle scale"
                   onclick={() => toggleScale(index)}
                 >
@@ -150,9 +149,13 @@
                     aria-hidden="true"
                     fill="currentColor"><path d={mdiRuler} /></svg
                   >
-                </MapButton>
+                </button>
               {:else}
-                <MapButton class="layer-vis-btn" style="visibility:hidden" title="Toggle scale">
+                <button
+                  class="map-btn layer-vis-btn"
+                  style="visibility:hidden"
+                  title="Toggle scale"
+                >
                   <svg
                     viewBox="0 0 24 24"
                     width="14"
@@ -160,10 +163,10 @@
                     aria-hidden="true"
                     fill="currentColor"><path d={mdiRuler} /></svg
                   >
-                </MapButton>
+                </button>
               {/if}
-              <MapButton
-                class="layer-vis-btn"
+              <button
+                class="map-btn layer-vis-btn"
                 title="Edit visualization"
                 onclick={() => openVizEditor(entry.layerIndex)}
               >
@@ -174,9 +177,9 @@
                   aria-hidden="true"
                   fill="currentColor"><path d={mdiTune} /></svg
                 >
-              </MapButton>
-              <MapButton
-                class="layer-vis-btn"
+              </button>
+              <button
+                class="map-btn layer-vis-btn"
                 title="Remove layer"
                 onclick={() => removeLayer(index)}
               >
@@ -187,7 +190,7 @@
                   aria-hidden="true"
                   fill="currentColor"><path d={mdiTrashCan} /></svg
                 >
-              </MapButton>
+              </button>
             </div>
           </div>
         {/each}
@@ -198,6 +201,28 @@
 
 <style>
   :global {
+    .map-btn {
+      width: 32px;
+      height: 32px;
+      border: none;
+      border-radius: var(--vscee-radius-md);
+      background: var(--vscee-color-editor-background);
+      color: var(--vscee-color-foreground);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: var(--vscee-shadow-sm);
+      opacity: 0.85;
+      transition: opacity 0.15s;
+    }
+    .map-btn:hover {
+      opacity: 1;
+    }
+    .map-btn.active {
+      background: var(--vscee-color-button-background);
+      color: var(--vscee-color-button-foreground);
+    }
     .layers-panel {
       position: absolute;
       top: 10px;
