@@ -1,7 +1,9 @@
 <!-- MapPanel: Leaflet-based map with EE tile layers, inspector, scale bar and viz editor -->
 <script>
   import L from 'leaflet';
+  import ColorPicker from '../../shared/ColorPicker.svelte';
   import { vscode } from '../../shared/vscode.ts';
+  import { trackViewportChanges } from '../../shared/viewportAnchor.ts';
   import {
     mdiAlertCircleOutline, mdiCheck, mdiChevronDown, mdiClose, mdiCodeTags, mdiContentCopy,
     mdiCrosshairsGps, mdiEye, mdiEyeOff,
@@ -252,15 +254,7 @@
       node.style.top = flipUp ? 'auto' : Math.round(r.bottom + gap) + 'px';
       node.style.bottom = flipUp ? Math.round(window.innerHeight - r.top + gap) + 'px' : 'auto';
     };
-    place();
-    window.addEventListener('resize', place);
-    window.addEventListener('scroll', place, true);
-    return {
-      destroy() {
-        window.removeEventListener('resize', place);
-        window.removeEventListener('scroll', place, true);
-      },
-    };
+    return trackViewportChanges(place);
   }
 
   function fmtVal(v) {
@@ -989,6 +983,29 @@
     vizContPaletteName = '';
   }
 
+  /** Accepts `rgb`/`rrggbb`, with or without the leading `#`; `null` when unparseable. */
+  function parseHex(text, allowShort) {
+    const value = String(text).trim().replace(/^#/, '');
+    const pattern = allowShort ? /^(?:[0-9a-f]{3}|[0-9a-f]{6})$/i : /^[0-9a-f]{6}$/i;
+    return pattern.test(value) ? normalizeHex(value) : null;
+  }
+
+  /** Typed hex entry: while typing only a complete `#rrggbb` commits, so the field is never rewritten mid-word. */
+  function setContColor(index, text, allowShort = false) {
+    const hex = parseHex(text, allowShort);
+    if (!hex || hex === vizContColors[index]) {return;}
+    vizContColors = vizContColors.map((c, i) => (i === index ? hex : c));
+    markPaletteCustom();
+  }
+
+  /** Typed hex entry for a class row: mirrors `setContColor`. */
+  function setCatColor(index, text, allowShort = false) {
+    const hex = parseHex(text, allowShort);
+    if (!hex || hex === vizCatRows[index].color) {return;}
+    vizCatRows[index].color = hex;
+    vizCatPaletteName = '';
+  }
+
   function removeContColor(index) {
     if (vizContColors.length <= MIN_PALETTE_COLORS) {return;}
     vizContColors = vizContColors.filter((_, i) => i !== index);
@@ -1560,10 +1577,14 @@
           <div class="viz-legend">
             {#each vizContColors as color, i}
               <div class="viz-legend-row">
-                <input type="color" class="viz-legend-color"
-                  bind:value={vizContColors[i]} oninput={markPaletteCustom} />
+                <ColorPicker bind:value={vizContColors[i]} onChange={markPaletteCustom}
+                  label="Colour {i + 1}" />
                 <span class="viz-legend-index">{i + 1}</span>
-                <span class="viz-legend-hex">{color}</span>
+                <input type="text" class="viz-legend-hex" spellcheck="false" maxlength="7"
+                  value={color} aria-label="Hex colour {i + 1}"
+                  oninput={(e) => setContColor(i, e.target.value)}
+                  onblur={(e) => { setContColor(i, e.target.value, true); e.target.value = vizContColors[i]; }}
+                  onkeydown={(e) => { if (e.key === 'Enter') {e.target.blur();} }} />
                 <button class="map-btn viz-legend-del" title="Remove colour"
                   disabled={vizContColors.length <= MIN_PALETTE_COLORS}
                   onclick={() => removeContColor(i)}>
@@ -1608,8 +1629,13 @@
         <div class="viz-legend">
           {#each vizCatRows as row, i}
             <div class="viz-legend-row">
-              <input type="color" class="viz-legend-color" bind:value={row.color}
-                oninput={() => { vizCatPaletteName = ''; }} />
+              <ColorPicker bind:value={row.color} onChange={() => { vizCatPaletteName = ''; }}
+                label="Colour for class {i + 1}" />
+              <input type="text" class="viz-legend-hex" spellcheck="false" maxlength="7"
+                value={row.color} aria-label="Hex colour for class {i + 1}"
+                oninput={(e) => setCatColor(i, e.target.value)}
+                onblur={(e) => { setCatColor(i, e.target.value, true); e.target.value = row.color; }}
+                onkeydown={(e) => { if (e.key === 'Enter') {e.target.blur();} }} />
               <input type="number" class="viz-legend-value" placeholder="Value" bind:value={row.value} />
               <input type="text" class="viz-legend-name" placeholder="Name" bind:value={row.label} />
               <button class="map-btn viz-legend-del" title="Remove class" onclick={() => vizRemoveCatRow(i)}>
@@ -2022,7 +2048,6 @@
       padding: var(--vscee-space-xxs); border-radius: var(--vscee-radius-sm);
       background: var(--vscode-editorWidget-background);
     }
-    .viz-legend-color { width: 28px; height: 22px; border: none; padding: 0; cursor: pointer; border-radius: var(--vscee-radius-md); flex-shrink: 0; }
     .viz-legend-value {
       width: 50px; background: var(--vscode-input-background); color: var(--vscode-input-foreground);
       border: var(--vscee-border-sm) solid var(--vscode-input-border); border-radius: var(--vscee-radius-md); font-size: var(--vscee-font-compact-sm); padding: var(--vscee-space-xxs) var(--vscee-space-xs);
@@ -2037,8 +2062,10 @@
       font-variant-numeric: tabular-nums;
     }
     .viz-legend-hex {
-      flex: 1; font-family: var(--vscode-editor-font-family); font-size: var(--vscee-font-compact-sm);
-      color: var(--vscode-descriptionForeground);
+      flex: 1; min-width: 0; font-family: var(--vscode-editor-font-family); font-size: var(--vscee-font-compact-sm);
+      background: var(--vscode-input-background); color: var(--vscode-input-foreground);
+      border: var(--vscee-border-sm) solid var(--vscode-input-border); border-radius: var(--vscee-radius-md);
+      padding: var(--vscee-space-xxs) var(--vscee-space-xs);
     }
     .viz-legend-del {
       width: 22px; height: 22px; box-shadow: none; opacity: 0.5;
@@ -2057,5 +2084,6 @@
     }
     @keyframes mdi-spin { to { transform: rotate(360deg); } }
     .mdi-spin { animation: mdi-spin 1s linear infinite; display: inline-block; vertical-align: middle; }
+
   }
 </style>
