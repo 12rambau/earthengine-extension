@@ -27,7 +27,7 @@
     opacity: 1;
   }
   .map-btn.active {
-    background: var(--vscee-color-button-background);
+    background: var(--vscee-color-editor-background);
     color: var(--vscee-color-button-foreground);
   }
 </style>

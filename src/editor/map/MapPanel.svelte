@@ -595,7 +595,7 @@
       left: 0;
       right: 0;
       z-index: 1000;
-      background: var(--vscee-color-statusbar-background);
+      background: var(--vscee-color-editor-background);
       color: var(--vscee-color-statusbar-foreground);
       padding: var(--vscee-space-xxs) var(--vscee-space-lg);
       font-size: var(--vscee-font-compact-sm);

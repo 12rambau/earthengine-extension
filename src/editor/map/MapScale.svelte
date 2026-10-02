@@ -370,7 +370,7 @@
       right: 0;
       z-index: 1000;
       display: none;
-      background: var(--vscee-color-statusbar-background);
+      background: var(--vscee-color-editor-background);
       padding: var(--vscee-space-xxs) var(--vscee-space-lg);
       gap: var(--vscee-space-xs);
       flex-direction: column;
