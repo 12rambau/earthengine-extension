@@ -16,8 +16,6 @@
     visible = $bindable(false),
     activeScaleIndex = $bindable(-1),
     nativeLayerControl,
-    vizLayerIndex,
-    vizVisible = $bindable(false),
   } = $props();
 
   function toggleLayerVisibility(index) {
@@ -66,9 +64,6 @@
       activeScaleIndex = -1;
     } else if (activeScaleIndex > index) {
       activeScaleIndex--;
-    }
-    if (vizLayerIndex === entry.layerIndex) {
-      vizVisible = false;
     }
     vscode.postMessage({ type: 'removeLayer', data: { layerIndex: entry.layerIndex } });
   }
