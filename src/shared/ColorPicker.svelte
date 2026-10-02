@@ -1,5 +1,7 @@
 <!-- ColorPicker: swatch button opening a saturation/value square with a hue bar -->
 <script>
+  import { trackViewportChanges } from './viewportAnchor.ts';
+
   const POPUP_WIDTH = 208;
   const POPUP_HEIGHT = 190;
   const GAP = 4;
@@ -22,6 +24,9 @@
   let val = $state(0);
   let dragging = $state('');
   let triggerEl = $state(null);
+  // The hex value the popup itself last produced, so an external `value` change
+  // (as opposed to our own commit() echoing back through the binding) can be told apart.
+  let lastCommitted = $state(null);
 
   // ----------------------------------------------------------------
   // DERIVED
@@ -76,15 +81,16 @@
       node.style.top = flipUp ? 'auto' : Math.round(rect.bottom + GAP) + 'px';
       node.style.bottom = flipUp ? Math.round(window.innerHeight - rect.top + GAP) + 'px' : 'auto';
     };
-    place();
-    window.addEventListener('resize', place);
-    window.addEventListener('scroll', place, true);
-    return {
-      destroy() {
-        window.removeEventListener('resize', place);
-        window.removeEventListener('scroll', place, true);
-      },
-    };
+    return trackViewportChanges(place);
+  }
+
+  /** Adopts an hsv reading from `hex`; a grayscale commit encodes no hue, so the current one survives unless this came from outside. */
+  function syncFromHex(hex, preserveHueIfGray) {
+    const hsv = hexToHsv(hex);
+    sat = hsv.s;
+    val = hsv.v;
+    if (!preserveHueIfGray || hsv.s > 0) {hue = hsv.h;}
+    lastCommitted = hex;
   }
 
   // ----------------------------------------------------------------
@@ -93,18 +99,24 @@
 
   function toggle() {
     if (!open) {
-      const hsv = hexToHsv(value);
-      hue = hsv.h;
-      sat = hsv.s;
-      val = hsv.v;
+      syncFromHex(value, false);
     }
     open = !open;
   }
 
   function commit() {
     value = hsvToHex(hue, sat, val);
+    lastCommitted = value;
     onChange?.(value);
   }
+
+  // Reconciles an external `value` change made while the popup is open (e.g. a
+  // reset button elsewhere) without mistaking our own commit() echo for one.
+  $effect(() => {
+    if (open && value !== lastCommitted) {
+      syncFromHex(value, true);
+    }
+  });
 
   function pick(event, node, axis) {
     const rect = node.getBoundingClientRect();
@@ -162,7 +174,7 @@
   }
 </script>
 
-<svelte:window onkeydown={(e) => { if (open && e.key === 'Escape') {open = false;} }} />
+<svelte:window onkeydown={(e) => { if (open && e.key === 'Escape') { open = false; triggerEl?.focus(); } }} />
 
 <div class="cp">
   <button type="button" class="cp-swatch" style="background:{normalizeHex(value)}"

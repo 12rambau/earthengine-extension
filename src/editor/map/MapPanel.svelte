@@ -3,6 +3,7 @@
   import L from 'leaflet';
   import ColorPicker from '../../shared/ColorPicker.svelte';
   import { vscode } from '../../shared/vscode.ts';
+  import { trackViewportChanges } from '../../shared/viewportAnchor.ts';
   import {
     mdiAlertCircleOutline, mdiCheck, mdiChevronDown, mdiClose, mdiCodeTags, mdiContentCopy,
     mdiCrosshairsGps, mdiEye, mdiEyeOff,
@@ -253,15 +254,7 @@
       node.style.top = flipUp ? 'auto' : Math.round(r.bottom + gap) + 'px';
       node.style.bottom = flipUp ? Math.round(window.innerHeight - r.top + gap) + 'px' : 'auto';
     };
-    place();
-    window.addEventListener('resize', place);
-    window.addEventListener('scroll', place, true);
-    return {
-      destroy() {
-        window.removeEventListener('resize', place);
-        window.removeEventListener('scroll', place, true);
-      },
-    };
+    return trackViewportChanges(place);
   }
 
   function fmtVal(v) {
