@@ -1,6 +1,6 @@
 <!-- ColorPicker: swatch button opening a saturation/value square with a hue bar -->
 <script>
-  import { trackViewportChanges } from './viewportAnchor.ts';
+  import { trackViewportChanges } from '../../shared/viewportAnchor.ts';
 
   const POPUP_WIDTH = 208;
   const POPUP_HEIGHT = 190;
