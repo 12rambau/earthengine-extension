@@ -3,12 +3,13 @@
   import L from 'leaflet';
   import ColorPicker from './ColorPicker.svelte';
   import MapButton from './MapButton.svelte';
+  import MapInspector from './MapInspector.svelte';
   import { vscode } from '../../shared/vscode.ts';
   import { trackViewportChanges } from '../../shared/viewportAnchor.ts';
   import {
     mdiAlertCircleOutline, mdiCheck, mdiChevronDown, mdiClose, mdiCodeTags, mdiContentCopy,
     mdiCrosshairsGps, mdiEye, mdiEyeOff,
-    mdiLayers, mdiLoading, mdiMap, mdiMapMarker, mdiRuler, mdiSatelliteVariant, mdiTrashCan, mdiTune,
+    mdiLayers, mdiLoading, mdiMap, mdiRuler, mdiSatelliteVariant, mdiTrashCan, mdiTune,
   } from '../../shared/icons.ts';
   import {
     interpolateViridis, interpolateMagma, interpolatePlasma, interpolateInferno,
@@ -98,10 +99,6 @@
   let overlays = $state([]);
   let layersPanelVisible = $state(false);
   let inspectorActive = $state(false);
-  let inspectorPanelVisible = $state(false);
-  let inspectorMarker = $state(null);
-  let inspectorContent = $state({ type: 'hint' });
-  let pendingInspect = $state(null);
   let activeScaleIndex = $state(-1);
   let coords = $state('0.0000, 0.0000');
   let zoomLevel = $state(2);
@@ -302,20 +299,6 @@
     map.on('zoomend', () => { zoomLevel = map.getZoom(); });
     map.on('moveend zoomend', requestAttribution);
 
-    // Inspector click
-    map.on('click', (e) => {
-      if (!inspectorActive) {return;}
-      const { lat, lng } = e.latlng;
-      if (inspectorMarker) {
-        inspectorMarker.setLatLng([lat, lng]);
-      } else {
-        inspectorMarker = L.marker([lat, lng], { icon: inspectorMarkerIcon }).addTo(map);
-      }
-      inspectorContent = { type: 'loading' };
-      pendingInspect = { lat, lng };
-      vscode.postMessage({ type: 'inspect', data: { lat, lng, zoom: map.getZoom() } });
-    });
-
     // Signal the extension host that the map is ready to receive layers.
     // The host uses this to replay any layer added before the panel was (re)opened.
     vscode.postMessage({ type: 'ready' });
@@ -473,36 +456,7 @@
 
   function toggleLayersPanel() {
     layersPanelVisible = !layersPanelVisible;
-    if (layersPanelVisible) {closeInspector();}
-  }
-
-  // ----------------------------------------------------------------
-  // INSPECTOR
-  // ----------------------------------------------------------------
-
-  function toggleInspector() {
-    inspectorActive = !inspectorActive;
-    inspectorPanelVisible = inspectorActive;
-    if (inspectorActive) {layersPanelVisible = false;}
-    if (map) {map.getContainer().style.cursor = inspectorActive ? 'crosshair' : '';}
-  }
-
-  // Leaflet's default marker loads bundled PNGs we no longer ship, so draw the pin ourselves.
-  const inspectorMarkerIcon = L.divIcon({
-    className: 'inspector-marker',
-    html: `<svg viewBox="0 0 24 24" width="28" height="28" aria-hidden="true"><path d="${mdiMapMarker}"/></svg>`,
-    iconSize: [28, 28],
-    iconAnchor: [14, 28],
-  });
-
-  function closeInspector() {
-    inspectorActive = false;
-    inspectorPanelVisible = false;
-    if (map) {map.getContainer().style.cursor = '';}
-    if (inspectorMarker) {
-      map.removeLayer(inspectorMarker);
-      inspectorMarker = null;
-    }
+    if (layersPanelVisible) {inspectorActive = false;}
   }
 
   // ----------------------------------------------------------------
@@ -1138,10 +1092,6 @@
     } else if (msg.type === 'setCenter') {
       const d = msg.data;
       map.setView([d.lat, d.lon], d.zoom || map.getZoom());
-    } else if (msg.type === 'inspectResult') {
-      if (pendingInspect && msg.data.lat === pendingInspect.lat && msg.data.lng === pendingInspect.lng) {
-        inspectorContent = { type: 'result', data: msg.data };
-      }
     } else if (msg.type === 'vizEditorData') {
       vizLayerIndex = msg.data.layerIndex;
       vizBands = msg.data.bands || [];
@@ -1221,6 +1171,7 @@
 
 <!-- MAP -->
 <div id="map"></div>
+<MapInspector map={map} bind:active={inspectorActive} />
 
 {#if basemapError}
   <div class="basemap-error">
@@ -1249,7 +1200,7 @@
     <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="currentColor"><path d={mdiLayers}/></svg>
   </MapButton>
   <MapButton active={inspectorActive} title="Pixel inspector"
-    onclick={toggleInspector}>
+    onclick={() => { inspectorActive = !inspectorActive; layersPanelVisible = false; }}>
     <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="currentColor"><path d={mdiCrosshairsGps}/></svg>
   </MapButton>
   <MapButton active={activeMode === 'plan'} title="Toggle plan view"
@@ -1316,53 +1267,6 @@
           </div>
         </div>
       {/each}
-    {/if}
-  </div>
-</div>
-{/if}
-
-<!-- INSPECTOR PANEL -->
-{#if inspectorPanelVisible}
-<div class="inspector-panel visible">
-  <div class="inspector-panel-header">
-    <span>Inspector</span>
-    <MapButton class="layers-close-btn" title="Close" onclick={closeInspector}>
-      <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" fill="currentColor"><path d={mdiClose}/></svg>
-    </MapButton>
-  </div>
-  <div class="inspector-content">
-    {#if inspectorContent.type === 'hint'}
-      <p class="inspector-hint">Activate then click on the map.</p>
-    {:else if inspectorContent.type === 'loading'}
-      <p class="inspector-loading"><svg class="mdi-spin" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" fill="currentColor"><path d={mdiLoading}/></svg> Loading…</p>
-    {:else if inspectorContent.type === 'result'}
-      {@const d = inspectorContent.data}
-      <p class="inspector-coords">{d.lng.toFixed(4)}, {d.lat.toFixed(4)} @ {d.scale}m</p>
-      {#each d.results as layer}
-        <div class="inspector-layer">
-          <span class="inspector-layer-name">{layer.name}</span>
-          {#if layer.error}
-            <p class="inspector-error">{layer.error}</p>
-          {:else}
-            {@const entries = Object.entries(layer.values || {})}
-            {#if entries.length === 0}
-              <p class="inspector-no-data">No data at this location.</p>
-            {:else}
-              <table class="inspector-table"><tbody>
-                {#each entries as [k, v]}
-                  <tr>
-                    <td class="inspector-band">{k}</td>
-                    <td class="inspector-val">{v === null ? '—' : typeof v === 'number' ? v.toFixed(4) : String(v)}</td>
-                  </tr>
-                {/each}
-              </tbody></table>
-            {/if}
-          {/if}
-        </div>
-      {/each}
-      {#if d.results.length === 0}
-        <p class="inspector-hint">No layers to inspect.</p>
-      {/if}
     {/if}
   </div>
 </div>
@@ -1860,45 +1764,6 @@
     }
     .layer-controls { display: flex; align-items: center; gap: var(--vscee-space-xs); flex-shrink: 0; margin-left: auto; }
     .layer-opacity { width: 60px; flex-shrink: 0; }
-
-    /* ==================================================================
-       INSPECTOR PANEL
-       ================================================================== */
-    .inspector-marker {
-      background: none; border: none;
-
-      svg {
-        display: block;
-        fill: var(--vscee-color-button-background);
-        /* Outline keeps the pin readable over dark imagery. */
-        stroke: var(--vscee-color-button-foreground); stroke-width: 0.7;
-        filter: drop-shadow(0 1px 2px var(--vscee-color-widget-shadow));
-      }
-    }
-    .inspector-panel {
-      position: absolute; top: 10px; left: 48px; z-index: 1000; width: 220px;
-      background: var(--vscee-color-editor-background); border: var(--vscee-border-sm) solid var(--vscee-color-widget-border);
-      border-radius: var(--vscee-radius-md); box-shadow: var(--vscee-shadow-md);
-    }
-    .inspector-panel-header {
-      display: flex; align-items: center; justify-content: space-between;
-      padding: var(--vscee-space-xs) var(--vscee-space-xs) var(--vscee-space-xs) var(--vscee-space-lg); border-bottom: var(--vscee-border-sm) solid var(--vscee-color-widget-border);
-      font-size: var(--vscee-font-compact-sm); font-weight: 600; color: var(--vscee-color-foreground);
-    }
-    .inspector-content { max-height: 360px; overflow-y: auto; padding: var(--vscee-space-sm) var(--vscee-space-md); }
-    .inspector-hint { font-size: var(--vscee-font-compact-sm); color: var(--vscee-color-muted); text-align: center; padding: var(--vscee-space-xs) 0; }
-    .inspector-coords { font-size: var(--vscee-font-compact-sm); color: var(--vscee-color-muted); margin-bottom: var(--vscee-space-sm); }
-    .inspector-loading { font-size: var(--vscee-font-compact-sm); color: var(--vscee-color-muted); text-align: center; padding: var(--vscee-space-xs) 0; }
-    .inspector-layer { margin-bottom: var(--vscee-space-md); }
-    .inspector-layer-name {
-      display: block; font-size: var(--vscee-font-compact-sm); font-weight: 600; color: var(--vscee-color-foreground);
-      margin-bottom: var(--vscee-space-xs); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-    }
-    .inspector-no-data { font-size: var(--vscee-font-compact-sm); color: var(--vscee-color-muted); font-style: italic; }
-    .inspector-error { font-size: var(--vscee-font-compact-xs); color: var(--vscee-color-error); word-break: break-all; }
-    .inspector-table { width: 100%; border-collapse: collapse; font-size: var(--vscee-font-compact-sm); }
-    .inspector-band { color: var(--vscee-color-muted); padding: var(--vscee-space-xxs) var(--vscee-space-xs) var(--vscee-space-xxs) 0; }
-    .inspector-val { color: var(--vscee-color-foreground); text-align: right; font-variant-numeric: tabular-nums; }
 
     /* ==================================================================
        STATUS BAR
