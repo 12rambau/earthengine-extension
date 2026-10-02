@@ -11,7 +11,7 @@
   .map-btn {
     width: 32px;
     height: 32px;
-    border: none;
+    border: var(--vscee-border-sm) solid var(--vscee-color-widget-border);
     border-radius: var(--vscee-radius-md);
     background: var(--vscee-color-editor-background);
     color: var(--vscee-color-foreground);

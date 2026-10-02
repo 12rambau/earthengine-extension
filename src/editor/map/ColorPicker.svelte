@@ -326,7 +326,7 @@
     flex-direction: column;
     gap: var(--vscee-space-sm);
     padding: var(--vscee-space-sm);
-    background: var(--vscee-color-dropdown-background);
+    background: var(--vscee-color-editor-background);
     border: var(--vscee-border-sm) solid var(--vscee-color-dropdown-border);
     border-radius: var(--vscee-radius-md);
     box-shadow: var(--vscee-shadow-lg);

@@ -1413,7 +1413,6 @@
       align-items: center;
       gap: var(--vscee-space-md);
       padding: var(--vscee-space-md) var(--vscee-space-lg);
-      border-bottom: var(--vscee-border-sm) solid var(--vscee-color-widget-border);
       font-size: var(--vscee-font-compact-md);
       font-weight: 600;
       color: var(--vscee-color-foreground);
@@ -1449,7 +1448,6 @@
       justify-content: flex-end;
       gap: var(--vscee-space-sm);
       padding: var(--vscee-space-md) var(--vscee-space-lg);
-      border-top: var(--vscee-border-sm) solid var(--vscee-color-widget-border);
     }
     .viz-btn {
       font-size: var(--vscee-font-compact-sm);
@@ -1738,7 +1736,6 @@
       align-items: center;
       gap: var(--vscee-space-sm);
       padding: var(--vscee-space-md) var(--vscee-space-lg);
-      border-top: var(--vscee-border-sm) solid var(--vscee-color-widget-border);
 
       .viz-opacity-unit {
         font-size: var(--vscee-font-compact-sm);

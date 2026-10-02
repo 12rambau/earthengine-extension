@@ -234,7 +234,6 @@
       justify-content: space-between;
       padding: var(--vscee-space-xs) var(--vscee-space-xs) var(--vscee-space-xs)
         var(--vscee-space-lg);
-      border-bottom: var(--vscee-border-sm) solid var(--vscee-color-widget-border);
       font-size: var(--vscee-font-compact-sm);
       font-weight: 600;
       color: var(--vscee-color-foreground);
@@ -257,7 +256,6 @@
     }
     .layer-row {
       padding: var(--vscee-space-xs) var(--vscee-space-md);
-      border-bottom: var(--vscee-border-sm) solid var(--vscee-color-widget-border);
       display: flex;
       align-items: center;
       gap: var(--vscee-space-sm);
