@@ -16,7 +16,9 @@
   function copySnippet() {
     vscode.postMessage({ type: 'copy', text: data.snippet });
     copyLabel = 'Copied!';
-    setTimeout(() => { copyLabel = 'Copy'; }, 1200);
+    setTimeout(() => {
+      copyLabel = 'Copy';
+    }, 1200);
   }
 </script>
 
@@ -57,11 +59,7 @@
 {#if data.tabs.length > 0}
   <div class="tabs" role="tablist">
     {#each data.tabs as tab}
-      <button
-        class="tab"
-        class:active={activeTab === tab.id}
-        onclick={() => activeTab = tab.id}
-      >
+      <button class="tab" class:active={activeTab === tab.id} onclick={() => (activeTab = tab.id)}>
         {tab.label}
       </button>
     {/each}
@@ -149,7 +147,9 @@
       font-size: var(--vscee-font-xs);
       font-family: var(--vscee-font-family, sans-serif);
 
-      &:hover { background: var(--vscee-color-button-secondary-hover); }
+      &:hover {
+        background: var(--vscee-color-button-secondary-hover);
+      }
     }
 
     /* ==================================================================
@@ -198,7 +198,10 @@
       border-radius: var(--vscee-radius-md);
       overflow-x: auto;
 
-      code { background: none; padding: 0; }
+      code {
+        background: none;
+        padding: 0;
+      }
     }
     a {
       color: var(--vscee-color-link);
@@ -239,14 +242,22 @@
       font-size: var(--vscee-font-md);
       font-family: inherit;
 
-      &:hover { opacity: 1; }
-      &.active { opacity: 1; border-bottom-color: var(--vscee-color-focus); font-weight: 600; }
+      &:hover {
+        opacity: 1;
+      }
+      &.active {
+        opacity: 1;
+        border-bottom-color: var(--vscee-color-focus);
+        font-weight: 600;
+      }
     }
     .tab-panel {
       display: none;
       padding-top: var(--vscee-space-xl);
 
-      &.active { display: block; }
+      &.active {
+        display: block;
+      }
     }
 
     /* ==================================================================

@@ -57,7 +57,7 @@
     savePreferences();
   }
 
-  const firstFilterColumnKey = $derived(table.visibleColumns.find(column => column.filter)?.key);
+  const firstFilterColumnKey = $derived(table.visibleColumns.find((column) => column.filter)?.key);
 </script>
 
 <div class="topbar">
@@ -71,7 +71,11 @@
         Clear filters ({table.activeFilterCount})
       </button>
     {/if}
-    <ColumnPicker columns={table.columns} visibleCols={table.visibleCols} onchange={setVisibleCols} />
+    <ColumnPicker
+      columns={table.columns}
+      visibleCols={table.visibleCols}
+      onchange={setVisibleCols}
+    />
   </div>
 </div>
 
@@ -115,19 +119,26 @@
       {#each table.pageRows as item (rowKey(item))}
         <tr class={rowClass(item)}>{@render row(item, table.visibleColumns)}</tr>
       {:else}
-        <tr><td class="empty-cell" colspan={Math.max(table.visibleColumns.length, 1)}>{loading ? 'Loading...' : `No ${itemLabel} found`}</td></tr>
+        <tr
+          ><td class="empty-cell" colspan={Math.max(table.visibleColumns.length, 1)}
+            >{loading ? 'Loading...' : `No ${itemLabel} found`}</td
+          ></tr
+        >
       {/each}
     </tbody>
   </table>
 </div>
 
 <div class="footer">
-  <span class="page-info">{table.rangeText.replace('items', itemLabel)}{#if loading} <span class="spinner-inline"></span>{/if}</span>
+  <span class="page-info"
+    >{table.rangeText.replace('items', itemLabel)}{#if loading}
+      <span class="spinner-inline"></span>{/if}</span
+  >
   <Pagination
     currentPage={table.currentPage}
     totalPages={table.page.totalPages}
     pageSize={table.pageSize}
-    onpagechange={(page) => table.currentPage = page}
+    onpagechange={(page) => (table.currentPage = page)}
     onpagesizechange={setPageSize}
   />
 </div>
@@ -161,7 +172,9 @@
     min-width: 0;
   }
 
-  .topbar-right { margin-left: auto; }
+  .topbar-right {
+    margin-left: auto;
+  }
 
   .reset-filters {
     display: inline-flex;
@@ -176,7 +189,9 @@
     font: inherit;
     font-size: var(--vscee-font-sm);
 
-    &:hover { background: var(--vscee-color-list-hover); }
+    &:hover {
+      background: var(--vscee-color-list-hover);
+    }
   }
 
   /* ==================================================================
@@ -211,7 +226,6 @@
     background: var(--vscee-color-editor-background);
     border-bottom: var(--vscee-border-md) solid var(--vscee-color-panel-border);
     white-space: nowrap;
-
   }
 
   .header-content,
@@ -249,7 +263,9 @@
       background: var(--vscee-color-list-hover);
       opacity: 1;
     }
-    &.active { color: var(--vscee-color-button-background); }
+    &.active {
+      color: var(--vscee-color-button-background);
+    }
   }
 
   .sort-neutral {
@@ -289,6 +305,8 @@
   }
 
   @keyframes spin {
-    to { transform: rotate(360deg); }
+    to {
+      transform: rotate(360deg);
+    }
   }
 </style>

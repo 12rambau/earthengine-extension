@@ -1,6 +1,11 @@
 <!-- Pagination: page buttons with ellipsis, prev/next, page size selector -->
 <script>
-  let { currentPage = $bindable(), totalPages, pageSize = $bindable(), onPageSizeChange } = $props();
+  let {
+    currentPage = $bindable(),
+    totalPages,
+    pageSize = $bindable(),
+    onPageSizeChange,
+  } = $props();
 
   let openSize = $state(false);
   let sizeWrap = $state(null);
@@ -12,16 +17,24 @@
   // ----------------------------------------------------------------
   // Builds a sparse page list: always includes first, last, and neighbours of current.
   function pages() {
-    if (totalPages <= 1) {return [];}
+    if (totalPages <= 1) {
+      return [];
+    }
     const shown = new Set([0, totalPages - 1]);
-    for (let i = Math.max(0, currentPage - 1); i <= Math.min(totalPages - 1, currentPage + 1); i++) {
+    for (
+      let i = Math.max(0, currentPage - 1);
+      i <= Math.min(totalPages - 1, currentPage + 1);
+      i++
+    ) {
       shown.add(i);
     }
     const sorted = [...shown].sort((a, b) => a - b);
     const result = [];
     let prev = -1;
     for (const p of sorted) {
-      if (prev !== -1 && p > prev + 1) {result.push({ type: 'ellipsis' });}
+      if (prev !== -1 && p > prev + 1) {
+        result.push({ type: 'ellipsis' });
+      }
       result.push({ type: 'page', value: p });
       prev = p;
     }
@@ -36,11 +49,22 @@
   }
 </script>
 
-<svelte:document onclick={(e) => { if (!sizeWrap?.contains(e.target)) {openSize = false;} }} />
+<svelte:document
+  onclick={(e) => {
+    if (!sizeWrap?.contains(e.target)) {
+      openSize = false;
+    }
+  }}
+/>
 
 <!-- CONTROLS -->
 <div class="pagination">
-  <button class="page-nav" aria-label="Previous page" disabled={currentPage === 0} onclick={() => currentPage--}><i class="codicon codicon-triangle-left"></i></button>
+  <button
+    class="page-nav"
+    aria-label="Previous page"
+    disabled={currentPage === 0}
+    onclick={() => currentPage--}><i class="codicon codicon-triangle-left"></i></button
+  >
   <span class="page-nums">
     {#each pages() as item}
       {#if item.type === 'ellipsis'}
@@ -49,20 +73,28 @@
         <button
           class="page-btn"
           class:active={item.value === currentPage}
-          onclick={() => currentPage = item.value}
+          onclick={() => (currentPage = item.value)}
         >
           {item.value + 1}
         </button>
       {/if}
     {/each}
   </span>
-  <button class="page-nav" aria-label="Next page" disabled={currentPage >= totalPages - 1} onclick={() => currentPage++}><i class="codicon codicon-triangle-right"></i></button>
+  <button
+    class="page-nav"
+    aria-label="Next page"
+    disabled={currentPage >= totalPages - 1}
+    onclick={() => currentPage++}><i class="codicon codicon-triangle-right"></i></button
+  >
 
   <div class="size-wrap" bind:this={sizeWrap}>
     <button
       class="size-trigger"
       class:open={openSize}
-      onclick={(e) => { e.stopPropagation(); openSize = !openSize; }}
+      onclick={(e) => {
+        e.stopPropagation();
+        openSize = !openSize;
+      }}
     >
       {pageSize} / page
       <i class="codicon codicon-chevron-down size-chevron" class:open={openSize}></i>
@@ -70,7 +102,11 @@
     {#if openSize}
       <div class="size-menu">
         {#each PAGE_SIZES as size}
-          <button class="size-item" class:active={size === pageSize} onclick={() => setPageSize(size)}>
+          <button
+            class="size-item"
+            class:active={size === pageSize}
+            onclick={() => setPageSize(size)}
+          >
             {size}
           </button>
         {/each}
@@ -99,7 +135,9 @@
     line-height: 1;
     white-space: nowrap;
 
-    &:hover { background: var(--vscee-color-button-secondary-hover); }
+    &:hover {
+      background: var(--vscee-color-button-secondary-hover);
+    }
     &.open {
       background: var(--vscee-color-button-background);
       color: var(--vscee-color-button-foreground);
@@ -111,7 +149,9 @@
     opacity: 0.7;
     transition: transform 0.15s;
 
-    &.open { transform: rotate(180deg); }
+    &.open {
+      transform: rotate(180deg);
+    }
   }
 
   .size-menu {
@@ -121,7 +161,8 @@
     z-index: 20;
     min-width: 80px;
     background: var(--vscee-color-editor-widget-background, var(--vscee-color-editor-background));
-    border: var(--vscee-border-sm) solid var(--vscee-color-widget-border, var(--vscee-color-panel-border));
+    border: var(--vscee-border-sm) solid
+      var(--vscee-color-widget-border, var(--vscee-color-panel-border));
     border-radius: var(--vscee-radius-md);
     padding: var(--vscee-space-xs);
     box-shadow: var(--vscee-shadow-lg);
@@ -141,7 +182,9 @@
     text-align: left;
     white-space: nowrap;
 
-    &:hover { background: var(--vscee-color-list-hover); }
+    &:hover {
+      background: var(--vscee-color-list-hover);
+    }
     &.active {
       background: var(--vscee-color-button-background);
       color: var(--vscee-color-button-foreground);

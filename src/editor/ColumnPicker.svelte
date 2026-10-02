@@ -5,7 +5,7 @@
   let open = $state(false);
   let wrap = $state(null);
 
-  const opts = $derived(columns.filter(c => c.label));
+  const opts = $derived(columns.filter((c) => c.label));
 
   function toggle(key) {
     if (visibleCols.has(key)) {
@@ -18,13 +18,22 @@
   }
 </script>
 
-<svelte:document onclick={(e) => { if (!wrap?.contains(e.target)) {open = false;} }} />
+<svelte:document
+  onclick={(e) => {
+    if (!wrap?.contains(e.target)) {
+      open = false;
+    }
+  }}
+/>
 
 <div class="wrap" bind:this={wrap}>
   <button
     class="trigger"
     class:open
-    onclick={(e) => { e.stopPropagation(); open = !open; }}
+    onclick={(e) => {
+      e.stopPropagation();
+      open = !open;
+    }}
   >
     <i class="codicon codicon-list-filter"></i>
     Columns
@@ -69,7 +78,9 @@
     line-height: 1;
     white-space: nowrap;
 
-    &:hover { background: var(--vscee-color-button-secondary-hover); }
+    &:hover {
+      background: var(--vscee-color-button-secondary-hover);
+    }
     &.open {
       background: var(--vscee-color-button-background);
       color: var(--vscee-color-button-foreground);
@@ -81,7 +92,9 @@
     opacity: 0.7;
     transition: transform 0.15s;
 
-    &.open { transform: rotate(180deg); }
+    &.open {
+      transform: rotate(180deg);
+    }
   }
 
   .menu {
@@ -91,7 +104,8 @@
     z-index: 20;
     min-width: 160px;
     background: var(--vscee-color-editor-widget-background, var(--vscee-color-editor-background));
-    border: var(--vscee-border-sm) solid var(--vscee-color-widget-border, var(--vscee-color-panel-border));
+    border: var(--vscee-border-sm) solid
+      var(--vscee-color-widget-border, var(--vscee-color-panel-border));
     border-radius: var(--vscee-radius-md);
     padding: var(--vscee-space-xs);
     box-shadow: var(--vscee-shadow-lg);
@@ -110,12 +124,16 @@
     white-space: nowrap;
     user-select: none;
 
-    &:hover { background: var(--vscee-color-list-hover); }
+    &:hover {
+      background: var(--vscee-color-list-hover);
+    }
     &.dimmed {
       opacity: 0.45;
       cursor: default;
 
-      .check { cursor: default; }
+      .check {
+        cursor: default;
+      }
     }
   }
 

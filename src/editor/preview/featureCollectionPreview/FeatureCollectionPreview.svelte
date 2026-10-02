@@ -16,7 +16,7 @@
   // ----------------------------------------------------------------
   let activeTab = $state('description');
   let thumbnailHtml = $state(
-    '<span class="thumb-loading"><span class="spinner"></span> Loading thumbnail...</span>'
+    '<span class="thumb-loading"><span class="spinner"></span> Loading thumbnail...</span>',
   );
 
   // ----------------------------------------------------------------
@@ -82,7 +82,7 @@
         <button
           class="tab"
           class:active={activeTab === tab.id}
-          onclick={() => activeTab = tab.id}
+          onclick={() => (activeTab = tab.id)}
         >
           {tab.label}
         </button>
@@ -131,7 +131,10 @@
       padding: var(--vscee-space-lg) var(--vscee-space-xxl);
       border-bottom: var(--vscee-border-sm) solid var(--vscee-color-panel-border);
 
-      h1 { font-size: var(--vscee-font-xl); font-weight: 500; }
+      h1 {
+        font-size: var(--vscee-font-xl);
+        font-weight: 500;
+      }
     }
 
     /* ==================================================================
@@ -231,8 +234,13 @@
         opacity 0.15s,
         border-color 0.15s;
 
-      &:hover { opacity: 1; }
-      &.active { opacity: 1; border-bottom-color: var(--vscee-color-focus); }
+      &:hover {
+        opacity: 1;
+      }
+      &.active {
+        opacity: 1;
+        border-bottom-color: var(--vscee-color-focus);
+      }
     }
     .tab-panel {
       display: none;
@@ -240,7 +248,9 @@
       overflow: auto;
       flex: 1;
 
-      &.active { display: block; }
+      &.active {
+        display: block;
+      }
     }
     .empty-state {
       font-size: var(--vscee-font-md);
@@ -255,10 +265,21 @@
       font-size: var(--vscee-font-md);
       line-height: 1.6;
 
-      h2 { font-size: var(--vscee-font-xxl); margin: var(--vscee-space-xl) 0 var(--vscee-space-md); }
-      h3 { font-size: var(--vscee-font-lg); margin: var(--vscee-space-lg) 0 var(--vscee-space-sm); }
-      h4 { font-size: 1em; margin: var(--vscee-space-lg) 0 var(--vscee-space-xs); }
-      p { margin: var(--vscee-space-md) 0; }
+      h2 {
+        font-size: var(--vscee-font-xxl);
+        margin: var(--vscee-space-xl) 0 var(--vscee-space-md);
+      }
+      h3 {
+        font-size: var(--vscee-font-lg);
+        margin: var(--vscee-space-lg) 0 var(--vscee-space-sm);
+      }
+      h4 {
+        font-size: 1em;
+        margin: var(--vscee-space-lg) 0 var(--vscee-space-xs);
+      }
+      p {
+        margin: var(--vscee-space-md) 0;
+      }
       code {
         background: var(--vscee-color-code-background);
         padding: var(--vscee-space-xxs) var(--vscee-space-xs);
@@ -272,7 +293,10 @@
         overflow-x: auto;
         margin: var(--vscee-space-md) 0;
 
-        code { background: none; padding: 0; }
+        code {
+          background: none;
+          padding: 0;
+        }
       }
     }
 

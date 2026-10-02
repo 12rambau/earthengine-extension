@@ -16,7 +16,7 @@
   // ----------------------------------------------------------------
   let activeTab = $state('description');
   let thumbnailHtml = $state(
-    '<span class="thumb-loading"><span class="spinner"></span> Loading thumbnail...</span>'
+    '<span class="thumb-loading"><span class="spinner"></span> Loading thumbnail...</span>',
   );
   let images = $state(data.images);
   let assetIdCopied = $state(false);
@@ -37,7 +37,7 @@
         thumbnailHtml = `<span class="thumb-unavailable">${errorMsg}</span>`;
       }
     } else if (msg.type === 'imageDeleted') {
-      images = images.filter(img => img.name !== msg.name);
+      images = images.filter((img) => img.name !== msg.name);
     }
   });
 
@@ -48,7 +48,7 @@
     vscode.postMessage({ type: 'copyAssetId' });
     assetIdCopied = true;
     clearTimeout(copyResetTimer);
-    copyResetTimer = setTimeout(() => assetIdCopied = false, 5000);
+    copyResetTimer = setTimeout(() => (assetIdCopied = false), 5000);
   }
 
   function openImage(name) {
@@ -80,7 +80,11 @@
         <span class="info-value asset-id copyable-id" title={data.assetId}>
           <span class="copyable-id-value">{data.assetId}</span>
           <button class="copy-id-btn" title="Copy image collection ID" onclick={copyAssetId}>
-            <i class="codicon" class:codicon-copy={!assetIdCopied} class:codicon-check={assetIdCopied}></i>
+            <i
+              class="codicon"
+              class:codicon-copy={!assetIdCopied}
+              class:codicon-check={assetIdCopied}
+            ></i>
           </button>
         </span>
       </div>
@@ -109,7 +113,7 @@
         <button
           class="tab"
           class:active={activeTab === tab.id}
-          onclick={() => activeTab = tab.id}
+          onclick={() => (activeTab = tab.id)}
         >
           {tab.label}
         </button>
@@ -147,14 +151,26 @@
                   <td>{img.bandCount}</td>
                   <td class="actions-cell">
                     <span class="action-dots">
-                      <span class="action-dot"><i class="codicon codicon-circle-small-filled"></i></span>
-                      <span class="action-dot"><i class="codicon codicon-circle-small-filled"></i></span>
+                      <span class="action-dot"
+                        ><i class="codicon codicon-circle-small-filled"></i></span
+                      >
+                      <span class="action-dot"
+                        ><i class="codicon codicon-circle-small-filled"></i></span
+                      >
                     </span>
                     <span class="action-btns">
-                      <button class="action-btn" title="Open preview" onclick={() => openImage(img.name)}>
+                      <button
+                        class="action-btn"
+                        title="Open preview"
+                        onclick={() => openImage(img.name)}
+                      >
                         <i class="codicon codicon-open-preview"></i>
                       </button>
-                      <button class="action-btn danger" title="Delete image" onclick={() => deleteImage(img.name)}>
+                      <button
+                        class="action-btn danger"
+                        title="Delete image"
+                        onclick={() => deleteImage(img.name)}
+                      >
                         <i class="codicon codicon-trash"></i>
                       </button>
                     </span>
@@ -203,7 +219,10 @@
       padding: var(--vscee-space-lg) var(--vscee-space-xxl);
       border-bottom: var(--vscee-border-sm) solid var(--vscee-color-panel-border);
 
-      h1 { font-size: var(--vscee-font-xl); font-weight: 500; }
+      h1 {
+        font-size: var(--vscee-font-xl);
+        font-weight: 500;
+      }
     }
 
     /* ==================================================================
@@ -297,11 +316,16 @@
       cursor: pointer;
       opacity: 0;
 
-      &:hover { background: var(--vscee-color-list-hover); opacity: 1; }
+      &:hover {
+        background: var(--vscee-color-list-hover);
+        opacity: 1;
+      }
     }
     .copyable-id {
       &:hover .copy-id-btn,
-      &:focus-within .copy-id-btn { opacity: 0.7; }
+      &:focus-within .copy-id-btn {
+        opacity: 0.7;
+      }
     }
 
     /* ==================================================================
@@ -332,8 +356,13 @@
         opacity 0.15s,
         border-color 0.15s;
 
-      &:hover { opacity: 1; }
-      &.active { opacity: 1; border-bottom-color: var(--vscee-color-focus); }
+      &:hover {
+        opacity: 1;
+      }
+      &.active {
+        opacity: 1;
+        border-bottom-color: var(--vscee-color-focus);
+      }
     }
     .tab-panel {
       display: none;
@@ -341,7 +370,9 @@
       overflow: auto;
       flex: 1;
 
-      &.active { display: block; }
+      &.active {
+        display: block;
+      }
     }
     .empty-state {
       font-size: var(--vscee-font-md);
@@ -361,9 +392,17 @@
       font-size: var(--vscee-font-md);
       line-height: 1.6;
 
-      h2 { font-size: var(--vscee-font-xxl); margin: var(--vscee-space-xl) 0 var(--vscee-space-md); }
-      h3 { font-size: var(--vscee-font-lg); margin: var(--vscee-space-lg) 0 var(--vscee-space-sm); }
-      p { margin: var(--vscee-space-md) 0; }
+      h2 {
+        font-size: var(--vscee-font-xxl);
+        margin: var(--vscee-space-xl) 0 var(--vscee-space-md);
+      }
+      h3 {
+        font-size: var(--vscee-font-lg);
+        margin: var(--vscee-space-lg) 0 var(--vscee-space-sm);
+      }
+      p {
+        margin: var(--vscee-space-md) 0;
+      }
       code {
         background: var(--vscee-color-code-background);
         padding: var(--vscee-space-xxs) var(--vscee-space-xs);
@@ -377,7 +416,10 @@
         overflow-x: auto;
         margin: var(--vscee-space-md) 0;
 
-        code { background: none; padding: 0; }
+        code {
+          background: none;
+          padding: 0;
+        }
       }
     }
 
@@ -457,12 +499,20 @@
     }
     tr {
       &:hover {
-        .action-dots { display: none; }
-        .action-btns { display: inline-flex; }
+        .action-dots {
+          display: none;
+        }
+        .action-btns {
+          display: inline-flex;
+        }
       }
       &:focus-within {
-        .action-dots { display: none; }
-        .action-btns { display: inline-flex; }
+        .action-dots {
+          display: none;
+        }
+        .action-btns {
+          display: inline-flex;
+        }
       }
     }
     .action-btn {
@@ -476,10 +526,15 @@
       display: inline-flex;
       align-items: center;
 
-      &:hover { opacity: 1; background: var(--vscee-color-list-hover); }
+      &:hover {
+        opacity: 1;
+        background: var(--vscee-color-list-hover);
+      }
       &.danger {
         color: var(--vscee-color-error);
-        &:hover { background: var(--vscee-color-validation-error-background); }
+        &:hover {
+          background: var(--vscee-color-validation-error-background);
+        }
       }
     }
 

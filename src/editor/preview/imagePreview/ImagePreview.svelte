@@ -15,7 +15,7 @@
   // ----------------------------------------------------------------
   let activeTab = $state('description');
   let thumbnailHtml = $state(
-    '<span class="thumb-loading"><span class="spinner"></span> Loading thumbnail...</span>'
+    '<span class="thumb-loading"><span class="spinner"></span> Loading thumbnail...</span>',
   );
   // null = still loading; object = received (may have no entry for a band)
   let minMaxData = $state(null);
@@ -50,22 +50,30 @@
     vscode.postMessage({ type: 'copyAssetId' });
     assetIdCopied = true;
     clearTimeout(copyResetTimer);
-    copyResetTimer = setTimeout(() => assetIdCopied = false, 5000);
+    copyResetTimer = setTimeout(() => (assetIdCopied = false), 5000);
   }
 
   function formatNum(n) {
-    if (n === null || n === undefined) {return '—';}
-    if (Number.isInteger(n)) {return String(n);}
+    if (n === null || n === undefined) {
+      return '—';
+    }
+    if (Number.isInteger(n)) {
+      return String(n);
+    }
     return n.toFixed(4);
   }
 
   function getMin(bandId) {
-    if (!minMaxData || !minMaxData[bandId]) {return null;}
+    if (!minMaxData || !minMaxData[bandId]) {
+      return null;
+    }
     return minMaxData[bandId].min;
   }
 
   function getMax(bandId) {
-    if (!minMaxData || !minMaxData[bandId]) {return null;}
+    if (!minMaxData || !minMaxData[bandId]) {
+      return null;
+    }
     return minMaxData[bandId].max;
   }
 
@@ -94,7 +102,11 @@
         <span class="info-value asset-id copyable-id" title={data.assetId}>
           <span class="copyable-id-value">{data.assetId}</span>
           <button class="copy-id-btn" title="Copy image ID" onclick={copyAssetId}>
-            <i class="codicon" class:codicon-copy={!assetIdCopied} class:codicon-check={assetIdCopied}></i>
+            <i
+              class="codicon"
+              class:codicon-copy={!assetIdCopied}
+              class:codicon-check={assetIdCopied}
+            ></i>
           </button>
         </span>
       </div>
@@ -102,8 +114,14 @@
         <div class="info-row parent-collection-row">
           <span class="info-label">Parent collection</span>
           <span class="info-value asset-id parent-collection">
-            <span class="parent-collection-name" title={parentCollection.name}>{parentCollection.name}</span>
-            <button class="parent-preview-btn" title="Open parent collection preview" onclick={openParentCollection}>
+            <span class="parent-collection-name" title={parentCollection.name}
+              >{parentCollection.name}</span
+            >
+            <button
+              class="parent-preview-btn"
+              title="Open parent collection preview"
+              onclick={openParentCollection}
+            >
               <i class="codicon codicon-open-preview"></i>
             </button>
           </span>
@@ -134,7 +152,7 @@
         <button
           class="tab"
           class:active={activeTab === tab.id}
-          onclick={() => activeTab = tab.id}
+          onclick={() => (activeTab = tab.id)}
         >
           {tab.label}
         </button>
@@ -218,7 +236,10 @@
       padding: var(--vscee-space-lg) var(--vscee-space-xxl);
       border-bottom: var(--vscee-border-sm) solid var(--vscee-color-panel-border);
 
-      h1 { font-size: var(--vscee-font-xl); font-weight: 500; }
+      h1 {
+        font-size: var(--vscee-font-xl);
+        font-weight: 500;
+      }
     }
 
     /* ==================================================================
@@ -312,11 +333,16 @@
       cursor: pointer;
       opacity: 0;
 
-      &:hover { background: var(--vscee-color-list-hover); opacity: 1; }
+      &:hover {
+        background: var(--vscee-color-list-hover);
+        opacity: 1;
+      }
     }
     .copyable-id {
       &:hover .copy-id-btn,
-      &:focus-within .copy-id-btn { opacity: 0.7; }
+      &:focus-within .copy-id-btn {
+        opacity: 0.7;
+      }
     }
     .parent-collection {
       display: flex;
@@ -343,11 +369,16 @@
       cursor: pointer;
       opacity: 0;
 
-      &:hover { background: var(--vscee-color-list-hover); opacity: 1; }
+      &:hover {
+        background: var(--vscee-color-list-hover);
+        opacity: 1;
+      }
     }
     .parent-collection-row {
       &:hover .parent-preview-btn,
-      &:focus-within .parent-preview-btn { opacity: 0.7; }
+      &:focus-within .parent-preview-btn {
+        opacity: 0.7;
+      }
     }
 
     /* ==================================================================
@@ -378,8 +409,13 @@
         opacity 0.15s,
         border-color 0.15s;
 
-      &:hover { opacity: 1; }
-      &.active { opacity: 1; border-bottom-color: var(--vscee-color-focus); }
+      &:hover {
+        opacity: 1;
+      }
+      &.active {
+        opacity: 1;
+        border-bottom-color: var(--vscee-color-focus);
+      }
     }
     .tab-panel {
       display: none;
@@ -387,7 +423,9 @@
       overflow: auto;
       flex: 1;
 
-      &.active { display: block; }
+      &.active {
+        display: block;
+      }
     }
 
     /* ==================================================================

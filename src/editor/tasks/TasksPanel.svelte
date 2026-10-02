@@ -16,23 +16,89 @@
   function computeUsageCompare(left, right, direction) {
     const a = left.computeUsage;
     const b = right.computeUsage;
-    if (a === b) {return 0;}
-    if (a == null) {return direction;}
-    if (b == null) {return -direction;}
+    if (a === b) {
+      return 0;
+    }
+    if (a == null) {
+      return direction;
+    }
+    if (b == null) {
+      return -direction;
+    }
     return (a - b) * direction;
   }
 
   const ALL_COLS = [
     { key: 'icon', label: '', required: true },
-    { key: 'state', label: 'Status', required: true, sortable: true, filter: { kind: 'enum', options: ['PENDING', 'RUNNING', 'CANCELLING', 'SUCCEEDED', 'FAILED', 'CANCELLED'] }, accessor: task => task.state },
-    { key: 'description', label: 'Name', required: true, sortable: true, filter: { kind: 'text' }, accessor: task => task.description },
-    { key: 'id', label: 'ID', sortable: true, filter: { kind: 'text' }, accessor: task => task.id },
-    { key: 'createTime', label: 'Created', sortable: true, filter: { kind: 'date' }, accessor: task => task.createTime },
-    { key: 'startTime', label: 'Start', sortable: true, filter: { kind: 'date' }, accessor: task => task.startTime },
-    { key: 'elapsed', label: 'Duration', sortable: true, filter: { kind: 'duration' }, accessor: task => task.elapsedMs },
-    { key: 'attempt', label: 'Attempts', sortable: true, filter: { kind: 'number' }, accessor: task => task.attempt },
-    { key: 'priority', label: 'Priority', sortable: true, filter: { kind: 'number' }, accessor: task => task.priority },
-    { key: 'computeUsage', label: 'Compute Usage', sortable: true, filter: { kind: 'number' }, accessor: computeUsageValue, compare: computeUsageCompare },
+    {
+      key: 'state',
+      label: 'Status',
+      required: true,
+      sortable: true,
+      filter: {
+        kind: 'enum',
+        options: ['PENDING', 'RUNNING', 'CANCELLING', 'SUCCEEDED', 'FAILED', 'CANCELLED'],
+      },
+      accessor: (task) => task.state,
+    },
+    {
+      key: 'description',
+      label: 'Name',
+      required: true,
+      sortable: true,
+      filter: { kind: 'text' },
+      accessor: (task) => task.description,
+    },
+    {
+      key: 'id',
+      label: 'ID',
+      sortable: true,
+      filter: { kind: 'text' },
+      accessor: (task) => task.id,
+    },
+    {
+      key: 'createTime',
+      label: 'Created',
+      sortable: true,
+      filter: { kind: 'date' },
+      accessor: (task) => task.createTime,
+    },
+    {
+      key: 'startTime',
+      label: 'Start',
+      sortable: true,
+      filter: { kind: 'date' },
+      accessor: (task) => task.startTime,
+    },
+    {
+      key: 'elapsed',
+      label: 'Duration',
+      sortable: true,
+      filter: { kind: 'duration' },
+      accessor: (task) => task.elapsedMs,
+    },
+    {
+      key: 'attempt',
+      label: 'Attempts',
+      sortable: true,
+      filter: { kind: 'number' },
+      accessor: (task) => task.attempt,
+    },
+    {
+      key: 'priority',
+      label: 'Priority',
+      sortable: true,
+      filter: { kind: 'number' },
+      accessor: (task) => task.priority,
+    },
+    {
+      key: 'computeUsage',
+      label: 'Compute Usage',
+      sortable: true,
+      filter: { kind: 'number' },
+      accessor: computeUsageValue,
+      compare: computeUsageCompare,
+    },
     { key: 'actions', label: 'Actions', required: true },
   ];
 
@@ -60,14 +126,23 @@
   }
 
   function syncRows() {
-    const rows = currentFilter === 'export'
-      ? allTasks.filter(task => { const type = (task.type || '').toUpperCase(); return type.startsWith('EXPORT') || type === ''; })
-      : allTasks.filter(task => { const type = (task.type || '').toUpperCase(); return type.startsWith('INGEST') || type.startsWith('IMPORT'); });
+    const rows =
+      currentFilter === 'export'
+        ? allTasks.filter((task) => {
+            const type = (task.type || '').toUpperCase();
+            return type.startsWith('EXPORT') || type === '';
+          })
+        : allTasks.filter((task) => {
+            const type = (task.type || '').toUpperCase();
+            return type.startsWith('INGEST') || type.startsWith('IMPORT');
+          });
     table.setRows(rows);
   }
 
   function changeFilter(filter) {
-    if (currentFilter === filter) {return;}
+    if (currentFilter === filter) {
+      return;
+    }
     preferencesByFilter = { ...preferencesByFilter, [currentFilter]: table.exportPreferences() };
     currentFilter = filter;
     table.applyPreferences(preferencesByFilter[currentFilter]);
@@ -88,7 +163,9 @@
   }
 
   function formatTime(t) {
-    if (!t) {return '';}
+    if (!t) {
+      return '';
+    }
     return new Date(t).toLocaleString();
   }
 
@@ -108,7 +185,7 @@
     } else if (msg.type === 'loading') {
       isLoading = true;
     } else if (msg.type === 'cancelled') {
-      allTasks = allTasks.map(t => t.name === msg.name ? { ...t, state: 'CANCELLING' } : t);
+      allTasks = allTasks.map((t) => (t.name === msg.name ? { ...t, state: 'CANCELLING' } : t));
       syncRows();
     } else if (msg.type === 'error') {
       isRefreshing = false;
@@ -128,22 +205,40 @@
   {#snippet toolbar()}
     <!-- Filter toggle -->
     <div class="toggle-switch">
-      <input type="radio" id="filter-export" name="filter" checked={currentFilter === 'export'} onchange={() => changeFilter('export')} />
+      <input
+        type="radio"
+        id="filter-export"
+        name="filter"
+        checked={currentFilter === 'export'}
+        onchange={() => changeFilter('export')}
+      />
       <label for="filter-export">Export</label>
-      <input type="radio" id="filter-import" name="filter" checked={currentFilter === 'import'} onchange={() => changeFilter('import')} />
+      <input
+        type="radio"
+        id="filter-import"
+        name="filter"
+        checked={currentFilter === 'import'}
+        onchange={() => changeFilter('import')}
+      />
       <label for="filter-import">Import</label>
-      <span class="slider" style:left={currentFilter === 'export' ? '0' : '50%'} style:width="50%"></span>
+      <span class="slider" style:left={currentFilter === 'export' ? '0' : '50%'} style:width="50%"
+      ></span>
     </div>
 
     <!-- Refresh button -->
-    <button class="btn-primary" class:loading={isRefreshing} disabled={isRefreshing} onclick={refresh}>
+    <button
+      class="btn-primary"
+      class:loading={isRefreshing}
+      disabled={isRefreshing}
+      onclick={refresh}
+    >
       <span class="refresh-icon">↻</span>
       {isRefreshing ? 'Refreshing…' : 'Refresh'}
     </button>
   {/snippet}
 
   {#snippet row(t, columns)}
-    {@const visible = new Set(columns.map(column => column.key))}
+    {@const visible = new Set(columns.map((column) => column.key))}
     {#if visible.has('icon')}
       <td class="icon-col">
         {#if t.state === 'RUNNING' || t.state === 'CANCELLING'}
@@ -159,7 +254,8 @@
         {/if}
       </td>
     {/if}
-    {#if visible.has('state')}<td data-value={t.state}><span class="status">{t.state}</span></td>{/if}
+    {#if visible.has('state')}<td data-value={t.state}><span class="status">{t.state}</span></td
+      >{/if}
     {#if visible.has('description')}
       <td data-value={t.description}>
         {t.description}
@@ -167,12 +263,19 @@
       </td>
     {/if}
     {#if visible.has('id')}<td class="id-cell" data-value={t.id} title={t.id}>{t.id}</td>{/if}
-    {#if visible.has('createTime')}<td data-value={t.createTime}>{formatTime(t.createTime)}</td>{/if}
+    {#if visible.has('createTime')}<td data-value={t.createTime}>{formatTime(t.createTime)}</td
+      >{/if}
     {#if visible.has('startTime')}<td data-value={t.startTime}>{formatTime(t.startTime)}</td>{/if}
     {#if visible.has('elapsed')}<td class="elapsed" data-value={t.elapsedMs}>{t.elapsed}</td>{/if}
-    {#if visible.has('attempt')}<td style="text-align:center" data-value={t.attempt}>{t.attempt ?? ''}</td>{/if}
-    {#if visible.has('priority')}<td style="text-align:center" data-value={t.priority}>{t.priority ?? ''}</td>{/if}
-    {#if visible.has('computeUsage')}<td class="compute" data-value={computeUsageValue(t)}>{computeUsageValue(t) != null ? computeUsageValue(t).toFixed(1) + ' EECU·s' : ''}</td>{/if}
+    {#if visible.has('attempt')}<td style="text-align:center" data-value={t.attempt}
+        >{t.attempt ?? ''}</td
+      >{/if}
+    {#if visible.has('priority')}<td style="text-align:center" data-value={t.priority}
+        >{t.priority ?? ''}</td
+      >{/if}
+    {#if visible.has('computeUsage')}<td class="compute" data-value={computeUsageValue(t)}
+        >{computeUsageValue(t) != null ? computeUsageValue(t).toFixed(1) + ' EECU·s' : ''}</td
+      >{/if}
     {#if visible.has('actions')}
       {@const hasCancel = t.state === 'RUNNING' || t.state === 'PENDING'}
       {@const hasPreview = Boolean(t.previewAssetName)}
@@ -183,12 +286,20 @@
           </span>
           <span class="action-btns">
             {#if hasCancel}
-              <button class="action-btn danger" title="Cancel task" onclick={() => cancelTask(t.name)}>
+              <button
+                class="action-btn danger"
+                title="Cancel task"
+                onclick={() => cancelTask(t.name)}
+              >
                 <i class="codicon codicon-stop-circle"></i>
               </button>
             {/if}
             {#if hasPreview}
-              <button class="action-btn" title="Preview asset" onclick={() => previewAsset(t.previewAssetName)}>
+              <button
+                class="action-btn"
+                title="Preview asset"
+                onclick={() => previewAsset(t.previewAssetName)}
+              >
                 <i class="codicon codicon-open-preview"></i>
               </button>
             {/if}
@@ -279,7 +390,9 @@
       flex-wrap: wrap;
 
       /* Pagination sits inside the footer — remove its own justify-content */
-      .pagination { padding-top: 0; }
+      .pagination {
+        padding-top: 0;
+      }
     }
 
     /* ==================================================================
@@ -352,7 +465,9 @@
 
       input {
         display: none;
-        &:checked + label { color: var(--vscee-color-button-foreground); }
+        &:checked + label {
+          color: var(--vscee-color-button-foreground);
+        }
       }
       label {
         padding: var(--vscee-space-xs) var(--vscee-space-lg);
@@ -370,7 +485,9 @@
         bottom: 0;
         border-radius: var(--vscee-radius-md);
         background: var(--vscee-color-button-background);
-        transition: left 0.2s, width 0.2s;
+        transition:
+          left 0.2s,
+          width 0.2s;
       }
     }
 
@@ -404,20 +521,29 @@
       font-size: var(--vscee-font-sm);
     }
     button {
-      &:hover { background: var(--vscee-color-button-secondary-hover); }
-      &:disabled { opacity: 0.4; cursor: default; }
+      &:hover {
+        background: var(--vscee-color-button-secondary-hover);
+      }
+      &:disabled {
+        opacity: 0.4;
+        cursor: default;
+      }
     }
     .btn-primary {
       background: var(--vscee-color-button-background);
       color: var(--vscee-color-button-foreground);
       border-color: transparent;
 
-      &:hover { background: var(--vscee-color-button-hover); }
+      &:hover {
+        background: var(--vscee-color-button-hover);
+      }
       &.loading {
         opacity: 0.75;
         cursor: default;
 
-        .refresh-icon { animation: spin 0.8s linear infinite; }
+        .refresh-icon {
+          animation: spin 0.8s linear infinite;
+        }
       }
     }
     .page-info {
@@ -446,7 +572,9 @@
         border-bottom: var(--vscee-border-md) solid var(--vscee-color-panel-border);
         white-space: nowrap;
 
-        &:hover { background: var(--vscee-color-list-hover); }
+        &:hover {
+          background: var(--vscee-color-list-hover);
+        }
       }
     }
     th {
@@ -454,7 +582,9 @@
         opacity: 0.5;
         margin-left: var(--vscee-space-xs);
       }
-      &.sorted .sort-arrow { opacity: 1; }
+      &.sorted .sort-arrow {
+        opacity: 1;
+      }
     }
     td {
       padding: var(--vscee-space-sm) var(--vscee-space-md);
@@ -478,10 +608,18 @@
       border-radius: 50%;
       display: inline-block;
 
-      &.succeeded { background: var(--vscee-color-testing-passed); }
-      &.failed { background: var(--vscee-color-testing-failed); }
-      &.cancelled { background: var(--vscee-color-disabled); }
-      &.pending { background: var(--vscee-color-chart-yellow); }
+      &.succeeded {
+        background: var(--vscee-color-testing-passed);
+      }
+      &.failed {
+        background: var(--vscee-color-testing-failed);
+      }
+      &.cancelled {
+        background: var(--vscee-color-disabled);
+      }
+      &.pending {
+        background: var(--vscee-color-chart-yellow);
+      }
     }
 
     /* ==================================================================
@@ -492,12 +630,16 @@
         transform: rotate(360deg);
       }
     }
-    .refresh-icon { display: inline-block; }
+    .refresh-icon {
+      display: inline-block;
+    }
     .btn-primary.loading {
       opacity: 0.75;
       cursor: default;
 
-      .refresh-icon { animation: spin 0.8s linear infinite; }
+      .refresh-icon {
+        animation: spin 0.8s linear infinite;
+      }
     }
     .table-wrap.loading {
       opacity: 0.45;
@@ -539,12 +681,20 @@
     tr {
       &:hover {
         background: var(--vscee-color-list-hover);
-        .action-dots { display: none; }
-        .action-btns { display: inline-flex; }
+        .action-dots {
+          display: none;
+        }
+        .action-btns {
+          display: inline-flex;
+        }
       }
       &:focus-within {
-        .action-dots { display: none; }
-        .action-btns { display: inline-flex; }
+        .action-dots {
+          display: none;
+        }
+        .action-btns {
+          display: inline-flex;
+        }
       }
     }
     .action-btn {
@@ -558,10 +708,15 @@
       display: inline-flex;
       align-items: center;
 
-      &:hover { opacity: 1; background: var(--vscee-color-list-hover); }
+      &:hover {
+        opacity: 1;
+        background: var(--vscee-color-list-hover);
+      }
       &.danger {
         color: var(--vscee-color-error);
-        &:hover { background: var(--vscee-color-validation-error-background); }
+        &:hover {
+          background: var(--vscee-color-validation-error-background);
+        }
       }
     }
 

@@ -77,7 +77,10 @@
       font-size: var(--vscee-font-md);
     }
     .props-table {
-      td:first-child { font-weight: 600; width: 30%; }
+      td:first-child {
+        font-weight: 600;
+        width: 30%;
+      }
     }
     a {
       color: var(--vscee-color-link);

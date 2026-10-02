@@ -23,7 +23,9 @@
 
   function toggleOption(value) {
     const selected = filter?.kind === 'enum' ? filter.values : [];
-    const values = selected.includes(value) ? selected.filter(item => item !== value) : [...selected, value];
+    const values = selected.includes(value)
+      ? selected.filter((item) => item !== value)
+      : [...selected, value];
     onchange?.(values.length ? { kind: 'enum', values } : undefined);
   }
 
@@ -45,7 +47,14 @@
   }
 </script>
 
-<svelte:document onclick={(event) => { if (open && !wrap?.contains(event.target)) {onopenchange?.(false);} }} onkeydown={closeOnEscape} />
+<svelte:document
+  onclick={(event) => {
+    if (open && !wrap?.contains(event.target)) {
+      onopenchange?.(false);
+    }
+  }}
+  onkeydown={closeOnEscape}
+/>
 
 <div class="wrap" bind:this={wrap}>
   <button
@@ -53,7 +62,10 @@
     class:active
     aria-label={`Filter ${column.label}`}
     title={`Filter ${column.label}`}
-    onclick={(event) => { event.stopPropagation(); onopenchange?.(!open); }}
+    onclick={(event) => {
+      event.stopPropagation();
+      onopenchange?.(!open);
+    }}
   >
     <i class:codicon-filter-filled={active} class:codicon-filter={!active} class="codicon"></i>
   </button>
@@ -168,7 +180,9 @@
       background: var(--vscee-color-list-hover);
       opacity: 1;
     }
-    &.active { color: var(--vscee-color-button-background); }
+    &.active {
+      color: var(--vscee-color-button-background);
+    }
   }
 
   /* ==================================================================
@@ -220,7 +234,9 @@
     cursor: pointer;
     font-size: var(--vscee-font-sm);
 
-    &:hover { background: var(--vscee-color-list-hover); }
+    &:hover {
+      background: var(--vscee-color-list-hover);
+    }
   }
 
   .comparison {
@@ -250,6 +266,8 @@
     font: inherit;
     font-size: var(--vscee-font-sm);
 
-    &:hover { background: var(--vscee-color-list-hover); }
+    &:hover {
+      background: var(--vscee-color-list-hover);
+    }
   }
 </style>

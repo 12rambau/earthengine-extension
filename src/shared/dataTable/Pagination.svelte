@@ -8,16 +8,24 @@
   const PAGE_SIZES = [25, 50, 100];
 
   function pages() {
-    if (totalPages <= 1) {return [];}
+    if (totalPages <= 1) {
+      return [];
+    }
     const shown = new Set([0, totalPages - 1]);
-    for (let page = Math.max(0, currentPage - 1); page <= Math.min(totalPages - 1, currentPage + 1); page++) {
+    for (
+      let page = Math.max(0, currentPage - 1);
+      page <= Math.min(totalPages - 1, currentPage + 1);
+      page++
+    ) {
       shown.add(page);
     }
     const sorted = [...shown].sort((left, right) => left - right);
     const result = [];
     let previous = -1;
     for (const page of sorted) {
-      if (previous !== -1 && page > previous + 1) {result.push({ type: 'ellipsis' });}
+      if (previous !== -1 && page > previous + 1) {
+        result.push({ type: 'ellipsis' });
+      }
       result.push({ type: 'page', value: page });
       previous = page;
     }
@@ -30,10 +38,23 @@
   }
 </script>
 
-<svelte:document onclick={(event) => { if (!sizeWrap?.contains(event.target)) {openSize = false;} }} />
+<svelte:document
+  onclick={(event) => {
+    if (!sizeWrap?.contains(event.target)) {
+      openSize = false;
+    }
+  }}
+/>
 
 <div class="pagination">
-  <button class="page-nav" aria-label="Previous page" title="Previous page" disabled={currentPage === 0} onclick={() => onpagechange?.(currentPage - 1)}><i class="codicon codicon-triangle-left"></i></button>
+  <button
+    class="page-nav"
+    aria-label="Previous page"
+    title="Previous page"
+    disabled={currentPage === 0}
+    onclick={() => onpagechange?.(currentPage - 1)}
+    ><i class="codicon codicon-triangle-left"></i></button
+  >
   <span class="page-nums">
     {#each pages() as item}
       {#if item.type === 'ellipsis'}
@@ -49,13 +70,23 @@
       {/if}
     {/each}
   </span>
-  <button class="page-nav" aria-label="Next page" title="Next page" disabled={currentPage >= totalPages - 1} onclick={() => onpagechange?.(currentPage + 1)}><i class="codicon codicon-triangle-right"></i></button>
+  <button
+    class="page-nav"
+    aria-label="Next page"
+    title="Next page"
+    disabled={currentPage >= totalPages - 1}
+    onclick={() => onpagechange?.(currentPage + 1)}
+    ><i class="codicon codicon-triangle-right"></i></button
+  >
 
   <div class="size-wrap" bind:this={sizeWrap}>
     <button
       class="size-trigger"
       class:open={openSize}
-      onclick={(event) => { event.stopPropagation(); openSize = !openSize; }}
+      onclick={(event) => {
+        event.stopPropagation();
+        openSize = !openSize;
+      }}
     >
       {pageSize} / page
       <i class="codicon codicon-chevron-down size-chevron" class:open={openSize}></i>
@@ -63,7 +94,11 @@
     {#if openSize}
       <div class="size-menu">
         {#each PAGE_SIZES as size}
-          <button class="size-item" class:active={size === pageSize} onclick={() => setPageSize(size)}>
+          <button
+            class="size-item"
+            class:active={size === pageSize}
+            onclick={() => setPageSize(size)}
+          >
             {size}
           </button>
         {/each}
@@ -145,7 +180,9 @@
     line-height: 1;
     white-space: nowrap;
 
-    &:hover { background: var(--vscee-color-button-secondary-hover); }
+    &:hover {
+      background: var(--vscee-color-button-secondary-hover);
+    }
     &.open {
       background: var(--vscee-color-button-background);
       color: var(--vscee-color-button-foreground);
@@ -157,7 +194,9 @@
     opacity: 0.7;
     transition: transform 0.15s;
 
-    &.open { transform: rotate(180deg); }
+    &.open {
+      transform: rotate(180deg);
+    }
   }
 
   .size-menu {
@@ -184,7 +223,9 @@
     text-align: left;
     white-space: nowrap;
 
-    &:hover { background: var(--vscee-color-list-hover); }
+    &:hover {
+      background: var(--vscee-color-list-hover);
+    }
     &.active {
       background: var(--vscee-color-button-background);
       color: var(--vscee-color-button-foreground);

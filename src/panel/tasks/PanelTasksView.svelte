@@ -2,7 +2,12 @@
 <script>
   import { vscode } from '../../shared/vscode.ts';
   import {
-    mdiChartTree, mdiEarth, mdiImage, mdiMapOutline, mdiTable, mdiVideoBox,
+    mdiChartTree,
+    mdiEarth,
+    mdiImage,
+    mdiMapOutline,
+    mdiTable,
+    mdiVideoBox,
   } from '../../shared/icons.ts';
 
   const STATE_ICONS = {
@@ -46,7 +51,7 @@
       isLoading = false;
       tasks = [];
     } else if (msg.type === 'cancelled') {
-      tasks = tasks.map(t => t.name === msg.name ? { ...t, state: 'CANCELLING' } : t);
+      tasks = tasks.map((t) => (t.name === msg.name ? { ...t, state: 'CANCELLING' } : t));
     } else if (msg.type === 'loading') {
       isUnauthenticated = false;
       isLoading = true;
@@ -84,15 +89,28 @@
   {:else}
     {#each tasks as task (task.name)}
       <li class="task-row" title={task.id || ''}>
-        <span class={stateClass(task.state)}><i class={STATE_ICONS[task.state] || 'codicon codicon-question'}></i></span>
-        <span class={stateClass(task.state)}><svg class="task-type-icon" viewBox="0 0 24 24" aria-hidden="true"><path d={TASK_TYPE_ICONS[task.kind] || mdiEarth}/></svg></span>
+        <span class={stateClass(task.state)}
+          ><i class={STATE_ICONS[task.state] || 'codicon codicon-question'}></i></span
+        >
+        <span class={stateClass(task.state)}
+          ><svg class="task-type-icon" viewBox="0 0 24 24" aria-hidden="true"
+            ><path d={TASK_TYPE_ICONS[task.kind] || mdiEarth} /></svg
+          ></span
+        >
         <span class="task-name">{task.description || task.id || ''}</span>
-        <span class="task-elapsed">{task.state !== 'PENDING' ? (task.elapsed || '') : ''}</span>
+        <span class="task-elapsed">{task.state !== 'PENDING' ? task.elapsed || '' : ''}</span>
         <span class="task-actions">
           {#if task.state === 'RUNNING' || task.state === 'PENDING'}
-            <button type="button" class="danger" title="Cancel" onclick={() => cancel(task.name)}><i class="codicon codicon-stop-circle"></i></button>
+            <button type="button" class="danger" title="Cancel" onclick={() => cancel(task.name)}
+              ><i class="codicon codicon-stop-circle"></i></button
+            >
           {:else if task.previewAssetName}
-            <button type="button" title="Preview asset" onclick={() => preview(task.previewAssetName)}><i class="codicon codicon-open-preview"></i></button>
+            <button
+              type="button"
+              title="Preview asset"
+              onclick={() => preview(task.previewAssetName)}
+              ><i class="codicon codicon-open-preview"></i></button
+            >
           {/if}
         </span>
       </li>
@@ -158,7 +176,9 @@
 
       &:hover {
         background: var(--vscee-color-list-hover);
-        .task-actions { visibility: visible; }
+        .task-actions {
+          visibility: visible;
+        }
       }
     }
 
@@ -249,11 +269,15 @@
         font-family: inherit;
         font-size: var(--vscee-font-md);
 
-        &:hover { background: var(--vscee-color-list-hover); opacity: 1; }
-        &.danger:hover { color: var(--vscee-color-testing-failed); }
+        &:hover {
+          background: var(--vscee-color-list-hover);
+          opacity: 1;
+        }
+        &.danger:hover {
+          color: var(--vscee-color-testing-failed);
+        }
       }
     }
-
 
     /* ==================================================================
        EMPTY STATE

@@ -5,7 +5,7 @@
   let open = $state(false);
   let wrap = $state(null);
 
-  const options = $derived(columns.filter(column => column.label));
+  const options = $derived(columns.filter((column) => column.label));
 
   function toggle(key) {
     const next = new Set(visibleCols);
@@ -18,14 +18,23 @@
   }
 </script>
 
-<svelte:document onclick={(event) => { if (!wrap?.contains(event.target)) {open = false;} }} />
+<svelte:document
+  onclick={(event) => {
+    if (!wrap?.contains(event.target)) {
+      open = false;
+    }
+  }}
+/>
 
 <div class="wrap" bind:this={wrap}>
   <button
     class="trigger"
     class:open
     title="Choose visible columns"
-    onclick={(event) => { event.stopPropagation(); open = !open; }}
+    onclick={(event) => {
+      event.stopPropagation();
+      open = !open;
+    }}
   >
     <i class="codicon codicon-list-filter"></i>
     Columns
@@ -73,7 +82,9 @@
     line-height: 1;
     white-space: nowrap;
 
-    &:hover { background: var(--vscee-color-button-secondary-hover); }
+    &:hover {
+      background: var(--vscee-color-button-secondary-hover);
+    }
     &.open {
       background: var(--vscee-color-button-background);
       color: var(--vscee-color-button-foreground);
@@ -85,7 +96,9 @@
     opacity: 0.7;
     transition: transform 0.15s;
 
-    &.open { transform: rotate(180deg); }
+    &.open {
+      transform: rotate(180deg);
+    }
   }
 
   .menu {
@@ -114,12 +127,16 @@
     white-space: nowrap;
     user-select: none;
 
-    &:hover { background: var(--vscee-color-list-hover); }
+    &:hover {
+      background: var(--vscee-color-list-hover);
+    }
     &.dimmed {
       opacity: 0.45;
       cursor: default;
 
-      .check { cursor: default; }
+      .check {
+        cursor: default;
+      }
     }
   }
 
