@@ -169,14 +169,14 @@
     gap: var(--vscee-space-sm);
     padding: var(--vscee-space-xs) var(--vscee-space-md);
     background: transparent;
-    color: var(--vscode-textLink-foreground);
-    border: var(--vscee-border-sm) solid var(--vscode-input-border);
+    color: var(--vscee-color-link);
+    border: var(--vscee-border-sm) solid var(--vscee-color-input-border);
     border-radius: var(--vscee-radius-md);
     cursor: pointer;
     font: inherit;
     font-size: var(--vscee-font-sm);
 
-    &:hover { background: var(--vscode-list-hoverBackground); }
+    &:hover { background: var(--vscee-color-list-hover); }
   }
 
   /* ==================================================================
@@ -186,7 +186,7 @@
     flex: 1 1 0;
     min-height: 120px;
     overflow: auto;
-    border: var(--vscee-border-sm) solid var(--vscode-panel-border);
+    border: var(--vscee-border-sm) solid var(--vscee-color-panel-border);
     border-radius: var(--vscee-radius-md);
 
     &.loading {
@@ -208,8 +208,8 @@
     z-index: 1;
     padding: var(--vscee-space-sm) var(--vscee-space-md);
     text-align: left;
-    background: var(--vscode-editor-background);
-    border-bottom: var(--vscee-border-md) solid var(--vscode-panel-border);
+    background: var(--vscee-color-editor-background);
+    border-bottom: var(--vscee-border-md) solid var(--vscee-color-panel-border);
     white-space: nowrap;
 
   }
@@ -236,7 +236,7 @@
     height: 22px;
     padding: 0;
     background: transparent;
-    color: var(--vscode-foreground);
+    color: var(--vscee-color-foreground);
     border: none;
     border-radius: var(--vscee-radius-sm);
     cursor: pointer;
@@ -246,10 +246,10 @@
 
     &:hover,
     &.active {
-      background: var(--vscode-list-hoverBackground);
+      background: var(--vscee-color-list-hover);
       opacity: 1;
     }
-    &.active { color: var(--vscode-button-background); }
+    &.active { color: var(--vscee-color-button-background); }
   }
 
   .sort-neutral {
@@ -258,7 +258,7 @@
 
   .empty-cell {
     padding: var(--vscee-space-xl);
-    color: var(--vscode-descriptionForeground);
+    color: var(--vscee-color-muted);
     text-align: center;
   }
 
@@ -271,7 +271,7 @@
   }
 
   .page-info {
-    color: var(--vscode-descriptionForeground);
+    color: var(--vscee-color-muted);
     font-size: var(--vscee-font-sm);
   }
 

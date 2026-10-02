@@ -159,16 +159,16 @@
     background: transparent;
     border: none;
     border-radius: var(--vscee-radius-sm);
-    color: var(--vscode-foreground);
+    color: var(--vscee-color-foreground);
     cursor: pointer;
     opacity: 0.55;
 
     &:hover,
     &.active {
-      background: var(--vscode-list-hoverBackground);
+      background: var(--vscee-color-list-hover);
       opacity: 1;
     }
-    &.active { color: var(--vscode-button-background); }
+    &.active { color: var(--vscee-color-button-background); }
   }
 
   /* ==================================================================
@@ -181,10 +181,10 @@
     z-index: 30;
     min-width: 180px;
     padding: var(--vscee-space-sm);
-    background: var(--vscode-editorWidget-background);
-    border: var(--vscee-border-sm) solid var(--vscode-widget-border);
+    background: var(--vscee-color-editor-widget-background);
+    border: var(--vscee-border-sm) solid var(--vscee-color-widget-border);
     border-radius: var(--vscee-radius-md);
-    box-shadow: 0 2px 8px var(--vscode-widget-shadow);
+    box-shadow: 0 2px 8px var(--vscee-color-widget-shadow);
 
     &.align-start {
       right: auto;
@@ -199,9 +199,9 @@
     width: 100%;
     min-height: 28px;
     padding: var(--vscee-space-xs) var(--vscee-space-sm);
-    background: var(--vscode-input-background);
-    color: var(--vscode-input-foreground);
-    border: var(--vscee-border-sm) solid var(--vscode-input-border);
+    background: var(--vscee-color-input-background);
+    color: var(--vscee-color-input-foreground);
+    border: var(--vscee-border-sm) solid var(--vscee-color-input-border);
     border-radius: var(--vscee-radius-sm);
     font: inherit;
   }
@@ -216,11 +216,11 @@
     align-items: center;
     gap: var(--vscee-space-sm);
     padding: var(--vscee-space-xs);
-    color: var(--vscode-foreground);
+    color: var(--vscee-color-foreground);
     cursor: pointer;
     font-size: var(--vscee-font-sm);
 
-    &:hover { background: var(--vscode-list-hoverBackground); }
+    &:hover { background: var(--vscee-color-list-hover); }
   }
 
   .comparison {
@@ -243,13 +243,13 @@
     margin-top: var(--vscee-space-sm);
     padding: var(--vscee-space-xs);
     background: transparent;
-    color: var(--vscode-textLink-foreground);
+    color: var(--vscee-color-link);
     border: none;
     border-radius: var(--vscee-radius-sm);
     cursor: pointer;
     font: inherit;
     font-size: var(--vscee-font-sm);
 
-    &:hover { background: var(--vscode-list-hoverBackground); }
+    &:hover { background: var(--vscee-color-list-hover); }
   }
 </style>

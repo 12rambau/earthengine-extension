@@ -190,9 +190,9 @@
       padding: 0;
     }
     body {
-      font-family: var(--vscode-font-family, sans-serif);
-      color: var(--vscode-foreground);
-      background: var(--vscode-editor-background);
+      font-family: var(--vscee-font-family, sans-serif);
+      color: var(--vscee-color-foreground);
+      background: var(--vscee-color-editor-background);
       line-height: 1.5;
     }
 
@@ -201,7 +201,7 @@
        ================================================================== */
     .title-bar {
       padding: var(--vscee-space-lg) var(--vscee-space-xxl);
-      border-bottom: var(--vscee-border-sm) solid var(--vscode-panel-border);
+      border-bottom: var(--vscee-border-sm) solid var(--vscee-color-panel-border);
 
       h1 { font-size: var(--vscee-font-xl); font-weight: 500; }
     }
@@ -220,14 +220,14 @@
     .sidebar {
       width: 280px;
       min-width: 280px;
-      border-right: var(--vscee-border-sm) solid var(--vscode-panel-border);
+      border-right: var(--vscee-border-sm) solid var(--vscee-color-panel-border);
       padding: var(--vscee-space-xl);
       overflow-y: auto;
     }
     .thumbnail-container {
       width: 100%;
       aspect-ratio: 1;
-      background: var(--vscode-list-hoverBackground);
+      background: var(--vscee-color-list-hover);
       border-radius: var(--vscee-radius-lg);
       display: flex;
       align-items: center;
@@ -267,10 +267,10 @@
       opacity: 0.85;
     }
     .asset-id {
-      font-family: var(--vscode-editor-font-family, monospace);
+      font-family: var(--vscee-editor-font-family, monospace);
       font-size: var(--vscee-font-xxs);
       word-break: break-all;
-      background: var(--vscode-textCodeBlock-background);
+      background: var(--vscee-color-code-background);
       padding: var(--vscee-space-xs) var(--vscee-space-sm);
       border-radius: var(--vscee-radius-md);
     }
@@ -293,11 +293,11 @@
       border: none;
       border-radius: var(--vscee-radius-md);
       background: none;
-      color: var(--vscode-foreground);
+      color: var(--vscee-color-foreground);
       cursor: pointer;
       opacity: 0;
 
-      &:hover { background: var(--vscode-list-hoverBackground); opacity: 1; }
+      &:hover { background: var(--vscee-color-list-hover); opacity: 1; }
     }
     .copyable-id {
       &:hover .copy-id-btn,
@@ -315,13 +315,13 @@
     }
     .tabs {
       display: flex;
-      border-bottom: var(--vscee-border-sm) solid var(--vscode-panel-border);
+      border-bottom: var(--vscee-border-sm) solid var(--vscee-color-panel-border);
       padding: 0 var(--vscee-space-xl);
     }
     .tab {
       background: none;
       border: none;
-      color: var(--vscode-foreground);
+      color: var(--vscee-color-foreground);
       padding: var(--vscee-space-lg) var(--vscee-space-xl);
       cursor: pointer;
       font-size: var(--vscee-font-sm);
@@ -333,7 +333,7 @@
         border-color 0.15s;
 
       &:hover { opacity: 1; }
-      &.active { opacity: 1; border-bottom-color: var(--vscode-focusBorder); }
+      &.active { opacity: 1; border-bottom-color: var(--vscee-color-focus); }
     }
     .tab-panel {
       display: none;
@@ -365,13 +365,13 @@
       h3 { font-size: var(--vscee-font-lg); margin: var(--vscee-space-lg) 0 var(--vscee-space-sm); }
       p { margin: var(--vscee-space-md) 0; }
       code {
-        background: var(--vscode-textCodeBlock-background);
+        background: var(--vscee-color-code-background);
         padding: var(--vscee-space-xxs) var(--vscee-space-xs);
         border-radius: var(--vscee-radius-md);
         font-size: var(--vscee-font-md);
       }
       pre {
-        background: var(--vscode-textCodeBlock-background);
+        background: var(--vscee-color-code-background);
         padding: var(--vscee-space-lg) var(--vscee-space-lg);
         border-radius: var(--vscee-radius-md);
         overflow-x: auto;
@@ -399,7 +399,7 @@
     .bands-table th,
     .props-table th {
       text-align: left;
-      background: var(--vscode-list-hoverBackground);
+      background: var(--vscee-color-list-hover);
       padding: var(--vscee-space-sm) var(--vscee-space-lg);
       font-weight: 600;
       position: sticky;
@@ -410,12 +410,12 @@
     .bands-table td,
     .props-table td {
       padding: var(--vscee-space-sm) var(--vscee-space-lg);
-      border-bottom: var(--vscee-border-sm) solid var(--vscode-panel-border);
+      border-bottom: var(--vscee-border-sm) solid var(--vscee-color-panel-border);
       white-space: nowrap;
     }
     .images-table tbody tr:nth-child(even),
     .bands-table tbody tr:nth-child(even) {
-      background: var(--vscode-list-hoverBackground);
+      background: var(--vscee-color-list-hover);
     }
     .img-id {
       max-width: 200px;
@@ -471,15 +471,15 @@
       cursor: pointer;
       padding: var(--vscee-space-xxs) var(--vscee-space-sm);
       border-radius: var(--vscee-radius-md);
-      color: var(--vscode-foreground);
+      color: var(--vscee-color-foreground);
       opacity: 0.7;
       display: inline-flex;
       align-items: center;
 
-      &:hover { opacity: 1; background: var(--vscode-list-hoverBackground); }
+      &:hover { opacity: 1; background: var(--vscee-color-list-hover); }
       &.danger {
-        color: var(--vscode-errorForeground);
-        &:hover { background: var(--vscode-inputValidation-errorBackground); }
+        color: var(--vscee-color-error);
+        &:hover { background: var(--vscee-color-validation-error-background); }
       }
     }
 
@@ -490,7 +490,7 @@
       display: inline-block;
       width: 12px;
       height: 12px;
-      border: var(--vscee-border-md) solid var(--vscode-foreground);
+      border: var(--vscee-border-md) solid var(--vscee-color-foreground);
       border-top-color: transparent;
       border-radius: 50%;
       animation: spin 0.8s linear infinite;

@@ -81,9 +81,9 @@
        BASE LAYOUT
        ================================================================== */
     body {
-      font-family: var(--vscode-font-family, sans-serif);
-      color: var(--vscode-foreground);
-      background: var(--vscode-editor-background);
+      font-family: var(--vscee-font-family, sans-serif);
+      color: var(--vscee-color-foreground);
+      background: var(--vscee-color-editor-background);
       padding: var(--vscee-space-xxl);
       line-height: 1.5;
     }
@@ -94,7 +94,7 @@
     h2 {
       font-size: var(--vscee-font-lg);
       margin-top: var(--vscee-space-xxl);
-      border-bottom: var(--vscee-border-sm) solid var(--vscode-panel-border);
+      border-bottom: var(--vscee-border-sm) solid var(--vscee-color-panel-border);
       padding-bottom: var(--vscee-space-xs);
     }
 
@@ -122,7 +122,7 @@
       display: flex;
       align-items: center;
       gap: var(--vscee-space-md);
-      background: var(--vscode-textCodeBlock-background);
+      background: var(--vscee-color-code-background);
       padding: var(--vscee-space-md) var(--vscee-space-lg);
       border-radius: var(--vscee-radius-md);
       overflow-x: auto;
@@ -133,7 +133,7 @@
         min-width: 0;
         background: none;
         padding: 0;
-        font-family: var(--vscode-editor-font-family, monospace);
+        font-family: var(--vscee-editor-font-family, monospace);
         font-size: var(--vscee-font-md);
         white-space: nowrap;
       }
@@ -141,15 +141,15 @@
     .copy-btn {
       flex: none;
       cursor: pointer;
-      background: var(--vscode-button-secondaryBackground);
-      color: var(--vscode-button-secondaryForeground);
+      background: var(--vscee-color-button-secondary-background);
+      color: var(--vscee-color-button-secondary-foreground);
       border: none;
       border-radius: var(--vscee-radius-md);
       padding: var(--vscee-space-xs) var(--vscee-space-lg);
       font-size: var(--vscee-font-xs);
-      font-family: var(--vscode-font-family, sans-serif);
+      font-family: var(--vscee-font-family, sans-serif);
 
-      &:hover { background: var(--vscode-button-secondaryHoverBackground); }
+      &:hover { background: var(--vscee-color-button-secondary-hover); }
     }
 
     /* ==================================================================
@@ -162,8 +162,8 @@
     }
     .tag {
       display: inline-block;
-      background: var(--vscode-badge-background);
-      color: var(--vscode-badge-foreground);
+      background: var(--vscee-color-badge-background);
+      color: var(--vscee-color-badge-foreground);
       padding: var(--vscee-space-xxs) var(--vscee-space-md);
       border-radius: var(--vscee-radius-xl);
       font-size: var(--vscee-font-xs);
@@ -180,20 +180,20 @@
     }
     th {
       text-align: left;
-      background: var(--vscode-list-hoverBackground);
+      background: var(--vscee-color-list-hover);
       padding: var(--vscee-space-sm) var(--vscee-space-lg);
     }
     td {
       padding: var(--vscee-space-sm) var(--vscee-space-lg);
-      border-bottom: var(--vscee-border-sm) solid var(--vscode-panel-border);
+      border-bottom: var(--vscee-border-sm) solid var(--vscee-color-panel-border);
     }
     code {
-      background: var(--vscode-textCodeBlock-background);
+      background: var(--vscee-color-code-background);
       padding: var(--vscee-space-xxs) var(--vscee-space-xs);
       border-radius: var(--vscee-radius-md);
     }
     pre {
-      background: var(--vscode-textCodeBlock-background);
+      background: var(--vscee-color-code-background);
       padding: var(--vscee-space-lg) var(--vscee-space-lg);
       border-radius: var(--vscee-radius-md);
       overflow-x: auto;
@@ -201,7 +201,7 @@
       code { background: none; padding: 0; }
     }
     a {
-      color: var(--vscode-textLink-foreground);
+      color: var(--vscee-color-link);
     }
 
     /* ==================================================================
@@ -225,14 +225,14 @@
       display: flex;
       gap: var(--vscee-space-xs);
       flex-wrap: wrap;
-      border-bottom: var(--vscee-border-sm) solid var(--vscode-panel-border);
+      border-bottom: var(--vscee-border-sm) solid var(--vscee-color-panel-border);
       margin-top: var(--vscee-space-xxl);
     }
     .tab {
       background: none;
       border: none;
       border-bottom: var(--vscee-border-md) solid transparent;
-      color: var(--vscode-foreground);
+      color: var(--vscee-color-foreground);
       opacity: 0.65;
       cursor: pointer;
       padding: var(--vscee-space-md) var(--vscee-space-lg);
@@ -240,7 +240,7 @@
       font-family: inherit;
 
       &:hover { opacity: 1; }
-      &.active { opacity: 1; border-bottom-color: var(--vscode-focusBorder); font-weight: 600; }
+      &.active { opacity: 1; border-bottom-color: var(--vscee-color-focus); font-weight: 600; }
     }
     .tab-panel {
       display: none;

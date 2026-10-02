@@ -118,9 +118,9 @@
       margin: 0;
     }
     body {
-      font-family: var(--vscode-editor-font-family, 'Courier New', Courier, monospace);
-      font-size: var(--vscode-editor-font-size, 13px);
-      color: var(--vscode-foreground);
+      font-family: var(--vscee-editor-font-family, 'Courier New', Courier, monospace);
+      font-size: var(--vscee-editor-font-size, 13px);
+      color: var(--vscee-color-foreground);
       background: transparent;
       padding: var(--vscee-space-sm);
       display: flex;
@@ -152,12 +152,12 @@
       gap: var(--vscee-space-sm);
       padding: var(--vscee-space-xs) var(--vscee-space-md);
       cursor: default;
-      border-bottom: var(--vscee-border-sm) solid var(--vscode-panel-border);
+      border-bottom: var(--vscee-border-sm) solid var(--vscee-color-panel-border);
       white-space: nowrap;
       overflow: hidden;
 
       &:hover {
-        background: var(--vscode-list-hoverBackground);
+        background: var(--vscee-color-list-hover);
         .task-actions { visibility: visible; }
       }
     }
@@ -187,22 +187,22 @@
       }
     }
     .state-PENDING {
-      color: var(--vscode-charts-yellow);
+      color: var(--vscee-color-chart-yellow);
     }
     .state-RUNNING {
-      color: var(--vscode-progressBar-background);
+      color: var(--vscee-color-progress);
     }
     .state-CANCELLING {
-      color: var(--vscode-disabledForeground);
+      color: var(--vscee-color-disabled);
     }
     .state-SUCCEEDED {
-      color: var(--vscode-testing-iconPassed);
+      color: var(--vscee-color-testing-passed);
     }
     .state-FAILED {
-      color: var(--vscode-testing-iconFailed);
+      color: var(--vscee-color-testing-failed);
     }
     .state-CANCELLED {
-      color: var(--vscode-disabledForeground);
+      color: var(--vscee-color-disabled);
     }
     .task-type-icon {
       width: 14px;
@@ -223,7 +223,7 @@
       flex-shrink: 0;
       opacity: 0.6;
       font-size: var(--vscee-font-md);
-      font-family: var(--vscode-editor-font-family, 'Courier New', Courier, monospace);
+      font-family: var(--vscee-editor-font-family, 'Courier New', Courier, monospace);
       min-width: 40px;
       text-align: right;
     }
@@ -241,7 +241,7 @@
       button {
         background: transparent;
         border: none;
-        color: var(--vscode-foreground);
+        color: var(--vscee-color-foreground);
         cursor: pointer;
         padding: var(--vscee-space-xxs) var(--vscee-space-xs);
         border-radius: var(--vscee-radius-md);
@@ -249,8 +249,8 @@
         font-family: inherit;
         font-size: var(--vscee-font-md);
 
-        &:hover { background: var(--vscode-list-hoverBackground); opacity: 1; }
-        &.danger:hover { color: var(--vscode-testing-iconFailed); }
+        &:hover { background: var(--vscee-color-list-hover); opacity: 1; }
+        &.danger:hover { color: var(--vscee-color-testing-failed); }
       }
     }
 
@@ -277,7 +277,7 @@
       display: inline-block;
       width: 12px;
       height: 12px;
-      border: var(--vscee-border-md) solid var(--vscode-foreground);
+      border: var(--vscee-border-md) solid var(--vscee-color-foreground);
       border-top-color: transparent;
       border-radius: 50%;
       animation: spin 0.8s linear infinite;

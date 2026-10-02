@@ -91,7 +91,7 @@
   button {
     border: var(--vscee-border-sm) solid transparent;
     cursor: pointer;
-    font-family: var(--vscode-font-family);
+    font-family: var(--vscee-font-family);
 
     &:disabled {
       opacity: 0.4;
@@ -104,13 +104,13 @@
     min-width: 28px;
     height: 28px;
     padding: 0 var(--vscee-space-xs);
-    color: var(--vscode-foreground);
+    color: var(--vscee-color-foreground);
     background: transparent;
     border-radius: var(--vscee-radius-md);
 
     &:not(:disabled):hover {
-      background: var(--vscode-list-hoverBackground);
-      border-color: var(--vscode-input-border);
+      background: var(--vscee-color-list-hover);
+      border-color: var(--vscee-color-input-border);
     }
   }
 
@@ -118,8 +118,8 @@
     font-size: var(--vscee-font-xs);
 
     &.active {
-      background: var(--vscode-button-background);
-      color: var(--vscode-button-foreground);
+      background: var(--vscee-color-button-background);
+      color: var(--vscee-color-button-foreground);
       border-color: transparent;
       font-weight: 600;
     }
@@ -137,18 +137,18 @@
     align-items: center;
     gap: var(--vscee-space-sm);
     padding: var(--vscee-space-xs) var(--vscee-space-md);
-    background: var(--vscode-button-secondaryBackground);
-    color: var(--vscode-button-secondaryForeground);
-    border: var(--vscee-border-sm) solid var(--vscode-input-border);
+    background: var(--vscee-color-button-secondary-background);
+    color: var(--vscee-color-button-secondary-foreground);
+    border: var(--vscee-border-sm) solid var(--vscee-color-input-border);
     border-radius: var(--vscee-radius-md);
     font-size: var(--vscee-font-sm);
     line-height: 1;
     white-space: nowrap;
 
-    &:hover { background: var(--vscode-button-secondaryHoverBackground); }
+    &:hover { background: var(--vscee-color-button-secondary-hover); }
     &.open {
-      background: var(--vscode-button-background);
-      color: var(--vscode-button-foreground);
+      background: var(--vscee-color-button-background);
+      color: var(--vscee-color-button-foreground);
       border-color: transparent;
     }
   }
@@ -166,11 +166,11 @@
     bottom: calc(100% + 4px);
     z-index: 20;
     min-width: 80px;
-    background: var(--vscode-editorWidget-background);
-    border: var(--vscee-border-sm) solid var(--vscode-widget-border);
+    background: var(--vscee-color-editor-widget-background);
+    border: var(--vscee-border-sm) solid var(--vscee-color-widget-border);
     border-radius: var(--vscee-radius-md);
     padding: var(--vscee-space-xs);
-    box-shadow: 0 2px 8px var(--vscode-widget-shadow);
+    box-shadow: 0 2px 8px var(--vscee-color-widget-shadow);
   }
 
   .size-item {
@@ -179,15 +179,15 @@
     padding: var(--vscee-space-sm) var(--vscee-space-lg);
     border-radius: var(--vscee-radius-md);
     background: transparent;
-    color: var(--vscode-foreground);
+    color: var(--vscee-color-foreground);
     font-size: var(--vscee-font-sm);
     text-align: left;
     white-space: nowrap;
 
-    &:hover { background: var(--vscode-list-hoverBackground); }
+    &:hover { background: var(--vscee-color-list-hover); }
     &.active {
-      background: var(--vscode-button-background);
-      color: var(--vscode-button-foreground);
+      background: var(--vscee-color-button-background);
+      color: var(--vscee-color-button-foreground);
     }
   }
 </style>

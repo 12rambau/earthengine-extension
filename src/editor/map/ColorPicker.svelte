@@ -215,10 +215,10 @@
   .cp { position: relative; flex-shrink: 0; display: flex; }
   .cp-swatch {
     width: 28px; height: 22px; padding: 0; cursor: pointer;
-    border: var(--vscee-border-sm) solid var(--vscode-widget-border);
+    border: var(--vscee-border-sm) solid var(--vscee-color-widget-border);
     border-radius: var(--vscee-radius-md);
 
-    &:focus-visible { outline: var(--vscee-border-md) solid var(--vscode-focusBorder); outline-offset: 1px; }
+    &:focus-visible { outline: var(--vscee-border-md) solid var(--vscee-color-focus); outline-offset: 1px; }
   }
 
   /* ==================================================================
@@ -229,8 +229,8 @@
     position: fixed; z-index: 3001; width: 208px;
     display: flex; flex-direction: column; gap: var(--vscee-space-sm);
     padding: var(--vscee-space-sm);
-    background: var(--vscode-dropdown-background);
-    border: var(--vscee-border-sm) solid var(--vscode-dropdown-border);
+    background: var(--vscee-color-dropdown-background);
+    border: var(--vscee-border-sm) solid var(--vscee-color-dropdown-border);
     border-radius: var(--vscee-radius-md); box-shadow: var(--vscee-shadow-lg);
   }
 
@@ -246,7 +246,7 @@
       linear-gradient(to right, #fff, rgb(255 255 255 / 0%)),
       var(--cp-hue);
 
-    &:focus-visible { outline: var(--vscee-border-md) solid var(--vscode-focusBorder); outline-offset: 1px; }
+    &:focus-visible { outline: var(--vscee-border-md) solid var(--vscee-color-focus); outline-offset: 1px; }
   }
   .cp-hue {
     position: relative; height: 12px; cursor: pointer; touch-action: none;
@@ -254,7 +254,7 @@
     background: linear-gradient(to right,
       #f00 0%, #ff0 17%, #0f0 33%, #0ff 50%, #00f 67%, #f0f 83%, #f00 100%);
 
-    &:focus-visible { outline: var(--vscee-border-md) solid var(--vscode-focusBorder); outline-offset: 1px; }
+    &:focus-visible { outline: var(--vscee-border-md) solid var(--vscee-color-focus); outline-offset: 1px; }
   }
   .cp-area-thumb, .cp-hue-thumb {
     position: absolute; pointer-events: none; border-radius: 50%;

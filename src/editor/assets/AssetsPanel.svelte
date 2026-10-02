@@ -231,9 +231,9 @@
       margin: 0;
     }
     body {
-      font-family: var(--vscode-font-family, sans-serif);
-      color: var(--vscode-foreground);
-      background: var(--vscode-editor-background);
+      font-family: var(--vscee-font-family, sans-serif);
+      color: var(--vscee-color-foreground);
+      background: var(--vscee-color-editor-background);
       padding: var(--vscee-space-lg) var(--vscee-space-xl) var(--vscee-space-md);
       display: flex;
       flex-direction: column;
@@ -288,7 +288,7 @@
       button {
         background: none;
         border: none;
-        color: var(--vscode-textLink-foreground);
+        color: var(--vscee-color-link);
         cursor: pointer;
         padding: var(--vscee-space-xxs) var(--vscee-space-xs);
         font-size: var(--vscee-font-md);
@@ -305,7 +305,7 @@
       flex: 1 1 0;
       overflow-y: auto;
       min-height: 120px;
-      border: var(--vscee-border-sm) solid var(--vscode-panel-border);
+      border: var(--vscee-border-sm) solid var(--vscee-color-panel-border);
       border-radius: var(--vscee-radius-md);
 
       &.loading {
@@ -349,8 +349,8 @@
       font-weight: 500;
 
       &:not(:disabled):hover {
-        background: var(--vscode-list-hoverBackground);
-        border-color: var(--vscode-input-border);
+        background: var(--vscee-color-list-hover);
+        border-color: var(--vscee-color-input-border);
       }
     }
     .page-btn {
@@ -366,12 +366,12 @@
       justify-content: center;
 
       &:hover {
-        background: var(--vscode-list-hoverBackground);
-        border-color: var(--vscode-input-border);
+        background: var(--vscee-color-list-hover);
+        border-color: var(--vscee-color-input-border);
       }
       &.active {
-        background: var(--vscode-button-background);
-        color: var(--vscode-button-foreground);
+        background: var(--vscee-color-button-background);
+        color: var(--vscee-color-button-foreground);
         border-color: transparent;
         font-weight: 600;
       }
@@ -404,24 +404,24 @@
        ================================================================== */
     button,
     select {
-      background: var(--vscode-button-secondaryBackground);
-      color: var(--vscode-button-secondaryForeground);
-      border: var(--vscee-border-sm) solid var(--vscode-input-border);
+      background: var(--vscee-color-button-secondary-background);
+      color: var(--vscee-color-button-secondary-foreground);
+      border: var(--vscee-border-sm) solid var(--vscee-color-input-border);
       padding: var(--vscee-space-xs) var(--vscee-space-md);
       border-radius: var(--vscee-radius-md);
       cursor: pointer;
       font-size: var(--vscee-font-sm);
     }
     button {
-      &:hover { background: var(--vscode-button-secondaryHoverBackground); }
+      &:hover { background: var(--vscee-color-button-secondary-hover); }
       &:disabled { opacity: 0.4; cursor: default; }
     }
     .btn-primary {
-      background: var(--vscode-button-background);
-      color: var(--vscode-button-foreground);
+      background: var(--vscee-color-button-background);
+      color: var(--vscee-color-button-foreground);
       border-color: transparent;
 
-      &:hover { background: var(--vscode-button-hoverBackground); }
+      &:hover { background: var(--vscee-color-button-hover); }
       &.loading {
         opacity: 0.75;
         cursor: default;
@@ -451,11 +451,11 @@
         padding: var(--vscee-space-sm) var(--vscee-space-md);
         cursor: pointer;
         user-select: none;
-        background: var(--vscode-editor-background);
-        border-bottom: var(--vscee-border-md) solid var(--vscode-panel-border);
+        background: var(--vscee-color-editor-background);
+        border-bottom: var(--vscee-border-md) solid var(--vscee-color-panel-border);
         white-space: nowrap;
 
-        &:hover { background: var(--vscode-list-hoverBackground); }
+        &:hover { background: var(--vscee-color-list-hover); }
       }
     }
     th {
@@ -467,7 +467,7 @@
     }
     td {
       padding: var(--vscee-space-sm) var(--vscee-space-md);
-      border-bottom: var(--vscee-border-sm) solid var(--vscode-panel-border);
+      border-bottom: var(--vscee-border-sm) solid var(--vscee-color-panel-border);
     }
 
     /* ==================================================================
@@ -486,7 +486,7 @@
     .name-link {
       background: none;
       border: none;
-      color: var(--vscode-textLink-foreground);
+      color: var(--vscee-color-link);
       cursor: pointer;
       padding: 0;
       font-size: inherit;
@@ -513,7 +513,7 @@
       }
     }
     .id-cell {
-      font-family: var(--vscode-editor-font-family, monospace);
+      font-family: var(--vscee-editor-font-family, monospace);
       font-size: var(--vscee-font-xxs);
       opacity: 0.75;
     }
@@ -548,7 +548,7 @@
     }
     tr {
       &:hover {
-        background: var(--vscode-list-hoverBackground);
+        background: var(--vscee-color-list-hover);
         .action-dots { display: none; }
         .action-btns { display: inline-flex; }
       }
@@ -576,16 +576,16 @@
       cursor: pointer;
       padding: var(--vscee-space-xxs) var(--vscee-space-sm);
       border-radius: var(--vscee-radius-md);
-      color: var(--vscode-foreground);
+      color: var(--vscee-color-foreground);
       opacity: 0.7;
       display: inline-flex;
       align-items: center;
 
       .codicon { font-size: var(--vscee-font-icon-sm); }
-      &:hover { opacity: 1; background: var(--vscode-list-hoverBackground); }
+      &:hover { opacity: 1; background: var(--vscee-color-list-hover); }
       &.danger {
-        color: var(--vscode-errorForeground);
-        &:hover { background: var(--vscode-inputValidation-errorBackground); }
+        color: var(--vscee-color-error);
+        &:hover { background: var(--vscee-color-validation-error-background); }
       }
     }
   }

@@ -1704,7 +1704,7 @@
        RESET & LAYOUT
        ================================================================== */
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { width: 100vw; height: 100vh; overflow: hidden; font-family: var(--vscode-font-family, sans-serif); }
+    body { width: 100vw; height: 100vh; overflow: hidden; font-family: var(--vscee-font-family, sans-serif); }
     #app { width: 100%; height: 100%; }
     #map { width: 100%; height: calc(100% - 20px); }
 
@@ -1713,13 +1713,13 @@
        ================================================================== */
     .scale-bar {
       position: absolute; bottom: 20px; left: 0; right: 0; z-index: 1000;
-      display: none; background: var(--vscode-statusBar-background);
+      display: none; background: var(--vscee-color-statusbar-background);
       padding: var(--vscee-space-xxs) var(--vscee-space-lg); gap: var(--vscee-space-xs); flex-direction: column;
     }
     .scale-bar.visible { display: flex; }
     .scale-row { display: flex; align-items: center; gap: var(--vscee-space-sm); height: 16px; }
     .scale-label {
-      font-size: var(--vscee-font-compact-xxs); color: var(--vscode-descriptionForeground);
+      font-size: var(--vscee-font-compact-xxs); color: var(--vscee-color-muted);
       width: 28px; flex-shrink: 0; text-align: right;
       overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
     }
@@ -1729,18 +1729,18 @@
     }
     .scale-gradient { width: 100%; height: 100%; border-radius: var(--vscee-radius-sm); }
     .scale-max {
-      font-size: var(--vscee-font-compact-xxs); color: var(--vscode-descriptionForeground);
+      font-size: var(--vscee-font-compact-xxs); color: var(--vscee-color-muted);
       flex-shrink: 0; width: 70px; font-variant-numeric: tabular-nums; text-align: right;
     }
     .scale-pointer {
       position: absolute; top: 0; width: 2px; height: 100%;
-      background: var(--vscode-foreground); pointer-events: none;
+      background: var(--vscee-color-foreground); pointer-events: none;
       display: none; opacity: 0.9; transition: left 0.1s ease-out;
     }
     .scale-tooltip { display: none; }
     .cursor-value-tooltip {
       position: fixed; pointer-events: none; z-index: 1000;
-      background: var(--vscode-editor-background); color: var(--vscode-foreground);
+      background: var(--vscee-color-editor-background); color: var(--vscee-color-foreground);
       font-size: var(--vscee-font-compact-xxs);
       padding: var(--vscee-space-xxs) var(--vscee-space-xs); border-radius: var(--vscee-radius-sm);
       white-space: pre-line; box-shadow: var(--vscee-shadow-xs);
@@ -1762,12 +1762,12 @@
     .map-controls-right { left: auto; right: 10px; }
     .map-btn {
       width: 32px; height: 32px; border: none; border-radius: var(--vscee-radius-md);
-      background: var(--vscode-editor-background); color: var(--vscode-foreground);
+      background: var(--vscee-color-editor-background); color: var(--vscee-color-foreground);
       cursor: pointer; display: flex; align-items: center; justify-content: center;
       box-shadow: var(--vscee-shadow-sm); opacity: 0.85; transition: opacity 0.15s;
     }
     .map-btn:hover { opacity: 1; }
-    .map-btn.active { background: var(--vscode-button-background); color: var(--vscode-button-foreground); }
+    .map-btn.active { background: var(--vscee-color-button-background); color: var(--vscee-color-button-foreground); }
 
     /* ==================================================================
        BASEMAP ERROR BANNER
@@ -1777,27 +1777,27 @@
       display: flex; align-items: center; gap: var(--vscee-space-sm);
       max-width: min(640px, calc(100% - 120px));
       padding: var(--vscee-space-sm) var(--vscee-space-md);
-      border: 1px solid var(--vscode-inputValidation-warningBorder);
+      border: 1px solid var(--vscee-color-validation-warning-border);
       border-radius: var(--vscee-radius-md);
-      background: var(--vscode-inputValidation-warningBackground);
-      color: var(--vscode-foreground);
+      background: var(--vscee-color-validation-warning-background);
+      color: var(--vscee-color-foreground);
       box-shadow: var(--vscee-shadow-sm);
     }
     .basemap-error-text { flex: 1; font-size: var(--vscee-font-sm); }
     .basemap-error-btn {
       flex-shrink: 0; border: none; border-radius: var(--vscee-radius-sm);
       padding: 2px 10px; cursor: pointer;
-      background: var(--vscode-button-background); color: var(--vscode-button-foreground);
+      background: var(--vscee-color-button-background); color: var(--vscee-color-button-foreground);
       font-size: var(--vscee-font-sm);
     }
-    .basemap-error-btn:hover { background: var(--vscode-button-hoverBackground); }
+    .basemap-error-btn:hover { background: var(--vscee-color-button-hover); }
     .basemap-error-close { width: 22px; height: 22px; box-shadow: none; background: transparent; }
 
     /* ==================================================================
        LEAFLET ATTRIBUTION
        ================================================================== */
-    .leaflet-control-attribution { background: var(--vscode-editor-background) !important; color: var(--vscode-foreground) !important; opacity: 0.8; }
-    .leaflet-control-attribution a { color: var(--vscode-textLink-foreground) !important; }
+    .leaflet-control-attribution { background: var(--vscee-color-editor-background) !important; color: var(--vscee-color-foreground) !important; opacity: 0.8; }
+    .leaflet-control-attribution a { color: var(--vscee-color-link) !important; }
 
     /* ==================================================================
        RANGE SLIDERS
@@ -1810,31 +1810,31 @@
       &::-webkit-slider-runnable-track {
         height: 3px; border-radius: var(--vscee-radius-sm);
         background: linear-gradient(to right,
-          var(--vscode-button-background) 0 var(--slider-fill),
-          var(--vscode-scrollbarSlider-background) var(--slider-fill));
+          var(--vscee-color-button-background) 0 var(--slider-fill),
+          var(--vscee-color-scrollbar-slider) var(--slider-fill));
       }
       &::-moz-range-track {
         height: 3px; border-radius: var(--vscee-radius-sm);
         background: linear-gradient(to right,
-          var(--vscode-button-background) 0 var(--slider-fill),
-          var(--vscode-scrollbarSlider-background) var(--slider-fill));
+          var(--vscee-color-button-background) 0 var(--slider-fill),
+          var(--vscee-color-scrollbar-slider) var(--slider-fill));
       }
       &::-webkit-slider-thumb {
         appearance: none; width: 12px; height: 12px; margin-top: -4.5px; box-sizing: border-box;
-        border: var(--vscee-border-sm) solid var(--vscode-button-background); border-radius: 50%;
-        background: var(--vscode-button-background);
+        border: var(--vscee-border-sm) solid var(--vscee-color-button-background); border-radius: 50%;
+        background: var(--vscee-color-button-background);
         /* Carves the ring out of the disc, leaving a round dot in the middle. */
-        box-shadow: inset 0 0 0 3px var(--vscode-editor-background), var(--vscee-shadow-xs);
+        box-shadow: inset 0 0 0 3px var(--vscee-color-editor-background), var(--vscee-shadow-xs);
       }
       &::-moz-range-thumb {
         width: 12px; height: 12px; box-sizing: border-box;
-        border: var(--vscee-border-sm) solid var(--vscode-button-background); border-radius: 50%;
-        background: var(--vscode-button-background);
-        box-shadow: inset 0 0 0 3px var(--vscode-editor-background), var(--vscee-shadow-xs);
+        border: var(--vscee-border-sm) solid var(--vscee-color-button-background); border-radius: 50%;
+        background: var(--vscee-color-button-background);
+        box-shadow: inset 0 0 0 3px var(--vscee-color-editor-background), var(--vscee-shadow-xs);
       }
       &:focus { outline: none; }
-      &:focus-visible::-webkit-slider-thumb { box-shadow: inset 0 0 0 3px var(--vscode-editor-background), var(--vscee-shadow-sm); }
-      &:focus-visible::-moz-range-thumb { box-shadow: inset 0 0 0 3px var(--vscode-editor-background), var(--vscee-shadow-sm); }
+      &:focus-visible::-webkit-slider-thumb { box-shadow: inset 0 0 0 3px var(--vscee-color-editor-background), var(--vscee-shadow-sm); }
+      &:focus-visible::-moz-range-thumb { box-shadow: inset 0 0 0 3px var(--vscee-color-editor-background), var(--vscee-shadow-sm); }
     }
 
     /* ==================================================================
@@ -1842,28 +1842,28 @@
        ================================================================== */
     .layers-panel {
       position: absolute; top: 10px; left: 48px; z-index: 1000; width: 240px;
-      background: var(--vscode-editor-background); border: var(--vscee-border-sm) solid var(--vscode-widget-border);
+      background: var(--vscee-color-editor-background); border: var(--vscee-border-sm) solid var(--vscee-color-widget-border);
       border-radius: var(--vscee-radius-md); box-shadow: var(--vscee-shadow-md);
     }
     .layers-panel-header {
       display: flex; align-items: center; justify-content: space-between;
-      padding: var(--vscee-space-xs) var(--vscee-space-xs) var(--vscee-space-xs) var(--vscee-space-lg); border-bottom: var(--vscee-border-sm) solid var(--vscode-widget-border);
-      font-size: var(--vscee-font-compact-sm); font-weight: 600; color: var(--vscode-foreground);
+      padding: var(--vscee-space-xs) var(--vscee-space-xs) var(--vscee-space-xs) var(--vscee-space-lg); border-bottom: var(--vscee-border-sm) solid var(--vscee-color-widget-border);
+      font-size: var(--vscee-font-compact-sm); font-weight: 600; color: var(--vscee-color-foreground);
     }
     .layers-close-btn { width: 22px; height: 22px; box-shadow: none; opacity: 0.6; }
     .layers-list { max-height: 320px; overflow-y: auto; }
     .layers-empty {
-      padding: var(--vscee-space-lg); font-size: var(--vscee-font-compact-sm); color: var(--vscode-descriptionForeground); text-align: center;
+      padding: var(--vscee-space-lg); font-size: var(--vscee-font-compact-sm); color: var(--vscee-color-muted); text-align: center;
     }
     .layer-row {
-      padding: var(--vscee-space-xs) var(--vscee-space-md); border-bottom: var(--vscee-border-sm) solid var(--vscode-widget-border);
+      padding: var(--vscee-space-xs) var(--vscee-space-md); border-bottom: var(--vscee-border-sm) solid var(--vscee-color-widget-border);
       display: flex; align-items: center; gap: var(--vscee-space-sm); min-width: 0;
     }
     .layer-row:last-child { border-bottom: none; }
     .layer-vis-btn { width: 22px; height: 22px; flex-shrink: 0; box-shadow: none; opacity: 0.5; }
-    .layer-vis-btn.active { opacity: 1; background: transparent; color: var(--vscode-foreground); }
+    .layer-vis-btn.active { opacity: 1; background: transparent; color: var(--vscee-color-foreground); }
     .layer-name {
-      flex: 1; min-width: 0; font-size: var(--vscee-font-compact-sm); color: var(--vscode-foreground);
+      flex: 1; min-width: 0; font-size: var(--vscee-font-compact-sm); color: var(--vscee-color-foreground);
       overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
     }
     .layer-controls { display: flex; align-items: center; gap: var(--vscee-space-xs); flex-shrink: 0; margin-left: auto; }
@@ -1877,43 +1877,43 @@
 
       svg {
         display: block;
-        fill: var(--vscode-button-background);
+        fill: var(--vscee-color-button-background);
         /* Outline keeps the pin readable over dark imagery. */
-        stroke: var(--vscode-button-foreground); stroke-width: 0.7;
-        filter: drop-shadow(0 1px 2px var(--vscode-widget-shadow));
+        stroke: var(--vscee-color-button-foreground); stroke-width: 0.7;
+        filter: drop-shadow(0 1px 2px var(--vscee-color-widget-shadow));
       }
     }
     .inspector-panel {
       position: absolute; top: 10px; left: 48px; z-index: 1000; width: 220px;
-      background: var(--vscode-editor-background); border: var(--vscee-border-sm) solid var(--vscode-widget-border);
+      background: var(--vscee-color-editor-background); border: var(--vscee-border-sm) solid var(--vscee-color-widget-border);
       border-radius: var(--vscee-radius-md); box-shadow: var(--vscee-shadow-md);
     }
     .inspector-panel-header {
       display: flex; align-items: center; justify-content: space-between;
-      padding: var(--vscee-space-xs) var(--vscee-space-xs) var(--vscee-space-xs) var(--vscee-space-lg); border-bottom: var(--vscee-border-sm) solid var(--vscode-widget-border);
-      font-size: var(--vscee-font-compact-sm); font-weight: 600; color: var(--vscode-foreground);
+      padding: var(--vscee-space-xs) var(--vscee-space-xs) var(--vscee-space-xs) var(--vscee-space-lg); border-bottom: var(--vscee-border-sm) solid var(--vscee-color-widget-border);
+      font-size: var(--vscee-font-compact-sm); font-weight: 600; color: var(--vscee-color-foreground);
     }
     .inspector-content { max-height: 360px; overflow-y: auto; padding: var(--vscee-space-sm) var(--vscee-space-md); }
-    .inspector-hint { font-size: var(--vscee-font-compact-sm); color: var(--vscode-descriptionForeground); text-align: center; padding: var(--vscee-space-xs) 0; }
-    .inspector-coords { font-size: var(--vscee-font-compact-sm); color: var(--vscode-descriptionForeground); margin-bottom: var(--vscee-space-sm); }
-    .inspector-loading { font-size: var(--vscee-font-compact-sm); color: var(--vscode-descriptionForeground); text-align: center; padding: var(--vscee-space-xs) 0; }
+    .inspector-hint { font-size: var(--vscee-font-compact-sm); color: var(--vscee-color-muted); text-align: center; padding: var(--vscee-space-xs) 0; }
+    .inspector-coords { font-size: var(--vscee-font-compact-sm); color: var(--vscee-color-muted); margin-bottom: var(--vscee-space-sm); }
+    .inspector-loading { font-size: var(--vscee-font-compact-sm); color: var(--vscee-color-muted); text-align: center; padding: var(--vscee-space-xs) 0; }
     .inspector-layer { margin-bottom: var(--vscee-space-md); }
     .inspector-layer-name {
-      display: block; font-size: var(--vscee-font-compact-sm); font-weight: 600; color: var(--vscode-foreground);
+      display: block; font-size: var(--vscee-font-compact-sm); font-weight: 600; color: var(--vscee-color-foreground);
       margin-bottom: var(--vscee-space-xs); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
     }
-    .inspector-no-data { font-size: var(--vscee-font-compact-sm); color: var(--vscode-descriptionForeground); font-style: italic; }
-    .inspector-error { font-size: var(--vscee-font-compact-xs); color: var(--vscode-errorForeground); word-break: break-all; }
+    .inspector-no-data { font-size: var(--vscee-font-compact-sm); color: var(--vscee-color-muted); font-style: italic; }
+    .inspector-error { font-size: var(--vscee-font-compact-xs); color: var(--vscee-color-error); word-break: break-all; }
     .inspector-table { width: 100%; border-collapse: collapse; font-size: var(--vscee-font-compact-sm); }
-    .inspector-band { color: var(--vscode-descriptionForeground); padding: var(--vscee-space-xxs) var(--vscee-space-xs) var(--vscee-space-xxs) 0; }
-    .inspector-val { color: var(--vscode-foreground); text-align: right; font-variant-numeric: tabular-nums; }
+    .inspector-band { color: var(--vscee-color-muted); padding: var(--vscee-space-xxs) var(--vscee-space-xs) var(--vscee-space-xxs) 0; }
+    .inspector-val { color: var(--vscee-color-foreground); text-align: right; font-variant-numeric: tabular-nums; }
 
     /* ==================================================================
        STATUS BAR
        ================================================================== */
     .status-bar {
       position: absolute; bottom: 0; left: 0; right: 0; z-index: 1000;
-      background: var(--vscode-statusBar-background); color: var(--vscode-statusBar-foreground);
+      background: var(--vscee-color-statusbar-background); color: var(--vscee-color-statusbar-foreground);
       padding: var(--vscee-space-xxs) var(--vscee-space-lg); font-size: var(--vscee-font-compact-sm); display: flex; justify-content: space-between;
     }
 
@@ -1925,34 +1925,34 @@
       background: rgba(0, 0, 0, 0.5); display: flex; align-items: center; justify-content: center;
     }
     .viz-editor-dialog {
-      background: var(--vscode-editor-background); border: var(--vscee-border-sm) solid var(--vscode-widget-border);
+      background: var(--vscee-color-editor-background); border: var(--vscee-border-sm) solid var(--vscee-color-widget-border);
       border-radius: var(--vscee-radius-lg); box-shadow: var(--vscee-shadow-xl);
       width: 420px; max-height: 80vh; display: flex; flex-direction: column; overflow: hidden;
     }
     .viz-editor-header {
       display: flex; align-items: center; gap: var(--vscee-space-md); padding: var(--vscee-space-md) var(--vscee-space-lg);
-      border-bottom: var(--vscee-border-sm) solid var(--vscode-widget-border);
-      font-size: var(--vscee-font-compact-md); font-weight: 600; color: var(--vscode-foreground);
+      border-bottom: var(--vscee-border-sm) solid var(--vscee-color-widget-border);
+      font-size: var(--vscee-font-compact-md); font-weight: 600; color: var(--vscee-color-foreground);
     }
     .viz-editor-header span { flex: 1; }
     .viz-type-select, .viz-preset-select {
-      background: var(--vscode-dropdown-background); color: var(--vscode-dropdown-foreground);
-      border: var(--vscee-border-sm) solid var(--vscode-dropdown-border); border-radius: var(--vscee-radius-md); font-size: var(--vscee-font-compact-sm); padding: var(--vscee-space-xxs) var(--vscee-space-xs);
+      background: var(--vscee-color-dropdown-background); color: var(--vscee-color-dropdown-foreground);
+      border: var(--vscee-border-sm) solid var(--vscee-color-dropdown-border); border-radius: var(--vscee-radius-md); font-size: var(--vscee-font-compact-sm); padding: var(--vscee-space-xxs) var(--vscee-space-xs);
     }
     .viz-preset-select { max-width: 140px; }
     .viz-close-btn { width: 22px; height: 22px; box-shadow: none; opacity: 0.6; }
     .viz-editor-body { overflow-y: auto; padding: var(--vscee-space-lg); flex: 1; }
     .viz-editor-footer {
       display: flex; justify-content: flex-end; gap: var(--vscee-space-sm); padding: var(--vscee-space-md) var(--vscee-space-lg);
-      border-top: var(--vscee-border-sm) solid var(--vscode-widget-border);
+      border-top: var(--vscee-border-sm) solid var(--vscee-color-widget-border);
     }
     .viz-btn {
-      font-size: var(--vscee-font-compact-sm); padding: var(--vscee-space-xs) var(--vscee-space-lg); border: var(--vscee-border-sm) solid var(--vscode-button-border, transparent);
-      border-radius: var(--vscee-radius-md); cursor: pointer; color: var(--vscode-foreground); background: transparent;
+      font-size: var(--vscee-font-compact-sm); padding: var(--vscee-space-xs) var(--vscee-space-lg); border: var(--vscee-border-sm) solid var(--vscee-color-button-border, transparent);
+      border-radius: var(--vscee-radius-md); cursor: pointer; color: var(--vscee-color-foreground); background: transparent;
     }
-    .viz-btn-primary { background: var(--vscode-button-background); color: var(--vscode-button-foreground); }
-    .viz-btn-primary:hover { background: var(--vscode-button-hoverBackground); }
-    .viz-btn-secondary { background: var(--vscode-button-secondaryBackground); color: var(--vscode-button-secondaryForeground); }
+    .viz-btn-primary { background: var(--vscee-color-button-background); color: var(--vscee-color-button-foreground); }
+    .viz-btn-primary:hover { background: var(--vscee-color-button-hover); }
+    .viz-btn-secondary { background: var(--vscee-color-button-secondary-background); color: var(--vscee-color-button-secondary-foreground); }
     .viz-btn-code {
       display: inline-flex; align-items: center; gap: var(--vscee-space-xs);
       margin-right: auto; padding-inline: var(--vscee-space-md);
@@ -1965,52 +1965,52 @@
       .viz-code-copy { position: absolute; top: var(--vscee-space-xs); right: var(--vscee-space-xs); width: 24px; height: 24px; }
     }
     .viz-code-block {
-      font-family: var(--vscode-editor-font-family, monospace);
+      font-family: var(--vscee-editor-font-family, monospace);
       font-size: var(--vscee-font-compact-sm); line-height: 1.5;
       white-space: pre; overflow-x: auto; tab-size: 4;
-      color: var(--vscode-editor-foreground); background: var(--vscode-textCodeBlock-background);
-      border: var(--vscee-border-sm) solid var(--vscode-widget-border);
+      color: var(--vscee-color-editor-foreground); background: var(--vscee-color-code-background);
+      border: var(--vscee-border-sm) solid var(--vscee-color-widget-border);
       border-radius: var(--vscee-radius-md); padding: var(--vscee-space-md);
       padding-right: calc(var(--vscee-space-md) + 24px);
 
-      .json-key { color: var(--vscode-debugTokenExpression-name, var(--vscode-charts-blue)); }
-      .json-str { color: var(--vscode-debugTokenExpression-string, var(--vscode-charts-orange)); }
-      .json-num { color: var(--vscode-debugTokenExpression-number, var(--vscode-charts-green)); }
-      .json-bool { color: var(--vscode-debugTokenExpression-boolean, var(--vscode-charts-purple)); }
-      .json-punct { color: var(--vscode-descriptionForeground); }
+      .json-key { color: var(--vscee-color-code-key, var(--vscee-color-chart-blue)); }
+      .json-str { color: var(--vscee-color-code-string, var(--vscee-color-chart-orange)); }
+      .json-num { color: var(--vscee-color-code-number, var(--vscee-color-chart-green)); }
+      .json-bool { color: var(--vscee-color-code-boolean, var(--vscee-color-chart-purple)); }
+      .json-punct { color: var(--vscee-color-muted); }
     }
     .viz-section-label {
-      font-size: var(--vscee-font-compact-xs); font-weight: 600; color: var(--vscode-descriptionForeground);
+      font-size: var(--vscee-font-compact-xs); font-weight: 600; color: var(--vscee-color-muted);
       text-transform: uppercase; margin: var(--vscee-space-lg) 0 var(--vscee-space-xs);
     }
     .viz-channel-row { display: flex; align-items: center; gap: var(--vscee-space-sm); margin-bottom: var(--vscee-space-sm); }
-    .viz-channel-label { width: 60px; flex-shrink: 0; font-size: var(--vscee-font-compact-sm); color: var(--vscode-descriptionForeground); }
+    .viz-channel-label { width: 60px; flex-shrink: 0; font-size: var(--vscee-font-compact-sm); color: var(--vscee-color-muted); }
     .viz-band-select {
-      flex: 1; min-width: 0; background: var(--vscode-dropdown-background); color: var(--vscode-dropdown-foreground);
-      border: var(--vscee-border-sm) solid var(--vscode-dropdown-border); border-radius: var(--vscee-radius-md); font-size: var(--vscee-font-compact-sm); padding: var(--vscee-space-xxs) var(--vscee-space-xs);
+      flex: 1; min-width: 0; background: var(--vscee-color-dropdown-background); color: var(--vscee-color-dropdown-foreground);
+      border: var(--vscee-border-sm) solid var(--vscee-color-dropdown-border); border-radius: var(--vscee-radius-md); font-size: var(--vscee-font-compact-sm); padding: var(--vscee-space-xxs) var(--vscee-space-xs);
     }
     .viz-input {
-      width: 60px; background: var(--vscode-input-background); color: var(--vscode-input-foreground);
-      border: var(--vscee-border-sm) solid var(--vscode-input-border); border-radius: var(--vscee-radius-md); font-size: var(--vscee-font-compact-sm); padding: var(--vscee-space-xxs) var(--vscee-space-xs);
+      width: 60px; background: var(--vscee-color-input-background); color: var(--vscee-color-input-foreground);
+      border: var(--vscee-border-sm) solid var(--vscee-color-input-border); border-radius: var(--vscee-radius-md); font-size: var(--vscee-font-compact-sm); padding: var(--vscee-space-xxs) var(--vscee-space-xs);
     }
-    .viz-stretch-status { display: inline-flex; color: var(--vscode-descriptionForeground); }
+    .viz-stretch-status { display: inline-flex; color: var(--vscee-color-muted); }
     .viz-stretch-error {
-      font-size: var(--vscee-font-compact-xs); color: var(--vscode-errorForeground);
+      font-size: var(--vscee-font-compact-xs); color: var(--vscee-color-error);
       margin-bottom: var(--vscee-space-sm);
     }
     .viz-ramp-preview {
       height: 14px; border-radius: var(--vscee-radius-sm); margin-top: var(--vscee-space-xs);
-      border: var(--vscee-border-sm) solid var(--vscode-widget-border);
+      border: var(--vscee-border-sm) solid var(--vscee-color-widget-border);
     }
-    .viz-ramp-hint { font-size: var(--vscee-font-compact-xs); color: var(--vscode-descriptionForeground); margin-top: var(--vscee-space-xs); }
+    .viz-ramp-hint { font-size: var(--vscee-font-compact-xs); color: var(--vscee-color-muted); margin-top: var(--vscee-space-xs); }
     .viz-palette-select {
       position: relative; flex: 1; min-width: 0;
 
       .viz-palette-trigger {
         display: flex; align-items: center; justify-content: space-between; gap: var(--vscee-space-xs);
         width: 100%; cursor: pointer; text-align: left;
-        background: var(--vscode-dropdown-background); color: var(--vscode-dropdown-foreground);
-        border: var(--vscee-border-sm) solid var(--vscode-dropdown-border); border-radius: var(--vscee-radius-md);
+        background: var(--vscee-color-dropdown-background); color: var(--vscee-color-dropdown-foreground);
+        border: var(--vscee-border-sm) solid var(--vscee-color-dropdown-border); border-radius: var(--vscee-radius-md);
         font-size: var(--vscee-font-compact-sm); padding: var(--vscee-space-xxs) var(--vscee-space-xs);
       }
       .viz-palette-current { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -2019,22 +2019,22 @@
       .viz-palette-menu {
         position: fixed; z-index: 3001;
         overflow-y: auto; padding: var(--vscee-space-xxs);
-        background: var(--vscode-dropdown-background);
-        border: var(--vscee-border-sm) solid var(--vscode-dropdown-border);
+        background: var(--vscee-color-dropdown-background);
+        border: var(--vscee-border-sm) solid var(--vscee-color-dropdown-border);
         border-radius: var(--vscee-radius-md); box-shadow: 0 2px 8px rgb(0 0 0 / 40%);
       }
       .viz-palette-group {
         font-size: var(--vscee-font-compact-xxs); font-weight: 600; text-transform: uppercase;
-        color: var(--vscode-descriptionForeground);
+        color: var(--vscee-color-muted);
         padding: var(--vscee-space-xs) var(--vscee-space-xs) var(--vscee-space-xxs);
       }
       .viz-palette-option {
         display: flex; flex-direction: column; gap: 2px; width: 100%; cursor: pointer; text-align: left;
-        background: transparent; border: none; color: var(--vscode-dropdown-foreground);
+        background: transparent; border: none; color: var(--vscee-color-dropdown-foreground);
         padding: var(--vscee-space-xxs) var(--vscee-space-xs); border-radius: var(--vscee-radius-sm);
 
-        &:hover { background: var(--vscode-list-hoverBackground); }
-        &.selected { background: var(--vscode-list-activeSelectionBackground); color: var(--vscode-list-activeSelectionForeground); }
+        &:hover { background: var(--vscee-color-list-hover); }
+        &.selected { background: var(--vscee-color-list-selection-background); color: var(--vscee-color-list-selection-foreground); }
       }
       .viz-palette-option-name { font-size: var(--vscee-font-compact-sm); }
       .viz-palette-strip { display: block; height: 8px; border-radius: var(--vscee-radius-sm); }
@@ -2046,25 +2046,25 @@
     .viz-legend-row {
       display: flex; align-items: center; gap: var(--vscee-space-xxs);
       padding: var(--vscee-space-xxs); border-radius: var(--vscee-radius-sm);
-      background: var(--vscode-editorWidget-background);
+      background: var(--vscee-color-editor-widget-background);
     }
     .viz-legend-value {
-      width: 50px; background: var(--vscode-input-background); color: var(--vscode-input-foreground);
-      border: var(--vscee-border-sm) solid var(--vscode-input-border); border-radius: var(--vscee-radius-md); font-size: var(--vscee-font-compact-sm); padding: var(--vscee-space-xxs) var(--vscee-space-xs);
+      width: 50px; background: var(--vscee-color-input-background); color: var(--vscee-color-input-foreground);
+      border: var(--vscee-border-sm) solid var(--vscee-color-input-border); border-radius: var(--vscee-radius-md); font-size: var(--vscee-font-compact-sm); padding: var(--vscee-space-xxs) var(--vscee-space-xs);
     }
     .viz-legend-name {
-      flex: 1; background: var(--vscode-input-background); color: var(--vscode-input-foreground);
-      border: var(--vscee-border-sm) solid var(--vscode-input-border); border-radius: var(--vscee-radius-md); font-size: var(--vscee-font-compact-sm); padding: var(--vscee-space-xxs) var(--vscee-space-xs);
+      flex: 1; background: var(--vscee-color-input-background); color: var(--vscee-color-input-foreground);
+      border: var(--vscee-border-sm) solid var(--vscee-color-input-border); border-radius: var(--vscee-radius-md); font-size: var(--vscee-font-compact-sm); padding: var(--vscee-space-xxs) var(--vscee-space-xs);
     }
     .viz-legend-index {
       width: 50px; flex-shrink: 0; padding-left: var(--vscee-space-xs);
-      font-size: var(--vscee-font-compact-sm); color: var(--vscode-descriptionForeground);
+      font-size: var(--vscee-font-compact-sm); color: var(--vscee-color-muted);
       font-variant-numeric: tabular-nums;
     }
     .viz-legend-hex {
-      flex: 1; min-width: 0; font-family: var(--vscode-editor-font-family); font-size: var(--vscee-font-compact-sm);
-      background: var(--vscode-input-background); color: var(--vscode-input-foreground);
-      border: var(--vscee-border-sm) solid var(--vscode-input-border); border-radius: var(--vscee-radius-md);
+      flex: 1; min-width: 0; font-family: var(--vscee-editor-font-family); font-size: var(--vscee-font-compact-sm);
+      background: var(--vscee-color-input-background); color: var(--vscee-color-input-foreground);
+      border: var(--vscee-border-sm) solid var(--vscee-color-input-border); border-radius: var(--vscee-radius-md);
       padding: var(--vscee-space-xxs) var(--vscee-space-xs);
     }
     .viz-legend-del {
@@ -2078,9 +2078,9 @@
     .viz-opacity-bar {
       display: flex; align-items: center; gap: var(--vscee-space-sm);
       padding: var(--vscee-space-md) var(--vscee-space-lg);
-      border-top: var(--vscee-border-sm) solid var(--vscode-widget-border);
+      border-top: var(--vscee-border-sm) solid var(--vscee-color-widget-border);
 
-      .viz-opacity-unit { font-size: var(--vscee-font-compact-sm); color: var(--vscode-descriptionForeground); }
+      .viz-opacity-unit { font-size: var(--vscee-font-compact-sm); color: var(--vscee-color-muted); }
     }
     @keyframes mdi-spin { to { transform: rotate(360deg); } }
     .mdi-spin { animation: mdi-spin 1s linear infinite; display: inline-block; vertical-align: middle; }
