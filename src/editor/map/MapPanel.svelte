@@ -989,6 +989,21 @@
     vizContPaletteName = '';
   }
 
+  /** Accepts `rgb`/`rrggbb`, with or without the leading `#`; `null` when unparseable. */
+  function parseHex(text, allowShort) {
+    const value = String(text).trim().replace(/^#/, '');
+    const pattern = allowShort ? /^(?:[0-9a-f]{3}|[0-9a-f]{6})$/i : /^[0-9a-f]{6}$/i;
+    return pattern.test(value) ? normalizeHex(value) : null;
+  }
+
+  /** Typed hex entry: while typing only a complete `#rrggbb` commits, so the field is never rewritten mid-word. */
+  function setContColor(index, text, allowShort = false) {
+    const hex = parseHex(text, allowShort);
+    if (!hex || hex === vizContColors[index]) {return;}
+    vizContColors = vizContColors.map((c, i) => (i === index ? hex : c));
+    markPaletteCustom();
+  }
+
   function removeContColor(index) {
     if (vizContColors.length <= MIN_PALETTE_COLORS) {return;}
     vizContColors = vizContColors.filter((_, i) => i !== index);
@@ -1563,7 +1578,11 @@
                 <input type="color" class="viz-legend-color"
                   bind:value={vizContColors[i]} oninput={markPaletteCustom} />
                 <span class="viz-legend-index">{i + 1}</span>
-                <span class="viz-legend-hex">{color}</span>
+                <input type="text" class="viz-legend-hex" spellcheck="false" maxlength="7"
+                  value={color} aria-label="Hex colour {i + 1}"
+                  oninput={(e) => setContColor(i, e.target.value)}
+                  onblur={(e) => { setContColor(i, e.target.value, true); e.target.value = vizContColors[i]; }}
+                  onkeydown={(e) => { if (e.key === 'Enter') {e.target.blur();} }} />
                 <button class="map-btn viz-legend-del" title="Remove colour"
                   disabled={vizContColors.length <= MIN_PALETTE_COLORS}
                   onclick={() => removeContColor(i)}>
@@ -2037,8 +2056,10 @@
       font-variant-numeric: tabular-nums;
     }
     .viz-legend-hex {
-      flex: 1; font-family: var(--vscode-editor-font-family); font-size: var(--vscee-font-compact-sm);
-      color: var(--vscode-descriptionForeground);
+      flex: 1; min-width: 0; font-family: var(--vscode-editor-font-family); font-size: var(--vscee-font-compact-sm);
+      background: var(--vscode-input-background); color: var(--vscode-input-foreground);
+      border: var(--vscee-border-sm) solid var(--vscode-input-border); border-radius: var(--vscee-radius-md);
+      padding: var(--vscee-space-xxs) var(--vscee-space-xs);
     }
     .viz-legend-del {
       width: 22px; height: 22px; box-shadow: none; opacity: 0.5;
