@@ -2,6 +2,7 @@
 <script>
   import L from 'leaflet';
   import ColorPicker from './ColorPicker.svelte';
+  import MapButton from './MapButton.svelte';
   import { vscode } from '../../shared/vscode.ts';
   import { trackViewportChanges } from '../../shared/viewportAnchor.ts';
   import {
@@ -1228,9 +1229,9 @@
     <button class="basemap-error-btn" onclick={() => vscode.postMessage({ type: 'setApiKey' })}>
       Set API key
     </button>
-    <button class="map-btn basemap-error-close" title="Dismiss" onclick={() => { basemapError = ''; }}>
+    <MapButton class="basemap-error-close" title="Dismiss" onclick={() => { basemapError = ''; }}>
       <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" fill="currentColor"><path d={mdiClose}/></svg>
-    </button>
+    </MapButton>
   </div>
 {/if}
 
@@ -1243,29 +1244,29 @@
 
 <!-- CONTROLS -->
 <div class="map-controls">
-  <button class="map-btn" class:active={layersPanelVisible} title="Manage layers"
+  <MapButton active={layersPanelVisible} title="Manage layers"
     onclick={toggleLayersPanel}>
     <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="currentColor"><path d={mdiLayers}/></svg>
-  </button>
-  <button class="map-btn" class:active={inspectorActive} title="Pixel inspector"
+  </MapButton>
+  <MapButton active={inspectorActive} title="Pixel inspector"
     onclick={toggleInspector}>
     <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="currentColor"><path d={mdiCrosshairsGps}/></svg>
-  </button>
-  <button class="map-btn" class:active={activeMode === 'plan'} title="Toggle plan view"
+  </MapButton>
+  <MapButton active={activeMode === 'plan'} title="Toggle plan view"
     onclick={() => activateMode('plan')}>
     <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="currentColor"><path d={mdiMap}/></svg>
-  </button>
-  <button class="map-btn" class:active={activeMode === 'satellite'} title="Toggle satellite view"
+  </MapButton>
+  <MapButton active={activeMode === 'satellite'} title="Toggle satellite view"
     onclick={() => activateMode('satellite')}>
     <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="currentColor"><path d={mdiSatelliteVariant}/></svg>
-  </button>
+  </MapButton>
 </div>
 
 <div class="map-controls map-controls-right">
-  <button class="map-btn" title="Clear all layers"
+  <MapButton title="Clear all layers"
     onclick={() => vscode.postMessage({ type: 'clearAllLayers' })}>
     <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="currentColor"><path d={mdiTrashCan}/></svg>
-  </button>
+  </MapButton>
 </div>
 
 <!-- LAYERS PANEL -->
@@ -1273,10 +1274,10 @@
 <div class="layers-panel visible">
   <div class="layers-panel-header">
     <span>Layers</span>
-    <button class="map-btn layers-close-btn" title="Close"
+    <MapButton class="layers-close-btn" title="Close"
       onclick={() => { layersPanelVisible = false; }}>
       <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" fill="currentColor"><path d={mdiClose}/></svg>
-    </button>
+    </MapButton>
   </div>
   <div class="layers-list">
     {#if overlays.length === 0}
@@ -1290,28 +1291,28 @@
               style="--slider-fill: {Math.round(entry.opacity * 100)}%"
               value={Math.round(entry.opacity * 100)}
               oninput={(e) => setLayerOpacity(idx, Number(e.target.value))} />
-            <button class="map-btn layer-vis-btn" class:active={entry.visible}
+            <MapButton class="layer-vis-btn" active={entry.visible}
               title="Toggle visibility" onclick={() => toggleLayerVisibility(idx)}>
               <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" fill="currentColor"><path d={entry.visible ? mdiEye : mdiEyeOff}/></svg>
-            </button>
+            </MapButton>
             {#if entry.visParams && (entry.visParams.palette || entry.visParams.bands)}
-              <button class="map-btn layer-vis-btn" class:active={activeScaleIndex === idx}
+              <MapButton class="layer-vis-btn" active={activeScaleIndex === idx}
                 title="Toggle scale" onclick={() => toggleScale(idx)}>
                 <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" fill="currentColor"><path d={mdiRuler}/></svg>
-              </button>
+              </MapButton>
             {:else}
-              <button class="map-btn layer-vis-btn" style="visibility:hidden" title="Toggle scale">
+              <MapButton class="layer-vis-btn" style="visibility:hidden" title="Toggle scale">
                 <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" fill="currentColor"><path d={mdiRuler}/></svg>
-              </button>
+              </MapButton>
             {/if}
-            <button class="map-btn layer-vis-btn" title="Edit visualization"
+            <MapButton class="layer-vis-btn" title="Edit visualization"
               onclick={() => openVizEditorForLayer(entry.layerIndex)}>
               <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" fill="currentColor"><path d={mdiTune}/></svg>
-            </button>
-            <button class="map-btn layer-vis-btn" title="Remove layer"
+            </MapButton>
+            <MapButton class="layer-vis-btn" title="Remove layer"
               onclick={() => removeLayer(idx)}>
               <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" fill="currentColor"><path d={mdiTrashCan}/></svg>
-            </button>
+            </MapButton>
           </div>
         </div>
       {/each}
@@ -1325,9 +1326,9 @@
 <div class="inspector-panel visible">
   <div class="inspector-panel-header">
     <span>Inspector</span>
-    <button class="map-btn layers-close-btn" title="Close" onclick={closeInspector}>
+    <MapButton class="layers-close-btn" title="Close" onclick={closeInspector}>
       <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" fill="currentColor"><path d={mdiClose}/></svg>
-    </button>
+    </MapButton>
   </div>
   <div class="inspector-content">
     {#if inspectorContent.type === 'hint'}
@@ -1471,9 +1472,9 @@
         <option value="continuous">Continuous</option>
         <option value="categorical">Categorical</option>
       </select>
-      <button class="map-btn viz-close-btn" title="Close" onclick={vizClose}>
+      <MapButton class="viz-close-btn" title="Close" onclick={vizClose}>
         <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" fill="currentColor"><path d={mdiClose}/></svg>
-      </button>
+      </MapButton>
     </div>
     <!-- Body -->
     <div class="viz-editor-body">
@@ -1585,11 +1586,11 @@
                   oninput={(e) => setContColor(i, e.target.value)}
                   onblur={(e) => { setContColor(i, e.target.value, true); e.target.value = vizContColors[i]; }}
                   onkeydown={(e) => { if (e.key === 'Enter') {e.target.blur();} }} />
-                <button class="map-btn viz-legend-del" title="Remove colour"
+                <MapButton class="viz-legend-del" title="Remove colour"
                   disabled={vizContColors.length <= MIN_PALETTE_COLORS}
                   onclick={() => removeContColor(i)}>
                   <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" fill="currentColor"><path d={mdiTrashCan}/></svg>
-                </button>
+                </MapButton>
               </div>
             {/each}
           </div>
@@ -1638,9 +1639,9 @@
                 onkeydown={(e) => { if (e.key === 'Enter') {e.target.blur();} }} />
               <input type="number" class="viz-legend-value" placeholder="Value" bind:value={row.value} />
               <input type="text" class="viz-legend-name" placeholder="Name" bind:value={row.label} />
-              <button class="map-btn viz-legend-del" title="Remove class" onclick={() => vizRemoveCatRow(i)}>
+              <MapButton class="viz-legend-del" title="Remove class" onclick={() => vizRemoveCatRow(i)}>
                 <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" fill="currentColor"><path d={mdiTrashCan}/></svg>
-              </button>
+              </MapButton>
             </div>
           {/each}
         </div>
@@ -1679,15 +1680,15 @@
   <div class="viz-editor-dialog viz-code-dialog">
     <div class="viz-editor-header">
       <span>Python visualization parameters</span>
-      <button class="map-btn viz-close-btn" title="Close" onclick={() => { vizCodeVisible = false; }}>
+      <MapButton class="viz-close-btn" title="Close" onclick={() => { vizCodeVisible = false; }}>
         <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" fill="currentColor"><path d={mdiClose}/></svg>
-      </button>
+      </MapButton>
     </div>
     <div class="viz-editor-body">
       <div class="viz-code-wrap">
-        <button class="map-btn viz-code-copy" title={vizCodeCopied ? 'Copied' : 'Copy'} onclick={copyVizJson}>
+        <MapButton class="viz-code-copy" title={vizCodeCopied ? 'Copied' : 'Copy'} onclick={copyVizJson}>
           <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" fill="currentColor"><path d={vizCodeCopied ? mdiCheck : mdiContentCopy}/></svg>
-        </button>
+        </MapButton>
         <pre class="viz-code-block">{#each vizJsonTokens as token}<span class="json-{token.kind}">{token.text}</span>{/each}</pre>
       </div>
     </div>
@@ -1760,15 +1761,6 @@
       display: flex; flex-direction: column; gap: var(--vscee-space-sm);
     }
     .map-controls-right { left: auto; right: 10px; }
-    .map-btn {
-      width: 32px; height: 32px; border: none; border-radius: var(--vscee-radius-md);
-      background: var(--vscee-color-editor-background); color: var(--vscee-color-foreground);
-      cursor: pointer; display: flex; align-items: center; justify-content: center;
-      box-shadow: var(--vscee-shadow-sm); opacity: 0.85; transition: opacity 0.15s;
-    }
-    .map-btn:hover { opacity: 1; }
-    .map-btn.active { background: var(--vscee-color-button-background); color: var(--vscee-color-button-foreground); }
-
     /* ==================================================================
        BASEMAP ERROR BANNER
        ================================================================== */
