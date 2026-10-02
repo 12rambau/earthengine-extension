@@ -49,6 +49,9 @@ export class MapInspector {
     const results: InspectResult[] = [];
 
     for (const [, layer] of layers) {
+      if (!layer.shown) {
+        continue;
+      }
       try {
         const image = eeAny.Image(eeAny.Deserializer.fromJSON(layer.serialized));
         const reduced = image.reduceRegion({
