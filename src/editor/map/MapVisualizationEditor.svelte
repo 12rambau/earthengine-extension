@@ -2,6 +2,7 @@
 <script>
   import ColorPicker from './ColorPicker.svelte';
   import MapButton from './MapButton.svelte';
+  import MapSlider from './MapSlider.svelte';
   import { vscode } from '../../shared/vscode.ts';
   import { trackViewportChanges } from '../../shared/viewportAnchor.ts';
   import {
@@ -610,15 +611,6 @@
     vizRgbGamma = String(Math.max(0.1, Math.min(5, Math.round(n * 10) / 10)));
   }
 
-  /** Share of the track left of the thumb, feeding the `--slider-fill` custom property. */
-  function sliderFill(value, min, max) {
-    const n = Number(value);
-    if (!Number.isFinite(n)) {
-      return 0;
-    }
-    return Math.round(Math.max(0, Math.min(1, (n - min) / (max - min))) * 100);
-  }
-
   function vizApplyPreset(idx) {
     const p = vizPresets[idx];
     if (!p) {
@@ -1015,13 +1007,11 @@
           {@render stretchRow()}
           <div class="viz-channel-row">
             <span class="viz-channel-label">Gamma</span>
-            <input
-              type="range"
-              class="range-slider viz-range"
+            <MapSlider
+              class="viz-range"
               min="0.1"
               max="5"
               step="0.1"
-              style="--slider-fill: {sliderFill(vizRgbGamma, 0.1, 5)}%"
               value={vizRgbGamma}
               oninput={(e) => setVizGamma(e.target.value)}
             />
@@ -1307,13 +1297,11 @@
       <!-- Opacity (all viz types) -->
       <div class="viz-opacity-bar">
         <span class="viz-channel-label">Opacity</span>
-        <input
-          type="range"
-          class="range-slider viz-range"
+        <MapSlider
+          class="viz-range"
           min="0"
           max="100"
           step="1"
-          style="--slider-fill: {sliderFill(vizOpacity, 0, 100)}%"
           value={vizOpacity}
           oninput={(e) => setVizOpacity(e.target.value)}
         />
@@ -1740,10 +1728,6 @@
     .viz-legend-add {
       margin-top: var(--vscee-space-xs);
       align-self: flex-start;
-    }
-    .viz-range {
-      flex: 1;
-      min-width: 0;
     }
     .viz-range-value {
       width: 56px;

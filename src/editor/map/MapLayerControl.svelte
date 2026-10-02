@@ -1,5 +1,6 @@
 <!-- MapLayerControl: layer list, visibility, opacity and visualization actions -->
 <script>
+  import MapSlider from './MapSlider.svelte';
   import { vscode } from '../../shared/vscode.ts';
   import {
     mdiClose,
@@ -106,13 +107,11 @@
           <div class="layer-row">
             <span class="layer-name" title={entry.name}>{entry.name}</span>
             <div class="layer-controls">
-              <input
-                type="range"
-                class="range-slider layer-opacity"
+              <MapSlider
+                class="layer-opacity"
                 min="0"
                 max="100"
                 step="1"
-                style="--slider-fill: {Math.round(entry.opacity * 100)}%"
                 value={Math.round(entry.opacity * 100)}
                 oninput={(event) => setLayerOpacity(index, Number(event.target.value))}
               />
@@ -294,10 +293,6 @@
       gap: var(--vscee-space-xs);
       flex-shrink: 0;
       margin-left: auto;
-    }
-    .layer-opacity {
-      width: 60px;
-      flex-shrink: 0;
     }
   }
 </style>
