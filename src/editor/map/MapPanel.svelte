@@ -4,6 +4,7 @@
   import ColorPicker from './ColorPicker.svelte';
   import MapButton from './MapButton.svelte';
   import MapInspector from './MapInspector.svelte';
+  import MapLayerControl from './MapLayerControl.svelte';
   import { vscode } from '../../shared/vscode.ts';
   import { trackViewportChanges } from '../../shared/viewportAnchor.ts';
   import {
@@ -14,15 +15,11 @@
     mdiCodeTags,
     mdiContentCopy,
     mdiCrosshairsGps,
-    mdiEye,
-    mdiEyeOff,
     mdiLayers,
     mdiLoading,
     mdiMap,
-    mdiRuler,
     mdiSatelliteVariant,
     mdiTrashCan,
-    mdiTune,
   } from '../../shared/icons.ts';
   import {
     interpolateViridis,
@@ -205,7 +202,7 @@
   let currentBasemapId = 'light';
   let googleCopyright = '';
   let attributionTimer = null;
-  let nativeLayerControl = null;
+  let nativeLayerControl = $state(null);
   let _sampleCanvas = null;
   // Opacity the edited layer had when the dialog opened, restored on Cancel.
   let vizOpacityOriginal = 100;
@@ -501,76 +498,6 @@
   function activateMode(mode) {
     activeMode = activeMode === mode ? 'theme' : mode;
     setBasemap(resolveBasemapId());
-  }
-
-  // ----------------------------------------------------------------
-  // LAYERS
-  // ----------------------------------------------------------------
-
-  function toggleLayerVisibility(idx) {
-    const entry = overlays[idx];
-    entry.visible = !entry.visible;
-    if (entry.visible) {
-      entry.tileLayer.addTo(map);
-    } else {
-      map.removeLayer(entry.tileLayer);
-    }
-    overlays = overlays;
-    vscode.postMessage({
-      type: 'layerVisibility',
-      data: { layerIndex: entry.layerIndex, shown: entry.visible },
-    });
-  }
-
-  function setLayerOpacity(idx, val) {
-    const entry = overlays[idx];
-    entry.opacity = val / 100;
-    entry.tileLayer.setOpacity(entry.opacity);
-    overlays = overlays;
-    vscode.postMessage({
-      type: 'layerOpacity',
-      data: { layerIndex: entry.layerIndex, opacity: entry.opacity },
-    });
-  }
-
-  function removeLayer(idx) {
-    const entry = overlays[idx];
-    if (entry.visible) {
-      map.removeLayer(entry.tileLayer);
-    }
-    nativeLayerControl.removeLayer(entry.tileLayer);
-    overlays = overlays.filter((_, index) => index !== idx);
-    if (activeScaleIndex === idx) {
-      activeScaleIndex = -1;
-    } else if (activeScaleIndex > idx) {
-      activeScaleIndex--;
-    }
-    if (vizLayerIndex === entry.layerIndex) {
-      vizVisible = false;
-    }
-    vscode.postMessage({ type: 'removeLayer', data: { layerIndex: entry.layerIndex } });
-  }
-
-  function toggleScale(idx) {
-    if (activeScaleIndex === idx) {
-      activeScaleIndex = -1;
-    } else {
-      if (!overlays[idx].visible) {
-        toggleLayerVisibility(idx);
-      }
-      activeScaleIndex = idx;
-    }
-  }
-
-  function openVizEditorForLayer(layerIndex) {
-    vscode.postMessage({ type: 'openVizEditor', data: { layerIndex } });
-  }
-
-  function toggleLayersPanel() {
-    layersPanelVisible = !layersPanelVisible;
-    if (layersPanelVisible) {
-      inspectorActive = false;
-    }
   }
 
   // ----------------------------------------------------------------
@@ -1506,6 +1433,15 @@
 <!-- MAP -->
 <div id="map"></div>
 <MapInspector {map} bind:active={inspectorActive} />
+<MapLayerControl
+  {map}
+  bind:overlays
+  bind:visible={layersPanelVisible}
+  bind:activeScaleIndex
+  {nativeLayerControl}
+  {vizLayerIndex}
+  bind:vizVisible
+/>
 
 {#if basemapError}
   <div class="basemap-error">
@@ -1541,7 +1477,16 @@
 
 <!-- CONTROLS -->
 <div class="map-controls">
-  <MapButton active={layersPanelVisible} title="Manage layers" onclick={toggleLayersPanel}>
+  <MapButton
+    active={layersPanelVisible}
+    title="Manage layers"
+    onclick={() => {
+      layersPanelVisible = !layersPanelVisible;
+      if (layersPanelVisible) {
+        inspectorActive = false;
+      }
+    }}
+  >
     <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="currentColor"
       ><path d={mdiLayers} /></svg
     >
@@ -1588,115 +1533,6 @@
     >
   </MapButton>
 </div>
-
-<!-- LAYERS PANEL -->
-{#if layersPanelVisible}
-  <div class="layers-panel visible">
-    <div class="layers-panel-header">
-      <span>Layers</span>
-      <MapButton
-        class="layers-close-btn"
-        title="Close"
-        onclick={() => {
-          layersPanelVisible = false;
-        }}
-      >
-        <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" fill="currentColor"
-          ><path d={mdiClose} /></svg
-        >
-      </MapButton>
-    </div>
-    <div class="layers-list">
-      {#if overlays.length === 0}
-        <p class="layers-empty">No layers yet.</p>
-      {:else}
-        {#each overlays as entry, idx}
-          <div class="layer-row">
-            <span class="layer-name" title={entry.name}>{entry.name}</span>
-            <div class="layer-controls">
-              <input
-                type="range"
-                class="range-slider layer-opacity"
-                min="0"
-                max="100"
-                step="1"
-                style="--slider-fill: {Math.round(entry.opacity * 100)}%"
-                value={Math.round(entry.opacity * 100)}
-                oninput={(e) => setLayerOpacity(idx, Number(e.target.value))}
-              />
-              <MapButton
-                class="layer-vis-btn"
-                active={entry.visible}
-                title="Toggle visibility"
-                onclick={() => toggleLayerVisibility(idx)}
-              >
-                <svg
-                  viewBox="0 0 24 24"
-                  width="14"
-                  height="14"
-                  aria-hidden="true"
-                  fill="currentColor"><path d={entry.visible ? mdiEye : mdiEyeOff} /></svg
-                >
-              </MapButton>
-              {#if entry.visParams && (entry.visParams.palette || entry.visParams.bands)}
-                <MapButton
-                  class="layer-vis-btn"
-                  active={activeScaleIndex === idx}
-                  title="Toggle scale"
-                  onclick={() => toggleScale(idx)}
-                >
-                  <svg
-                    viewBox="0 0 24 24"
-                    width="14"
-                    height="14"
-                    aria-hidden="true"
-                    fill="currentColor"><path d={mdiRuler} /></svg
-                  >
-                </MapButton>
-              {:else}
-                <MapButton class="layer-vis-btn" style="visibility:hidden" title="Toggle scale">
-                  <svg
-                    viewBox="0 0 24 24"
-                    width="14"
-                    height="14"
-                    aria-hidden="true"
-                    fill="currentColor"><path d={mdiRuler} /></svg
-                  >
-                </MapButton>
-              {/if}
-              <MapButton
-                class="layer-vis-btn"
-                title="Edit visualization"
-                onclick={() => openVizEditorForLayer(entry.layerIndex)}
-              >
-                <svg
-                  viewBox="0 0 24 24"
-                  width="14"
-                  height="14"
-                  aria-hidden="true"
-                  fill="currentColor"><path d={mdiTune} /></svg
-                >
-              </MapButton>
-              <MapButton
-                class="layer-vis-btn"
-                title="Remove layer"
-                onclick={() => removeLayer(idx)}
-              >
-                <svg
-                  viewBox="0 0 24 24"
-                  width="14"
-                  height="14"
-                  aria-hidden="true"
-                  fill="currentColor"><path d={mdiTrashCan} /></svg
-                >
-              </MapButton>
-            </div>
-          </div>
-        {/each}
-      {/if}
-    </div>
-  </div>
-{/if}
 
 <!-- SCALE BAR -->
 {#if scaleData}
@@ -2555,91 +2391,6 @@
           inset 0 0 0 3px var(--vscee-color-editor-background),
           var(--vscee-shadow-sm);
       }
-    }
-
-    /* ==================================================================
-       LAYERS PANEL
-       ================================================================== */
-    .layers-panel {
-      position: absolute;
-      top: 10px;
-      left: 48px;
-      z-index: 1000;
-      width: 240px;
-      background: var(--vscee-color-editor-background);
-      border: var(--vscee-border-sm) solid var(--vscee-color-widget-border);
-      border-radius: var(--vscee-radius-md);
-      box-shadow: var(--vscee-shadow-md);
-    }
-    .layers-panel-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: var(--vscee-space-xs) var(--vscee-space-xs) var(--vscee-space-xs)
-        var(--vscee-space-lg);
-      border-bottom: var(--vscee-border-sm) solid var(--vscee-color-widget-border);
-      font-size: var(--vscee-font-compact-sm);
-      font-weight: 600;
-      color: var(--vscee-color-foreground);
-    }
-    .layers-close-btn {
-      width: 22px;
-      height: 22px;
-      box-shadow: none;
-      opacity: 0.6;
-    }
-    .layers-list {
-      max-height: 320px;
-      overflow-y: auto;
-    }
-    .layers-empty {
-      padding: var(--vscee-space-lg);
-      font-size: var(--vscee-font-compact-sm);
-      color: var(--vscee-color-muted);
-      text-align: center;
-    }
-    .layer-row {
-      padding: var(--vscee-space-xs) var(--vscee-space-md);
-      border-bottom: var(--vscee-border-sm) solid var(--vscee-color-widget-border);
-      display: flex;
-      align-items: center;
-      gap: var(--vscee-space-sm);
-      min-width: 0;
-    }
-    .layer-row:last-child {
-      border-bottom: none;
-    }
-    .layer-vis-btn {
-      width: 22px;
-      height: 22px;
-      flex-shrink: 0;
-      box-shadow: none;
-      opacity: 0.5;
-    }
-    .layer-vis-btn.active {
-      opacity: 1;
-      background: transparent;
-      color: var(--vscee-color-foreground);
-    }
-    .layer-name {
-      flex: 1;
-      min-width: 0;
-      font-size: var(--vscee-font-compact-sm);
-      color: var(--vscee-color-foreground);
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-    .layer-controls {
-      display: flex;
-      align-items: center;
-      gap: var(--vscee-space-xs);
-      flex-shrink: 0;
-      margin-left: auto;
-    }
-    .layer-opacity {
-      width: 60px;
-      flex-shrink: 0;
     }
 
     /* ==================================================================
