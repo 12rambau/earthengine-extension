@@ -1269,9 +1269,9 @@
         <div class="layer-row">
           <span class="layer-name" title={entry.name}>{entry.name}</span>
           <div class="layer-controls">
-            <input type="range" class="range-slider layer-opacity" min="0" max="10"
+            <input type="range" class="range-slider layer-opacity" min="0" max="100" step="1"
               style="--slider-fill: {Math.round(entry.opacity * 100)}%"
-              value={Math.round(entry.opacity * 10)}
+              value={Math.round(entry.opacity * 100)}
               oninput={(e) => setLayerOpacity(idx, Number(e.target.value))} />
             <button class="map-btn layer-vis-btn" class:active={entry.visible}
               title="Toggle visibility" onclick={() => toggleLayerVisibility(idx)}>
