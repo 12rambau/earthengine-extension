@@ -8,7 +8,7 @@ import useBaseUrl from '@docusaurus/useBaseUrl';
 
 The **Interactive Map** is a singleton Leaflet Webview editor. Open it from the Profiles view title action or **Open Map View**. It follows the VS Code light or dark theme by default and can switch to satellite or plan basemaps.
 
-Manage layer visibility and opacity, open the visualisation editor for RGB, HSV, continuous, or categorical rendering, and expose a scale. The inspector samples visible layers at a clicked point, while the status bar reports coordinates and zoom.
+Manage layer visibility and opacity, open the visualization editor for RGB, HSV, continuous, categorical, or interval rendering, and expose a scale. The inspector samples visible layers at a clicked point, while the status bar reports coordinates and zoom.
 
 The local Python bridge listens on `localhost:31415` for scripts that add Earth Engine tile layers or update the viewport.
 
@@ -167,3 +167,30 @@ An example of image property using the example asset:
   <img className="screenshot--light" src={useBaseUrl('/img/light/viz_class.png')} alt="Single band categorical visualization example" />
   <img className="screenshot--dark" src={useBaseUrl('/img/dark/viz_class.png')} alt="Single band categorical visualization example" />
 </div>
+
+#### Single band intervals
+
+Use **Intervals** to assign one color to each range of values in a single band, without reclassifying the source image. Enter the first lower bound, then add a row with an upper bound, color, and optional label for each interval. Boundaries must increase strictly; ranges are contiguous and use a closed lower bound and open upper bound: `[0, 10)`, `[10, 20)`, etc. Values outside the first and last boundaries are transparent.
+
+To save this rendering as an image preset, set `type` to `intervals` and provide:
+
+- **name**: The name displayed in the preset selector.
+- **bands**: Exactly one existing image band.
+- **breaks**: Comma-separated, strictly increasing boundaries; one more boundary than colors.
+- **palette**: One hex color per interval, in boundary order.
+- **labels**: Optional comma-separated names for the intervals, in the same order as the colors.
+
+For example, the first interval below displays white and the second displays red:
+
+```python
+styled_image = image.set({
+    'visualization_0_type': 'intervals',
+    'visualization_0_name': 'Binned values',
+    'visualization_0_bands': 'measurement',
+    'visualization_0_breaks': '0,10,20',
+    'visualization_0_palette': '#ffffff,#ff0000',
+    'visualization_0_labels': 'Low,High',
+})
+```
+
+The extension renders these presets with an SLD interval color map. `breaks` is an extension preset property, not a standard Earth Engine `Map.addLayer` visualization parameter.

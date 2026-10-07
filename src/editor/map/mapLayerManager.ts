@@ -384,6 +384,7 @@ export class MapLayerManager {
       gamma?: number[];
       labels?: string[];
       values?: number[];
+      breaks?: number[];
     }>
   > {
     const layer = this._layers.get(layerIndex);
@@ -405,6 +406,7 @@ export class MapLayerManager {
         gamma: v.gamma,
         labels: v.labels,
         values: v.values,
+        breaks: v.breaks,
       }));
     } catch {
       return [];
@@ -480,6 +482,20 @@ export class MapLayerManager {
           type: 'categorical' as const,
           bands,
           values: config.values as number[],
+          labels: config.labels as string[],
+          palette: config.palette as string[],
+        };
+        const resolved = resolveSepalViz(viz, image, ee);
+        resolvedImage = resolved.image;
+        resolvedVisParams = resolved.visParams;
+        displayVisParams = resolved.displayVisParams;
+      } else if (vizType === 'intervals') {
+        const viz = {
+          index: -1,
+          name: 'Custom Intervals',
+          type: 'intervals' as const,
+          bands,
+          breaks: config.breaks as number[],
           labels: config.labels as string[],
           palette: config.palette as string[],
         };

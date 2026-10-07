@@ -5,6 +5,7 @@
   import MapSlider from './MapSlider.svelte';
   import { vscode } from '../../shared/vscode.ts';
   import { trackViewportChanges } from '../../shared/viewportAnchor.ts';
+  import { buildIntervalSld, intervalStops } from '../../shared/sepalViz.ts';
   import {
     mdiCheck,
     mdiChevronDown,
@@ -166,6 +167,15 @@
   let vizCatPaletteOpen = $state(false);
   let vizCatDetecting = $state(false);
   let vizCatNotice = $state('');
+  // Interval fields
+  let vizIntBand = $state('');
+  let vizIntStart = $state('');
+  let vizIntMax = $state('');
+  let vizIntColorCount = $state(7);
+  let vizIntRows = $state([]);
+  let vizIntPaletteName = $state('');
+  let vizIntPaletteOpen = $state(false);
+  let vizIntNotice = $state('');
   let vizComputing = $state(false);
   // Layer opacity in percent — shared by every viz type, previewed live.
   let vizOpacity = $state(100);
@@ -192,8 +202,23 @@
     );
   }
 
+  function intervalBlocks(colors, breaks) {
+    const stops = intervalStops(breaks, colors.length);
+    return (
+      'linear-gradient(to right, ' +
+      colors.map((color, index) => `${color} ${stops[index] * 100}% ${stops[index + 1] * 100}%`).join(', ') +
+      ')'
+    );
+  }
+
   /** Preview strip shown under a palette name in the palette dropdown. */
   function palettePreview(pal, discrete) {
+    if (vizType === 'intervals' && vizIntRows.length > 0) {
+      return intervalBlocks(
+        schemeColors(pal.name, vizIntRows.length),
+        [Number(vizIntStart), ...vizIntRows.map((row) => Number(row.upper))],
+      );
+    }
     if (pal.colors) {
       return paletteBlocks(pal.colors.map(normalizeHex));
     }
@@ -248,7 +273,9 @@
     const bands = vp.bands || [];
     const isCat = Array.isArray(vp.values) && vp.values.length > 0;
 
-    if (isCat) {
+    if (vp.vizType === 'intervals' || (Array.isArray(vp.breaks) && vp.breaks.length > 1)) {
+      vizType = 'intervals';
+    } else if (isCat) {
       vizType = 'categorical';
     } else if (vp.palette && bands.length <= 1) {
       vizType = 'continuous';
@@ -323,6 +350,22 @@
     }
     vizCatPaletteName = '';
     vizCatNotice = '';
+
+    // Intervals
+    vizIntBand = bands[0] || '';
+    const breaks = vp.breaks || [];
+    vizIntStart = breaks.length > 0 ? String(breaks[0]) : vizContMin;
+    vizIntMax = breaks.length > 1 ? String(breaks[breaks.length - 1]) : vizContMax;
+    vizIntRows = (vp.vizType === 'intervals' && Array.isArray(vp.palette) ? vp.palette : []).map(
+      (color, index) => ({
+        color: normalizeHex(color),
+        upper: breaks[index + 1] != null ? String(breaks[index + 1]) : '',
+        label: vp.labels?.[index] || '',
+      }),
+    );
+    vizIntColorCount = vizIntRows.length || 7;
+    vizIntPaletteName = '';
+    vizIntNotice = '';
   }
 
   function collectVisParams() {
@@ -375,14 +418,39 @@
       }
       return { vizType: 'categorical', bands: [vizCatBand], values, labels, palette };
     }
+    if (vizType === 'intervals') {
+      const breaks = [Number(vizIntStart), ...vizIntRows.map((row) => Number(row.upper))];
+      if (
+        !vizIntBand ||
+        !String(vizIntStart ?? '').trim() ||
+        vizIntRows.length === 0 ||
+        vizIntRows.some((row) => !String(row.upper ?? '').trim()) ||
+        breaks.some((value, index) =>
+          !Number.isFinite(value) || (index > 0 && value <= breaks[index - 1]),
+        )
+      ) {
+        return null;
+      }
+      return {
+        vizType: 'intervals',
+        bands: [vizIntBand],
+        breaks,
+        palette: vizIntRows.map((row) => row.color),
+        labels: vizIntRows.map((row) => row.label),
+      };
+    }
     return null;
   }
 
   function vizApply() {
     const config = collectVisParams();
     if (!config) {
+      if (vizType === 'intervals') {
+        vizIntNotice = 'Select a band and enter increasing interval boundaries.';
+      }
       return;
     }
+    vizIntNotice = '';
     const opacity = clampOpacityPercent(vizOpacity) / 100;
     vscode.postMessage({
       type: 'updateViz',
@@ -396,9 +464,9 @@
     vizVisible = false;
   }
 
-  /* ==================================================================
-     VISUALIZATION PARAMETERS AS JSON
-     ================================================================== */
+    /* ==================================================================
+      VISUALIZATION CODE
+      ================================================================== */
 
   function jsonStr(value) {
     return JSON.stringify(String(value));
@@ -419,6 +487,9 @@
       return 'Complete the visualization parameters first.';
     }
     const opacity = String(clampOpacityPercent(vizOpacity) / 100);
+    if (config.vizType === 'intervals') {
+      return `image.select(${jsonList(config.bands, true)}).sldStyle(\n  """${buildIntervalSld(config.breaks, config.palette)}"""\n)`;
+    }
     const entries = [['bands', jsonList(config.bands, true)]];
 
     if (config.vizType === 'categorical') {
@@ -496,8 +567,8 @@
       bands = [vizRgbR, vizRgbG, vizRgbB];
     } else if (vizType === 'hsv') {
       bands = [vizHsvH, vizHsvS, vizHsvV];
-    } else if (vizType === 'continuous') {
-      bands = [vizContBand];
+    } else if (vizType === 'continuous' || vizType === 'intervals') {
+      bands = [vizType === 'continuous' ? vizContBand : vizIntBand];
     }
     return [...new Set(bands.filter(Boolean))];
   }
@@ -574,6 +645,13 @@
         vizContMin = fmtVal(c.min);
         vizContMax = fmtVal(c.max);
       }
+    } else if (vizType === 'intervals') {
+      const range = pick(vizIntBand);
+      if (range) {
+        vizIntStart = fmtVal(range.min);
+        vizIntMax = fmtVal(range.max);
+        generateIntRows();
+      }
     }
   }
 
@@ -635,13 +713,17 @@
     if (p.values) {
       vp.values = p.values;
     }
+    if (p.breaks) {
+      vp.breaks = p.breaks;
+    }
     const typeMap = {
       rgb: 'rgb',
       hsv: 'hsv',
       continuous: 'continuous',
       categorical: 'categorical',
+      intervals: 'intervals',
     };
-    vizType = typeMap[p.type] || 'rgb';
+    vp.vizType = typeMap[p.type] || 'rgb';
     applyVisParams(vp);
   }
 
@@ -806,6 +888,59 @@
     vizCatRows = vizCatRows.filter((_, i) => i !== idx);
   }
 
+  function selectIntPalette(name) {
+    vizIntPaletteName = name;
+    const colors = schemeColors(name, vizIntRows.length);
+    vizIntRows = vizIntRows.map((row, index) => ({ ...row, color: colors[index] }));
+  }
+
+  function generateIntRows() {
+    const min = Number(vizIntStart);
+    const max = Number(vizIntMax);
+    if (
+      !String(vizIntStart ?? '').trim() ||
+      !String(vizIntMax ?? '').trim() ||
+      !Number.isFinite(min) ||
+      !Number.isFinite(max) ||
+      max <= min
+    ) {
+      return;
+    }
+    const count = vizIntColorCount;
+    const colors = schemeColors(vizIntPaletteName || 'Viridis', count);
+    vizIntRows = Array.from({ length: count }, (_, index) => ({
+      color: vizIntRows.length === count ? vizIntRows[index].color : colors[index],
+      upper: String(index === count - 1 ? max : Number((min + ((max - min) * (index + 1)) / count).toPrecision(12))),
+      label: vizIntRows.length === count ? vizIntRows[index].label : '',
+    }));
+    vizIntNotice = '';
+  }
+
+  function setIntColorCount(value) {
+    vizIntColorCount = Math.max(MIN_PALETTE_COLORS,
+      Math.min(MAX_PALETTE_COLORS, Math.round(Number(value) || 0)));
+    generateIntRows();
+  }
+
+  function setIntColor(index, text, allowShort = false) {
+    const hex = parseHex(text, allowShort);
+    if (!hex || hex === vizIntRows[index].color) {
+      return;
+    }
+    vizIntRows[index].color = hex;
+    vizIntPaletteName = '';
+  }
+
+  function vizAddIntRow() {
+    vizIntRows = [...vizIntRows, { color: '#4285f4', upper: '', label: '' }];
+    vizIntColorCount = vizIntRows.length;
+  }
+
+  function vizRemoveIntRow(index) {
+    vizIntRows = vizIntRows.filter((_, rowIndex) => rowIndex !== index);
+    vizIntColorCount = vizIntRows.length;
+  }
+
   window.addEventListener('message', (e) => {
     const msg = e.data;
     if (msg.type === 'vizEditorData') {
@@ -931,11 +1066,20 @@
             {/each}
           </select>
         {/if}
-        <select class="viz-type-select" bind:value={vizType}>
+        <select
+          class="viz-type-select"
+          bind:value={vizType}
+          onchange={() => {
+            if (vizType === 'intervals' && vizIntRows.length === 0) {
+              generateIntRows();
+            }
+          }}
+        >
           <option value="rgb">RGB</option>
           <option value="hsv">HSV</option>
           <option value="continuous">Continuous</option>
           <option value="categorical">Categorical</option>
+          <option value="intervals">Intervals</option>
         </select>
         <MapButton class="viz-close-btn" title="Close" onclick={vizClose}>
           <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" fill="currentColor"
@@ -1293,6 +1437,139 @@
             >+ Add class</button
           >
         {/if}
+        <!-- Intervals -->
+        {#if vizType === 'intervals'}
+          <div class="viz-channel-row">
+            <span class="viz-channel-label">Band</span>
+            <select class="viz-band-select" bind:value={vizIntBand}>
+              <option value="">—</option>
+              {#each vizBands as band}<option value={band}>{band}</option>{/each}
+            </select>
+            <input
+              type="number"
+              step="any"
+              class="viz-input"
+              placeholder="Min"
+              aria-label="First interval lower bound"
+              bind:value={vizIntStart}
+              oninput={() => { markRangeCustom(); generateIntRows(); }}
+            />
+            <input
+              type="number"
+              step="any"
+              class="viz-input"
+              placeholder="Max"
+              aria-label="Last interval upper bound"
+              bind:value={vizIntMax}
+              oninput={() => { markRangeCustom(); generateIntRows(); }}
+            />
+          </div>
+          {@render stretchRow()}
+          <div class="viz-section-label">Intervals (upper bound excluded)</div>
+          <div class="viz-channel-row">
+            <span class="viz-channel-label">Bins</span>
+            <input
+              type="number"
+              class="viz-input"
+              min={MIN_PALETTE_COLORS}
+              max={MAX_PALETTE_COLORS}
+              step="1"
+              value={vizIntColorCount}
+              onchange={(event) => setIntColorCount(event.target.value)}
+            />
+            {@render paletteSelect(
+              vizIntPaletteName,
+              vizIntPaletteOpen,
+              CATEGORICAL_PALETTE_GROUPS,
+              true,
+              () => {
+                vizIntPaletteOpen = !vizIntPaletteOpen;
+              },
+              (name) => {
+                vizIntPaletteOpen = false;
+                selectIntPalette(name);
+              },
+            )}
+          </div>
+          {#if vizIntNotice}<p class="viz-stretch-error">{vizIntNotice}</p>{/if}
+          {#if vizIntRows.length > 0}
+            <div
+              class="viz-ramp-preview"
+              style="background:{intervalBlocks(
+                vizIntRows.map((row) => normalizeHex(row.color)),
+                [Number(vizIntStart), ...vizIntRows.map((row) => Number(row.upper))],
+              )}"
+            ></div>
+          {/if}
+          <div class="viz-legend">
+            {#each vizIntRows as row, index}
+              <div class="viz-legend-row">
+                <ColorPicker
+                  bind:value={row.color}
+                  onChange={() => {
+                    vizIntPaletteName = '';
+                  }}
+                  label="Colour for interval {index + 1}"
+                />
+                <input
+                  type="text"
+                  class="viz-legend-hex"
+                  spellcheck="false"
+                  maxlength="7"
+                  value={row.color}
+                  aria-label="Hex colour for interval {index + 1}"
+                  oninput={(event) => setIntColor(index, event.target.value)}
+                  onblur={(event) => {
+                    setIntColor(index, event.target.value, true);
+                    event.target.value = row.color;
+                  }}
+                  onkeydown={(event) => {
+                    if (event.key === 'Enter') {
+                      event.target.blur();
+                    }
+                  }}
+                />
+                <input
+                  type="number"
+                  step="any"
+                  class="viz-legend-value"
+                  placeholder="To"
+                  aria-label="Upper bound for interval {index + 1}"
+                  bind:value={row.upper}
+                  oninput={() => {
+                    if (index === vizIntRows.length - 1) {
+                      vizIntMax = row.upper;
+                    }
+                    markRangeCustom();
+                  }}
+                />
+                <input
+                  type="text"
+                  class="viz-legend-name"
+                  placeholder="Name"
+                  aria-label="Name for interval {index + 1}"
+                  bind:value={row.label}
+                />
+                <button
+                  class="viz-legend-del"
+                  title="Remove interval"
+                  onclick={() => vizRemoveIntRow(index)}
+                >
+                  <svg
+                    viewBox="0 0 24 24"
+                    width="14"
+                    height="14"
+                    aria-hidden="true"
+                    fill="currentColor"><path d={mdiTrashCan} /></svg
+                  >
+                </button>
+              </div>
+            {/each}
+          </div>
+          <button class="viz-btn viz-btn-secondary viz-legend-add" onclick={vizAddIntRow}
+            >+ Add interval</button
+          >
+        {/if}
       </div>
       <!-- Opacity (all viz types) -->
       <div class="viz-opacity-bar">
@@ -1320,7 +1597,7 @@
       <div class="viz-editor-footer">
         <button
           class="viz-btn viz-btn-secondary viz-btn-code"
-          title="Show these parameters as JSON"
+          title={vizType === 'intervals' ? 'Show Python SLD code' : 'Show these parameters as JSON'}
           onclick={() => {
             vizCodeVisible = true;
           }}
@@ -1328,7 +1605,7 @@
           <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" fill="currentColor"
             ><path d={mdiCodeTags} /></svg
           >
-          JSON
+          {vizType === 'intervals' ? 'Python' : 'JSON'}
         </button>
         <button class="viz-btn viz-btn-secondary" onclick={vizClose}>Cancel</button>
         <button class="viz-btn viz-btn-primary" onclick={vizApply}>Apply</button>
@@ -1337,12 +1614,12 @@
   </div>
 {/if}
 
-<!-- VIZ PARAMETERS AS JSON -->
+<!-- VIZ CODE -->
 {#if vizCodeVisible}
   <div class="viz-editor-overlay visible viz-code-overlay">
     <div class="viz-editor-dialog viz-code-dialog">
       <div class="viz-editor-header">
-        <span>Python visualization parameters</span>
+        <span>{vizType === 'intervals' ? 'Python SLD visualization' : 'Python visualization parameters'}</span>
         <MapButton
           class="viz-close-btn"
           title="Close"

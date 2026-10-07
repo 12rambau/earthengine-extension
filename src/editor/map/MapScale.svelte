@@ -1,5 +1,7 @@
 <!-- MapScale: visualization scale bar and pixel-value tracking -->
 <script>
+  import { intervalStops } from '../../shared/sepalViz.ts';
+
   let { map, overlays = [], activeScaleIndex = -1 } = $props();
 
   // ----------------------------------------------------------------
@@ -28,14 +30,17 @@
     const palette = vp.palette || null;
     const minArr = Array.isArray(vp.min) ? vp.min : [vp.min != null ? vp.min : 0];
     const maxArr = Array.isArray(vp.max) ? vp.max : [vp.max != null ? vp.max : 1];
-    const isCategorical = Array.isArray(vp.values) && vp.values.length > 0;
+    const isCategorical = (Array.isArray(vp.values) && vp.values.length > 0) ||
+      (vp.vizType === 'intervals' && Array.isArray(vp.breaks));
 
     if (isCategorical) {
       return {
         type: 'categorical',
         palette: palette || [],
         labels: vp.labels || [],
-        values: vp.values,
+        values: vp.values || [],
+        breaks: vp.breaks || [],
+        stops: intervalStops(vp.breaks || [], (palette || []).length),
       };
     }
     if (palette && bands.length <= 1) {
@@ -189,7 +194,8 @@
     const palette = vp.palette || null;
     const minArr = Array.isArray(vp.min) ? vp.min : [vp.min != null ? vp.min : 0];
     const maxArr = Array.isArray(vp.max) ? vp.max : [vp.max != null ? vp.max : 1];
-    const isCategorical = Array.isArray(vp.values) && vp.values.length > 0;
+    const isCategorical = (Array.isArray(vp.values) && vp.values.length > 0) ||
+      (vp.vizType === 'intervals' && Array.isArray(vp.breaks));
     const parts = [];
 
     if (isCategorical && palette) {
@@ -270,12 +276,12 @@
     if (!pointer || count === 0) {
       return null;
     }
-    pointer.style.left = ((index + 0.5) / count) * 100 + '%';
-    pointer.style.display = 'block';
     const segment = segments[index];
     if (!segment) {
       return null;
     }
+    pointer.style.left = segment.offsetLeft + segment.offsetWidth / 2 + 'px';
+    pointer.style.display = 'block';
     const label = segment.dataset.catLabel || 'Class ' + index;
     if (maxElement) {
       maxElement.textContent = label;
@@ -313,20 +319,21 @@
         <span class="scale-label"></span>
         <div class="scale-gradient-wrap scale-cat-wrap">
           {#each scaleData.palette as color, i}
-            {@const catLabel =
-              (scaleData.labels[i] || 'Class ' + i) +
-              (scaleData.values[i] != null ? ' (' + scaleData.values[i] + ')' : '')}
+            {@const catLabel = scaleData.breaks.length > i + 1
+              ? (scaleData.labels[i] ? scaleData.labels[i] + ' ' : '') +
+                '[' + fmtVal(scaleData.breaks[i]) + ', ' + fmtVal(scaleData.breaks[i + 1]) + ')'
+              : (scaleData.labels[i] || 'Class ' + i) +
+                (scaleData.values[i] != null ? ' (' + scaleData.values[i] + ')' : '')}
             <div
               class="scale-cat-segment"
-              style="background:{color.startsWith('#') ? color : '#' + color};width:{100 /
-                scaleData.palette.length}%"
+              style="background:{color.startsWith('#') ? color : '#' + color};width:{(scaleData.stops[i + 1] - scaleData.stops[i]) * 100}%"
               data-index={i}
               data-cat-label={catLabel}
             ></div>
           {/each}
           <div class="scale-pointer scale-cat-pointer"></div>
         </div>
-        <span class="scale-max">{scaleData.palette.length} classes</span>
+        <span class="scale-max">{scaleData.palette.length} {scaleData.breaks.length > 0 ? 'intervals' : 'classes'}</span>
       </div>
     {:else}
       {#each scaleData.rows as row}
