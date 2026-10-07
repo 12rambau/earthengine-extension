@@ -16,3 +16,154 @@ The local Python bridge listens on `localhost:31415` for scripts that add Earth 
   <img className="screenshot--light" src={useBaseUrl('/img/light/map.png')} alt="Interactive Map editor in the light theme" />
   <img className="screenshot--dark" src={useBaseUrl('/img/dark/map.png')} alt="Interactive Map editor in the dark theme" />
 </div>
+
+## Preset visualization parameters
+
+Images added to the map can carry one or more preset visualizations as asset properties, following the same convention used by SEPAL. When present, these presets appear in the visualization editor's **Preset…** dropdown so a collaborator can reuse the exact rendering a dataset was designed with, instead of guessing bands, ranges, and palettes from scratch.
+
+### Create a visualization
+
+To create an `ee.Image` compatible with the visualization tool, add extra properties to the image using the `set` method:
+
+```python
+import ee
+
+image  # an ee.Image created by previous scripts
+
+ee_image.set({
+    "visualization_0_name": "Classification",
+    "visualization_0_bands": "red,blue,green",
+    "visualization_0_type": "rgb",
+    "visualization_0_min": "0",
+    "visualization_0_max": "2000"
+})
+```
+
+To create a visualization parameter, properties are added as a JSON dictionary to the image.
+
+:::note
+You can set as many visualizations in the dictionary as you want. Each one will be differentiated by its ID number and interpreted separately.
+:::
+
+Each key of this dictionary should start with `visualization_<number>_<keyword>: <value>` with:
+
+- `number`: the visualization ID number
+- `keyword`: the keyword to specify the visualization property you want to set
+- `value`: the value of the property set as a string. If multiple values need to be set (e.g. `bands`) they need to be split using commas in the same string.
+
+In the next parts only the keywords will be specified. To reproduce the examples below, you can check the following asset: `users/wiell/forum/visualization_example`.
+
+### Visualization types
+
+#### RGB false colors
+
+This is setting a 3 bands false color visualization. Each band will be represented as red, green, and blue (respectively) on the final display. It is compulsory to set at least the **type** key to `rgb`. The other available keys are the following:
+
+- **name**: The name that will be displayed in the interface.
+- **bands**: The 3 bands to display. Each one **must** correspond to an existing band in your image. It can be numbers or names.
+- **gamma**: Set the gamma of the image. It should be a float.
+- **min**: The minimal value to use in all bands or the minimal value to use in each band. Use commas to separate the different values.
+- **max**: The maximal value to use in all bands or the maximal value to use in each band. Use commas to separate the different values.
+- **inverted**: Boolean, whether or not the bands should be read inverted. Can also be set individually for each band using commas.
+
+An example of image property using the example asset:
+
+```json
+{
+  "visualization_0_type": "rgb",
+  "visualization_0_name": "RGB",
+  "visualization_0_bands": "red,green,blue",
+  "visualization_0_gamma": "1.2",
+  "visualization_0_min": "0",
+  "visualization_0_max": "2000"
+}
+```
+
+<div className="screenshot-pair">
+  <img className="screenshot--light" src={useBaseUrl('/img/light/viz_rgb.png')} alt="RGB false color visualization example" />
+  <img className="screenshot--dark" src={useBaseUrl('/img/dark/viz_rgb.png')} alt="RGB false color visualization example" />
+</div>
+
+#### HSV false colors
+
+This is setting a 3 band false color visualization. Each band will be represented as Hue, Saturation, and Value (respectively) on the final display. It is compulsory to set at least the **type** key to `hsv`. The other available keys are the following:
+
+- **name**: The name that will be displayed in the interface.
+- **bands**: The 3 bands to display. Each one **must** correspond to an existing band in your image. It can be numbers or names.
+- **min**: The minimal value to use in all bands or the minimal value to use in each band. Use commas to separate the different values.
+- **max**: The maximal value to use in all bands or the maximal value to use in each band. Use commas to separate the different values.
+- **inverted**: Boolean, whether or not the bands should be read inverted. Can also be set individually for each band using commas.
+
+An example of image property using the example asset:
+
+```json
+{
+  "visualization_0_type": "hsv",
+  "visualization_0_name": "NDWI harmonics",
+  "visualization_0_bands": "ndwi_phase_1,ndwi_amplitude_1,ndwi_rmse",
+  "visualization_0_inverted": "false,false,true",
+  "visualization_0_min": "-2.1875,352,320",
+  "visualization_0_max": "2.40625,3296,1792"
+}
+```
+
+<div className="screenshot-pair">
+  <img className="screenshot--light" src={useBaseUrl('/img/light/viz_hsv.png')} alt="HSV false color visualization example" />
+  <img className="screenshot--dark" src={useBaseUrl('/img/dark/viz_hsv.png')} alt="HSV false color visualization example" />
+</div>
+
+#### Single band continuous
+
+This is setting a single band ramp color visualization. The band will be represented with the selected colormap on the final display. It is compulsory to set at least the **type** key to `continuous`. The other available keys are the following:
+
+- **name**: The name that will be displayed in the interface.
+- **bands**: The band to display. It **must** correspond to an existing band in your image. It can be a number or a name.
+- **min**: The minimal value to use for the band.
+- **max**: The maximal value to use for the band.
+- **palette**: The colors to use in the ramp. They should be set as hex (e.g. `#000000`) values separated with commas.
+
+An example of image property using the example asset:
+
+```json
+{
+  "visualization_0_type": "continuous",
+  "visualization_0_name": "NDWI",
+  "visualization_0_bands": "ndwi",
+  "visualization_0_palette": "#042333,#2c3395,#744992,#b15f82,#eb7958",
+  "visualization_0_max": "6610",
+  "visualization_0_min": "-8450"
+}
+```
+
+<div className="screenshot-pair">
+  <img className="screenshot--light" src={useBaseUrl('/img/light/viz_ramp.png')} alt="Single band continuous visualization example" />
+  <img className="screenshot--dark" src={useBaseUrl('/img/dark/viz_ramp.png')} alt="Single band continuous visualization example" />
+</div>
+
+#### Single band categorical
+
+This is setting a single band categorical visualization. The band will be represented with the selected colors for each value on the final display. It is compulsory to set at least the **type** key to `categorical`. The other available keys are the following:
+
+- **name**: The name that will be displayed in the interface.
+- **bands**: The band to display. It **must** correspond to an existing band in your image. It can be a number or a name.
+- **palette**: The colors to use in the ramp. They should be set as hex values (e.g. `#000000`) separated with commas.
+- **labels**: The labels of each category. Use names separated with commas.
+- **values**: The values of each category. Use integers separated with commas.
+
+An example of image property using the example asset:
+
+```json
+{
+  "visualization_0_type": "categorical",
+  "visualization_0_name": "CLASS",
+  "visualization_0_bands": "class",
+  "visualization_0_palette": "#042333,#b15f82,#e8fa5b",
+  "visualization_0_labels": "Foo,Bar,Baz",
+  "visualization_0_values": "5,200,1000"
+}
+```
+
+<div className="screenshot-pair">
+  <img className="screenshot--light" src={useBaseUrl('/img/light/viz_class.png')} alt="Single band categorical visualization example" />
+  <img className="screenshot--dark" src={useBaseUrl('/img/dark/viz_class.png')} alt="Single band categorical visualization example" />
+</div>
