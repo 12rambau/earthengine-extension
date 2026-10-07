@@ -4,7 +4,7 @@
   "features": {
     "ghcr.io/devcontainers/features/desktop-lite:1": {}
   },
-  "postCreateCommand": "npm install && sudo apt-get install -y python3-pip && pip3 install -r python/requirements.txt",
+  "postCreateCommand": "npm install && sudo apt-get update && sudo apt-get install -y python3-venv python-is-python3 && python3 -m venv .venv && .venv/bin/python -m pip install -r python/requirements.txt",
   "postStartCommand": "pgrep -f '^node .*inspect-bridge\\.js' > /dev/null || (nohup node .devcontainer/inspect-bridge.js > /tmp/inspect-bridge.log 2>&1 &)",
   "customizations": {
     "vscode": {
