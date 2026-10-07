@@ -20,3 +20,6 @@ dist/
 .venv/
 venv/
 env/
+
+# temp test files
+temp/
