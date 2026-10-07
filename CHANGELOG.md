@@ -1,23 +1,41 @@
 # Changelog
 
+## [0.9.0](https://github.com/12rambau/earthengine-extension/compare/v0.8.0...v0.9.0) (2026-10-07)
+
+### Features
+
+- add cleanup logic for failed uploads and improve bucket selection prompt ([1312ff2](https://github.com/12rambau/earthengine-extension/commit/1312ff22bcc78a74a819d1466f7172f0a4fe363d))
+- add preset visualization parameters and examples to interactive map documentation ([b3c2183](https://github.com/12rambau/earthengine-extension/commit/b3c2183db20df5cb5997b16caeaca7d731f43d6b))
+- add support for interval scales ([a29cb05](https://github.com/12rambau/earthengine-extension/commit/a29cb05567e25e884b5f255c255f3075c7bae599))
+- add the capacity to load featurecollections and image ([8cd0255](https://github.com/12rambau/earthengine-extension/commit/8cd0255ed1d5735cb6dae459261e377d6ebd9757))
+- ajouter examples for viz parameters ([1c32724](https://github.com/12rambau/earthengine-extension/commit/1c32724fe8534cd987e6cf6489d274ceaca49544))
+
+### Bug Fixes
+
+- add python to the container ([6ccc4b8](https://github.com/12rambau/earthengine-extension/commit/6ccc4b8d3dd2b026b6e20020d9ba4d604af0871f))
+- drop the temp files ([b5e0459](https://github.com/12rambau/earthengine-extension/commit/b5e04593a852a0cfdbad4e35c7ab9360b6df6d3e))
+- removed ignored files ([db5be15](https://github.com/12rambau/earthengine-extension/commit/db5be15528b406b4765f2a3f12e0a0cc98c93e8d))
+- typos ([c56e386](https://github.com/12rambau/earthengine-extension/commit/c56e386557bd28bf0cb96f1a3b70727f7d71c371))
+- use compact trash buttons in palette legends ([73a70be](https://github.com/12rambau/earthengine-extension/commit/73a70be55fd5545c8ea768c545eaaf5ec96da63a))
+
 ## [0.8.0](https://github.com/12rambau/earthengine-extension/compare/v0.7.0...v0.8.0) (2026-10-02)
 
 ### Features
 
-* add a custom color picker ([ed16342](https://github.com/12rambau/earthengine-extension/commit/ed163428e244f7acdcf9f45d3ea29e979e9a0b88))
-* add detailed styles for planLight and planDark map types ([9a1d3da](https://github.com/12rambau/earthengine-extension/commit/9a1d3da83260a3e914f7127d1236042b84c2d9bc))
-* add hex color input functionality for continuous color palettes ([2960b3f](https://github.com/12rambau/earthengine-extension/commit/2960b3f639fa98085f2d5fa61159ef3f1e73f687))
-* add hex ntry to the classified menu ([9ee9851](https://github.com/12rambau/earthengine-extension/commit/9ee985185acd84f7b8a66003f763d90c393e8383))
-* add MapLayerControl component for layer management ([e4f1ed7](https://github.com/12rambau/earthengine-extension/commit/e4f1ed7d1dac97ef0f2e2eddbeb23db443f91fcc))
-* add viewport tracking functionality for popups and menus ([9d690fe](https://github.com/12rambau/earthengine-extension/commit/9d690fef00a6e72824c89b0d3361cb6ff895d2d4))
-* create a dedicated mapbutton ([d29a648](https://github.com/12rambau/earthengine-extension/commit/d29a648140a0cdb5d807a1caaa76a535163fcf54))
-* use a json to set default map color ([7c52277](https://github.com/12rambau/earthengine-extension/commit/7c522775cdca4c1ec42b45105f614d0bdc3573d4))
-* use crosshair cursor for pointing ([ce94f6a](https://github.com/12rambau/earthengine-extension/commit/ce94f6a8a5075cf465ef4c8629653acf92250ef4))
+- add a custom color picker ([ed16342](https://github.com/12rambau/earthengine-extension/commit/ed163428e244f7acdcf9f45d3ea29e979e9a0b88))
+- add detailed styles for planLight and planDark map types ([9a1d3da](https://github.com/12rambau/earthengine-extension/commit/9a1d3da83260a3e914f7127d1236042b84c2d9bc))
+- add hex color input functionality for continuous color palettes ([2960b3f](https://github.com/12rambau/earthengine-extension/commit/2960b3f639fa98085f2d5fa61159ef3f1e73f687))
+- add hex ntry to the classified menu ([9ee9851](https://github.com/12rambau/earthengine-extension/commit/9ee985185acd84f7b8a66003f763d90c393e8383))
+- add MapLayerControl component for layer management ([e4f1ed7](https://github.com/12rambau/earthengine-extension/commit/e4f1ed7d1dac97ef0f2e2eddbeb23db443f91fcc))
+- add viewport tracking functionality for popups and menus ([9d690fe](https://github.com/12rambau/earthengine-extension/commit/9d690fef00a6e72824c89b0d3361cb6ff895d2d4))
+- create a dedicated mapbutton ([d29a648](https://github.com/12rambau/earthengine-extension/commit/d29a648140a0cdb5d807a1caaa76a535163fcf54))
+- use a json to set default map color ([7c52277](https://github.com/12rambau/earthengine-extension/commit/7c522775cdca4c1ec42b45105f614d0bdc3573d4))
+- use crosshair cursor for pointing ([ce94f6a](https://github.com/12rambau/earthengine-extension/commit/ce94f6a8a5075cf465ef4c8629653acf92250ef4))
 
 ### Bug Fixes
 
-* correct layer manager opacity slider range (0-10 to 0-100) ([57874ca](https://github.com/12rambau/earthengine-extension/commit/57874ca7bca9a2d669d4b6da6d3e52c07a1a0319))
-* skip hidden layers in map inspector ([c70d388](https://github.com/12rambau/earthengine-extension/commit/c70d38875465692a491d2edc359bef18530236e4))
+- correct layer manager opacity slider range (0-10 to 0-100) ([57874ca](https://github.com/12rambau/earthengine-extension/commit/57874ca7bca9a2d669d4b6da6d3e52c07a1a0319))
+- skip hidden layers in map inspector ([c70d388](https://github.com/12rambau/earthengine-extension/commit/c70d38875465692a491d2edc359bef18530236e4))
 
 ## [0.7.0](https://github.com/12rambau/earthengine-extension/compare/v0.6.11...v0.7.0) (2026-09-30)
 
