@@ -1164,7 +1164,7 @@
                       }
                     }}
                   />
-                  <MapButton
+                  <button
                     class="viz-legend-del"
                     title="Remove colour"
                     disabled={vizContColors.length <= MIN_PALETTE_COLORS}
@@ -1177,7 +1177,7 @@
                       aria-hidden="true"
                       fill="currentColor"><path d={mdiTrashCan} /></svg
                     >
-                  </MapButton>
+                  </button>
                 </div>
               {/each}
             </div>
@@ -1273,7 +1273,7 @@
                   placeholder="Name"
                   bind:value={row.label}
                 />
-                <MapButton
+                <button
                   class="viz-legend-del"
                   title="Remove class"
                   onclick={() => vizRemoveCatRow(i)}
@@ -1285,7 +1285,7 @@
                     aria-hidden="true"
                     fill="currentColor"><path d={mdiTrashCan} /></svg
                   >
-                </MapButton>
+                </button>
               </div>
             {/each}
           </div>
@@ -1713,10 +1713,18 @@
       padding: var(--vscee-space-xxs) var(--vscee-space-xs);
     }
     .viz-legend-del {
+      display: flex;
+      align-items: center;
+      justify-content: center;
       width: 22px;
       height: 22px;
+      padding: 0;
+      border: none;
       box-shadow: none;
+      background: transparent;
+      color: inherit;
       opacity: 0.5;
+      cursor: pointer;
 
       &:disabled {
         opacity: 0.2;
