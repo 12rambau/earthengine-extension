@@ -22,7 +22,7 @@ export interface SepalViz {
   /** Display name (defaults to `"Visualization <index>"` if absent). */
   name: string;
   /** Rendering type. */
-  type: 'rgb' | 'hsv' | 'continuous' | 'categorical';
+  type: 'rgb' | 'hsv' | 'continuous' | 'categorical' | 'intervals';
   /** Band names or numbers (as strings). */
   bands: string[];
   min?: number[];
@@ -35,6 +35,8 @@ export interface SepalViz {
   labels?: string[];
   /** Category pixel values (`categorical` only). */
   values?: number[];
+  /** Ordered interval boundaries (`intervals` only; one more than colors). */
+  breaks?: number[];
 }
 
 // ==================================================================
@@ -81,6 +83,7 @@ export function parseSepalVisualizations(props: Record<string, unknown>): SepalV
       inverted: fields['inverted'] ? parseBools(fields['inverted']) : undefined,
       labels: fields['labels'] ? splitComma(fields['labels']) : undefined,
       values: fields['values'] ? parseFloats(fields['values']) : undefined,
+      breaks: fields['breaks'] ? parseFloats(fields['breaks']) : undefined,
     });
   }
   return result;
@@ -114,6 +117,39 @@ export function selectSepalViz(vizs: SepalViz[], selector: string | number): Sep
 // CONVERSION
 // ==================================================================
 
+/** Positions of interval boundaries along a scale, falling back to equal widths for invalid breaks. */
+export function intervalStops(breaks: number[], count: number): number[] {
+  if (count <= 0) {
+    return [0];
+  }
+  const valid =
+    breaks.length === count + 1 &&
+    breaks.every(
+      (value, index) => Number.isFinite(value) && (index === 0 || value > breaks[index - 1]),
+    );
+  return Array.from({ length: count + 1 }, (_, index) =>
+    valid ? (breaks[index] - breaks[0]) / (breaks[count] - breaks[0]) : index / count,
+  );
+}
+
+/** Builds the interval SLD used by both map rendering and copied Python code. */
+export function buildIntervalSld(breaks: number[], palette: string[]): string {
+  const entries = [
+    `<ColorMapEntry color="#000000" quantity="${breaks[0]}" opacity="0"/>`,
+    ...palette.map(
+      (color, index) =>
+        `<ColorMapEntry color="#${color.replace(/^#/, '')}" quantity="${breaks[index + 1]}"/>`,
+    ),
+  ];
+  return [
+    '<RasterSymbolizer>',
+    '  <ColorMap type="intervals">',
+    ...entries.map((entry) => `    ${entry}`),
+    '  </ColorMap>',
+    '</RasterSymbolizer>',
+  ].join('\n');
+}
+
 /**
  * Converts a `SepalViz` into `{ image, visParams }` ready for `getMapIdUrl`.
  *
@@ -122,6 +158,7 @@ export function selectSepalViz(vizs: SepalViz[], selector: string | number): Sep
  * | `rgb`        | Standard EE `{ bands, min, max, gamma }` vis-params.      |
  * | `continuous` | Single-band palette ramp `{ bands, min, max, palette }`.  |
  * | `categorical`| Palette ramp bounded by `min(values)` – `max(values)`.   |
+ * | `intervals`  | SLD interval color map over the original pixel values.     |
  * | `hsv`        | Normalise bands to [0, 1] then `hsvToRgb()` on the image. |
  *
  * For `rgb` and `hsv`, the `inverted` flag swaps min/max for the affected band,
@@ -210,6 +247,36 @@ export function resolveSepalViz(
         displayVisParams['values'] = viz.values;
       }
       return { image: remapped, visParams, displayVisParams };
+    }
+
+    case 'intervals': {
+      const breaks = viz.breaks ?? [];
+      const palette = viz.palette ?? [];
+      if (
+        viz.bands.length !== 1 ||
+        breaks.length !== palette.length + 1 ||
+        palette.length === 0 ||
+        breaks.some(
+          (value, index) => !Number.isFinite(value) || (index > 0 && value <= breaks[index - 1]),
+        ) ||
+        palette.some((color) => !/^#?[\da-fA-F]{6}$/.test(color))
+      ) {
+        throw new Error(
+          'Intervals require one band, increasing breaks, and one hex color per interval.',
+        );
+      }
+      const sld = buildIntervalSld(breaks, palette);
+      return {
+        image: (image as any).select([viz.bands[0]]).sldStyle(sld),
+        visParams: {},
+        displayVisParams: {
+          vizType: 'intervals',
+          bands: viz.bands,
+          breaks,
+          palette,
+          labels: viz.labels ?? [],
+        },
+      };
     }
 
     case 'hsv': {
