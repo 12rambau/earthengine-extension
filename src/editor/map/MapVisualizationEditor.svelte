@@ -898,8 +898,8 @@
     const min = Number(vizIntStart);
     const max = Number(vizIntMax);
     if (
-      !String(vizIntStart).trim() ||
-      !String(vizIntMax).trim() ||
+      !String(vizIntStart ?? '').trim() ||
+      !String(vizIntMax ?? '').trim() ||
       !Number.isFinite(min) ||
       !Number.isFinite(max) ||
       max <= min
