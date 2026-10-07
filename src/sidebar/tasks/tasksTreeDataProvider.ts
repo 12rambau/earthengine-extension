@@ -99,6 +99,38 @@ export class TasksTreeDataProvider implements vscode.TreeDataProvider<TaskTreeIt
     return this.statusFilter;
   }
 
+  /** Adds an accepted import operation before it appears in listOperations. */
+  async trackSubmittedImport(name: string, kind: 'image' | 'table'): Promise<void> {
+    const token = await this.authService.getToken();
+    if (!token) {
+      throw new Error('Not authenticated.');
+    }
+
+    const fallbackType = kind === 'table' ? 'INGEST_TABLE' : 'INGEST_IMAGE';
+    let operation: Operation;
+    try {
+      operation = await getOperation(name, token);
+    } catch {
+      operation = { name, metadata: { state: 'PENDING' } };
+    }
+    operation.metadata = {
+      ...operation.metadata,
+      type: operation.metadata?.type || fallbackType,
+      description: operation.metadata?.description || name.split('/').pop(),
+      state:
+        operation.metadata?.state ||
+        (operation.error ? 'FAILED' : operation.done ? 'SUCCEEDED' : 'PENDING'),
+    };
+
+    this.loadGeneration++;
+    this.loadedTasks = [operation, ...this.loadedTasks.filter((item) => item.name !== name)];
+    this.resolvedProject = name.match(/^projects\/([^/]+)/)?.[1] ?? this.resolvedProject;
+    this.initialLoaded = true;
+    this.loading = false;
+    this.manageAutoRefresh();
+    this._onDidChangeTreeData.fire();
+  }
+
   getTreeItem(element: TaskTreeItem): vscode.TreeItem {
     return element;
   }
@@ -374,7 +406,10 @@ export class TasksTreeDataProvider implements vscode.TreeDataProvider<TaskTreeIt
             if (generation !== this.loadGeneration) {
               return;
             }
-            op.metadata = updated.metadata;
+            op.metadata = {
+              ...updated.metadata,
+              type: updated.metadata?.type || op.metadata?.type,
+            };
             op.done = updated.done;
             op.error = updated.error;
           } catch {

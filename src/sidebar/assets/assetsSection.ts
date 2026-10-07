@@ -14,6 +14,12 @@ import { AssetTreeItem } from './assetTreeItem.js';
 import { copyAsset, createFolder, deleteAsset, moveAsset } from './eeApiClient.js';
 import { openAssetPreview } from '../../editor/preview/assetPreviewPanel.js';
 import { openAssetsPanel } from '../../editor/assets/assetsPanel.js';
+import {
+  purgeStagingPrefix,
+  stagingPrefix,
+  sweepStagedObjects,
+} from '../../editor/assets/assetUpload.js';
+import { listBuckets } from '../../shared/gcsClient.js';
 
 // ==================================================================
 // ASSETSSECTION
@@ -278,6 +284,54 @@ export class AssetsSection extends SidebarSection {
         const msg = err instanceof Error ? err.message : String(err);
         vscode.window.showErrorMessage(`Failed to create folder: ${msg}`);
         return false;
+      }
+    });
+
+    this.registerCommand('earthengine.cleanStagingArea', async () => {
+      const token = await this.authService.getToken();
+      if (!token) {
+        vscode.window.showErrorMessage('Not authenticated.');
+        return;
+      }
+      const project = this.authService.currentProfile!.project;
+      const prefix = stagingPrefix();
+
+      const swept = await sweepStagedObjects(this.authService, context);
+      let buckets: string[] = [];
+      try {
+        buckets = await listBuckets(project, token);
+      } catch {
+        // Fall through to the manual prompt below.
+      }
+      const bucket =
+        buckets.length > 0
+          ? await vscode.window.showQuickPick(buckets, {
+              title: `Purge gs://<bucket>/${prefix}`,
+              placeHolder:
+                swept > 0
+                  ? `${swept} finished object(s) already removed — pick a bucket to purge the rest`
+                  : 'Select the staging bucket to purge',
+            })
+          : await vscode.window.showInputBox({
+              title: `Purge gs://<bucket>/${prefix}`,
+              prompt: 'Enter the staging bucket name',
+            });
+      if (!bucket) {
+        return;
+      }
+      const confirm = await vscode.window.showWarningMessage(
+        `Delete every object under gs://${bucket}/${prefix}? Ingestions still running would fail.`,
+        'Delete',
+      );
+      if (confirm !== 'Delete') {
+        return;
+      }
+      try {
+        const removed = await purgeStagingPrefix(bucket, this.authService, context);
+        vscode.window.showInformationMessage(`Removed ${removed} staged object(s).`);
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        vscode.window.showErrorMessage(`Failed to purge staging area: ${msg}`);
       }
     });
 

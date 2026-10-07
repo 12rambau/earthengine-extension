@@ -10,10 +10,14 @@
  * resource: data is only fetched on navigation or explicit refresh.
  */
 
+import * as path from 'path';
 import * as vscode from 'vscode';
 import { listAssets, EEAsset } from '../../sidebar/assets/eeApiClient.js';
 import { AuthService } from '../../auth/index.js';
 import { openAssetPreview } from '../preview/assetPreviewPanel.js';
+import { listBuckets } from '../../shared/gcsClient.js';
+import { NewAssetRequest, sweepStagedObjects, uploadNewAsset } from './assetUpload.js';
+import { readTiffBandCount } from './geotiffMeta.js';
 
 import { designTokens, codiconsCss } from '../../shared/index.js';
 import type { TablePreferences } from '../../shared/dataTable/tableTypes.js';
@@ -28,6 +32,7 @@ const MAX_ASSETS = 10_000;
 const API_PAGE_SIZE = 200;
 
 const PREFS_KEY = 'earthengine.assets.prefs';
+const LAST_BUCKET_KEY = 'earthengine.assets.staging.lastBucket';
 
 interface AssetPrefs extends TablePreferences {}
 
@@ -111,6 +116,111 @@ export async function openAssetsPanel(
     } while (pageToken && allAssets.length < MAX_ASSETS);
   }
 
+  // ----------------------------------------------------------------
+  // NEW ASSET UPLOAD
+  // ----------------------------------------------------------------
+  /** Sends the Cloud Storage buckets usable as a staging area. */
+  async function sendBuckets(): Promise<void> {
+    const t = await authService.getToken();
+    if (!t) {
+      throw new Error('Not authenticated');
+    }
+    const project = authService.currentProfile!.project;
+    let names: string[] = [];
+    try {
+      names = await listBuckets(project, t);
+    } catch {
+      // Listing needs storage.buckets.list; the dialog falls back to free text.
+    }
+    const remembered = context.globalState.get<string>(LAST_BUCKET_KEY);
+    const preferred =
+      (remembered && names.includes(remembered) ? remembered : undefined) ??
+      names.find((name) => name === project) ??
+      names.find((name) => name.startsWith(project)) ??
+      names[0] ??
+      project;
+    panel.webview.postMessage({ type: 'buckets', buckets: names, defaultBucket: preferred });
+  }
+
+  /** Opens the native file picker for the format matching the asset kind. */
+  async function pickSourceFile(kind: 'image' | 'table'): Promise<void> {
+    const uris = await vscode.window.showOpenDialog({
+      canSelectFiles: true,
+      canSelectFolders: false,
+      canSelectMany: false,
+      filters:
+        kind === 'image'
+          ? { 'Cloud Optimized GeoTIFF': ['tif', 'tiff'] }
+          : { Shapefile: ['shp'] },
+      title: kind === 'image' ? 'Select a GeoTIFF to ingest' : 'Select a Shapefile to ingest',
+    });
+    if (!uris?.length) {
+      return;
+    }
+    const file = uris[0].fsPath;
+    let bandCount = 1;
+    if (kind === 'image') {
+      try {
+        bandCount = await readTiffBandCount(file);
+      } catch {
+        // Not a classic TIFF or tag missing (e.g. BigTIFF) — the dialog falls back to a single band.
+      }
+    }
+    panel.webview.postMessage({
+      type: 'filePicked',
+      path: file,
+      suggestedName: path.basename(file, path.extname(file)).replace(/[^\w.-]/g, '_'),
+      bandCount,
+    });
+  }
+
+  /** Stages the files, submits ingestion and reports progress to both UIs. */
+  async function runUpload(request: NewAssetRequest): Promise<void> {
+    try {
+      await context.globalState.update(LAST_BUCKET_KEY, request.bucket);
+      const operation = await vscode.window.withProgress(
+        {
+          location: vscode.ProgressLocation.Notification,
+          title: `Ingesting ${request.assetId.split('/').pop()}`,
+        },
+        (progress) =>
+          uploadNewAsset(request, authService, context, (message) => {
+            progress.report({ message });
+            if (!disposed) {
+              panel.webview.postMessage({ type: 'uploadProgress', message });
+            }
+          }),
+      );
+      if (!disposed) {
+        panel.webview.postMessage({ type: 'uploadDone' });
+      }
+      try {
+        await vscode.commands.executeCommand('earthengine.trackSubmittedImport', {
+          name: operation,
+          kind: request.kind,
+        });
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        vscode.window.showWarningMessage(
+          `Import submitted, but it could not be added to the Tasks list: ${message}`,
+        );
+      }
+      vscode.window.showInformationMessage(
+        `Ingestion submitted as ${operation.split('/').pop()}. Follow it in the Tasks panel.`,
+      );
+      // Reclaims the staging area for any earlier upload that has since finished.
+      void sweepStagedObjects(authService, context).catch(() => undefined);
+      if (!disposed) {
+        await loadAndStream(currentParentPath);
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      if (!disposed) {
+        panel.webview.postMessage({ type: 'uploadError', message });
+      }
+    }
+  }
+
   panel.webview.onDidReceiveMessage(async (msg) => {
     try {
       if (msg.type === 'navigate') {
@@ -146,6 +256,12 @@ export async function openAssetsPanel(
         }
       } else if (msg.type === 'savePrefs') {
         await context.globalState.update(PREFS_KEY, msg.preferences as AssetPrefs);
+      } else if (msg.type === 'listBuckets') {
+        await sendBuckets();
+      } else if (msg.type === 'pickFile') {
+        await pickSourceFile(msg.kind);
+      } else if (msg.type === 'uploadAsset') {
+        await runUpload(msg.request as NewAssetRequest);
       }
     } catch (err) {
       const m = err instanceof Error ? err.message : String(err);
@@ -176,6 +292,7 @@ export async function openAssetsPanel(
 
   // Initial load
   panel.webview.html = getHtml(savedPrefs, panel.webview);
+  void sweepStagedObjects(authService, context).catch(() => undefined);
   try {
     await loadAndStream(rootPath);
   } catch (err) {

@@ -5,16 +5,24 @@
  * Provides a consistent set of functions for making HTTP requests:
  * - `getRequest()` — authenticated GET with Bearer token
  * - `httpRequest()` — authenticated request with configurable method
+ * - `httpRequestRaw()` — full control over headers/body, never rejects on status
  * - `postForm()` — unauthenticated POST with form-encoded body
  * - `postJson()` — unauthenticated POST with JSON body
  * - `fetchJson()` — fetch and parse JSON (follows redirects)
  * - `fetchHtml()` — fetch raw HTML (follows redirects)
  *
- * All functions return Promises and handle HTTP error codes by rejecting.
+ * All functions except `httpRequestRaw()` handle HTTP error codes by rejecting.
  */
 
 import * as https from 'https';
 import { URL } from 'url';
+
+/** Raw HTTPS response as returned by {@link httpRequestRaw}. */
+export interface HttpResponse {
+  status: number;
+  headers: Record<string, string | string[] | undefined>;
+  body: string;
+}
 
 /**
  * Perform an HTTPS GET request with an Authorization header.
@@ -90,10 +98,53 @@ export function httpRequest(
 }
 
 /**
+ * Perform an HTTPS request with full control over headers and a string or
+ * binary body, resolving with the status and response headers.
+ *
+ * Unlike the other helpers this never rejects on an HTTP error status: callers
+ * that treat some 4xx/3xx codes as normal control flow (resumable uploads
+ * answer `308 Resume Incomplete`) need to inspect the status themselves.
+ */
+export function httpRequestRaw(
+  url: string,
+  method: string,
+  headers: Record<string, string | number>,
+  body?: string | Buffer,
+): Promise<HttpResponse> {
+  return new Promise((resolve, reject) => {
+    const parsed = new URL(url);
+    const req = https.request(
+      {
+        hostname: parsed.hostname,
+        path: parsed.pathname + parsed.search,
+        method,
+        headers,
+      },
+      (res) => {
+        const chunks: Buffer[] = [];
+        res.on('data', (chunk: Buffer) => chunks.push(chunk));
+        res.on('end', () =>
+          resolve({
+            status: res.statusCode ?? 0,
+            headers: res.headers as Record<string, string | string[] | undefined>,
+            body: Buffer.concat(chunks).toString('utf-8'),
+          }),
+        );
+        res.on('error', reject);
+      },
+    );
+    req.on('error', reject);
+    if (body !== undefined) {
+      req.write(body);
+    }
+    req.end();
+  });
+}
+
+/**
  * Perform an HTTPS POST with form-encoded body (no auth header).
  */
-export function postForm(url: string, body: string): Promise<string> {
-  return new Promise((resolve, reject) => {
+export function postForm(url: string, body: string): Promise<string> {  return new Promise((resolve, reject) => {
     const parsed = new URL(url);
     const req = https.request(
       {
