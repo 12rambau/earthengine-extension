@@ -7,7 +7,24 @@ import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc.js';
 dayjs.extend(utc);
 
-export { getRequest, httpRequest, postForm, postJson, fetchJson, fetchHtml } from './httpClient.js';
+export {
+  getRequest,
+  httpRequest,
+  httpRequestRaw,
+  postForm,
+  postJson,
+  fetchJson,
+  fetchHtml,
+} from './httpClient.js';
+export type { HttpResponse } from './httpClient.js';
+export {
+  deleteObject,
+  ensureLifecycleRule,
+  listBuckets,
+  listObjects,
+  uploadFile,
+} from './gcsClient.js';
+export type { GcsObject } from './gcsClient.js';
 export {
   designTokens,
   codiconsCss,

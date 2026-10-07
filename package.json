@@ -75,6 +75,17 @@
           "type": "object",
           "default": {},
           "markdownDescription": "Overrides the built-in **satellite** basemap, used by the satellite toggle. Accepts a Google Map Tiles [`createSession`](https://developers.google.com/maps/documentation/tile/session_tokens) request body. `styles` is ignored unless `mapType` is `roadmap`. Leave empty to use the built-in preset."
+        },
+        "earthengine.assets.staging.prefix": {
+          "type": "string",
+          "default": "earthengine-staging/",
+          "markdownDescription": "Object prefix used inside the staging bucket when uploading a local file for ingestion. The bucket itself is chosen in the **New asset** dialog."
+        },
+        "earthengine.assets.staging.retentionDays": {
+          "type": "number",
+          "default": 7,
+          "minimum": 0,
+          "markdownDescription": "Age, in days, after which staged objects are deleted by a Cloud Storage [lifecycle rule](https://cloud.google.com/storage/docs/lifecycle) scoped to the staging prefix. The rule is installed on first upload and is the safety net for ingestions that outlive the VS Code session. Set to `0` to never install it."
         }
       }
     },
@@ -196,6 +207,12 @@
         "command": "earthengine.createFolder",
         "title": "New Folder",
         "icon": "$(new-folder)"
+      },
+      {
+        "command": "earthengine.cleanStagingArea",
+        "title": "Clean Upload Staging Area",
+        "category": "Earth Engine",
+        "icon": "$(clear-all)"
       },
       {
         "command": "earthengine.refreshAssetFolder",

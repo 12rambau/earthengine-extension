@@ -38,6 +38,13 @@ export class TasksSection extends SidebarSection {
       this.importProvider.refresh();
     });
 
+    this.registerCommand(
+      'earthengine.trackSubmittedImport',
+      async (task: { name: string; kind: 'image' | 'table' }) => {
+        await this.importProvider.trackSubmittedImport(task.name, task.kind);
+      },
+    );
+
     this.registerCommand('earthengine.filterTasksByStatus', async () => {
       const current = this.exportProvider.getStatusFilter();
       const items = TASK_STATES.map((state) => ({

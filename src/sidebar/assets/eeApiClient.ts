@@ -3,9 +3,11 @@
  * Earth Engine REST API client for asset operations.
  *
  * Wraps the Earth Engine v1 REST API to list, get, and inspect assets
- * (images, tables, image collections, folders) and their features.
+ * (images, tables, image collections, folders) and their features, and to
+ * submit ingestion jobs for files staged in Cloud Storage.
  */
 
+import { randomUUID } from 'crypto';
 import { getRequest, httpRequest } from '../../shared/httpClient.js';
 
 // ==================================================================
@@ -328,4 +330,62 @@ export async function createFolder(
   }
 
   return postCreateAsset(projectRoot, assetId, 'FOLDER', accessToken);
+}
+
+// ==================================================================
+// INGESTION
+// ==================================================================
+/**
+ * Submits an image ingestion manifest and returns the operation name.
+ *
+ * The manifest `tilesets[].sources[].uris` must already point at Cloud
+ * Storage: Earth Engine reads the objects itself, asynchronously, long after
+ * this call returns.
+ *
+ * @param project The Cloud project owning the destination asset
+ * @param manifest An Earth Engine image manifest
+ * @param accessToken OAuth2 access token
+ */
+export async function startImageIngestion(
+  project: string,
+  manifest: Record<string, unknown>,
+  accessToken: string,
+): Promise<string> {
+  return startIngestion(project, 'image', { imageManifest: manifest }, accessToken);
+}
+
+/**
+ * Submits a table ingestion manifest and returns the operation name.
+ *
+ * @param project The Cloud project owning the destination asset
+ * @param manifest An Earth Engine table manifest
+ * @param accessToken OAuth2 access token
+ */
+export async function startTableIngestion(
+  project: string,
+  manifest: Record<string, unknown>,
+  accessToken: string,
+): Promise<string> {
+  return startIngestion(project, 'table', { tableManifest: manifest }, accessToken);
+}
+
+/** Shared POST for the `image:import` and `table:import` endpoints. */
+async function startIngestion(
+  project: string,
+  kind: 'image' | 'table',
+  manifestField: Record<string, unknown>,
+  accessToken: string,
+): Promise<string> {
+  const url = `${EE_API_BASE}/projects/${encodeURIComponent(project)}/${kind}:import`;
+  const body = JSON.stringify({
+    ...manifestField,
+    overwrite: false,
+    requestId: randomUUID(),
+  });
+  const response = await httpRequest(url, 'POST', accessToken, body);
+  const operation = JSON.parse(response) as { name?: string };
+  if (!operation.name) {
+    throw new Error('Earth Engine did not return an ingestion operation.');
+  }
+  return operation.name;
 }

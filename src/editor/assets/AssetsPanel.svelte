@@ -4,6 +4,7 @@
   import { mdiImage, mdiImageMultiple, mdiTableMultiple } from '../../shared/icons.ts';
   import DataTable from '../../shared/dataTable/DataTable.svelte';
   import { createDataTable } from '../../shared/dataTable/dataTable.svelte.ts';
+  import NewAssetDialog from './NewAssetDialog.svelte';
 
   const saved = getInitData();
 
@@ -55,6 +56,18 @@
   let isLoading = $state(true);
   let busyAssets = $state(new Map());
 
+  let newMenuOpen = $state(false);
+  let newMenuWrap = $state(null);
+  let dialogKind = $state(null);
+  let buckets = $state([]);
+  let defaultBucket = $state('');
+  let pickedFile = $state({ path: '', suggestedName: '', bandCount: 1 });
+  let uploadBusy = $state(false);
+  let uploadProgress = $state('');
+  let uploadError = $state('');
+
+  let targetFolder = $derived(currentParent === rootPath ? rootPath + '/assets' : currentParent);
+
   let breadcrumbParts = $derived.by(() => {
     const parts = [{ label: rootPath.split('/')[1] || rootPath, path: rootPath }];
     if (currentParent !== rootPath && currentParent.includes('/assets/')) {
@@ -96,8 +109,39 @@
   }
 
   function newFolder() {
-    const parent = currentParent === rootPath ? rootPath + '/assets' : currentParent;
-    vscode.postMessage({ type: 'action', action: 'createFolder', name: parent });
+    newMenuOpen = false;
+    vscode.postMessage({ type: 'action', action: 'createFolder', name: targetFolder });
+  }
+
+  function openNewAsset(kind) {
+    newMenuOpen = false;
+    dialogKind = kind;
+    pickedFile = { path: '', suggestedName: '', bandCount: 1 };
+    uploadError = '';
+    uploadProgress = '';
+    vscode.postMessage({ type: 'listBuckets' });
+  }
+
+  function closeDialog() {
+    dialogKind = null;
+    uploadBusy = false;
+  }
+
+  function pickFile(kind) {
+    vscode.postMessage({ type: 'pickFile', kind });
+  }
+
+  function startUpload(request) {
+    uploadBusy = true;
+    uploadError = '';
+    uploadProgress = 'Preparing…';
+    try {
+      vscode.postMessage({ type: 'uploadAsset', request });
+    } catch (err) {
+      uploadBusy = false;
+      uploadProgress = '';
+      uploadError = `Could not send the request: ${err.message}`;
+    }
   }
 
   function preview(name) {
@@ -137,6 +181,18 @@
     } else if (msg.type === 'actionDone') {
       busyAssets.delete(msg.name);
       busyAssets = new Map(busyAssets);
+    } else if (msg.type === 'buckets') {
+      buckets = msg.buckets;
+      defaultBucket = msg.defaultBucket;
+    } else if (msg.type === 'filePicked') {
+      pickedFile = { path: msg.path, suggestedName: msg.suggestedName, bandCount: msg.bandCount };
+    } else if (msg.type === 'uploadProgress') {
+      uploadProgress = msg.message;
+    } else if (msg.type === 'uploadDone') {
+      closeDialog();
+    } else if (msg.type === 'uploadError') {
+      uploadBusy = false;
+      uploadError = msg.message;
     } else if (msg.type === 'error') {
       isLoading = false;
       alert(msg.message);
@@ -145,6 +201,14 @@
 </script>
 
 <h1>Asset Manager</h1>
+
+<svelte:document
+  onclick={(e) => {
+    if (!newMenuWrap?.contains(e.target)) {
+      newMenuOpen = false;
+    }
+  }}
+/>
 
 <DataTable
   {table}
@@ -155,7 +219,44 @@
   onpreferenceschange={saveState}
 >
   {#snippet toolbar()}
-    <button class="btn-primary" title="Create a new folder" onclick={newFolder}>+ New</button>
+    <div class="new-menu" bind:this={newMenuWrap}>
+      <button
+        class="trigger"
+        class:open={newMenuOpen}
+        title="Create a new asset"
+        onclick={(e) => {
+          e.stopPropagation();
+          newMenuOpen = !newMenuOpen;
+        }}
+      >
+        <i class="codicon codicon-add"></i>
+        New
+        <i class="codicon codicon-chevron-down chevron" class:open={newMenuOpen}></i>
+      </button>
+      {#if newMenuOpen}
+        <div class="new-menu-items">
+          <button onclick={newFolder}>
+            <i class="codicon codicon-folder"></i> New folder
+          </button>
+          <button onclick={() => openNewAsset('image')}>
+            <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="var(--vscee-color-image)"
+              ><path d={mdiImage} /></svg
+            >
+            New image
+          </button>
+          <button onclick={() => openNewAsset('table')}>
+            <svg
+              viewBox="0 0 24 24"
+              width="16"
+              height="16"
+              aria-hidden="true"
+              fill="var(--vscee-color-table)"><path d={mdiTableMultiple} /></svg
+            >
+            New feature collection
+          </button>
+        </div>
+      {/if}
+    </div>
     <button class="btn-primary" class:loading={isLoading} disabled={isLoading} onclick={refresh}>
       <span class="refresh-icon">⟳</span>
       <span>{isLoading ? 'Refreshing…' : 'Refresh'}</span>
@@ -270,6 +371,22 @@
     {/if}
   {/snippet}
 </DataTable>
+
+{#if dialogKind}
+  <NewAssetDialog
+    kind={dialogKind}
+    parent={targetFolder}
+    {buckets}
+    {defaultBucket}
+    file={pickedFile}
+    busy={uploadBusy}
+    progress={uploadProgress}
+    error={uploadError}
+    onpickfile={pickFile}
+    onsubmit={startUpload}
+    oncancel={closeDialog}
+  />
+{/if}
 
 <style>
   :global {
@@ -495,6 +612,74 @@
 
         .refresh-icon {
           animation: spin 0.8s linear infinite;
+        }
+      }
+    }
+
+    /* ==================================================================
+       NEW ASSET MENU
+       ================================================================== */
+    .new-menu {
+      position: relative;
+
+      .trigger {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--vscee-space-sm);
+        padding: var(--vscee-space-xs) var(--vscee-space-md);
+        background: var(--vscee-color-button-secondary-background);
+        color: var(--vscee-color-button-secondary-foreground);
+        border: var(--vscee-border-sm) solid var(--vscee-color-input-border);
+        border-radius: var(--vscee-radius-md);
+        cursor: pointer;
+        font-size: var(--vscee-font-sm);
+        line-height: 1;
+        white-space: nowrap;
+
+        &:hover {
+          background: var(--vscee-color-button-secondary-hover);
+        }
+        &.open {
+          background: var(--vscee-color-button-background);
+          color: var(--vscee-color-button-foreground);
+          border-color: transparent;
+        }
+      }
+      .chevron {
+        opacity: 0.7;
+        transition: transform 0.15s;
+
+        &.open {
+          transform: rotate(180deg);
+        }
+      }
+    }
+    .new-menu-items {
+      position: absolute;
+      top: calc(100% + var(--vscee-space-xs));
+      left: 0;
+      z-index: 20;
+      display: flex;
+      flex-direction: column;
+      min-width: 220px;
+      padding: var(--vscee-space-xs);
+      background: var(--vscee-color-dropdown-background);
+      border: var(--vscee-border-sm) solid var(--vscee-color-dropdown-border);
+      border-radius: var(--vscee-radius-md);
+      box-shadow: var(--vscee-shadow-lg);
+
+      button {
+        display: flex;
+        align-items: center;
+        gap: var(--vscee-space-md);
+        padding: var(--vscee-space-xs) var(--vscee-space-sm);
+        background: none;
+        border: none;
+        text-align: left;
+        color: var(--vscee-color-dropdown-foreground);
+
+        &:hover {
+          background: var(--vscee-color-list-hover);
         }
       }
     }
