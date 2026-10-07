@@ -62,11 +62,14 @@ export interface NewAssetRequest {
   properties: AssetProperty[];
 }
 
-/** A staged object awaiting the completion of its ingestion operation. */
+/**
+ * A staged object awaiting cleanup. `operation` is absent for records created
+ * after a failed upload/ingestion, which are safe to delete right away.
+ */
 interface StagedRecord {
   bucket: string;
   objects: string[];
-  operation: string;
+  operation?: string;
   createdAt: number;
 }
 
@@ -106,29 +109,35 @@ export async function uploadNewAsset(
   const stagedObjects: string[] = [];
   const totalBytes = files.reduce((total, file) => total + file.size, 0);
   let uploadedBytes = 0;
+  let operation: string;
 
-  for (const file of files) {
-    const objectName = `${folder}${path.basename(file.path)}`;
-    // Refreshed per file: a multi-gigabyte upload can outlive one token.
+  try {
+    for (const file of files) {
+      const objectName = `${folder}${path.basename(file.path)}`;
+      // Refreshed per file: a multi-gigabyte upload can outlive one token.
+      token = await requireToken(authService);
+      const uri = await uploadFile(request.bucket, objectName, file.path, token, (sent, total) => {
+        const done = uploadedBytes + sent;
+        onProgress(
+          `Uploading ${path.basename(file.path)} — ${formatBytes(done)} / ${formatBytes(totalBytes || total)}`,
+        );
+      });
+      uploadedBytes += file.size;
+      stagedObjects.push(objectName);
+      uris.push(uri);
+    }
+
+    onProgress('Submitting ingestion…');
+    const manifest = buildManifest(request, uris);
     token = await requireToken(authService);
-    const uri = await uploadFile(request.bucket, objectName, file.path, token, (sent, total) => {
-      const done = uploadedBytes + sent;
-      onProgress(
-        `Uploading ${path.basename(file.path)} — ${formatBytes(done)} / ${formatBytes(totalBytes || total)}`,
-      );
-    });
-    uploadedBytes += file.size;
-    stagedObjects.push(objectName);
-    uris.push(uri);
+    operation =
+      request.kind === 'image'
+        ? await startImageIngestion(profile.project, manifest, token)
+        : await startTableIngestion(profile.project, manifest, token);
+  } catch (err) {
+    await cleanupAfterFailure(request.bucket, stagedObjects, token, context);
+    throw err;
   }
-
-  onProgress('Submitting ingestion…');
-  const manifest = buildManifest(request, uris);
-  token = await requireToken(authService);
-  const operation =
-    request.kind === 'image'
-      ? await startImageIngestion(profile.project, manifest, token)
-      : await startTableIngestion(profile.project, manifest, token);
 
   try {
     await recordStaged(context, {
@@ -144,6 +153,35 @@ export async function uploadNewAsset(
   }
 
   return operation;
+}
+
+/** Deletes objects staged by a failed upload/ingestion, falling back to a retryable record. */
+async function cleanupAfterFailure(
+  bucket: string,
+  objects: string[],
+  token: string,
+  context: vscode.ExtensionContext,
+): Promise<void> {
+  if (objects.length === 0) {
+    return;
+  }
+  const failed: string[] = [];
+  for (const objectName of objects) {
+    try {
+      await deleteObject(bucket, objectName, token);
+    } catch {
+      failed.push(objectName);
+    }
+  }
+  if (failed.length === 0) {
+    return;
+  }
+  try {
+    // No operation to poll: the next sweep deletes these unconditionally.
+    await recordStaged(context, { bucket, objects: failed, createdAt: Date.now() });
+  } catch {
+    // Best effort only; the bucket lifecycle rule is the final backstop.
+  }
 }
 
 /**
@@ -172,13 +210,15 @@ export async function sweepStagedObjects(
 
   for (const record of records) {
     const expired = Date.now() - record.createdAt > RECORD_MAX_AGE_MS;
-    let finished = expired;
+    // Records without an operation came from a failed upload/ingestion and are
+    // safe to delete unconditionally.
+    let finished = expired || !record.operation;
     if (!finished) {
       try {
-        finished = (await getOperation(record.operation, token)).done === true;
+        finished = (await getOperation(record.operation!, token)).done === true;
       } catch {
-        // A deleted or unreadable operation can never complete; drop the record
-        // and let the lifecycle rule remove the objects.
+        // Transient lookup failure: keep the record so the next sweep retries.
+        remaining.push(record);
         continue;
       }
     }

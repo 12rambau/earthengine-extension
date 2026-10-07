@@ -89,7 +89,7 @@ export async function ensureLifecycleRule(
   const covered = rules.some(
     (rule) =>
       rule.action?.type === 'Delete' &&
-      typeof rule.condition?.age === 'number' &&
+      rule.condition?.age === ageDays &&
       (rule.condition.matchesPrefix ?? []).some((candidate) => prefix.startsWith(candidate)),
   );
   if (covered) {
@@ -224,7 +224,9 @@ export async function uploadFile(
       if (response.status !== RESUME_INCOMPLETE && response.status >= 400) {
         throw new Error(`Upload of ${path.basename(filePath)} failed: ${response.body}`);
       }
-      offset = last;
+      // On 308, trust the server's committed range rather than assuming the
+      // whole chunk landed; resume from 0 if it's missing or malformed.
+      offset = response.status === RESUME_INCOMPLETE ? committedBytes(response.headers.range) : last;
       onProgress?.(offset, totalBytes);
     }
   } finally {
@@ -237,6 +239,13 @@ export async function uploadFile(
 // ==================================================================
 // HELPERS
 // ==================================================================
+/** Parses the `Range` header of a 308 response into the next byte offset to send. */
+function committedBytes(range: string | string[] | undefined): number {
+  const value = Array.isArray(range) ? range[0] : range;
+  const match = value?.match(/bytes=0-(\d+)/);
+  return match ? Number(match[1]) + 1 : 0;
+}
+
 /** Maps the extensions we stage to a sensible content type. */
 function contentTypeFor(filePath: string): string {
   switch (path.extname(filePath).toLowerCase()) {

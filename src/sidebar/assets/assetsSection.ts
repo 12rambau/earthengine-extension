@@ -303,13 +303,19 @@ export class AssetsSection extends SidebarSection {
       } catch {
         // Fall through to the manual prompt below.
       }
-      const bucket = await vscode.window.showQuickPick(buckets, {
-        title: `Purge gs://<bucket>/${prefix}`,
-        placeHolder:
-          swept > 0
-            ? `${swept} finished object(s) already removed — pick a bucket to purge the rest`
-            : 'Select the staging bucket to purge',
-      });
+      const bucket =
+        buckets.length > 0
+          ? await vscode.window.showQuickPick(buckets, {
+              title: `Purge gs://<bucket>/${prefix}`,
+              placeHolder:
+                swept > 0
+                  ? `${swept} finished object(s) already removed — pick a bucket to purge the rest`
+                  : 'Select the staging bucket to purge',
+            })
+          : await vscode.window.showInputBox({
+              title: `Purge gs://<bucket>/${prefix}`,
+              prompt: 'Enter the staging bucket name',
+            });
       if (!bucket) {
         return;
       }
