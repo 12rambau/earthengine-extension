@@ -23,6 +23,7 @@ import { DocsSection } from './sidebar/docs/index.js';
 import { PanelTasksSection } from './panel/tasks/index.js';
 import { MapPanel } from './editor/map/mapPanel.js';
 import { setExtensionContext } from './shared/extensionContext.js';
+import { EarthEngineCommandTool } from './ai/index.js';
 
 /** All registered sections — disposed on deactivation. */
 const sections: vscode.Disposable[] = [];
@@ -78,6 +79,11 @@ export function activate(context: vscode.ExtensionContext) {
   const mapPanel = new MapPanel();
   mapPanel.register(context);
   sections.push(mapPanel);
+
+  // ==================================================================
+  // AI ASSISTANT TOOLS
+  // ==================================================================
+  new EarthEngineCommandTool().register(context);
 }
 
 /**
