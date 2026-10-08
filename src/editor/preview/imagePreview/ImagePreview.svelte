@@ -435,6 +435,12 @@
       font-size: var(--vscee-font-md);
       white-space: pre-wrap;
       opacity: 0.85;
+
+      ul,
+      ol {
+        margin: var(--vscee-space-md) 0;
+        padding-left: 1.5em;
+      }
     }
 
     /* ==================================================================
