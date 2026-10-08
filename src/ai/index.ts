@@ -10,3 +10,4 @@ export { MoveAssetTool } from './moveAssetTool.js';
 export { CopyAssetTool } from './copyAssetTool.js';
 export { ListTasksTool } from './listTasksTool.js';
 export { CancelTaskTool } from './cancelTaskTool.js';
+export { GetPythonSetupTool } from './getPythonSetupTool.js';

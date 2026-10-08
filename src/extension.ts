@@ -29,6 +29,7 @@ import {
   CopyAssetTool,
   DeleteAssetTool,
   EarthEngineCommandTool,
+  GetPythonSetupTool,
   ListMapLayersTool,
   ListTasksTool,
   MoveAssetTool,
@@ -104,6 +105,7 @@ export function activate(context: vscode.ExtensionContext) {
   new CopyAssetTool(assets).register(context);
   new ListTasksTool(authService).register(context);
   new CancelTaskTool(authService).register(context);
+  new GetPythonSetupTool(authService).register(context);
 }
 
 /**

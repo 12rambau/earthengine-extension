@@ -364,7 +364,7 @@
         "icon": "$(globe)",
         "canBeReferencedInPrompt": true,
         "userDescription": "Run Earth Engine extension commands (open the map, load example layers, open panels, refresh trees).",
-        "modelDescription": "Runs a command of the Earth Engine VS Code extension. Use it when the user asks to open the Earth Engine map, show the SEPAL visualization example (map + 4 layers), show the nighttime lights example, open the asset manager or the export/import task tables, or refresh a tree. Commands: earthengine.openMap (open the map), earthengine.map.testSepalViz (SEPAL visualization example: map + 4 layers), earthengine.map.testNighttimeLights (nighttime lights trend layer), earthengine.openAssetsPanel, earthengine.openExportTasksPanel, earthengine.openImportTasksPanel, earthengine.refreshAssets, earthengine.refreshTasks, earthengine.refreshDatasets, earthengine.refreshDocs, earthengine.showAuthStatus.",
+        "modelDescription": "Runs a command of the Earth Engine VS Code extension. Use it when the user asks to open the Earth Engine map, show the SEPAL visualization example (map + 4 layers), show the nighttime lights example, open the asset manager or the export/import task tables, or refresh a tree. Commands: earthengine.openMap (open the map), earthengine.map.testSepalViz (SEPAL visualization example: map + 4 layers), earthengine.map.testNighttimeLights (nighttime lights trend layer), earthengine.openAssetsPanel, earthengine.openExportTasksPanel, earthengine.openImportTasksPanel, earthengine.refreshAssets, earthengine.refreshTasks, earthengine.refreshDatasets, earthengine.refreshDocs, earthengine.showAuthStatus. For any Earth Engine analysis (filtering, computing, exporting), load the earthengine-python skill and write a Python script instead.",
         "tags": [
           "earthengine",
           "map",
@@ -403,7 +403,7 @@
         "icon": "$(layers)",
         "canBeReferencedInPrompt": true,
         "userDescription": "Add any Earth Engine asset (image, image collection, table) to the map.",
-        "modelDescription": "Adds an Earth Engine asset to the interactive map panel (opens the map if needed). Images are displayed directly, image collections are mosaicked (most recent pixel on top), tables (FeatureCollections) are drawn with ee.FeatureCollection.style(). For images and collections, visParams follows ee.Image.visualize(): bands (1 or 3 band names), min, max (numbers or per-band arrays), palette (array of hex colors), gamma. For tables, visParams follows style(): color, width, fillColor, pointSize, pointShape. Pass {\"default\": <name or index>} to use a SEPAL visualization preset stored on the asset; an empty visParams uses the first SEPAL preset if any, else EE defaults. Adding a layer with an existing name replaces that layer. Returns the layer index.",
+        "modelDescription": "Adds an Earth Engine asset to the interactive map panel (opens the map if needed). Images are displayed directly, image collections are mosaicked (most recent pixel on top), tables (FeatureCollections) are drawn with ee.FeatureCollection.style(). For images and collections, visParams follows ee.Image.visualize(): bands (1 or 3 band names), min, max (numbers or per-band arrays), palette (array of hex colors), gamma. For tables, visParams follows style(): color, width, fillColor, pointSize, pointShape. Pass {\"default\": <name or index>} to use a SEPAL visualization preset stored on the asset; an empty visParams uses the first SEPAL preset if any, else EE defaults. Adding a layer with an existing name replaces that layer. Returns the layer index. Only displays an existing asset unchanged: for any filtering by date/region/clouds, compositing, band math, masking, reduction or export, load the earthengine-python skill and write a Python script instead.",
         "tags": [
           "earthengine",
           "map"
@@ -681,6 +681,28 @@
             "name"
           ]
         }
+      },
+      {
+        "name": "earthengine_getPythonSetup",
+        "toolReferenceName": "earthenginePythonSetup",
+        "displayName": "Get Earth Engine Python Setup",
+        "icon": "$(terminal)",
+        "canBeReferencedInPrompt": true,
+        "userDescription": "Get the active Earth Engine project and the header to start a Python script with.",
+        "modelDescription": "Returns the active Earth Engine project (null when no profile is active) and the 'header' every Earth Engine Python script should start with: import ee, from vscee import Map, ee.Initialize(project=...). Call it before writing any Earth Engine Python script and use the header verbatim.",
+        "tags": [
+          "earthengine",
+          "python"
+        ],
+        "inputSchema": {
+          "type": "object",
+          "properties": {}
+        }
+      }
+    ],
+    "chatSkills": [
+      {
+        "path": "./skills/earthengine-python/SKILL.md"
       }
     ],
     "menus": {
