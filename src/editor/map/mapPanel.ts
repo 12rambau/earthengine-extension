@@ -10,7 +10,8 @@
 import * as vscode from 'vscode';
 import { EditorPanel } from '../../shared/baseComponents.js';
 import { MapBridgeServer, MapCommand } from './mapBridgeServer.js';
-import { ensureEe } from '../../shared/eeSession.js';
+import { ensureEe, getEeContext } from '../../shared/eeSession.js';
+import { getAsset } from '../../sidebar/assets/eeApiClient.js';
 import { MapLayerManager } from './mapLayerManager.js';
 import { MapInspector } from './mapInspector.js';
 import { MapTilesService, NO_API_KEY_MESSAGE, ViewportBounds } from './mapTilesService.js';
@@ -23,6 +24,22 @@ import script from './MapPanel.svelte';
 /** Global-state flag set when the user dismisses the fallback warning for good. */
 const FALLBACK_NOTICE_KEY = 'earthengine.map.fallbackNoticeDismissed';
 
+/** Summary of a map layer, as reported to callers of {@link MapPanel.listLayers}. */
+export interface MapLayerInfo {
+  index: number;
+  name: string;
+  shown: boolean;
+  opacity: number;
+  visParams: Record<string, unknown>;
+}
+
+/** A map viewport: center and zoom level. */
+export interface MapView {
+  lat: number;
+  lon: number;
+  zoom?: number;
+}
+
 // ==================================================================
 // MAPPANEL
 // ==================================================================
@@ -33,6 +50,9 @@ export class MapPanel extends EditorPanel {
   private messageDisposable: vscode.Disposable | undefined;
   private configDisposable: vscode.Disposable | undefined;
   private fallbackWarned = false;
+  private webviewReady = false;
+  /** View requested before the WebView finished loading; applied on `ready`. */
+  private pendingView: MapView | undefined;
   private readonly layerManager = new MapLayerManager();
   private readonly inspector = new MapInspector();
   private readonly tiles = new MapTilesService();
@@ -81,7 +101,12 @@ export class MapPanel extends EditorPanel {
     // WebView → extension host messages (inspector clicks, viz editor).
     this.messageDisposable = panel.webview.onDidReceiveMessage(async (msg) => {
       if (msg.type === 'ready') {
+        this.webviewReady = true;
         this.layerManager.replay((m) => this.post(m));
+        if (this.pendingView) {
+          this.post({ type: 'setCenter', data: this.pendingView });
+          this.pendingView = undefined;
+        }
       } else if (msg.type === 'requestBasemap') {
         const d = msg.data as { id: BasemapId };
         await this.sendBasemapUrl(d.id);
@@ -389,7 +414,96 @@ export class MapPanel extends EditorPanel {
     }
   }
 
+  // ==================================================================
+  // PROGRAMMATIC API
+  // ==================================================================
+
+  /**
+   * Adds an Earth Engine asset to the map, opening the panel if needed.
+   * Image collections are mosaicked; tables are rendered with `style()`,
+   * which receives `visParams` (color, width, fillColor, pointSize...).
+   * A layer with the same name is replaced.
+   *
+   * @returns The added layer and the detected asset type.
+   */
+  async addAssetLayer(
+    assetId: string,
+    visParams: Record<string, unknown>,
+    name: string,
+    opacity = 1,
+    shown = true,
+  ): Promise<{ layer: MapLayerInfo; assetType: string }> {
+    await this.open();
+    const eeAny = (await ensureEe()) as any;
+    const { token } = await getEeContext();
+    const assetName = assetId.startsWith('projects/')
+      ? assetId
+      : `projects/earthengine-legacy/assets/${assetId}`;
+    const { type } = await getAsset(assetName, token);
+
+    let eeObject: unknown;
+    let layerVisParams = visParams;
+    if (type === 'IMAGE') {
+      eeObject = eeAny.Image(assetId);
+    } else if (type === 'IMAGE_COLLECTION') {
+      eeObject = eeAny.ImageCollection(assetId).mosaic();
+    } else if (type === 'TABLE') {
+      eeObject = eeAny.FeatureCollection(assetId).style(visParams);
+      layerVisParams = {};
+    } else {
+      throw new Error(`Asset '${assetId}' has type ${type}, which cannot be displayed on the map.`);
+    }
+
+    await this.layerManager.add(
+      {
+        serialized: eeAny.Serializer.toJSON(eeObject) as string,
+        visParams: layerVisParams,
+        name,
+        shown,
+        opacity,
+      },
+      (m) => this.post(m),
+    );
+    const layer = this.listLayers().find((l) => l.name === name);
+    if (!layer) {
+      throw new Error(`Layer '${name}' was not registered.`);
+    }
+    return { layer, assetType: type };
+  }
+
+  /** Centers the map on `lat`/`lon` at `zoom`, opening the panel if needed. */
+  async setView(view: MapView): Promise<void> {
+    await this.open();
+    if (this.webviewReady) {
+      this.post({ type: 'setCenter', data: view });
+    } else {
+      this.pendingView = view;
+    }
+  }
+
+  /** Returns the layers currently registered on the map. */
+  listLayers(): MapLayerInfo[] {
+    return [...this.layerManager.layers.values()].map((l) => ({
+      index: l.index,
+      name: l.name,
+      shown: l.shown,
+      opacity: l.opacity,
+      visParams: l.visParams,
+    }));
+  }
+
+  /** Removes the layer at `layerIndex`; returns false when no such layer exists. */
+  removeLayer(layerIndex: number): boolean {
+    if (!this.layerManager.layers.has(layerIndex)) {
+      return false;
+    }
+    this.layerManager.remove(layerIndex);
+    this.post({ type: 'removeTileLayer', data: { layerIndex } });
+    return true;
+  }
+
   protected override onDidDispose(): void {
+    this.webviewReady = false;
     this.messageDisposable?.dispose();
     this.messageDisposable = undefined;
     // Keep layerManager state so a subsequent open() can replay the layers.

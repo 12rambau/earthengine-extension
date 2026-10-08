@@ -395,6 +395,130 @@
             "command"
           ]
         }
+      },
+      {
+        "name": "earthengine_addMapLayer",
+        "toolReferenceName": "earthengineAddMapLayer",
+        "displayName": "Add Earth Engine Map Layer",
+        "icon": "$(layers)",
+        "canBeReferencedInPrompt": true,
+        "userDescription": "Add any Earth Engine asset (image, image collection, table) to the map.",
+        "modelDescription": "Adds an Earth Engine asset to the interactive map panel (opens the map if needed). Images are displayed directly, image collections are mosaicked (most recent pixel on top), tables (FeatureCollections) are drawn with ee.FeatureCollection.style(). For images and collections, visParams follows ee.Image.visualize(): bands (1 or 3 band names), min, max (numbers or per-band arrays), palette (array of hex colors), gamma. For tables, visParams follows style(): color, width, fillColor, pointSize, pointShape. Pass {\"default\": <name or index>} to use a SEPAL visualization preset stored on the asset; an empty visParams uses the first SEPAL preset if any, else EE defaults. Adding a layer with an existing name replaces that layer. Returns the layer index.",
+        "tags": [
+          "earthengine",
+          "map"
+        ],
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "assetId": {
+              "type": "string",
+              "description": "Asset id, e.g. 'USGS/SRTMGL1_003', 'COPERNICUS/S2_SR_HARMONIZED', 'users/me/my_asset' or 'projects/my-project/assets/my_asset'."
+            },
+            "visParams": {
+              "type": "object",
+              "description": "Visualization parameters, e.g. {\"bands\": [\"B4\", \"B3\", \"B2\"], \"min\": 0, \"max\": 3000} or {\"min\": 0, \"max\": 4000, \"palette\": [\"006633\", \"E5FFCC\", \"662A00\"]} or, for tables, {\"color\": \"red\", \"width\": 1}."
+            },
+            "name": {
+              "type": "string",
+              "description": "Layer name shown in the layer panel. Defaults to the asset id."
+            },
+            "opacity": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1,
+              "description": "Layer opacity between 0 and 1. Defaults to 1."
+            },
+            "shown": {
+              "type": "boolean",
+              "description": "Whether the layer is visible. Defaults to true."
+            }
+          },
+          "required": [
+            "assetId"
+          ]
+        }
+      },
+      {
+        "name": "earthengine_setMapView",
+        "toolReferenceName": "earthengineSetMapView",
+        "displayName": "Set Earth Engine Map View",
+        "icon": "$(location)",
+        "canBeReferencedInPrompt": true,
+        "userDescription": "Center the Earth Engine map on a location.",
+        "modelDescription": "Centers the interactive Earth Engine map on a latitude/longitude at a given zoom level (opens the map if needed). Zoom ranges from 0 (whole world) to 24; about 3 for a continent, 5-6 for a country, 10-12 for a city, 15+ for streets.",
+        "tags": [
+          "earthengine",
+          "map"
+        ],
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "lat": {
+              "type": "number",
+              "minimum": -90,
+              "maximum": 90,
+              "description": "Latitude in degrees."
+            },
+            "lon": {
+              "type": "number",
+              "description": "Longitude in degrees."
+            },
+            "zoom": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 24,
+              "description": "Zoom level. Keeps the current zoom when omitted."
+            }
+          },
+          "required": [
+            "lat",
+            "lon"
+          ]
+        }
+      },
+      {
+        "name": "earthengine_listMapLayers",
+        "toolReferenceName": "earthengineListMapLayers",
+        "displayName": "List Earth Engine Map Layers",
+        "icon": "$(list-unordered)",
+        "canBeReferencedInPrompt": true,
+        "userDescription": "List the layers displayed on the Earth Engine map.",
+        "modelDescription": "Lists the layers currently on the Earth Engine map with their index, name, visibility, opacity and visualization parameters. Use it before removing a layer or to know what the user is looking at.",
+        "tags": [
+          "earthengine",
+          "map"
+        ],
+        "inputSchema": {
+          "type": "object",
+          "properties": {}
+        }
+      },
+      {
+        "name": "earthengine_removeMapLayer",
+        "toolReferenceName": "earthengineRemoveMapLayer",
+        "displayName": "Remove Earth Engine Map Layer",
+        "icon": "$(trash)",
+        "canBeReferencedInPrompt": true,
+        "userDescription": "Remove a layer from the Earth Engine map.",
+        "modelDescription": "Removes one layer from the Earth Engine map, identified by its index (preferred, from earthengine_listMapLayers) or its exact name.",
+        "tags": [
+          "earthengine",
+          "map"
+        ],
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "index": {
+              "type": "number",
+              "description": "Layer index as reported by earthengine_listMapLayers."
+            },
+            "name": {
+              "type": "string",
+              "description": "Exact layer name, used when index is not given."
+            }
+          }
+        }
       }
     ],
     "menus": {
