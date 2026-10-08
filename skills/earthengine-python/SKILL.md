@@ -54,6 +54,9 @@ and do not answer with Code Editor JavaScript unless the user asks for it.
    - Script: use the terminal tool in the foreground (not a background process or
      subagent) so the output stays visible in the user's terminal:
      `<selected python interpreter> ee_scripts/<topic>.py`.
+   - Exception: code that starts export tasks (`task.start()`) consumes EECU and writes
+     outputs. Run it only after the user explicitly authorizes it; otherwise return the
+     code without running it.
 
    Layers sent with `vscee.Map` appear in the Earth Engine map panel, which opens
    automatically. On failure, read the traceback, fix the code and run it again
@@ -139,17 +142,22 @@ Nothing is computed client-side: tiles are rendered by Earth Engine on demand.
   `.map()`, `ee.List.sequence(...).map(...)`, `reduceRegions`, `aggregate_*` instead.
 - **Filter first.** `filterBounds` → `filterDate` → metadata filters, before `.map()`.
 - **Always pass `scale`** (and `maxPixels`, or `bestEffort=True`) to `reduceRegion`,
-  `sample`, exports. Use the native resolution of the data (S2 10 m, Landsat 30 m,
-  MODIS 250-1000 m) unless the user wants coarser.
+  `reduceRegions` and `sample`. Use the native resolution of the data (S2 10 m,
+  Landsat 30 m, MODIS 250-1000 m) unless the user wants coarser.
 - **Cloud masking**: Sentinel-2 → `COPERNICUS/S2_CLOUD_PROBABILITY` or the `SCL` band /
   `QA60`; Landsat Collection 2 → `QA_PIXEL` bits; apply scaling factors
   (`SR_B*` × 0.0000275 − 0.2) before computing indices.
 - **Composites**: `median()` for cloud-robust reflectance, `qualityMosaic("NDVI")` for
   greenest pixel, `mosaic()` only for "most recent on top".
 - **Large outputs** (whole countries, high resolution, many features, long series)
-  → `ee.batch.Export.image.toAsset / toDrive / toCloudStorage` or
-  `ee.batch.Export.table.*`, then `task.start()`. Do not `getInfo()` them.
-  Exports to assets go under `projects/<project>/assets/...`.
+  → export them, then `task.start()` (see step 4 for authorization). Do not `getInfo()` them.
+  - Images (`ee.batch.Export.image.toAsset / toDrive / toCloudStorage`): pass `region`
+    and `maxPixels`, and set the grid with **either** `scale` (optionally `crs`),
+    **or** `crs` + `crsTransform`, **or** `dimensions` - never combine them.
+  - Tables (`ee.batch.Export.table.toAsset / toDrive / toCloudStorage`): no `scale`,
+    `maxPixels` or `bestEffort` - those are not table export parameters; set
+    `fileFormat` / `selectors` as needed.
+  - Exports to assets go under `projects/<project>/assets/...`.
 - **Charts**: use the geetools / ipygee plot methods (see [Libraries](#libraries)); they
   reduce server-side and fetch only the small result. For a chart they do not cover,
   reduce to a small `ee.FeatureCollection` or dictionary, `getInfo()` it once, then plot
