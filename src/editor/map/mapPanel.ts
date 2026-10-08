@@ -18,7 +18,7 @@ import { MapTilesService, NO_API_KEY_MESSAGE, ViewportBounds } from './mapTilesS
 import { BASEMAP_IDS, BasemapId, FALLBACK_BASEMAPS } from './basemapPresets.js';
 import { getGlobalState } from '../../shared/extensionContext.js';
 
-import { designTokens, leafletCss } from '../../shared/index.js';
+import { codiconsCss, designTokens, leafletCss } from '../../shared/index.js';
 import script from './MapPanel.svelte';
 
 /** Global-state flag set when the user dismisses the fallback warning for good. */
@@ -88,6 +88,7 @@ export class MapPanel extends EditorPanel {
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <style>${leafletCss}</style>
+    <style>${codiconsCss}</style>
     <style>${designTokens}</style>
   </head>
   <body>

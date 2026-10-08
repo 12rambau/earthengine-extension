@@ -1725,9 +1725,9 @@
       color: inherit;
       cursor: pointer;
       opacity: 0.6;
+      transition: opacity 0.15s;
 
       &:hover {
-        background: var(--vscee-color-button-secondary-background);
         opacity: 1;
       }
     }
