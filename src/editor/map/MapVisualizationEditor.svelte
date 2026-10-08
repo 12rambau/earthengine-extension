@@ -1979,7 +1979,7 @@
       font-variant-numeric: tabular-nums;
     }
     .viz-legend-hex {
-      flex: 1;
+      flex: 0 0 7ch;
       min-width: 0;
       font-family: var(--vscee-editor-font-family);
       font-size: var(--vscee-font-compact-sm);
