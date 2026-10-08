@@ -604,6 +604,83 @@
             "destinationPath"
           ]
         }
+      },
+      {
+        "name": "earthengine_listTasks",
+        "toolReferenceName": "earthengineListTasks",
+        "displayName": "List Earth Engine Tasks",
+        "icon": "$(checklist)",
+        "canBeReferencedInPrompt": true,
+        "userDescription": "List export/import tasks with state, runtime and EECU cost.",
+        "modelDescription": "Lists recent Earth Engine export and import (ingest) tasks of the current project, newest first, or details a single task when 'name' is given. For each task returns: name (full operation name, needed for cancelling), description, kind, state (PENDING, RUNNING, CANCELLING, SUCCEEDED, FAILED, CANCELLED), progress, create/start/end times, elapsed (how long it has been running, or ran), eecuSeconds (batch EECU-seconds consumed: the compute cost; it may be absent or partial while a task is still running), attempt, destinationUris and error message. Only the 100 most recent operations are scanned.",
+        "tags": [
+          "earthengine",
+          "tasks"
+        ],
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string",
+              "description": "Full operation name, e.g. 'projects/my-project/operations/ABC123', to get a single task."
+            },
+            "type": {
+              "type": "string",
+              "enum": [
+                "export",
+                "import",
+                "all"
+              ],
+              "description": "Task category. Defaults to all."
+            },
+            "states": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "PENDING",
+                  "RUNNING",
+                  "CANCELLING",
+                  "SUCCEEDED",
+                  "FAILED",
+                  "CANCELLED"
+                ]
+              },
+              "description": "Only return tasks in these states."
+            },
+            "limit": {
+              "type": "number",
+              "minimum": 1,
+              "maximum": 100,
+              "description": "Maximum number of tasks returned. Defaults to 20."
+            }
+          }
+        }
+      },
+      {
+        "name": "earthengine_cancelTask",
+        "toolReferenceName": "earthengineCancelTask",
+        "displayName": "Cancel Earth Engine Task",
+        "icon": "$(stop-circle)",
+        "canBeReferencedInPrompt": true,
+        "userDescription": "Cancel a pending or running export/import task (asks for confirmation).",
+        "modelDescription": "Cancels a PENDING or RUNNING Earth Engine export or import task, identified by its full operation name (get it from earthengine_listTasks). Fails if the task already finished.",
+        "tags": [
+          "earthengine",
+          "tasks"
+        ],
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string",
+              "description": "Full operation name, e.g. 'projects/my-project/operations/ABC123'."
+            }
+          },
+          "required": [
+            "name"
+          ]
+        }
       }
     ],
     "menus": {

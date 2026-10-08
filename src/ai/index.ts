@@ -8,3 +8,5 @@ export { RemoveMapLayerTool } from './removeMapLayerTool.js';
 export { DeleteAssetTool } from './deleteAssetTool.js';
 export { MoveAssetTool } from './moveAssetTool.js';
 export { CopyAssetTool } from './copyAssetTool.js';
+export { ListTasksTool } from './listTasksTool.js';
+export { CancelTaskTool } from './cancelTaskTool.js';
