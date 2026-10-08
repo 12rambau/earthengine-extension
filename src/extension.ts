@@ -23,6 +23,19 @@ import { DocsSection } from './sidebar/docs/index.js';
 import { PanelTasksSection } from './panel/tasks/index.js';
 import { MapPanel } from './editor/map/mapPanel.js';
 import { setExtensionContext } from './shared/extensionContext.js';
+import {
+  AddMapLayerTool,
+  CancelTaskTool,
+  CopyAssetTool,
+  DeleteAssetTool,
+  EarthEngineCommandTool,
+  GetPythonSetupTool,
+  ListMapLayersTool,
+  ListTasksTool,
+  MoveAssetTool,
+  RemoveMapLayerTool,
+  SetMapViewTool,
+} from './ai/index.js';
 
 /** All registered sections — disposed on deactivation. */
 const sections: vscode.Disposable[] = [];
@@ -78,6 +91,21 @@ export function activate(context: vscode.ExtensionContext) {
   const mapPanel = new MapPanel();
   mapPanel.register(context);
   sections.push(mapPanel);
+
+  // ==================================================================
+  // AI ASSISTANT TOOLS
+  // ==================================================================
+  new EarthEngineCommandTool().register(context);
+  new AddMapLayerTool(mapPanel).register(context);
+  new SetMapViewTool(mapPanel).register(context);
+  new ListMapLayersTool(mapPanel).register(context);
+  new RemoveMapLayerTool(mapPanel).register(context);
+  new DeleteAssetTool(assets).register(context);
+  new MoveAssetTool(assets).register(context);
+  new CopyAssetTool(assets).register(context);
+  new ListTasksTool(authService).register(context);
+  new CancelTaskTool(authService).register(context);
+  new GetPythonSetupTool(authService).register(context);
 }
 
 /**

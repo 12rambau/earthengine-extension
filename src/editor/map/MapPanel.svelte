@@ -359,6 +359,21 @@
           }
         }
       }
+    } else if (msg.type === 'removeTileLayer') {
+      const idx = overlays.findIndex((o) => o.layerIndex === msg.data.layerIndex);
+      if (idx >= 0) {
+        const entry = overlays[idx];
+        if (entry.visible) {
+          map.removeLayer(entry.tileLayer);
+        }
+        nativeLayerControl.removeLayer(entry.tileLayer);
+        overlays = overlays.filter((_, i) => i !== idx);
+        if (activeScaleIndex === idx) {
+          activeScaleIndex = -1;
+        } else if (activeScaleIndex > idx) {
+          activeScaleIndex--;
+        }
+      }
     } else if (msg.type === 'clearLayers') {
       for (const entry of overlays) {
         if (entry.visible) {

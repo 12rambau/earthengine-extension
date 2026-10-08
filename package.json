@@ -356,6 +356,355 @@
         "category": "Earth Engine"
       }
     ],
+    "languageModelTools": [
+      {
+        "name": "earthengine_runCommand",
+        "toolReferenceName": "earthengineRunCommand",
+        "displayName": "Run Earth Engine Command",
+        "icon": "$(globe)",
+        "canBeReferencedInPrompt": true,
+        "userDescription": "Run Earth Engine extension commands (open the map, load example layers, open panels, refresh trees).",
+        "modelDescription": "Runs a command of the Earth Engine VS Code extension. Use it when the user asks to open the Earth Engine map, show the SEPAL visualization example (map + 4 layers), show the nighttime lights example, open the asset manager or the export/import task tables, or refresh a tree. Commands: earthengine.openMap (open the map), earthengine.map.testSepalViz (SEPAL visualization example: map + 4 layers), earthengine.map.testNighttimeLights (nighttime lights trend layer), earthengine.openAssetsPanel, earthengine.openExportTasksPanel, earthengine.openImportTasksPanel, earthengine.refreshAssets, earthengine.refreshTasks, earthengine.refreshDatasets, earthengine.refreshDocs, earthengine.showAuthStatus. For any Earth Engine analysis (filtering, computing, exporting), load the earthengine-python skill and write a Python script instead.",
+        "tags": [
+          "earthengine",
+          "map",
+          "sepal"
+        ],
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "command": {
+              "type": "string",
+              "enum": [
+                "earthengine.openMap",
+                "earthengine.map.testSepalViz",
+                "earthengine.map.testNighttimeLights",
+                "earthengine.openAssetsPanel",
+                "earthengine.openExportTasksPanel",
+                "earthengine.openImportTasksPanel",
+                "earthengine.refreshAssets",
+                "earthengine.refreshTasks",
+                "earthengine.refreshDatasets",
+                "earthengine.refreshDocs",
+                "earthengine.showAuthStatus"
+              ],
+              "description": "The command id to run."
+            }
+          },
+          "required": [
+            "command"
+          ]
+        }
+      },
+      {
+        "name": "earthengine_addMapLayer",
+        "toolReferenceName": "earthengineAddMapLayer",
+        "displayName": "Add Earth Engine Map Layer",
+        "icon": "$(layers)",
+        "canBeReferencedInPrompt": true,
+        "userDescription": "Add any Earth Engine asset (image, image collection, table) to the map.",
+        "modelDescription": "Adds an Earth Engine asset to the interactive map panel (opens the map if needed). Images are displayed directly, image collections are mosaicked (most recent pixel on top), tables (FeatureCollections) are drawn with ee.FeatureCollection.style(). For images and collections, visParams follows ee.Image.visualize(): bands (1 or 3 band names), min, max (numbers or per-band arrays), palette (array of hex colors), gamma. For tables, visParams follows style(): color, width, fillColor, pointSize, pointShape. Pass {\"default\": <name or index>} to use a SEPAL visualization preset stored on the asset; an empty visParams uses the first SEPAL preset if any, else EE defaults. Adding a layer with an existing name replaces that layer. Returns the layer index. Only displays an existing asset unchanged: for any filtering by date/region/clouds, compositing, band math, masking, reduction or export, load the earthengine-python skill and write a Python script instead.",
+        "tags": [
+          "earthengine",
+          "map"
+        ],
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "assetId": {
+              "type": "string",
+              "description": "Asset id, e.g. 'USGS/SRTMGL1_003', 'COPERNICUS/S2_SR_HARMONIZED', 'users/me/my_asset' or 'projects/my-project/assets/my_asset'."
+            },
+            "visParams": {
+              "type": "object",
+              "description": "Visualization parameters, e.g. {\"bands\": [\"B4\", \"B3\", \"B2\"], \"min\": 0, \"max\": 3000} or {\"min\": 0, \"max\": 4000, \"palette\": [\"006633\", \"E5FFCC\", \"662A00\"]} or, for tables, {\"color\": \"red\", \"width\": 1}."
+            },
+            "name": {
+              "type": "string",
+              "description": "Layer name shown in the layer panel. Defaults to the asset id."
+            },
+            "opacity": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1,
+              "description": "Layer opacity between 0 and 1. Defaults to 1."
+            },
+            "shown": {
+              "type": "boolean",
+              "description": "Whether the layer is visible. Defaults to true."
+            }
+          },
+          "required": [
+            "assetId"
+          ]
+        }
+      },
+      {
+        "name": "earthengine_setMapView",
+        "toolReferenceName": "earthengineSetMapView",
+        "displayName": "Set Earth Engine Map View",
+        "icon": "$(location)",
+        "canBeReferencedInPrompt": true,
+        "userDescription": "Center the Earth Engine map on a location.",
+        "modelDescription": "Centers the interactive Earth Engine map on a latitude/longitude at a given zoom level (opens the map if needed). Zoom ranges from 0 (whole world) to 24; about 3 for a continent, 5-6 for a country, 10-12 for a city, 15+ for streets.",
+        "tags": [
+          "earthengine",
+          "map"
+        ],
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "lat": {
+              "type": "number",
+              "minimum": -90,
+              "maximum": 90,
+              "description": "Latitude in degrees."
+            },
+            "lon": {
+              "type": "number",
+              "description": "Longitude in degrees."
+            },
+            "zoom": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 24,
+              "description": "Zoom level. Keeps the current zoom when omitted."
+            }
+          },
+          "required": [
+            "lat",
+            "lon"
+          ]
+        }
+      },
+      {
+        "name": "earthengine_listMapLayers",
+        "toolReferenceName": "earthengineListMapLayers",
+        "displayName": "List Earth Engine Map Layers",
+        "icon": "$(list-unordered)",
+        "canBeReferencedInPrompt": true,
+        "userDescription": "List the layers displayed on the Earth Engine map.",
+        "modelDescription": "Lists the layers currently on the Earth Engine map with their index, name, visibility, opacity and visualization parameters. Use it before removing a layer or to know what the user is looking at.",
+        "tags": [
+          "earthengine",
+          "map"
+        ],
+        "inputSchema": {
+          "type": "object",
+          "properties": {}
+        }
+      },
+      {
+        "name": "earthengine_removeMapLayer",
+        "toolReferenceName": "earthengineRemoveMapLayer",
+        "displayName": "Remove Earth Engine Map Layer",
+        "icon": "$(trash)",
+        "canBeReferencedInPrompt": true,
+        "userDescription": "Remove a layer from the Earth Engine map.",
+        "modelDescription": "Removes one layer from the Earth Engine map, identified by its index (preferred, from earthengine_listMapLayers) or its exact name.",
+        "tags": [
+          "earthengine",
+          "map"
+        ],
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "index": {
+              "type": "number",
+              "description": "Layer index as reported by earthengine_listMapLayers."
+            },
+            "name": {
+              "type": "string",
+              "description": "Exact layer name, used when index is not given."
+            }
+          }
+        }
+      },
+      {
+        "name": "earthengine_deleteAsset",
+        "toolReferenceName": "earthengineDeleteAsset",
+        "displayName": "Delete Earth Engine Asset",
+        "icon": "$(trash)",
+        "canBeReferencedInPrompt": true,
+        "userDescription": "Delete an Earth Engine asset (asks for confirmation).",
+        "modelDescription": "Deletes an asset of the user's Earth Engine project. Folders and image collections are deleted recursively with all their content. Irreversible: the user is asked to confirm. Paths relative to the current project ('my_folder/my_image') are expanded to 'projects/<project>/assets/...'; full 'projects/.../assets/...' paths are used as is.",
+        "tags": [
+          "earthengine",
+          "assets"
+        ],
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "assetPath": {
+              "type": "string",
+              "description": "Asset to delete, e.g. 'my_folder/my_image' or 'projects/my-project/assets/my_folder/my_image'."
+            }
+          },
+          "required": [
+            "assetPath"
+          ]
+        }
+      },
+      {
+        "name": "earthengine_moveAsset",
+        "toolReferenceName": "earthengineMoveAsset",
+        "displayName": "Move Earth Engine Asset",
+        "icon": "$(arrow-right)",
+        "canBeReferencedInPrompt": true,
+        "userDescription": "Move or rename an Earth Engine asset (asks for confirmation).",
+        "modelDescription": "Moves or renames an asset of the user's Earth Engine project. Folders and image collections are moved recursively. The destination is the full new asset path (not the parent folder) and must not already exist nor be inside the source. Paths relative to the current project are expanded to 'projects/<project>/assets/...'.",
+        "tags": [
+          "earthengine",
+          "assets"
+        ],
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "sourcePath": {
+              "type": "string",
+              "description": "Asset to move, e.g. 'old_folder/my_image'."
+            },
+            "destinationPath": {
+              "type": "string",
+              "description": "New full asset path, e.g. 'new_folder/my_image'."
+            }
+          },
+          "required": [
+            "sourcePath",
+            "destinationPath"
+          ]
+        }
+      },
+      {
+        "name": "earthengine_copyAsset",
+        "toolReferenceName": "earthengineCopyAsset",
+        "displayName": "Copy Earth Engine Asset",
+        "icon": "$(copy)",
+        "canBeReferencedInPrompt": true,
+        "userDescription": "Copy an Earth Engine asset (asks for confirmation).",
+        "modelDescription": "Copies an asset into the user's Earth Engine project. Folders and image collections are copied recursively. The destination is the full new asset path (not the parent folder) and must not already exist nor be inside the source. Paths relative to the current project are expanded to 'projects/<project>/assets/...'.",
+        "tags": [
+          "earthengine",
+          "assets"
+        ],
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "sourcePath": {
+              "type": "string",
+              "description": "Asset to copy, e.g. 'my_folder/my_image' or 'projects/other-project/assets/shared_image'."
+            },
+            "destinationPath": {
+              "type": "string",
+              "description": "New full asset path, e.g. 'backup/my_image'."
+            }
+          },
+          "required": [
+            "sourcePath",
+            "destinationPath"
+          ]
+        }
+      },
+      {
+        "name": "earthengine_listTasks",
+        "toolReferenceName": "earthengineListTasks",
+        "displayName": "List Earth Engine Tasks",
+        "icon": "$(checklist)",
+        "canBeReferencedInPrompt": true,
+        "userDescription": "List export/import tasks with state, runtime and EECU cost.",
+        "modelDescription": "Lists recent Earth Engine export and import (ingest) tasks of the current project, newest first, or details a single task when 'name' is given. For each task returns: name (full operation name, needed for cancelling), description, kind, state (PENDING, RUNNING, CANCELLING, SUCCEEDED, FAILED, CANCELLED), progress, create/start/end times, elapsed (human-readable runtime), runSeconds (exact seconds running, or ran), queuedSeconds (seconds waited before starting), eecuSeconds and eecuHours (batch EECU consumed: the compute cost, billed per EECU-hour; it may be absent or partial while a task is still running), priority, attempt, destinationUris and error message. Only the 100 most recent operations are scanned.",
+        "tags": [
+          "earthengine",
+          "tasks"
+        ],
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string",
+              "description": "Full operation name, e.g. 'projects/my-project/operations/ABC123', to get a single task."
+            },
+            "type": {
+              "type": "string",
+              "enum": [
+                "export",
+                "import",
+                "all"
+              ],
+              "description": "Task category. Defaults to all."
+            },
+            "states": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "PENDING",
+                  "RUNNING",
+                  "CANCELLING",
+                  "SUCCEEDED",
+                  "FAILED",
+                  "CANCELLED"
+                ]
+              },
+              "description": "Only return tasks in these states."
+            },
+            "limit": {
+              "type": "number",
+              "minimum": 1,
+              "maximum": 100,
+              "description": "Maximum number of tasks returned. Defaults to 20."
+            }
+          }
+        }
+      },
+      {
+        "name": "earthengine_cancelTask",
+        "toolReferenceName": "earthengineCancelTask",
+        "displayName": "Cancel Earth Engine Task",
+        "icon": "$(stop-circle)",
+        "canBeReferencedInPrompt": true,
+        "userDescription": "Cancel a pending or running export/import task (asks for confirmation).",
+        "modelDescription": "Cancels a PENDING or RUNNING Earth Engine export or import task, identified by its full operation name (get it from earthengine_listTasks). Fails if the task already finished.",
+        "tags": [
+          "earthengine",
+          "tasks"
+        ],
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string",
+              "description": "Full operation name, e.g. 'projects/my-project/operations/ABC123'."
+            }
+          },
+          "required": [
+            "name"
+          ]
+        }
+      },
+      {
+        "name": "earthengine_getPythonSetup",
+        "toolReferenceName": "earthenginePythonSetup",
+        "displayName": "Get Earth Engine Python Setup",
+        "icon": "$(terminal)",
+        "canBeReferencedInPrompt": true,
+        "userDescription": "Get the active Earth Engine project and the header to start a Python script with.",
+        "modelDescription": "Returns the active Earth Engine project (null when no profile is active) and the 'header' every Earth Engine Python script should start with: import ee, from vscee import Map, ee.Initialize(project=...). Call it before writing any Earth Engine Python script and use the header verbatim.",
+        "tags": [
+          "earthengine",
+          "python"
+        ],
+        "inputSchema": {
+          "type": "object",
+          "properties": {}
+        }
+      }
+    ],
+    "chatSkills": [
+      {
+        "path": "./skills/earthengine-python/SKILL.md"
+      }
+    ],
     "menus": {
       "view/title": [
         {

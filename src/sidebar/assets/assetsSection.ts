@@ -355,17 +355,8 @@ export class AssetsSection extends SidebarSection {
           return false;
         }
         try {
-          await vscode.window.withProgress(
-            { location: vscode.ProgressLocation.Notification, title: 'Deleting asset…' },
-            (_progress) => {
-              _progress.report({ message: name });
-              return deleteAsset(name, token, (assetName) => {
-                _progress.report({ message: assetName });
-              });
-            },
-          );
+          await this.deleteAssetAt(name);
           vscode.window.showInformationMessage(`Asset "${name}" deleted.`);
-          this.provider.refresh();
           return true;
         } catch (err) {
           const msg = err instanceof Error ? err.message : String(err);
@@ -392,17 +383,8 @@ export class AssetsSection extends SidebarSection {
           return false;
         }
         try {
-          await vscode.window.withProgress(
-            { location: vscode.ProgressLocation.Notification, title: 'Moving asset…' },
-            (_progress) => {
-              _progress.report({ message: source });
-              return moveAsset(source, destination, token, (assetName) => {
-                _progress.report({ message: assetName });
-              });
-            },
-          );
+          await this.moveAssetTo(source, destination);
           vscode.window.showInformationMessage(`Asset moved to "${destination}".`);
-          this.provider.refresh();
           return true;
         } catch (err) {
           const msg = err instanceof Error ? err.message : String(err);
@@ -429,17 +411,8 @@ export class AssetsSection extends SidebarSection {
           return false;
         }
         try {
-          await vscode.window.withProgress(
-            { location: vscode.ProgressLocation.Notification, title: 'Copying asset…' },
-            (_progress) => {
-              _progress.report({ message: source });
-              return copyAsset(source, destination, token, (assetName) => {
-                _progress.report({ message: assetName });
-              });
-            },
-          );
+          await this.copyAssetTo(source, destination);
           vscode.window.showInformationMessage(`Asset copied to "${destination}".`);
-          this.provider.refresh();
           return true;
         } catch (err) {
           const msg = err instanceof Error ? err.message : String(err);
@@ -452,13 +425,84 @@ export class AssetsSection extends SidebarSection {
     context.subscriptions.push(this);
   }
 
+  // ==================================================================
+  // PROGRAMMATIC API
+  // ==================================================================
+
+  /**
+   * Deletes an asset (containers recursively) without prompting, then refreshes the tree.
+   * @returns The full asset name that was deleted.
+   */
+  async deleteAssetAt(path: string): Promise<string> {
+    const name = this.normalizeAssetPath(path);
+    await this.runWithProgress('Deleting asset…', name, (token, report) =>
+      deleteAsset(name, token, report),
+    );
+    return name;
+  }
+
+  /**
+   * Moves an asset (containers recursively) without prompting, then refreshes the tree.
+   * @returns The full source and destination names.
+   */
+  async moveAssetTo(
+    sourcePath: string,
+    destinationPath: string,
+  ): Promise<{ source: string; destination: string }> {
+    const source = this.normalizeAssetPath(sourcePath);
+    const destination = this.normalizeAssetPath(destinationPath);
+    await this.runWithProgress('Moving asset…', source, (token, report) =>
+      moveAsset(source, destination, token, report),
+    );
+    return { source, destination };
+  }
+
+  /**
+   * Copies an asset (containers recursively) without prompting, then refreshes the tree.
+   * @returns The full source and destination names.
+   */
+  async copyAssetTo(
+    sourcePath: string,
+    destinationPath: string,
+  ): Promise<{ source: string; destination: string }> {
+    const source = this.normalizeAssetPath(sourcePath);
+    const destination = this.normalizeAssetPath(destinationPath);
+    await this.runWithProgress('Copying asset…', source, (token, report) =>
+      copyAsset(source, destination, token, report),
+    );
+    return { source, destination };
+  }
+
+  /** Runs an asset operation under a progress notification, then refreshes the tree. */
+  private async runWithProgress(
+    title: string,
+    source: string,
+    operation: (token: string, report: (assetName: string) => void) => Promise<unknown>,
+  ): Promise<void> {
+    const token = await this.authService.getToken();
+    if (!token) {
+      throw new Error('Not authenticated.');
+    }
+    await vscode.window.withProgress(
+      { location: vscode.ProgressLocation.Notification, title },
+      (progress) => {
+        progress.report({ message: source });
+        return operation(token, (assetName) => progress.report({ message: assetName }));
+      },
+    );
+    this.provider.refresh();
+  }
+
   /** Expands a bare or relative path into a full "projects/…/assets/…" path. */
   private normalizeAssetPath(path: string): string {
     const trimmed = path.trim().replace(/^\/+|\/+$/g, '');
     if (trimmed.startsWith('projects/')) {
       return trimmed;
     }
-    const profile = this.authService.currentProfile!;
+    const profile = this.authService.currentProfile;
+    if (!profile) {
+      throw new Error('No active Earth Engine profile.');
+    }
     return `projects/${profile.project}/assets/${trimmed}`;
   }
 
