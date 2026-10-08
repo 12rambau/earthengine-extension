@@ -28,7 +28,7 @@ export class GetPythonSetupTool implements vscode.LanguageModelTool<Record<strin
     const project = this.authService.currentProfile?.project;
     const info = {
       project: project ?? null,
-      pythonPackages: ['earthengine-api', 'vscee'],
+      pythonPackages: ['earthengine-api', 'vscee', 'geetools', 'ipygee'],
       header: scriptHeader(project),
     };
     return new vscode.LanguageModelToolResult([

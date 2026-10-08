@@ -1,9 +1,22 @@
 ---
 name: earthengine-python
-description: Google Earth Engine analysis with Python in VS Code. Use for ANY Earth Engine request beyond displaying one existing asset unchanged - filtering image collections by date, region or clouds, cloud masking, composites (median, mosaic), NDVI or other indices and band math, reducers, zonal statistics, time series, change detection, classification, sampling, charts, and exports to Drive, Cloud Storage or assets. Explains how to write and run a Python script with earthengine-api and display results on the VS Code Earth Engine map with vscee.Map.
+description: Google Earth Engine analysis with Python in VS Code. Use for ANY Earth Engine request beyond displaying one existing asset unchanged - filtering image collections by date, region or clouds, cloud masking, composites (median, mosaic), monthly or yearly aggregation, NDVI or other spectral indices and band math, reducers, zonal statistics, time series, change detection, classification, sampling, charts and plots (static or interactive), and exports to Drive, Cloud Storage or assets. Explains how to write and run a Python script with earthengine-api, geetools and ipygee, and display results on the VS Code Earth Engine map with vscee.Map.
 ---
 
 # Earth Engine with Python in VS Code
+
+## Contents
+
+- [Decision rule](#decision-rule) - tools vs. Python script
+- [Workflow](#workflow) - header, install, write, run, report
+- [Libraries](#libraries) - which library for which job
+- [Script template](#script-template)
+- [`vscee.Map` API](#vsceemap-api-mirrors-the-code-editor-map)
+- [Earth Engine best practices](#earth-engine-best-practices)
+- [Finding datasets](#finding-datasets)
+- References (read when needed):
+  [geetools](references/geetools.md) - preprocessing, interval reductions, static matplotlib plots, assets, collection exports;
+  [ipygee](references/ipygee.md) - interactive bokeh charts
 
 ## Decision rule
 
@@ -26,26 +39,61 @@ and do not answer with Code Editor JavaScript unless the user asks for it.
    user which Google Cloud project to use (or to sign in from the Earth Engine sidebar).
    If `ee.Initialize` fails with an authentication error, ask the user to run
    `earthengine authenticate` once in the terminal.
-2. **Prepare Python**: make sure a Python environment is selected, then install
-   `earthengine-api` and `vscee` in it (`pip install earthengine-api vscee`).
-3. **Write the script** in the workspace (e.g. `ee_scripts/<topic>.py`), never in a
-   temporary location the user cannot see. Follow the template below.
+2. **Prepare Python**: make sure a Python environment is selected, then install the
+   libraries in it: `pip install earthengine-api vscee geetools ipygee`.
+3. **Pick the format, then write the code** in the workspace, never in a temporary
+   location the user cannot see:
+   - **Notebook** (`ee_notebooks/<topic>.ipynb`) - the default for exploration, charts
+     and any iterative analysis. First cell = header, then one step per cell.
+   - **Script** (`ee_scripts/<topic>.py`) - for one-shot pipelines, exports and anything
+     the user wants to re-run unchanged. Follow the template below.
 4. **Always run it yourself** right after writing it - never stop at showing the code or
-   telling the user to run it. Use the terminal tool in the foreground (not a background
-   process or subagent) so the output stays visible in the user's terminal:
-   `<selected python interpreter> ee_scripts/<topic>.py`. Layers sent with `vscee.Map`
-   appear in the Earth Engine map panel, which opens automatically.
-   On failure, read the traceback, fix the script and run it again (missing package →
-   install it in the selected environment; authentication → see step 1). Stop and ask
-   the user after 3 failed attempts on the same error.
+   telling the user to run it.
+   - Notebook: run the cells in order with the notebook tools; outputs and plots appear
+     inline.
+   - Script: use the terminal tool in the foreground (not a background process or
+     subagent) so the output stays visible in the user's terminal:
+     `<selected python interpreter> ee_scripts/<topic>.py`.
+
+   Layers sent with `vscee.Map` appear in the Earth Engine map panel, which opens
+   automatically. On failure, read the traceback, fix the code and run it again
+   (missing package → install it in the selected environment; authentication → see
+   step 1). Stop and ask the user after 3 failed attempts on the same error.
+
 5. **Report**: summarize the printed output; for exports, give the task description and
    offer to follow it with `earthengine_listTasks` (runtime, EECU cost) or cancel it with
    `earthengine_cancelTask`.
+
+## Libraries
+
+| Need                                                                   | Use                                                                                        |
+| ---------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| Show results on the map                                                | `vscee.Map` (below)                                                                        |
+| Cloud masking, scale/offset, spectral indices, closest image to a date | geetools `.geetools.maskClouds()`, `.scaleAndOffset()`, `.spectralIndices()`, `.closest()` |
+| Monthly / yearly / n-day composites                                    | geetools `.geetools.reduceInterval(reducer, unit, duration)`                               |
+| Static charts (time series, per-region bars, histograms)               | geetools `.geetools.plot_*` (matplotlib) - **default**                                     |
+| Interactive charts (zoom, hover)                                       | ipygee `.bokeh.plot_*` - only when the user asks for interactivity                         |
+| Export a whole ImageCollection                                         | `ee.batch.Export.geetools.imagecollection.toAsset/toDrive/toCloudStorage`                  |
+
+`import geetools` and `import ipygee` only register the `.geetools` / `.bokeh`
+accessors on `ee` objects; import them right after `import ee`. Prefer a geetools
+method over hand-written equivalent code. Before using one, read
+[references/geetools.md](references/geetools.md) or [references/ipygee.md](references/ipygee.md).
+
+Displaying plots - always show them; save to a file only when the user asks (then
+at the path they give):
+
+- **matplotlib / geetools**: `plt.show()`.
+- **bokeh / ipygee**: in a notebook call `bokeh.io.output_notebook()` once, then
+  `bokeh.io.show(fig)`; in a script `bokeh.io.show(fig)` opens the chart in the browser.
+- In a script, put all `print()` output before the final `plt.show()`: the run waits
+  until the plot window is closed.
 
 ## Script template
 
 ```python
 import ee
+import geetools  # noqa: F401  (registers the .geetools accessor)
 from vscee import Map
 
 ee.Initialize(project="my-project")  # project from earthengine_getPythonSetup
@@ -56,17 +104,17 @@ s2 = (
     ee.ImageCollection("COPERNICUS/S2_SR_HARMONIZED")
     .filterBounds(aoi)
     .filterDate("2024-06-01", "2024-09-01")
-    .filter(ee.Filter.lt("CLOUDY_PIXEL_PERCENTAGE", 20))
-    .median()
-    .clip(aoi)
+    .geetools.maskClouds()
+    .geetools.scaleAndOffset()
+    .geetools.spectralIndices(["NDVI"])
 )
-ndvi = s2.normalizedDifference(["B8", "B4"]).rename("NDVI")
+composite = s2.median().clip(aoi)
 
-Map.addLayer(s2, {"bands": ["B4", "B3", "B2"], "min": 0, "max": 3000}, "RGB")
-Map.addLayer(ndvi, {"min": 0, "max": 1, "palette": ["white", "green"]}, "NDVI")
+Map.addLayer(composite, {"bands": ["B4", "B3", "B2"], "min": 0, "max": 0.3}, "RGB")
+Map.addLayer(composite, {"bands": ["NDVI"], "min": 0, "max": 1, "palette": ["white", "green"]}, "NDVI")
 Map.centerObject(aoi, zoom=11)
 
-mean = ndvi.reduceRegion(ee.Reducer.mean(), aoi, scale=10, maxPixels=1e9)
+mean = composite.select("NDVI").reduceRegion(ee.Reducer.mean(), aoi, scale=10, maxPixels=1e9)
 print("Mean NDVI:", mean.getInfo())
 ```
 
@@ -102,8 +150,10 @@ Nothing is computed client-side: tiles are rendered by Earth Engine on demand.
   → `ee.batch.Export.image.toAsset / toDrive / toCloudStorage` or
   `ee.batch.Export.table.*`, then `task.start()`. Do not `getInfo()` them.
   Exports to assets go under `projects/<project>/assets/...`.
-- **Charts**: reduce server-side to a small `ee.FeatureCollection` or dictionary,
-  `getInfo()` it, then plot with matplotlib/pandas and save the figure in the workspace.
+- **Charts**: use the geetools / ipygee plot methods (see [Libraries](#libraries)); they
+  reduce server-side and fetch only the small result. For a chart they do not cover,
+  reduce to a small `ee.FeatureCollection` or dictionary, `getInfo()` it once, then plot
+  with matplotlib.
 - **Errors**: "User memory limit exceeded" / "Computation timed out" → reduce the region,
   increase `scale`, add `tileScale=4` to reducers, or switch to an export.
   "Too many concurrent aggregations" → retry later or export.
