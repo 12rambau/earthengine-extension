@@ -1600,7 +1600,7 @@
       <div class="viz-editor-footer">
         <button
           class="viz-btn viz-btn-secondary viz-btn-code"
-          title={vizType === 'intervals' ? 'Show Python SLD code' : 'Show these parameters as JSON'}
+          title="Show code"
           onclick={() => {
             vizCodeVisible = true;
           }}
@@ -1608,7 +1608,7 @@
           <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" fill="currentColor"
             ><path d={mdiCodeTags} /></svg
           >
-          {vizType === 'intervals' ? 'Python' : 'JSON'}
+          Code
         </button>
         <button class="viz-btn viz-btn-secondary" onclick={vizClose}>Cancel</button>
         <button class="viz-btn viz-btn-primary" onclick={vizApply}>Apply</button>
