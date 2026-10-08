@@ -530,6 +530,9 @@
       }
     }
     .btn-primary {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--vscee-space-xs);
       background: var(--vscee-color-button-background);
       color: var(--vscee-color-button-foreground);
       border-color: transparent;
