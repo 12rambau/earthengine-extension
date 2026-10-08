@@ -519,6 +519,91 @@
             }
           }
         }
+      },
+      {
+        "name": "earthengine_deleteAsset",
+        "toolReferenceName": "earthengineDeleteAsset",
+        "displayName": "Delete Earth Engine Asset",
+        "icon": "$(trash)",
+        "canBeReferencedInPrompt": true,
+        "userDescription": "Delete an Earth Engine asset (asks for confirmation).",
+        "modelDescription": "Deletes an asset of the user's Earth Engine project. Folders and image collections are deleted recursively with all their content. Irreversible: the user is asked to confirm. Paths relative to the current project ('my_folder/my_image') are expanded to 'projects/<project>/assets/...'; full 'projects/.../assets/...' paths are used as is.",
+        "tags": [
+          "earthengine",
+          "assets"
+        ],
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "assetPath": {
+              "type": "string",
+              "description": "Asset to delete, e.g. 'my_folder/my_image' or 'projects/my-project/assets/my_folder/my_image'."
+            }
+          },
+          "required": [
+            "assetPath"
+          ]
+        }
+      },
+      {
+        "name": "earthengine_moveAsset",
+        "toolReferenceName": "earthengineMoveAsset",
+        "displayName": "Move Earth Engine Asset",
+        "icon": "$(arrow-right)",
+        "canBeReferencedInPrompt": true,
+        "userDescription": "Move or rename an Earth Engine asset (asks for confirmation).",
+        "modelDescription": "Moves or renames an asset of the user's Earth Engine project. Folders and image collections are moved recursively. The destination is the full new asset path (not the parent folder) and must not already exist nor be inside the source. Paths relative to the current project are expanded to 'projects/<project>/assets/...'.",
+        "tags": [
+          "earthengine",
+          "assets"
+        ],
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "sourcePath": {
+              "type": "string",
+              "description": "Asset to move, e.g. 'old_folder/my_image'."
+            },
+            "destinationPath": {
+              "type": "string",
+              "description": "New full asset path, e.g. 'new_folder/my_image'."
+            }
+          },
+          "required": [
+            "sourcePath",
+            "destinationPath"
+          ]
+        }
+      },
+      {
+        "name": "earthengine_copyAsset",
+        "toolReferenceName": "earthengineCopyAsset",
+        "displayName": "Copy Earth Engine Asset",
+        "icon": "$(copy)",
+        "canBeReferencedInPrompt": true,
+        "userDescription": "Copy an Earth Engine asset (asks for confirmation).",
+        "modelDescription": "Copies an asset into the user's Earth Engine project. Folders and image collections are copied recursively. The destination is the full new asset path (not the parent folder) and must not already exist nor be inside the source. Paths relative to the current project are expanded to 'projects/<project>/assets/...'.",
+        "tags": [
+          "earthengine",
+          "assets"
+        ],
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "sourcePath": {
+              "type": "string",
+              "description": "Asset to copy, e.g. 'my_folder/my_image' or 'projects/other-project/assets/shared_image'."
+            },
+            "destinationPath": {
+              "type": "string",
+              "description": "New full asset path, e.g. 'backup/my_image'."
+            }
+          },
+          "required": [
+            "sourcePath",
+            "destinationPath"
+          ]
+        }
       }
     ],
     "menus": {
