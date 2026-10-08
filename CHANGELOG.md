@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.10.0](https://github.com/12rambau/earthengine-extension/compare/v0.9.0...v0.10.0) (2026-10-08)
+
+### Features
+
+- add ai tooling for the AI agent to use harmless actions of the extension ([dfa972c](https://github.com/12rambau/earthengine-extension/commit/dfa972cc192df5b3082bae990412d5f638f9ca3d))
+- add AI tools for managing Earth Engine map layers and views ([7e012e9](https://github.com/12rambau/earthengine-extension/commit/7e012e9b64e5746a82a497c78bc222ef86c82b96))
+- add an Earth engine python skill ([2e2b3f1](https://github.com/12rambau/earthengine-extension/commit/2e2b3f18b5057e7d4d7afb7ea08b2dacb3c2247f))
+- add exceptions to the earthengine api skill ([750806d](https://github.com/12rambau/earthengine-extension/commit/750806de2f8faa7306545d4d16dd3931ad998f3e))
+- add tools for managing Earth Engine assets (copy, move, delete) ([98b3a12](https://github.com/12rambau/earthengine-extension/commit/98b3a12bf2252f938260a9ceb4c0b07b2989b7fc))
+- add tools to list and cancel Earth Engine tasks ([1bd332e](https://github.com/12rambau/earthengine-extension/commit/1bd332e0dc0af643d3425d72404e187e5e498276))
+- enrich python skill ([519fc9e](https://github.com/12rambau/earthengine-extension/commit/519fc9e816371cb338d2cfc321e80738aa3b5d0e))
+- improve ai task management ([d44df4d](https://github.com/12rambau/earthengine-extension/commit/d44df4dc1b3a39406a0da15913b629d9efb915e7))
+
 ## [0.9.0](https://github.com/12rambau/earthengine-extension/compare/v0.8.0...v0.9.0) (2026-10-07)
 
 ### Features
