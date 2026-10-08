@@ -117,19 +117,12 @@ export function selectSepalViz(vizs: SepalViz[], selector: string | number): Sep
 // CONVERSION
 // ==================================================================
 
-/** Positions of interval boundaries along a scale, falling back to equal widths for invalid breaks. */
-export function intervalStops(breaks: number[], count: number): number[] {
+/** Positions of interval boundaries along a scale, independent of their numeric break values. */
+export function intervalStops(_breaks: number[], count: number): number[] {
   if (count <= 0) {
     return [0];
   }
-  const valid =
-    breaks.length === count + 1 &&
-    breaks.every(
-      (value, index) => Number.isFinite(value) && (index === 0 || value > breaks[index - 1]),
-    );
-  return Array.from({ length: count + 1 }, (_, index) =>
-    valid ? (breaks[index] - breaks[0]) / (breaks[count] - breaks[0]) : index / count,
-  );
+  return Array.from({ length: count + 1 }, (_, index) => index / count);
 }
 
 /** Builds the interval SLD used by both map rendering and copied Python code. */
