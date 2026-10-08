@@ -392,6 +392,11 @@
       font-size: var(--vscee-font-md);
       line-height: 1.6;
 
+      ul,
+      ol {
+        margin: var(--vscee-space-md) 0;
+        padding-left: 1.5em;
+      }
       h2 {
         font-size: var(--vscee-font-xxl);
         margin: var(--vscee-space-xl) 0 var(--vscee-space-md);
