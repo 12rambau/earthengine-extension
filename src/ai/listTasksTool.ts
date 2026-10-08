@@ -24,20 +24,37 @@ export interface ListTasksInput {
   limit?: number;
 }
 
+/** Seconds between `from` and `to` (or now), or undefined when `from` is unset or the epoch sentinel. */
+function secondsBetween(from?: string, to?: string): number | undefined {
+  if (!from || from === '1970-01-01T00:00:00.000Z') {
+    return undefined;
+  }
+  const end = to ? Date.parse(to) : Date.now();
+  return Math.max(0, Math.round((end - Date.parse(from)) / 1000));
+}
+
 /** Formats one operation as a compact JSON-friendly record. */
 function summarize(op: Operation): Record<string, unknown> {
   const m = op.metadata ?? {};
+  const state = getTaskState(op);
   return {
     name: op.name,
     description: m.description,
     kind: getTaskKind(op),
-    state: getTaskState(op),
+    state,
     progress: m.progress !== undefined ? `${Math.round(m.progress * 100)}%` : undefined,
     createTime: m.createTime,
     startTime: m.startTime,
     endTime: m.endTime,
     elapsed: getElapsedTime(op) || undefined,
+    runSeconds: state === 'PENDING' ? undefined : secondsBetween(m.startTime, m.endTime),
+    queuedSeconds: secondsBetween(m.createTime, state === 'PENDING' ? undefined : m.startTime),
     eecuSeconds: m.batchEecuUsageSeconds,
+    eecuHours:
+      m.batchEecuUsageSeconds !== undefined
+        ? Number((m.batchEecuUsageSeconds / 3600).toFixed(4))
+        : undefined,
+    priority: m.priority,
     attempt: m.attempt,
     destinationUris: m.destinationUris,
     error: op.error?.message,

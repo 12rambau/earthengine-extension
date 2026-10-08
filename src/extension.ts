@@ -25,10 +25,12 @@ import { MapPanel } from './editor/map/mapPanel.js';
 import { setExtensionContext } from './shared/extensionContext.js';
 import {
   AddMapLayerTool,
+  CancelTaskTool,
   CopyAssetTool,
   DeleteAssetTool,
   EarthEngineCommandTool,
   ListMapLayersTool,
+  ListTasksTool,
   MoveAssetTool,
   RemoveMapLayerTool,
   SetMapViewTool,
@@ -100,6 +102,8 @@ export function activate(context: vscode.ExtensionContext) {
   new DeleteAssetTool(assets).register(context);
   new MoveAssetTool(assets).register(context);
   new CopyAssetTool(assets).register(context);
+  new ListTasksTool(authService).register(context);
+  new CancelTaskTool(authService).register(context);
 }
 
 /**

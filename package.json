@@ -612,7 +612,7 @@
         "icon": "$(checklist)",
         "canBeReferencedInPrompt": true,
         "userDescription": "List export/import tasks with state, runtime and EECU cost.",
-        "modelDescription": "Lists recent Earth Engine export and import (ingest) tasks of the current project, newest first, or details a single task when 'name' is given. For each task returns: name (full operation name, needed for cancelling), description, kind, state (PENDING, RUNNING, CANCELLING, SUCCEEDED, FAILED, CANCELLED), progress, create/start/end times, elapsed (how long it has been running, or ran), eecuSeconds (batch EECU-seconds consumed: the compute cost; it may be absent or partial while a task is still running), attempt, destinationUris and error message. Only the 100 most recent operations are scanned.",
+        "modelDescription": "Lists recent Earth Engine export and import (ingest) tasks of the current project, newest first, or details a single task when 'name' is given. For each task returns: name (full operation name, needed for cancelling), description, kind, state (PENDING, RUNNING, CANCELLING, SUCCEEDED, FAILED, CANCELLED), progress, create/start/end times, elapsed (human-readable runtime), runSeconds (exact seconds running, or ran), queuedSeconds (seconds waited before starting), eecuSeconds and eecuHours (batch EECU consumed: the compute cost, billed per EECU-hour; it may be absent or partial while a task is still running), priority, attempt, destinationUris and error message. Only the 100 most recent operations are scanned.",
         "tags": [
           "earthengine",
           "tasks"
