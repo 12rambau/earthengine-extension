@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.10.1](https://github.com/12rambau/earthengine-extension/compare/v0.10.0...v0.10.1) (2026-10-08)
+
+### Bug Fixes
+
+- add transition effect to visualization close button and include codicons CSS ([4560d89](https://github.com/12rambau/earthengine-extension/commit/4560d8905d4bf3e317dc95183b85b656a25dbc1f))
+- adjust hex field size ([a783432](https://github.com/12rambau/earthengine-extension/commit/a783432ccf27c49689fb49aca823064bc07f1f05))
+- center refresh icons ([7fe5b9a](https://github.com/12rambau/earthengine-extension/commit/7fe5b9ab3e6d2542203de98829ab91849d078290))
+- make interval bins equal width ([bfdd63a](https://github.com/12rambau/earthengine-extension/commit/bfdd63a8049416089eedbec1ec6bf9621478a29b))
+- **preview:** restore markdown list indentation ([5669ef9](https://github.com/12rambau/earthengine-extension/commit/5669ef96cb387b42146ba33b9e73e5e00c2bfc2f))
+- report full image collection size ([a91bd83](https://github.com/12rambau/earthengine-extension/commit/a91bd83fa7dbb446c3d456f6c04b623b0a903364))
+- simplify button titles in visualization editor ([9050b0b](https://github.com/12rambau/earthengine-extension/commit/9050b0bd859023e8d8089b8897a3b29ac16c46d4))
+- use standard visualization close buttons ([521fdf2](https://github.com/12rambau/earthengine-extension/commit/521fdf28d439d892eaaa315049fe16794792a5ab))
+
 ## [0.10.0](https://github.com/12rambau/earthengine-extension/compare/v0.9.0...v0.10.0) (2026-10-08)
 
 ### Features
