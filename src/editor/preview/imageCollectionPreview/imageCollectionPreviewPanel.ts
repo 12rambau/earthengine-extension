@@ -17,7 +17,7 @@ import { EEAsset, EEBand, listAssets, getAsset } from '../../../sidebar/assets/e
 import { designTokens, codiconsCss, escapeHtml } from '../../../shared/index.js';
 import { filesize } from 'filesize';
 import dayjs from 'dayjs';
-import { ensureEe, getThumbUrlRest } from '../../../shared/eeSession.js';
+import { computeValue, ensureEe, getThumbUrlRest } from '../../../shared/eeSession.js';
 import { getExtensionUri } from '../../../shared/extensionContext.js';
 
 import script from './ImageCollectionPreview.svelte';
@@ -55,12 +55,11 @@ export async function openImageCollectionPreview(
 
   // Fetch child images for the IMAGES tab (first page)
   let childImages: EEAsset[] = [];
-  try {
-    const resp = await listAssets(asset.name, accessToken, IMAGES_PAGE_SIZE);
-    childImages = resp.assets ?? [];
-  } catch {
-    // Will show empty table
-  }
+  const [resp, imageCount] = await Promise.all([
+    listAssets(asset.name, accessToken, IMAGES_PAGE_SIZE).catch(() => ({ assets: [] })),
+    getCollectionImageCount(asset.name).catch(() => undefined),
+  ]);
+  childImages = resp.assets ?? [];
 
   // Fetch bands from the first child image
   let bands: EEBand[] = [];
@@ -73,7 +72,7 @@ export async function openImageCollectionPreview(
     }
   }
 
-  panel.webview.html = buildHtml(asset, childImages, bands, panel.webview);
+  panel.webview.html = buildHtml(asset, childImages, imageCount, bands, panel.webview);
 
   // Handle messages from the WebView
   panel.webview.onDidReceiveMessage(async (msg: { type: string; name?: string }) => {
@@ -113,6 +112,11 @@ export async function openImageCollectionPreview(
 /** Returns accessToken (placeholder for token refresh). */
 function getTokenSafe(accessToken: string): Promise<string> {
   return Promise.resolve(accessToken);
+}
+
+async function getCollectionImageCount(assetName: string): Promise<number> {
+  const ee = await ensureEe();
+  return computeValue<number>(ee.ImageCollection(assetName).size());
 }
 
 // ==================================================================
@@ -217,6 +221,7 @@ function getRegion(ee: any, image: any, asset: EEAsset): unknown {
 function buildHtml(
   asset: EEAsset,
   childImages: EEAsset[],
+  imageCount: number | undefined,
   bands: EEBand[],
   webview: vscode.Webview,
 ): string {
@@ -233,8 +238,6 @@ function buildHtml(
   const lastModified = asset.updateTime
     ? dayjs.utc(asset.updateTime).format('YYYY-MM-DD HH:mm:ss [UTC]')
     : 'N/A';
-  const imageCount = childImages.length;
-
   const description = asset.properties?.['description']
     ? String(asset.properties['description'])
     : '';
@@ -261,7 +264,7 @@ function buildHtml(
     startDate,
     endDate,
     fileSize,
-    imageCount: String(imageCount),
+    imageCount: String(imageCount ?? 'N/A'),
     lastModified,
     descriptionHtml: description
       ? `<div class="description-text">${marked(description)}</div>`
