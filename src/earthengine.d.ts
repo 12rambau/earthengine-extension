@@ -59,6 +59,7 @@ declare module '@google/earthengine' {
   interface EeImageCollection extends EeComputedObject {
     select(...bands: unknown[]): EeImageCollection;
     limit(max: number): EeImageCollection;
+    size(): EeComputedObject;
     first(): EeImage;
     mosaic(): EeImage;
   }
