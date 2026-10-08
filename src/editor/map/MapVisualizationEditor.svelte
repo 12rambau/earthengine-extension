@@ -9,7 +9,6 @@
   import {
     mdiCheck,
     mdiChevronDown,
-    mdiClose,
     mdiCodeTags,
     mdiContentCopy,
     mdiLoading,
@@ -1081,11 +1080,15 @@
           <option value="categorical">Categorical</option>
           <option value="intervals">Intervals</option>
         </select>
-        <MapButton class="viz-close-btn" title="Close" onclick={vizClose}>
-          <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" fill="currentColor"
-            ><path d={mdiClose} /></svg
-          >
-        </MapButton>
+        <button
+          type="button"
+          class="viz-close-btn"
+          title="Close"
+          aria-label="Close"
+          onclick={vizClose}
+        >
+          <i class="codicon codicon-close" aria-hidden="true"></i>
+        </button>
       </div>
       <!-- Body -->
       <div class="viz-editor-body">
@@ -1620,17 +1623,17 @@
     <div class="viz-editor-dialog viz-code-dialog">
       <div class="viz-editor-header">
         <span>{vizType === 'intervals' ? 'Python SLD visualization' : 'Python visualization parameters'}</span>
-        <MapButton
+        <button
+          type="button"
           class="viz-close-btn"
           title="Close"
+          aria-label="Close"
           onclick={() => {
             vizCodeVisible = false;
           }}
         >
-          <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" fill="currentColor"
-            ><path d={mdiClose} /></svg
-          >
-        </MapButton>
+          <i class="codicon codicon-close" aria-hidden="true"></i>
+        </button>
       </div>
       <div class="viz-editor-body">
         <div class="viz-code-wrap">
@@ -1710,10 +1713,23 @@
       max-width: 140px;
     }
     .viz-close-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
       width: 22px;
       height: 22px;
-      box-shadow: none;
+      padding: 0;
+      border: none;
+      border-radius: var(--vscee-radius-md);
+      background: transparent;
+      color: inherit;
+      cursor: pointer;
       opacity: 0.6;
+
+      &:hover {
+        background: var(--vscee-color-button-secondary-background);
+        opacity: 1;
+      }
     }
     .viz-editor-body {
       overflow-y: auto;
