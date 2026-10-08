@@ -1295,7 +1295,7 @@
                   <span class="viz-legend-index">{i + 1}</span>
                   <input
                     type="text"
-                    class="viz-legend-hex"
+                    class="viz-legend-hex viz-legend-hex-cont"
                     spellcheck="false"
                     maxlength="7"
                     value={color}
@@ -1410,7 +1410,7 @@
                 />
                 <input
                   type="number"
-                  class="viz-legend-value"
+                  class="viz-legend-value viz-legend-value-wide"
                   placeholder="Value"
                   bind:value={row.value}
                 />
@@ -1535,7 +1535,7 @@
                 <input
                   type="number"
                   step="any"
-                  class="viz-legend-value"
+                  class="viz-legend-value viz-legend-value-wide"
                   placeholder="To"
                   aria-label="Upper bound for interval {index + 1}"
                   bind:value={row.upper}
@@ -1976,6 +1976,11 @@
       border-radius: var(--vscee-radius-md);
       font-size: var(--vscee-font-compact-sm);
       padding: var(--vscee-space-xxs) var(--vscee-space-xs);
+
+      &.viz-legend-value-wide {
+        width: 90px;
+        flex-shrink: 0;
+      }
     }
     .viz-legend-name {
       flex: 1;
@@ -1995,8 +2000,9 @@
       font-variant-numeric: tabular-nums;
     }
     .viz-legend-hex {
-      flex: 1;
+      flex: 0 0 8ch;
       min-width: 0;
+      box-sizing: content-box;
       font-family: var(--vscee-editor-font-family);
       font-size: var(--vscee-font-compact-sm);
       background: var(--vscee-color-input-background);
@@ -2004,6 +2010,10 @@
       border: var(--vscee-border-sm) solid var(--vscee-color-input-border);
       border-radius: var(--vscee-radius-md);
       padding: var(--vscee-space-xxs) var(--vscee-space-xs);
+
+      &.viz-legend-hex-cont {
+        flex: 1;
+      }
     }
     .viz-legend-del {
       display: flex;
