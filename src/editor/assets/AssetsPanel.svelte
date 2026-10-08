@@ -258,7 +258,7 @@
       {/if}
     </div>
     <button class="btn-primary" class:loading={isLoading} disabled={isLoading} onclick={refresh}>
-      <span class="refresh-icon">⟳</span>
+      <i class="codicon codicon-sync refresh-icon" aria-hidden="true"></i>
       <span>{isLoading ? 'Refreshing…' : 'Refresh'}</span>
     </button>
     <button title="Go to parent" disabled={currentParent === rootPath} onclick={goUp}>↑</button>

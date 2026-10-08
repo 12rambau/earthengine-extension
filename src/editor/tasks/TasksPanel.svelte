@@ -232,7 +232,7 @@
       disabled={isRefreshing}
       onclick={refresh}
     >
-      <span class="refresh-icon">↻</span>
+      <i class="codicon codicon-sync refresh-icon" aria-hidden="true"></i>
       {isRefreshing ? 'Refreshing…' : 'Refresh'}
     </button>
   {/snippet}
