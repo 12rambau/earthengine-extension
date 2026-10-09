@@ -1,5 +1,7 @@
 <!-- NewAssetDialog: modal form to import a local raster or vector file as a new asset -->
 <script>
+  import DatePicker from '../../shared/DatePicker.svelte';
+
   let {
     kind,
     parent,
@@ -189,14 +191,14 @@
       </label>
 
       <div class="row">
-        <label class="field">
+        <div class="field">
           <span>Start time</span>
-          <input type="datetime-local" bind:value={startTime} disabled={busy} />
-        </label>
-        <label class="field">
+          <DatePicker mode="datetime" label="Start time" bind:value={startTime} disabled={busy} />
+        </div>
+        <div class="field">
           <span>End time</span>
-          <input type="datetime-local" bind:value={endTime} disabled={busy} />
-        </label>
+          <DatePicker mode="datetime" label="End time" bind:value={endTime} disabled={busy} />
+        </div>
       </div>
 
       <div class="field">

@@ -1,5 +1,7 @@
 <!-- ColumnFilter: header popover for a declarative data-table column filter -->
 <script>
+  import DatePicker from '../DatePicker.svelte';
+
   let { column, filter, open = false, align = 'end', onchange, onopenchange } = $props();
 
   let wrap = $state(null);
@@ -131,9 +133,15 @@
                 <option value="days">days</option>
               </select>
             </div>
+          {:else if filterKind === 'date'}
+            <DatePicker
+              label={`Filter value for ${column.label}`}
+              value={comparison.value}
+              onchange={(value) => setComparison('value', value)}
+            />
           {:else}
             <input
-              type={filterKind === 'date' ? 'date' : 'number'}
+              type="number"
               value={comparison.value}
               aria-label={`Filter value for ${column.label}`}
               oninput={(event) => setComparison('value', event.currentTarget.value)}
@@ -208,7 +216,6 @@
 
   .text-input,
   select,
-  input[type='date'],
   input[type='number'] {
     width: 100%;
     min-height: 28px;
