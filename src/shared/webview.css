@@ -126,9 +126,9 @@
 }
 
 /* ====================================================================
-   COLOR SCHEME  (keeps native form controls — e.g. the <input type="date">
-   calendar popup — in sync with the active VS Code theme instead of the
-   OS-level color scheme; VS Code sets these classes on <body>)
+   COLOR SCHEME  (keeps native form controls in sync with the active VS Code
+   theme instead of the OS-level color scheme; VS Code sets these classes
+   on <body>)
    ==================================================================== */
 body.vscode-light {
   color-scheme: light;
