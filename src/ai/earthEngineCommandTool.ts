@@ -9,8 +9,8 @@ import * as vscode from 'vscode';
 /** Commands exposed to assistants, with the description the model sees. */
 export const AI_COMMANDS: Readonly<Record<string, string>> = {
   'earthengine.openMap': 'Open (or reveal) the interactive Earth Engine map panel.',
-  'earthengine.map.testSepalViz':
-    'Open the map and add the SEPAL visualization example: 4 layers (RGB, NDWI harmonics, NDWI, Classification) from asset users/wiell/forum/visualization_example.',
+  'earthengine.map.demo':
+    'Open the map and add one layer for each visualization preset on projects/earthengine-extension/assets/demo-image.',
   'earthengine.openAssetsPanel': 'Open the asset manager panel.',
   'earthengine.openExportTasksPanel': 'Open the export tasks table.',
   'earthengine.openImportTasksPanel': 'Open the import tasks table.',

@@ -21,6 +21,8 @@ The local Python bridge listens on `localhost:31415` for scripts that add Earth 
 
 Images added to the map can carry one or more preset visualizations as asset properties, following the same convention used by SEPAL. When present, these presets appear in the visualization editor's **Preset…** dropdown so a collaborator can reuse the exact rendering a dataset was designed with, instead of guessing bands, ranges, and palettes from scratch.
 
+The examples on this page describe `projects/earthengine-extension/assets/demo-image`. It is a multi-source composite clipped to metropolitan France using FAO GAUL 2024 L0 (`gaul0_name = France`). Its grid is EPSG:4326 at approximately 100 m nominal resolution. Each band retains its own mask; coarser source products are resampled to this grid without gaining spatial detail.
+
 ### Create a visualization
 
 To create an `ee.Image` compatible with the visualization tool, add extra properties to the image using the `set` method:
@@ -28,14 +30,14 @@ To create an `ee.Image` compatible with the visualization tool, add extra proper
 ```python
 import ee
 
-image  # an ee.Image created by previous scripts
+image = ee.Image('projects/earthengine-extension/assets/demo-image')
 
-ee_image.set({
-    "visualization_0_name": "Classification",
-    "visualization_0_bands": "red,blue,green",
+image_with_preset = image.set({
+  "visualization_0_name": "Sentinel-2 RGB - July 2026",
+  "visualization_0_bands": "s2_red,s2_green,s2_blue",
     "visualization_0_type": "rgb",
     "visualization_0_min": "0",
-    "visualization_0_max": "2000"
+  "visualization_0_max": "3000"
 })
 ```
 
@@ -45,152 +47,101 @@ To create a visualization parameter, properties are added as a JSON dictionary t
 You can set as many visualizations in the dictionary as you want. Each one will be differentiated by its ID number and interpreted separately.
 :::
 
-Each key of this dictionary should start with `visualization_<number>_<keyword>: <value>` with:
+Each property key starts with `visualization_<number>_<keyword>`. The number identifies a preset; the keyword identifies a property such as `name`, `type`, `bands`, `min`, or `max`. Property values are strings, with comma-separated values for lists such as `bands`, `palette`, `breaks`, `labels`, and `values`.
 
-- `number`: the visualization ID number
-- `keyword`: the keyword to specify the visualization property you want to set
-- `value`: the value of the property set as a string. If multiple values need to be set (e.g. `bands`) they need to be split using commas in the same string.
+### Bands and sources
 
-In the next parts only the keywords will be specified. To reproduce the examples below, you can check the following asset: `users/wiell/forum/visualization_example`.
+| Band(s) | Source and interpretation |
+| --- | --- |
+| `s2_red`, `s2_green`, `s2_blue` | Harmonized Sentinel-2 surface reflectance B4/B3/B2: July 2026 median, with clear pixels selected using Cloud Score+ (`cs_cdf >= 0.60`). Values retain the source product's encoded reflectance scale. |
+| `viirs_ndvi` | NASA VIIRS VNP13A1.002: median NDVI from composites dated July 2026, in the source product's units. |
+| `era5_tmax_c` | Hourly ERA5-Land: maximum 2 m air temperature across July 2026, converted from kelvin to degrees Celsius. |
+| `era5_tmax_class` | Class index 0 to 22 for `era5_tmax_c`, using Celsius lower bounds -45, -40, -35, -30, -25, -20, -17.5, -15, -10, -5, -2.5, 0, 5, 10, 15, 20, 25, 30, 32.5, 35, 37.5, 40, and 45. |
+| `corine_landcover` | Copernicus CORINE V20 100 m, 2018 inventory: original land-cover class codes (111 to 523). |
+| `corine_class_index` | Index 0 to 43 of CORINE classes in ascending class-code order; used with the official display palette. Use `corine_landcover` for original codes. |
+| `dem_elevation` | Copernicus DEM GLO-30 2024_1: digital surface model elevation in metres (EGM2008 vertical datum). |
+| `terrain_slope`, `terrain_aspect`, `terrain_hillshade` | Derived from the DEM: slope in degrees, aspect in degrees (0 to 360), and hillshade from 0 to 255. |
+| `hsv_hue`, `hsv_saturation`, `hsv_value` | Terrain HSV components: aspect / 360, slope / 35 capped at 1, and hillshade / 255 * 0.75 + 0.25. Each component ranges from 0 to 1. |
+| `terrain_red`, `terrain_green`, `terrain_blue` | RGB conversion of the terrain HSV image, with components ranging from 0 to 1. |
 
-### Visualization types
+CORINE covers Europe, so pixels outside its coverage remain masked. Display palettes are visualization settings, not stored band values. The terrain RGB bands are derived data bands; the preset below uses the separate HSV component bands directly.
 
-#### RGB false colors
+The source datasets are [FAO GAUL 2024 L0](https://gee-community-catalog.org/projects/gaul/) (`projects/sat-io/open-datasets/FAO/GAUL/GAUL_2024_L0`), [Harmonized Sentinel-2 surface reflectance](https://developers.google.com/earth-engine/datasets/catalog/COPERNICUS_S2_SR_HARMONIZED) (`COPERNICUS/S2_SR_HARMONIZED`), [Cloud Score+ S2_HARMONIZED V1](https://developers.google.com/earth-engine/datasets/catalog/GOOGLE_CLOUD_SCORE_PLUS_V1_S2_HARMONIZED) (`GOOGLE/CLOUD_SCORE_PLUS/V1/S2_HARMONIZED`), [VIIRS VNP13A1.002](https://developers.google.com/earth-engine/datasets/catalog/NASA_VIIRS_002_VNP13A1) (`NASA/VIIRS/002/VNP13A1`), [ERA5-Land hourly](https://developers.google.com/earth-engine/datasets/catalog/ECMWF_ERA5_LAND_HOURLY) (`ECMWF/ERA5_LAND/HOURLY`), [Copernicus CORINE Land Cover V20 100 m](https://developers.google.com/earth-engine/datasets/catalog/COPERNICUS_CORINE_V20_100m) (`COPERNICUS/CORINE/V20/100m`, 2018), and [Copernicus DEM GLO-30 2024_1](https://developers.google.com/earth-engine/datasets/catalog/COPERNICUS_DEM_GLO30_2024_1) (`COPERNICUS/DEM/GLO30_2024_1`).
 
-This is setting a 3 bands false color visualization. Each band will be represented as red, green, and blue (respectively) on the final display. It is compulsory to set at least the **type** key to `rgb`. The other available keys are the following:
+### Presets stored on the demo image
 
-- **name**: The name that will be displayed in the interface.
-- **bands**: The 3 bands to display. Each one **must** correspond to an existing band in your image. It can be numbers or names.
-- **gamma**: Set the gamma of the image. It should be a float.
-- **min**: The minimal value to use in all bands or the minimal value to use in each band. Use commas to separate the different values.
-- **max**: The maximal value to use in all bands or the maximal value to use in each band. Use commas to separate the different values.
-- **inverted**: Boolean, whether or not the bands should be read inverted. Can also be set individually for each band using commas.
+The `demo` command adds one layer for each of these five presets. `name`, `type`, and `bands` identify the rendering; numeric bounds and comma-separated lists are also stored as strings on the asset.
 
-An example of image property using the example asset:
+#### Sentinel-2 RGB (July 2026)
+
+True-color rendering from the July 2026 Sentinel-2 median. Cloudy pixels are masked using Cloud Score+ `cs_cdf >= 0.60`.
 
 ```json
 {
+  "visualization_0_name": "Sentinel-2 RGB - July 2026",
   "visualization_0_type": "rgb",
-  "visualization_0_name": "RGB",
-  "visualization_0_bands": "red,green,blue",
-  "visualization_0_gamma": "1.2",
+  "visualization_0_bands": "s2_red,s2_green,s2_blue",
   "visualization_0_min": "0",
-  "visualization_0_max": "2000"
+  "visualization_0_max": "3000"
 }
 ```
 
-<div className="screenshot-pair">
-  <img className="screenshot--light" src={useBaseUrl('/img/light/viz_rgb.png')} alt="RGB false color visualization example" />
-  <img className="screenshot--dark" src={useBaseUrl('/img/dark/viz_rgb.png')} alt="RGB false color visualization example" />
-</div>
+#### VIIRS NDVI (July 2026)
 
-#### HSV false colors
-
-This is setting a 3 band false color visualization. Each band will be represented as Hue, Saturation, and Value (respectively) on the final display. It is compulsory to set at least the **type** key to `hsv`. The other available keys are the following:
-
-- **name**: The name that will be displayed in the interface.
-- **bands**: The 3 bands to display. Each one **must** correspond to an existing band in your image. It can be numbers or names.
-- **min**: The minimal value to use in all bands or the minimal value to use in each band. Use commas to separate the different values.
-- **max**: The maximal value to use in all bands or the maximal value to use in each band. Use commas to separate the different values.
-- **inverted**: Boolean, whether or not the bands should be read inverted. Can also be set individually for each band using commas.
-
-An example of image property using the example asset:
+Continuous rendering of the VIIRS NDVI band. Lower NDVI values are brown and higher values are green.
 
 ```json
 {
-  "visualization_0_type": "hsv",
-  "visualization_0_name": "NDWI harmonics",
-  "visualization_0_bands": "ndwi_phase_1,ndwi_amplitude_1,ndwi_rmse",
-  "visualization_0_inverted": "false,false,true",
-  "visualization_0_min": "-2.1875,352,320",
-  "visualization_0_max": "2.40625,3296,1792"
+  "visualization_1_name": "VIIRS NDVI - July 2026",
+  "visualization_1_type": "continuous",
+  "visualization_1_bands": "viirs_ndvi",
+  "visualization_1_min": "0.0199",
+  "visualization_1_max": "1.093",
+  "visualization_1_palette": "#8c5a3c,#e2c76a,#d9e9aa,#75b878,#126c46"
 }
 ```
 
-<div className="screenshot-pair">
-  <img className="screenshot--light" src={useBaseUrl('/img/light/viz_hsv.png')} alt="HSV false color visualization example" />
-  <img className="screenshot--dark" src={useBaseUrl('/img/dark/viz_hsv.png')} alt="HSV false color visualization example" />
-</div>
+#### ERA5-Land maximum temperature (July 2026)
 
-#### Single band continuous
-
-This is setting a single band ramp color visualization. The band will be represented with the selected colormap on the final display. It is compulsory to set at least the **type** key to `continuous`. The other available keys are the following:
-
-- **name**: The name that will be displayed in the interface.
-- **bands**: The band to display. It **must** correspond to an existing band in your image. It can be a number or a name.
-- **min**: The minimal value to use for the band.
-- **max**: The maximal value to use for the band.
-- **palette**: The colors to use in the ramp. They should be set as hex (e.g. `#000000`) values separated with commas.
-
-An example of image property using the example asset:
+Interval rendering of maximum 2 m air temperature in degrees Celsius. The 24 increasing boundaries define 23 intervals; the 23 colors map to those intervals in order. Values outside the outer bounds (-273.15 and 100 °C) are transparent. The separate `era5_tmax_class` band contains class indices 0 to 22.
 
 ```json
 {
-  "visualization_0_type": "continuous",
-  "visualization_0_name": "NDWI",
-  "visualization_0_bands": "ndwi",
-  "visualization_0_palette": "#042333,#2c3395,#744992,#b15f82,#eb7958",
-  "visualization_0_max": "6610",
-  "visualization_0_min": "-8450"
+  "visualization_2_name": "ERA5-Land maximum 2m temperature - July 2026",
+  "visualization_2_type": "intervals",
+  "visualization_2_bands": "era5_tmax_c",
+  "visualization_2_breaks": "-273.15,-40,-35,-30,-25,-20,-17.5,-15,-10,-5,-2.5,0,5,10,15,20,25,30,32.5,35,37.5,40,45,100",
+  "visualization_2_palette": "#BA68C8,#8E24AA,#6A1B9A,#7E57C2,#B39DDB,#ccd0ed,#1A237E,#0D47A1,#1565C0,#03A9F4,#00ffff,#1B5E20,#43A047,#8BC34A,#FFF176,#FFCA28,#FFA000,#FF6F00,#cd2000,#96132d,#fab2f5,#F06292,#E91E63"
 }
 ```
 
-<div className="screenshot-pair">
-  <img className="screenshot--light" src={useBaseUrl('/img/light/viz_ramp.png')} alt="Single band continuous visualization example" />
-  <img className="screenshot--dark" src={useBaseUrl('/img/dark/viz_ramp.png')} alt="Single band continuous visualization example" />
-</div>
+`breaks` is an extension preset property, not a standard Earth Engine `Map.addLayer` visualization parameter.
 
-#### Single band categorical
+#### CORINE land cover (2018)
 
-This is setting a single band categorical visualization. The band will be represented with the selected colors for each value on the final display. It is compulsory to set at least the **type** key to `categorical`. The other available keys are the following:
-
-- **name**: The name that will be displayed in the interface.
-- **bands**: The band to display. It **must** correspond to an existing band in your image. It can be a number or a name.
-- **palette**: The colors to use in the ramp. They should be set as hex values (e.g. `#000000`) separated with commas.
-- **labels**: The labels of each category. Use names separated with commas.
-- **values**: The values of each category. Use integers separated with commas.
-
-An example of image property using the example asset:
+Categorical rendering uses `corine_class_index` (0 to 43) and the 44 official CORINE colors in ascending class-code order. `labels` maps each index to its original CORINE code; use `corine_landcover` when the original code values are needed as image data.
 
 ```json
 {
-  "visualization_0_type": "categorical",
-  "visualization_0_name": "CLASS",
-  "visualization_0_bands": "class",
-  "visualization_0_palette": "#042333,#b15f82,#e8fa5b",
-  "visualization_0_labels": "Foo,Bar,Baz",
-  "visualization_0_values": "5,200,1000"
+  "visualization_3_name": "CORINE land cover - 2018",
+  "visualization_3_type": "categorical",
+  "visualization_3_bands": "corine_class_index",
+  "visualization_3_values": "0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43",
+  "visualization_3_labels": "111,112,121,122,123,124,131,132,133,141,142,211,212,213,221,222,223,231,241,242,243,244,311,312,313,321,322,323,324,331,332,333,334,335,411,412,421,422,423,511,512,521,522,523",
+  "visualization_3_palette": "#e6004d,#ff0000,#cc4df2,#cc0000,#e6cccc,#e6cce6,#a600cc,#a64dcc,#ff4dff,#ffa6ff,#ffe6ff,#ffffa8,#ffff00,#e6e600,#e68000,#f2a64d,#e6a600,#e6e64d,#ffe6a6,#ffe64d,#e6cc4d,#f2cca6,#80ff00,#00a600,#4dff00,#ccf24d,#a6ff80,#a6e64d,#a6f200,#e6e6e6,#cccccc,#ccffcc,#000000,#a6e6cc,#a6a6ff,#4d4dff,#ccccff,#e6e6ff,#a6a6e6,#00ccf2,#80f2e6,#00ffa6,#a6ffe6,#e6f2ff"
 }
 ```
 
-<div className="screenshot-pair">
-  <img className="screenshot--light" src={useBaseUrl('/img/light/viz_class.png')} alt="Single band categorical visualization example" />
-  <img className="screenshot--dark" src={useBaseUrl('/img/dark/viz_class.png')} alt="Single band categorical visualization example" />
-</div>
+#### Copernicus DEM terrain HSV
 
-#### Single band intervals
+The terrain preset displays `hsv_hue`, `hsv_saturation`, and `hsv_value`, each ranging from 0 to 1. Hue follows aspect, saturation follows slope, and value follows hillshade.
 
-Use **Intervals** to assign one color to each range of values in a single band, without reclassifying the source image. Enter the first lower bound, then add a row with an upper bound, color, and optional label for each interval. Boundaries must increase strictly; ranges are contiguous and use a closed lower bound and open upper bound: `[0, 10)`, `[10, 20)`, etc. Values outside the first and last boundaries are transparent.
-
-To save this rendering as an image preset, set `type` to `intervals` and provide:
-
-- **name**: The name displayed in the preset selector.
-- **bands**: Exactly one existing image band.
-- **breaks**: Comma-separated, strictly increasing boundaries; one more boundary than colors.
-- **palette**: One hex color per interval, in boundary order.
-- **labels**: Optional comma-separated names for the intervals, in the same order as the colors.
-
-For example, the first interval below displays white and the second displays red:
-
-```python
-styled_image = image.set({
-    'visualization_0_type': 'intervals',
-    'visualization_0_name': 'Binned values',
-    'visualization_0_bands': 'measurement',
-    'visualization_0_breaks': '0,10,20',
-    'visualization_0_palette': '#ffffff,#ff0000',
-    'visualization_0_labels': 'Low,High',
-})
+```json
+{
+  "visualization_4_name": "Copernicus DEM terrain HSV",
+  "visualization_4_type": "hsv",
+  "visualization_4_bands": "hsv_hue,hsv_saturation,hsv_value",
+  "visualization_4_min": "0,0,0",
+  "visualization_4_max": "1,1,1"
+}
 ```
-
-The extension renders these presets with an SLD interval color map. `breaks` is an extension preset property, not a standard Earth Engine `Map.addLayer` visualization parameter.

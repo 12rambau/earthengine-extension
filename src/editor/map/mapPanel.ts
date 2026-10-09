@@ -10,7 +10,8 @@
 import * as vscode from 'vscode';
 import { EditorPanel } from '../../shared/baseComponents.js';
 import { MapBridgeServer, MapCommand } from './mapBridgeServer.js';
-import { ensureEe, getEeContext } from '../../shared/eeSession.js';
+import { computeValue, ensureEe, getEeContext } from '../../shared/eeSession.js';
+import { parseSepalVisualizations } from '../../shared/sepalViz.js';
 import { getAsset } from '../../sidebar/assets/eeApiClient.js';
 import { MapLayerManager } from './mapLayerManager.js';
 import { MapInspector } from './mapInspector.js';
@@ -53,6 +54,7 @@ export class MapPanel extends EditorPanel {
   private webviewReady = false;
   /** View requested before the WebView finished loading; applied on `ready`. */
   private pendingView: MapView | undefined;
+  private pendingBounds: [number, number, number, number] | undefined;
   private readonly layerManager = new MapLayerManager();
   private readonly inspector = new MapInspector();
   private readonly tiles = new MapTilesService();
@@ -107,6 +109,10 @@ export class MapPanel extends EditorPanel {
         if (this.pendingView) {
           this.post({ type: 'setCenter', data: this.pendingView });
           this.pendingView = undefined;
+        }
+        if (this.pendingBounds) {
+          this.post({ type: 'centerObject', data: { bounds: this.pendingBounds } });
+          this.pendingBounds = undefined;
         }
       } else if (msg.type === 'requestBasemap') {
         const d = msg.data as { id: BasemapId };
@@ -310,52 +316,51 @@ export class MapPanel extends EditorPanel {
     vscode.window.showInformationMessage('[Map] Google Maps API key removed.');
   }
 
-  /** Runs `fn`, shows a success/error notification, and re-throws on failure. */
-  private async step<T>(label: string, fn: () => Promise<T> | T): Promise<T> {
-    try {
-      const result = await fn();
-      vscode.window.showInformationMessage(`[Map test] \u2713 ${label}`);
-      return result;
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      vscode.window.showErrorMessage(`[Map test] \u2717 ${label}: ${msg}`);
-      throw err;
+  /** Adds one map layer for each visualization preset on the demo image. */
+  private async demo(): Promise<void> {
+    await this.open();
+
+    const eeAny = (await ensureEe()) as any;
+    const assetId = 'projects/earthengine-extension/assets/demo-image';
+    const image = eeAny.Image(assetId);
+
+    const coordinates = await computeValue<number[][][]>(image.geometry().bounds().coordinates());
+    const ring = coordinates[0];
+    if (!ring || ring.length === 0) {
+      throw new Error(`Unable to determine the geometry bounds for '${assetId}'.`);
     }
-  }
-
-  /**
-   * Hardcoded test layer — SEPAL visualization example asset.
-   * Tests the SEPAL viz preset resolution: adds the same asset four times,
-   * each with a different `default` selector to exercise every preset type
-   * (rgb, hsv, continuous, categorical) stored on the asset.
-   *
-   *   Asset: users/wiell/forum/visualization_example
-   *   Reference: https://pysepal.readthedocs.io/en/latest/tutorials/create_asset.html
-   */
-  private async testSepalViz(): Promise<void> {
-    await this.step('open()', () => this.open());
-
-    const eeAny = (await this.step('ensureEe()', () => ensureEe())) as any;
-
-    const assetId = 'users/wiell/forum/visualization_example';
-
-    const serialized = (await this.step('Serializer.toJSON()', () =>
-      eeAny.Serializer.toJSON(eeAny.Image(assetId)),
-    )) as string;
-
-    const presets: Array<{ selector: string | number; name: string }> = [
-      { selector: 'RGB', name: 'SEPAL \u2013 RGB' },
-      { selector: 'NDWI harmonics', name: 'SEPAL \u2013 NDWI harmonics (HSV)' },
-      { selector: 'NDWI', name: 'SEPAL \u2013 NDWI (continuous)' },
-      { selector: 'Classification', name: 'SEPAL \u2013 Classification (categorical)' },
+    const longitudes = ring.map((coordinate) => coordinate[0]);
+    const latitudes = ring.map((coordinate) => coordinate[1]);
+    const bounds: [number, number, number, number] = [
+      Math.min(...latitudes),
+      Math.min(...longitudes),
+      Math.max(...latitudes),
+      Math.max(...longitudes),
     ];
+    if (this.webviewReady) {
+      this.post({ type: 'centerObject', data: { bounds } });
+    } else {
+      this.pendingBounds = bounds;
+    }
 
-    for (const { selector, name } of presets) {
-      await this.step(`addLayer(default: '${selector}')`, () =>
-        this.layerManager.add(
-          { serialized, visParams: { default: selector }, name, shown: true, opacity: 1.0 },
-          (m) => this.post(m),
-        ),
+    const props = await computeValue<Record<string, unknown>>(image.toDictionary());
+    const presets = parseSepalVisualizations(props ?? {});
+    if (presets.length === 0) {
+      throw new Error(`No visualization presets found on '${assetId}'.`);
+    }
+
+    const serialized = eeAny.Serializer.toJSON(image) as string;
+
+    for (const preset of presets) {
+      await this.layerManager.add(
+        {
+          serialized,
+          visParams: { default: preset.index },
+          name: preset.name,
+          shown: true,
+          opacity: 1.0,
+        },
+        (m) => this.post(m),
       );
     }
   }
@@ -498,7 +503,7 @@ export class MapPanel extends EditorPanel {
       vscode.commands.registerCommand('earthengine.map.clearGoogleMapsApiKey', () =>
         this.clearApiKey(),
       ),
-      vscode.commands.registerCommand('earthengine.map.testSepalViz', () => this.testSepalViz()),
+      vscode.commands.registerCommand('earthengine.map.demo', () => this.demo()),
       this,
     );
   }
