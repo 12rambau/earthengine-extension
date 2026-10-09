@@ -1,7 +1,6 @@
 <!-- MapInspector: map click inspection, marker and pixel values panel -->
 <script>
   import L from 'leaflet';
-  import MapButton from './MapButton.svelte';
   import { vscode } from '../../shared/vscode.ts';
   import { mdiClose, mdiLoading, mdiMapMarker } from '../../shared/icons.ts';
 
@@ -78,11 +77,11 @@
   <div class="inspector-panel visible">
     <div class="inspector-panel-header">
       <span>Inspector</span>
-      <MapButton class="layers-close-btn" title="Close" onclick={closeInspector}>
+      <button class="map-btn layers-close-btn" title="Close" onclick={closeInspector}>
         <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" fill="currentColor"
           ><path d={mdiClose} /></svg
         >
-      </MapButton>
+      </button>
     </div>
     <div class="inspector-content">
       {#if inspectorContent.type === 'hint'}
