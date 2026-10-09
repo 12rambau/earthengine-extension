@@ -17,7 +17,7 @@ import { AuthService } from '../../auth/index.js';
 import { openAssetPreview } from '../preview/assetPreviewPanel.js';
 import { listBuckets } from '../../shared/gcsClient.js';
 import { NewAssetRequest, sweepStagedObjects, uploadNewAsset } from './assetUpload.js';
-import { readTiffBandCount } from './geotiffMeta.js';
+import { readRasterBandCount, RASTER_EXTENSIONS } from './rasterToCog.js';
 import { CONVERTIBLE_EXTENSIONS } from './vectorToShapefile.js';
 
 import { designTokens, codiconsCss } from '../../shared/index.js';
@@ -151,9 +151,9 @@ export async function openAssetsPanel(
       canSelectMany: false,
       filters:
         kind === 'image'
-          ? { 'Cloud Optimized GeoTIFF': ['tif', 'tiff'] }
+          ? { 'Raster data': RASTER_EXTENSIONS, 'All files': ['*'] }
           : { 'Vector data': ['shp', ...CONVERTIBLE_EXTENSIONS] },
-      title: kind === 'image' ? 'Select a GeoTIFF to ingest' : 'Select a vector file to ingest',
+      title: kind === 'image' ? 'Select a raster file to ingest' : 'Select a vector file to ingest',
     });
     if (!uris?.length) {
       return;
@@ -162,9 +162,10 @@ export async function openAssetsPanel(
     let bandCount = 1;
     if (kind === 'image') {
       try {
-        bandCount = await readTiffBandCount(file);
-      } catch {
-        // Not a classic TIFF or tag missing (e.g. BigTIFF) — the dialog falls back to a single band.
+        bandCount = await readRasterBandCount(file);
+      } catch (error) {
+        vscode.window.showErrorMessage(`Cannot read raster: ${(error as Error).message}`);
+        return;
       }
     }
     panel.webview.postMessage({

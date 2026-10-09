@@ -156,7 +156,7 @@ export async function convertToShapefile(
 // RUNTIME
 // ==================================================================
 /** Boots the WebAssembly runtime once and mounts its output scratch directory. */
-async function getRuntime(): Promise<{
+export async function getRuntime(): Promise<{
   gdal: Awaited<ReturnType<typeof initGdalJs>>;
   scratch: string;
 }> {

@@ -1,4 +1,4 @@
-<!-- NewAssetDialog: modal form to upload a local COG or vector file as a new asset -->
+<!-- NewAssetDialog: modal form to import a local raster or vector file as a new asset -->
 <script>
   let {
     kind,
@@ -26,9 +26,9 @@
   let properties = $state([]);
 
   const isImage = $derived(kind === 'image');
-  const title = $derived(isImage ? 'New image from COG' : 'New feature collection');
+  const title = $derived(isImage ? 'New image' : 'New feature collection');
   const fileLabel = $derived(
-    isImage ? 'GeoTIFF / COG file' : 'Shapefile (.shp) or any vector file GDAL can read',
+    isImage ? 'Raster file' : 'Shapefile (.shp) or any vector file GDAL can read',
   );
   const filePath = $derived(file.path);
   const needsConversion = $derived(!!filePath && !/\.shp$/i.test(filePath));

@@ -20,6 +20,10 @@ declare module 'gdal3.js/node.js' {
     type: string;
     dsName: string;
     driverName: string;
+    bandCount?: number;
+    width?: number;
+    height?: number;
+    projectionWkt?: string;
     layerCount?: number;
     featureCount?: number;
     layers?: Gdal3Layer[];
@@ -39,6 +43,11 @@ declare module 'gdal3.js/node.js' {
     }>;
     close(dataset: Gdal3Dataset): Promise<void>;
     getInfo(dataset: Gdal3Dataset): Promise<Gdal3DatasetInfo>;
+    gdal_translate(
+      dataset: Gdal3Dataset,
+      options?: string[],
+      outputName?: string,
+    ): Promise<Gdal3FilePath>;
     ogr2ogr(dataset: Gdal3Dataset, options?: string[], outputName?: string): Promise<Gdal3FilePath>;
   }
 
