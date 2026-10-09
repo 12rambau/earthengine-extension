@@ -134,19 +134,27 @@ export async function convertToShapefile(
     const base = path.basename(filePath, path.extname(filePath)).replace(/[^\w.-]/g, '_');
 
     warnings = [];
-    const output = await gdal.ogr2ogr(
-      dataset,
-      ['-f', 'ESRI Shapefile', '-t_srs', TARGET_SRS, '-lco', 'ENCODING=UTF-8', layer.name],
-      // Relative to the scratch root, which GDAL sees mounted as `/output`.
-      `${path.basename(directory)}/${base}`,
-    );
+    try {
+      const output = await gdal.ogr2ogr(
+        dataset,
+        ['-f', 'ESRI Shapefile', '-t_srs', TARGET_SRS, '-lco', 'ENCODING=UTF-8', layer.name],
+        // Relative to the scratch root, which GDAL sees mounted as `/output`.
+        `${path.basename(directory)}/${base}`,
+      );
+      if (!fs.existsSync(output.real)) {
+        throw new Error(`GDAL did not create a Shapefile for ${path.basename(filePath)}.`);
+      }
 
-    return {
-      shpPath: output.real,
-      directory,
-      featureCount: layer.featureCount,
-      renamedFields: collectRenamedFields(),
-    };
+      return {
+        shpPath: output.real,
+        directory,
+        featureCount: layer.featureCount,
+        renamedFields: collectRenamedFields(),
+      };
+    } catch (error) {
+      await fs.promises.rm(directory, { recursive: true, force: true }).catch(() => undefined);
+      throw error;
+    }
   } finally {
     await gdal.close(dataset);
   }
@@ -170,7 +178,10 @@ export async function getRuntime(): Promise<{
       errorHandler: (message) => warnings.push(message),
     });
     return { gdal, scratch };
-  })();
+  })().catch((error) => {
+    runtime = undefined;
+    throw error;
+  });
   return runtime;
 }
 

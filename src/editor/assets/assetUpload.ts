@@ -374,20 +374,25 @@ async function resolveSourceFiles(
     }
   }
 
-  const base = mainFile.replace(/\.shp$/i, '');
-  const missing = SHAPEFILE_REQUIRED.filter((extension) => !fs.existsSync(base + extension));
-  if (missing.length > 0) {
-    throw new Error(
-      `Incomplete Shapefile: ${missing.join(', ')} missing next to ${path.basename(mainFile)}.`,
+  try {
+    const base = mainFile.replace(/\.shp$/i, '');
+    const missing = SHAPEFILE_REQUIRED.filter((extension) => !fs.existsSync(base + extension));
+    if (missing.length > 0) {
+      throw new Error(
+        `Incomplete Shapefile: ${missing.join(', ')} missing next to ${path.basename(mainFile)}.`,
+      );
+    }
+    const present = SHAPEFILE_SIDECARS.map((extension) => base + extension).filter((file) =>
+      fs.existsSync(file),
     );
+    return {
+      files: await Promise.all([mainFile, ...present].map(stat)),
+      temporaryDirectory,
+    };
+  } catch (error) {
+    await discardTemporaryFiles(temporaryDirectory);
+    throw error;
   }
-  const present = SHAPEFILE_SIDECARS.map((extension) => base + extension).filter((file) =>
-    fs.existsSync(file),
-  );
-  return {
-    files: await Promise.all([mainFile, ...present].map(stat)),
-    temporaryDirectory,
-  };
 }
 
 /** Prompts for the single layer to ingest when a source holds several. */
