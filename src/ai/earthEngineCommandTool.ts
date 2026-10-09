@@ -11,8 +11,6 @@ export const AI_COMMANDS: Readonly<Record<string, string>> = {
   'earthengine.openMap': 'Open (or reveal) the interactive Earth Engine map panel.',
   'earthengine.map.testSepalViz':
     'Open the map and add the SEPAL visualization example: 4 layers (RGB, NDWI harmonics, NDWI, Classification) from asset users/wiell/forum/visualization_example.',
-  'earthengine.map.testNighttimeLights':
-    'Open the map and add the nighttime lights trend example layer, centered on France.',
   'earthengine.openAssetsPanel': 'Open the asset manager panel.',
   'earthengine.openExportTasksPanel': 'Open the export tasks table.',
   'earthengine.openImportTasksPanel': 'Open the import tasks table.',

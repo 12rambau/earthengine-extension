@@ -324,61 +324,6 @@ export class MapPanel extends EditorPanel {
   }
 
   /**
-   * Hardcoded test layer — NOAA DMSP-OLS nighttime lights linear fit.
-   * Classic front-page Earth Engine example (stable since ~2010).
-   *
-   *   Collection: NOAA/DMSP-OLS/NIGHTTIME_LIGHTS → stable_lights band
-   *   Transform:  prepend a year-since-1991 band, reduce with linearFit
-   *   Viz:        scale→red/blue  offset→green
-   */
-  private async testNighttimeLights(): Promise<void> {
-    await this.step('open()', () => this.open());
-
-    const eeAny = (await this.step('ensureEe()', () => ensureEe())) as any;
-
-    const image = await this.step('build expression', () => {
-      const createTimeBand = (img: any) => {
-        const year = eeAny.Date(img.get('system:time_start')).get('year').subtract(1991);
-        return eeAny.Image(year).byte().addBands(img);
-      };
-      const france = eeAny
-        .FeatureCollection('FAO/GAUL/2015/level0')
-        .filter(eeAny.Filter.eq('ADM0_NAME', 'France'));
-      return eeAny
-        .ImageCollection('NOAA/DMSP-OLS/NIGHTTIME_LIGHTS')
-        .select('stable_lights')
-        .map(createTimeBand)
-        .reduce(eeAny.Reducer.linearFit())
-        .clip(france);
-    });
-
-    const serialized = (await this.step('Serializer.toJSON()', () =>
-      eeAny.Serializer.toJSON(image),
-    )) as string;
-
-    await this.step('handleAddLayer()', () =>
-      this.layerManager.add(
-        {
-          serialized,
-          visParams: { min: 0, max: [0.18, 20, -0.18], bands: ['scale', 'offset', 'scale'] },
-          name: 'stable lights trend',
-          shown: true,
-          opacity: 1.0,
-        },
-        (m) => this.post(m),
-      ),
-    );
-
-    // Fly to France
-    if (this.panel) {
-      this.panel.webview.postMessage({
-        type: 'setCenter',
-        data: { lat: 46.5, lon: 2.5, zoom: 5 },
-      });
-    }
-  }
-
-  /**
    * Hardcoded test layer — SEPAL visualization example asset.
    * Tests the SEPAL viz preset resolution: adds the same asset four times,
    * each with a different `default` selector to exercise every preset type
@@ -552,9 +497,6 @@ export class MapPanel extends EditorPanel {
       ),
       vscode.commands.registerCommand('earthengine.map.clearGoogleMapsApiKey', () =>
         this.clearApiKey(),
-      ),
-      vscode.commands.registerCommand('earthengine.map.testNighttimeLights', () =>
-        this.testNighttimeLights(),
       ),
       vscode.commands.registerCommand('earthengine.map.testSepalViz', () => this.testSepalViz()),
       this,

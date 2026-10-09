@@ -340,11 +340,6 @@
         "icon": "$(trash)"
       },
       {
-        "command": "earthengine.map.testNighttimeLights",
-        "title": "Earth Engine: Test – Nighttime Lights Trend",
-        "icon": "$(beaker)"
-      },
-      {
         "command": "earthengine.map.testSepalViz",
         "title": "Earth Engine: Test – SEPAL Visualization Presets",
         "icon": "$(beaker)"
@@ -364,7 +359,7 @@
         "icon": "$(globe)",
         "canBeReferencedInPrompt": true,
         "userDescription": "Run Earth Engine extension commands (open the map, load example layers, open panels, refresh trees).",
-        "modelDescription": "Runs a command of the Earth Engine VS Code extension. Use it when the user asks to open the Earth Engine map, show the SEPAL visualization example (map + 4 layers), show the nighttime lights example, open the asset manager or the export/import task tables, or refresh a tree. Commands: earthengine.openMap (open the map), earthengine.map.testSepalViz (SEPAL visualization example: map + 4 layers), earthengine.map.testNighttimeLights (nighttime lights trend layer), earthengine.openAssetsPanel, earthengine.openExportTasksPanel, earthengine.openImportTasksPanel, earthengine.refreshAssets, earthengine.refreshTasks, earthengine.refreshDatasets, earthengine.refreshDocs, earthengine.showAuthStatus. For any Earth Engine analysis (filtering, computing, exporting), load the earthengine-python skill and write a Python script instead.",
+        "modelDescription": "Runs a command of the Earth Engine VS Code extension. Use it when the user asks to open the Earth Engine map, show the SEPAL visualization example (map + 4 layers), open the asset manager or the export/import task tables, or refresh a tree. Commands: earthengine.openMap (open the map), earthengine.map.testSepalViz (SEPAL visualization example: map + 4 layers), earthengine.openAssetsPanel, earthengine.openExportTasksPanel, earthengine.openImportTasksPanel, earthengine.refreshAssets, earthengine.refreshTasks, earthengine.refreshDatasets, earthengine.refreshDocs, earthengine.showAuthStatus. For any Earth Engine analysis (filtering, computing, exporting), load the earthengine-python skill and write a Python script instead.",
         "tags": [
           "earthengine",
           "map",
@@ -378,7 +373,6 @@
               "enum": [
                 "earthengine.openMap",
                 "earthengine.map.testSepalViz",
-                "earthengine.map.testNighttimeLights",
                 "earthengine.openAssetsPanel",
                 "earthengine.openExportTasksPanel",
                 "earthengine.openImportTasksPanel",
