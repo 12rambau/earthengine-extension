@@ -18,6 +18,7 @@ import { openAssetPreview } from '../preview/assetPreviewPanel.js';
 import { listBuckets } from '../../shared/gcsClient.js';
 import { NewAssetRequest, sweepStagedObjects, uploadNewAsset } from './assetUpload.js';
 import { readTiffBandCount } from './geotiffMeta.js';
+import { CONVERTIBLE_EXTENSIONS } from './vectorToShapefile.js';
 
 import { designTokens, codiconsCss } from '../../shared/index.js';
 import type { TablePreferences } from '../../shared/dataTable/tableTypes.js';
@@ -151,8 +152,8 @@ export async function openAssetsPanel(
       filters:
         kind === 'image'
           ? { 'Cloud Optimized GeoTIFF': ['tif', 'tiff'] }
-          : { Shapefile: ['shp'] },
-      title: kind === 'image' ? 'Select a GeoTIFF to ingest' : 'Select a Shapefile to ingest',
+          : { 'Vector data': ['shp', ...CONVERTIBLE_EXTENSIONS] },
+      title: kind === 'image' ? 'Select a GeoTIFF to ingest' : 'Select a vector file to ingest',
     });
     if (!uris?.length) {
       return;

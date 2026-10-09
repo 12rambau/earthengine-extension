@@ -45,6 +45,21 @@ function generateAssetIcons() {
   }
 }
 
+/**
+ * Copies the gdal3.js runtime assets next to the bundle. The WebAssembly module
+ * and its data archive are loaded from disk at runtime, so they cannot be
+ * inlined by esbuild; `vectorToShapefile.ts` points GDAL at this directory.
+ */
+function copyGdalAssets() {
+  const source = path.dirname(require.resolve('gdal3.js/package.json'));
+  const from = path.join(source, 'dist', 'package');
+  const to = path.join(__dirname, 'dist', 'gdal');
+  fs.mkdirSync(to, { recursive: true });
+  for (const file of ['gdal3WebAssembly.wasm', 'gdal3WebAssembly.data']) {
+    fs.copyFileSync(path.join(from, file), path.join(to, file));
+  }
+}
+
 /** Inlines codicon.ttf as a base64 data URL inside codicon.css so the font works in bundled WebViews. */
 const codiconsInlinePlugin = {
   name: 'codicons-inline',
@@ -172,6 +187,7 @@ const esbuildProblemMatcherPlugin = {
 
 async function main() {
   generateAssetIcons();
+  copyGdalAssets();
 
   const ctx = await esbuild.context({
     entryPoints: ['src/extension.ts'],

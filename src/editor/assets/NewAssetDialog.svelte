@@ -1,4 +1,4 @@
-<!-- NewAssetDialog: modal form to upload a local COG or Shapefile as a new asset -->
+<!-- NewAssetDialog: modal form to upload a local COG or vector file as a new asset -->
 <script>
   let {
     kind,
@@ -26,9 +26,12 @@
   let properties = $state([]);
 
   const isImage = $derived(kind === 'image');
-  const title = $derived(isImage ? 'New image from COG' : 'New feature collection from Shapefile');
-  const fileLabel = $derived(isImage ? 'GeoTIFF / COG file' : 'Shapefile (.shp)');
+  const title = $derived(isImage ? 'New image from COG' : 'New feature collection');
+  const fileLabel = $derived(
+    isImage ? 'GeoTIFF / COG file' : 'Shapefile (.shp) or any vector file GDAL can read',
+  );
   const filePath = $derived(file.path);
+  const needsConversion = $derived(!!filePath && !/\.shp$/i.test(filePath));
   const assetId = $derived(`${parent}/${assetName.trim()}`);
   const canSubmit = $derived(!busy && !!filePath && !!bucket && /^[\w.-]+$/.test(assetName.trim()));
   let lastFilePath = $state('');
@@ -124,7 +127,12 @@
           <input type="text" readonly placeholder="No file selected" value={filePath} />
           <button disabled={busy} onclick={() => onpickfile(kind)}>Browse…</button>
         </div>
-        {#if !isImage}
+        {#if !isImage && needsConversion}
+          <small>
+            Earth Engine only ingests Shapefiles: the file is converted with GDAL first, keeping its
+            geometries and property columns. Column names are shortened to 10 characters.
+          </small>
+        {:else if !isImage}
           <small>The .dbf, .shx and .prj siblings are uploaded automatically.</small>
         {/if}
       </div>
@@ -202,7 +210,12 @@
           <div class="property-row">
             <input type="text" placeholder="key" bind:value={property.key} disabled={busy} />
             <input type="text" placeholder="value" bind:value={property.value} disabled={busy} />
-            <button class="remove" title="Remove" disabled={busy} onclick={() => removeProperty(index)}>
+            <button
+              class="remove"
+              title="Remove"
+              disabled={busy}
+              onclick={() => removeProperty(index)}
+            >
               <i class="codicon codicon-trash"></i>
             </button>
           </div>
