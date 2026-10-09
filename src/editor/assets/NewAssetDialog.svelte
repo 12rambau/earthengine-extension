@@ -191,14 +191,14 @@
       </label>
 
       <div class="row">
-        <label class="field">
+        <div class="field">
           <span>Start time</span>
           <DatePicker mode="datetime" label="Start time" bind:value={startTime} disabled={busy} />
-        </label>
-        <label class="field">
+        </div>
+        <div class="field">
           <span>End time</span>
           <DatePicker mode="datetime" label="End time" bind:value={endTime} disabled={busy} />
-        </label>
+        </div>
       </div>
 
       <div class="field">

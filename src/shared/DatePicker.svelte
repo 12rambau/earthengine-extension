@@ -145,8 +145,8 @@
   }
 </script>
 
-<svelte:window
-  onkeydown={(event) => {
+<svelte:document
+  onkeydowncapture={(event) => {
     if (open && event.key === 'Escape') {
       event.stopPropagation();
       open = false;
