@@ -949,6 +949,7 @@
     "d3-scale-chromatic": "^3.1.0",
     "dayjs": "^1.11.21",
     "filesize": "^11.0.24",
+    "gdal3.js": "^2.8.1",
     "leaflet": "^1.9.4",
     "marked": "^18.0.10"
   }

@@ -5,7 +5,9 @@
  * Earth Engine never reads from the local filesystem: a new IMAGE or TABLE
  * asset is always created by pointing an ingestion manifest at `gs://` URIs.
  * This module performs that round trip for the two default formats — a single
- * Cloud Optimized GeoTIFF for images, a complete Shapefile for tables.
+ * Cloud Optimized GeoTIFF for images, a complete Shapefile for tables. Any
+ * other vector format is rewritten as a Shapefile first (see
+ * `vectorToShapefile`), because ingestion does not read them.
  *
  * Staged objects cannot be deleted as soon as the operation is submitted:
  * ingestion reads them asynchronously, minutes to hours later. Cleanup is
@@ -23,7 +25,14 @@ import * as vscode from 'vscode';
 import { AuthService } from '../../auth/index.js';
 import { startImageIngestion, startTableIngestion } from '../../sidebar/assets/eeApiClient.js';
 import { getOperation } from '../../sidebar/tasks/tasksApiClient.js';
-import { deleteObject, ensureLifecycleRule, listObjects, uploadFile } from '../../shared/gcsClient.js';
+import {
+  deleteObject,
+  ensureLifecycleRule,
+  listObjects,
+  uploadFile,
+} from '../../shared/gcsClient.js';
+import { convertToShapefile, isConvertibleVectorPath } from './vectorToShapefile.js';
+import { convertRasterToCog } from './rasterToCog.js';
 
 // ==================================================================
 // CONSTANTS
@@ -51,7 +60,7 @@ export interface NewAssetRequest {
   kind: 'image' | 'table';
   /** Fully qualified destination, e.g. `projects/p/assets/folder/name`. */
   assetId: string;
-  /** Absolute path of the main file (`.tif` for images, `.shp` for tables). */
+  /** Absolute path of the main file (`.tif` for images, `.shp` or any OGR vector for tables). */
   filePath: string;
   bucket: string;
   bandNames: string[];
@@ -71,6 +80,13 @@ interface StagedRecord {
   objects: string[];
   operation?: string;
   createdAt: number;
+}
+
+/** The files to stage, plus the scratch directory to remove once they are. */
+interface PreparedSource {
+  files: { path: string; size: number }[];
+  /** Set when GDAL generated a temporary raster or Shapefile. */
+  temporaryDirectory?: string;
 }
 
 /** Progress reporter shared with the VS Code notification. */
@@ -96,22 +112,22 @@ export async function uploadNewAsset(
     throw new Error('Not authenticated.');
   }
 
-  const files = await resolveSourceFiles(request);
+  const source = await resolveSourceFiles(request, onProgress);
+  const files = source.files;
   const prefix = stagingPrefix();
   const folder = `${prefix}${Date.now()}-${path.basename(request.assetId)}/`;
-
-  onProgress(`Staging ${files.length} file(s) to gs://${request.bucket}/${prefix}`);
-
-  let token = await requireToken(authService);
-  await applyLifecycleRule(request.bucket, prefix, token);
 
   const uris: string[] = [];
   const stagedObjects: string[] = [];
   const totalBytes = files.reduce((total, file) => total + file.size, 0);
   let uploadedBytes = 0;
   let operation: string;
+  let token = '';
 
   try {
+    onProgress(`Staging ${files.length} file(s) to gs://${request.bucket}/${prefix}`);
+    token = await requireToken(authService);
+    await applyLifecycleRule(request.bucket, prefix, token);
     for (const file of files) {
       const objectName = `${folder}${path.basename(file.path)}`;
       // Refreshed per file: a multi-gigabyte upload can outlive one token.
@@ -137,6 +153,8 @@ export async function uploadNewAsset(
   } catch (err) {
     await cleanupAfterFailure(request.bucket, stagedObjects, token, context);
     throw err;
+  } finally {
+    await discardTemporaryFiles(source.temporaryDirectory);
   }
 
   try {
@@ -280,10 +298,7 @@ export function stagingPrefix(): string {
 // MANIFESTS
 // ==================================================================
 /** Builds the image or table ingestion manifest for a staged request. */
-export function buildManifest(
-  request: NewAssetRequest,
-  uris: string[],
-): Record<string, unknown> {
+export function buildManifest(request: NewAssetRequest, uris: string[]): Record<string, unknown> {
   const manifest: Record<string, unknown> = { name: request.assetId };
 
   const properties = buildProperties(request);
@@ -317,27 +332,88 @@ export function buildManifest(
 // ==================================================================
 // HELPERS
 // ==================================================================
-/** Collects the files to stage, validating Shapefile completeness. */
+/** Collects the files to stage, converting vectors and validating Shapefile completeness. */
 async function resolveSourceFiles(
   request: NewAssetRequest,
-): Promise<{ path: string; size: number }[]> {
+  onProgress: UploadProgress,
+): Promise<PreparedSource> {
   const stat = async (file: string) => ({ path: file, size: (await fs.promises.stat(file)).size });
 
   if (request.kind === 'image') {
-    return [await stat(request.filePath)];
+    onProgress(`Converting ${path.basename(request.filePath)} to a Cloud Optimized GeoTIFF…`);
+    const converted = await convertRasterToCog(request.filePath);
+    if (request.bandNames.length > converted.bandCount) {
+      await discardTemporaryFiles(converted.directory);
+      throw new Error(
+        `The source has ${converted.bandCount} band(s), but ${request.bandNames.length} names were supplied.`,
+      );
+    }
+    try {
+      return {
+        files: [await stat(converted.cogPath)],
+        temporaryDirectory: converted.directory,
+      };
+    } catch (error) {
+      await discardTemporaryFiles(converted.directory);
+      throw error;
+    }
   }
 
-  const base = request.filePath.replace(/\.shp$/i, '');
-  const missing = SHAPEFILE_REQUIRED.filter((extension) => !fs.existsSync(base + extension));
-  if (missing.length > 0) {
-    throw new Error(
-      `Incomplete Shapefile: ${missing.join(', ')} missing next to ${path.basename(request.filePath)}.`,
-    );
+  let mainFile = request.filePath;
+  let temporaryDirectory: string | undefined;
+  if (isConvertibleVectorPath(mainFile)) {
+    onProgress(`Converting ${path.basename(mainFile)} to a Shapefile…`);
+    const converted = await convertToShapefile(mainFile, pickLayer);
+    mainFile = converted.shpPath;
+    temporaryDirectory = converted.directory;
+    if (converted.renamedFields.length > 0) {
+      vscode.window.showInformationMessage(
+        'Shapefile columns are limited to 10 characters, so some properties were renamed: ' +
+          converted.renamedFields.map(({ source, column }) => `${source} → ${column}`).join(', '),
+      );
+    }
   }
-  const present = SHAPEFILE_SIDECARS.map((extension) => base + extension).filter((file) =>
-    fs.existsSync(file),
-  );
-  return Promise.all([request.filePath, ...present].map(stat));
+
+  try {
+    const base = mainFile.replace(/\.shp$/i, '');
+    const missing = SHAPEFILE_REQUIRED.filter((extension) => !fs.existsSync(base + extension));
+    if (missing.length > 0) {
+      throw new Error(
+        `Incomplete Shapefile: ${missing.join(', ')} missing next to ${path.basename(mainFile)}.`,
+      );
+    }
+    const present = SHAPEFILE_SIDECARS.map((extension) => base + extension).filter((file) =>
+      fs.existsSync(file),
+    );
+    return {
+      files: await Promise.all([mainFile, ...present].map(stat)),
+      temporaryDirectory,
+    };
+  } catch (error) {
+    await discardTemporaryFiles(temporaryDirectory);
+    throw error;
+  }
+}
+
+/** Prompts for the single layer to ingest when a source holds several. */
+async function pickLayer(layers: string[]): Promise<string | undefined> {
+  return vscode.window.showQuickPick(layers, {
+    title: 'Select the layer to ingest',
+    placeHolder: 'A Shapefile holds a single layer',
+    ignoreFocusOut: true,
+  });
+}
+
+/** Removes the scratch directory of a converted Shapefile, if there was one. */
+async function discardTemporaryFiles(directory: string | undefined): Promise<void> {
+  if (!directory) {
+    return;
+  }
+  try {
+    await fs.promises.rm(directory, { recursive: true, force: true });
+  } catch {
+    // The OS temp directory is swept anyway; a leftover is harmless.
+  }
 }
 
 /** Merges description and user properties into the manifest property bag. */
@@ -384,10 +460,7 @@ async function applyLifecycleRule(
 }
 
 /** Appends a staged record to global state. */
-async function recordStaged(
-  context: vscode.ExtensionContext,
-  record: StagedRecord,
-): Promise<void> {
+async function recordStaged(context: vscode.ExtensionContext, record: StagedRecord): Promise<void> {
   const records = context.globalState.get<StagedRecord[]>(STAGING_KEY) ?? [];
   await context.globalState.update(STAGING_KEY, [...records, record]);
 }
