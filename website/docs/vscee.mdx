@@ -51,10 +51,10 @@ For a single-band palette with discrete intervals, pass increasing boundaries in
 
 ```python
 Map.addLayer(image, {
-	"bands": ["temperature"],
-	"breaks": [0, 10, 20, 35],
+	"bands": ["B8"],
+	"breaks": [0, 1000, 2000, 3000],
 	"palette": ["#2b83ba", "#abdda4", "#d7191c"],
-}, "Temperature")
+}, "Near Infrared")
 ```
 
 ### `Map.centerObject(ee_object, zoom=None)`

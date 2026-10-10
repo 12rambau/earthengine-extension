@@ -31,10 +31,10 @@ For a single-band palette with discrete intervals, pass ordered boundaries in
 .. code-block:: python
 
     Map.addLayer(image, {
-        "bands": ["temperature"],
-        "breaks": [0, 10, 20, 35],
+        "bands": ["B8"],
+        "breaks": [0, 1000, 2000, 3000],
         "palette": ["#2b83ba", "#abdda4", "#d7191c"],
-    }, "Temperature")
+    }, "Near Infrared")
 
 Requirements
 ------------
