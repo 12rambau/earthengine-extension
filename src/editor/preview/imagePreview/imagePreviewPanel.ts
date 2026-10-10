@@ -49,8 +49,9 @@ export function openImagePreview(asset: EEAsset, accessToken: string): void {
   panel.webview.onDidReceiveMessage(async (msg: { type: string }) => {
     if (msg.type === 'ready') {
       // Fire-and-forget: send asynchronous image and parent metadata.
-      sendThumbnail(asset, panel);
-      sendMinMax(asset, panel);
+      const bandStatsPromise = computeBandStats(asset);
+      sendThumbnail(asset, panel, bandStatsPromise);
+      sendMinMax(panel, bandStatsPromise);
       sendParentCollection(asset, accessToken, panel);
     } else if (msg.type === 'copyAssetId') {
       await vscode.env.clipboard.writeText(asset.name);
@@ -110,9 +111,13 @@ async function openParentCollection(asset: EEAsset, accessToken: string): Promis
 // ==================================================================
 // THUMBNAIL
 // ==================================================================
-async function sendThumbnail(asset: EEAsset, panel: vscode.WebviewPanel): Promise<void> {
+async function sendThumbnail(
+  asset: EEAsset,
+  panel: vscode.WebviewPanel,
+  bandStatsPromise: Promise<Record<string, BandStatistics>>,
+): Promise<void> {
   try {
-    const thumbUrl = await getThumbnailUrl(asset);
+    const thumbUrl = await getThumbnailUrl(asset, bandStatsPromise);
     panel.webview.postMessage({ type: 'thumbnail', url: thumbUrl });
   } catch (err) {
     panel.webview.postMessage({ type: 'thumbnail', url: '' });
@@ -121,12 +126,34 @@ async function sendThumbnail(asset: EEAsset, panel: vscode.WebviewPanel): Promis
   }
 }
 
-/** Visualizes the image's first band and requests a 256px thumbnail URL. */
-async function getThumbnailUrl(asset: EEAsset): Promise<string> {
+/** Visualizes the first band with a one-sigma grayscale stretch when available. */
+async function getThumbnailUrl(
+  asset: EEAsset,
+  bandStatsPromise: Promise<Record<string, BandStatistics>>,
+): Promise<string> {
   const ee = await ensureEe();
   const firstBand = asset.bands?.[0]?.id;
   const image = ee.Image(asset.name);
-  const visualized = image.visualize(firstBand ? { bands: [firstBand] } : {});
+  const bandStats = firstBand
+    ? await bandStatsPromise.then((stats) => stats[firstBand]).catch(() => undefined)
+    : undefined;
+  let visualizationParams: Record<string, unknown> = {};
+  if (firstBand) {
+    visualizationParams = { bands: [firstBand] };
+    if (typeof bandStats?.mean === 'number' && typeof bandStats.stdDev === 'number') {
+      const min = bandStats.mean - bandStats.stdDev;
+      const max = bandStats.mean + bandStats.stdDev;
+      if (Number.isFinite(min) && Number.isFinite(max) && max > min) {
+        visualizationParams = {
+          bands: [firstBand],
+          min,
+          max,
+          palette: ['000000', 'FFFFFF'],
+        };
+      }
+    }
+  }
+  const visualized = image.visualize(visualizationParams);
 
   const isGlobal = !asset.geometry || !hasFiniteCoordinates(asset.geometry);
   if (isGlobal) {
@@ -157,9 +184,16 @@ async function getThumbnailUrl(asset: EEAsset): Promise<string> {
 // ==================================================================
 // MIN/MAX
 // ==================================================================
-async function sendMinMax(asset: EEAsset, panel: vscode.WebviewPanel): Promise<void> {
+async function sendMinMax(
+  panel: vscode.WebviewPanel,
+  bandStatsPromise: Promise<Record<string, BandStatistics>>,
+): Promise<void> {
   try {
-    const minMax = await computeMinMax(asset);
+    const bandStats = await bandStatsPromise;
+    const minMax: BandMinMax = {};
+    for (const [bandId, stats] of Object.entries(bandStats)) {
+      minMax[bandId] = { min: stats.min, max: stats.max };
+    }
     panel.webview.postMessage({ type: 'minmax', data: minMax });
   } catch (err) {
     panel.webview.postMessage({ type: 'minmax', data: null });
@@ -172,31 +206,40 @@ interface BandMinMax {
   [bandId: string]: { min: number | null; max: number | null };
 }
 
-/** Reduces the image over its footprint with ee.Reducer.minMax() and groups the result per band. */
-async function computeMinMax(asset: EEAsset): Promise<BandMinMax> {
+interface BandStatistics {
+  min: number | null;
+  max: number | null;
+  mean: number | null;
+  stdDev: number | null;
+}
+
+/** Reduces the image over its footprint and groups min/max and sigma stats per band. */
+async function computeBandStats(asset: EEAsset): Promise<Record<string, BandStatistics>> {
   const ee = await ensureEe();
   const image = ee.Image(asset.name);
   const region = getRegion(ee, image, asset);
 
   const reduced = image.reduceRegion({
-    reducer: ee.Reducer.minMax(),
+    reducer: ee.Reducer.minMax()
+      .combine({ reducer2: ee.Reducer.mean(), sharedInputs: true })
+      .combine({ reducer2: ee.Reducer.stdDev(), sharedInputs: true }),
     geometry: region,
     bestEffort: true,
     maxPixels: 1e8,
   });
-  const values = await computeValue<Record<string, number> | null>(reduced);
+  const values = await computeValue<Record<string, number | null> | null>(reduced);
 
-  const result: BandMinMax = {};
+  const result: Record<string, BandStatistics> = {};
   if (values) {
     for (const [key, val] of Object.entries(values)) {
-      const match = key.match(/^(.+)_(min|max)$/);
+      const match = key.match(/^(.+)_(min|max|mean|stdDev)$/);
       if (match) {
         const bandId = match[1];
-        const kind = match[2] as 'min' | 'max';
+        const statistic = match[2] as keyof BandStatistics;
         if (!result[bandId]) {
-          result[bandId] = { min: null, max: null };
+          result[bandId] = { min: null, max: null, mean: null, stdDev: null };
         }
-        result[bandId][kind] = val;
+        result[bandId][statistic] = val;
       }
     }
   }
