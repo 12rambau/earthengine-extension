@@ -6,8 +6,8 @@
  * - Left sidebar: thumbnail, Image ID, dates, file size, band count, last modified.
  * - Right content: 3 tabs — DESCRIPTION, BANDS, PROPERTIES.
  *
- * The thumbnail is fetched from the EE thumbnail API using the first band
- * and the image footprint (falls back to near-global extent if missing).
+ * The thumbnail uses the first asset preset, or a one-sigma grayscale stretch
+ * of the first band, over the image footprint (near-global if missing).
  * Band min/max values are computed lazily via the ee.Reducer.minMax()
  * expression endpoint with bestEffort enabled.
  */
@@ -20,6 +20,7 @@ import { filesize } from 'filesize';
 import dayjs from 'dayjs';
 import { ensureEe, computeValue, getThumbUrlRest } from '../../../shared/eeSession.js';
 import { getExtensionUri } from '../../../shared/extensionContext.js';
+import { getPresetThumbnailImage } from '../thumbnailVisualization.js';
 
 import script from './ImagePreview.svelte';
 
@@ -46,13 +47,17 @@ export function openImagePreview(asset: EEAsset, accessToken: string): void {
   panel.webview.html = buildImageHtml(asset, panel.webview);
 
   // Handle messages from the WebView (lazy loading of thumbnail + min/max)
+  let bandStatsPromise: Promise<Record<string, BandStatistics>> | undefined;
   panel.webview.onDidReceiveMessage(async (msg: { type: string }) => {
     if (msg.type === 'ready') {
       // Fire-and-forget: send asynchronous image and parent metadata.
-      const bandStatsPromise = computeBandStats(asset);
+      bandStatsPromise = computeBandStats(asset);
       sendThumbnail(asset, panel, bandStatsPromise);
       sendMinMax(panel, bandStatsPromise);
       sendParentCollection(asset, accessToken, panel);
+    } else if (msg.type === 'thumbnailFallback') {
+      bandStatsPromise ??= computeBandStats(asset);
+      sendThumbnail(asset, panel, bandStatsPromise, true);
     } else if (msg.type === 'copyAssetId') {
       await vscode.env.clipboard.writeText(asset.name);
     } else if (msg.type === 'openParentCollection') {
@@ -115,25 +120,62 @@ async function sendThumbnail(
   asset: EEAsset,
   panel: vscode.WebviewPanel,
   bandStatsPromise: Promise<Record<string, BandStatistics>>,
+  fallbackOnly = false,
 ): Promise<void> {
   try {
-    const thumbUrl = await getThumbnailUrl(asset, bandStatsPromise);
-    panel.webview.postMessage({ type: 'thumbnail', url: thumbUrl });
+    const thumbnail = await getThumbnailUrl(asset, bandStatsPromise, fallbackOnly);
+    panel.webview.postMessage({ type: 'thumbnail', ...thumbnail });
   } catch (err) {
-    panel.webview.postMessage({ type: 'thumbnail', url: '' });
+    panel.webview.postMessage({ type: 'thumbnail', url: '', preset: false });
     const msg = err instanceof Error ? err.message : String(err);
     vscode.window.showErrorMessage(`Failed to load thumbnail: ${msg}`);
   }
 }
 
-/** Visualizes the first band with a one-sigma grayscale stretch when available. */
+/** Renders the first asset preset, falling back to the first band's one-sigma stretch. */
 async function getThumbnailUrl(
   asset: EEAsset,
   bandStatsPromise: Promise<Record<string, BandStatistics>>,
-): Promise<string> {
+  fallbackOnly: boolean,
+): Promise<{ url: string; preset: boolean }> {
   const ee = await ensureEe();
-  const firstBand = asset.bands?.[0]?.id;
   const image = ee.Image(asset.name);
+  const isGlobal = !asset.geometry || !hasFiniteCoordinates(asset.geometry);
+  const params = isGlobal
+    ? {
+        format: 'PNG',
+        grid: {
+          dimensions: { width: 256, height: 256 },
+          affineTransform: {
+            scaleX: 178 / 256,
+            shearX: 0,
+            translateX: -89,
+            shearY: 0,
+            scaleY: -178 / 256,
+            translateY: 89,
+          },
+          crsCode: 'EPSG:4326',
+        },
+      }
+    : { dimensions: [256, 256], region: getRegion(ee, image, asset), format: 'PNG' };
+
+  if (!fallbackOnly) {
+    try {
+      const presetImage = await getPresetThumbnailImage(asset.properties, image, image, ee);
+      if (presetImage) {
+        return { url: await getThumbUrlRest(presetImage, params), preset: true };
+      }
+    } catch (err) {
+      console.warn('Image thumbnail preset failed:', err);
+    }
+  }
+
+  let firstBand = asset.bands?.[0]?.id;
+  if (!firstBand) {
+    firstBand = await computeValue<string>((image as any).bandNames().get(0)).catch(
+      () => undefined,
+    );
+  }
   const bandStats = firstBand
     ? await bandStatsPromise.then((stats) => stats[firstBand]).catch(() => undefined)
     : undefined;
@@ -154,31 +196,7 @@ async function getThumbnailUrl(
     }
   }
   const visualized = image.visualize(visualizationParams);
-
-  const isGlobal = !asset.geometry || !hasFiniteCoordinates(asset.geometry);
-  if (isGlobal) {
-    // 178°×178° square centered on 0°,0° with explicit grid origin
-    return getThumbUrlRest(visualized, {
-      format: 'PNG',
-      grid: {
-        dimensions: { width: 256, height: 256 },
-        affineTransform: {
-          scaleX: 178 / 256,
-          shearX: 0,
-          translateX: -89,
-          shearY: 0,
-          scaleY: -178 / 256,
-          translateY: 89,
-        },
-        crsCode: 'EPSG:4326',
-      },
-    });
-  }
-  return getThumbUrlRest(visualized, {
-    dimensions: [256, 256],
-    region: getRegion(ee, image, asset),
-    format: 'PNG',
-  });
+  return { url: await getThumbUrlRest(visualized, params), preset: false };
 }
 
 // ==================================================================

@@ -6,8 +6,8 @@
  * - Left sidebar: thumbnail, ImageCollection ID, dates, file size, image count, last modified.
  * - Right content: 4 tabs — DESCRIPTION, IMAGES, BANDS, PROPERTIES.
  *
- * The thumbnail is a mosaic of the first 10 images rendered via the EE
- * thumbnail API. The IMAGES tab lists child images with metadata and actions.
+ * The thumbnail mosaics the first 4 images using the collection's first preset,
+ * or a one-sigma grayscale stretch. The IMAGES tab lists child images and actions.
  * The BANDS tab shows band info from the first image in the collection.
  */
 
@@ -19,6 +19,7 @@ import { filesize } from 'filesize';
 import dayjs from 'dayjs';
 import { computeValue, ensureEe, getThumbUrlRest } from '../../../shared/eeSession.js';
 import { getExtensionUri } from '../../../shared/extensionContext.js';
+import { getPresetThumbnailImage } from '../thumbnailVisualization.js';
 
 import script from './ImageCollectionPreview.svelte';
 
@@ -78,6 +79,8 @@ export async function openImageCollectionPreview(
   panel.webview.onDidReceiveMessage(async (msg: { type: string; name?: string }) => {
     if (msg.type === 'ready') {
       sendThumbnail(asset, bands, childImages, panel);
+    } else if (msg.type === 'thumbnailFallback') {
+      sendThumbnail(asset, bands, childImages, panel, true);
     } else if (msg.type === 'copyAssetId') {
       await vscode.env.clipboard.writeText(asset.name);
     } else if (msg.type === 'openImage' && msg.name) {
@@ -127,12 +130,13 @@ async function sendThumbnail(
   bands: EEBand[],
   childImages: EEAsset[],
   panel: vscode.WebviewPanel,
+  fallbackOnly = false,
 ): Promise<void> {
   try {
-    const thumbUrl = await getCollectionThumbnailUrl(asset, bands, childImages);
-    panel.webview.postMessage({ type: 'thumbnail', url: thumbUrl });
+    const thumbnail = await getCollectionThumbnailUrl(asset, bands, childImages, fallbackOnly);
+    panel.webview.postMessage({ type: 'thumbnail', ...thumbnail });
   } catch (err) {
-    panel.webview.postMessage({ type: 'thumbnail', url: '', error: 'Thumbnail not available.' });
+    panel.webview.postMessage({ type: 'thumbnail', url: '', preset: false });
     const msg = err instanceof Error ? err.message : String(err);
     vscode.window.showErrorMessage(`Failed to load collection thumbnail: ${msg}`);
   }
@@ -143,7 +147,8 @@ async function getCollectionThumbnailUrl(
   asset: EEAsset,
   bands: EEBand[],
   childImages: EEAsset[],
-): Promise<string> {
+  fallbackOnly: boolean,
+): Promise<{ url: string; preset: boolean }> {
   const ee = await ensureEe();
   const mosaicImages = childImages.slice(0, MOSAIC_LIMIT);
   const collection =
@@ -151,8 +156,6 @@ async function getCollectionThumbnailUrl(
       ? ee.ImageCollection(mosaicImages.map((img) => ee.Image(img.name)))
       : ee.ImageCollection(asset.name).limit(MOSAIC_LIMIT);
   const mosaic = collection.mosaic();
-  const firstBand = bands[0]?.id;
-  const visualized = mosaic.visualize(firstBand ? { bands: [firstBand] } : {});
 
   const globalParams = {
     format: 'PNG',
@@ -171,18 +174,67 @@ async function getCollectionThumbnailUrl(
   };
 
   const isGlobal = !asset.geometry || !hasFiniteCoordinates(asset.geometry);
-  if (isGlobal) {
-    return getThumbUrlRest(visualized, globalParams);
+  const requestThumbnail = async (image: unknown): Promise<string> => {
+    if (isGlobal) {
+      return getThumbUrlRest(image, globalParams);
+    }
+    try {
+      return await getThumbUrlRest(image, {
+        dimensions: [256, 256],
+        region: getRegion(ee, mosaic, asset),
+        format: 'PNG',
+      });
+    } catch {
+      return getThumbUrlRest(image, globalParams);
+    }
+  };
+
+  if (!fallbackOnly) {
+    try {
+      const presetImage = await getPresetThumbnailImage(
+        asset.properties,
+        ee.ImageCollection(asset.name),
+        mosaic,
+        ee,
+      );
+      if (presetImage) {
+        return { url: await requestThumbnail(presetImage), preset: true };
+      }
+    } catch (err) {
+      console.warn('ImageCollection thumbnail preset failed:', err);
+    }
   }
-  try {
-    return await getThumbUrlRest(visualized, {
-      dimensions: [256, 256],
-      region: getRegion(ee, mosaic, asset),
-      format: 'PNG',
-    });
-  } catch {
-    return getThumbUrlRest(visualized, globalParams);
+
+  let firstBand: string | undefined = bands[0]?.id;
+  if (!firstBand) {
+    firstBand = await computeValue<string>((mosaic as any).bandNames().get(0)).catch(
+      () => undefined,
+    );
   }
+  let visualizationParams: Record<string, unknown> = firstBand ? { bands: [firstBand] } : {};
+  if (firstBand) {
+    try {
+      const reduced = mosaic.select([firstBand]).reduceRegion({
+        reducer: ee.Reducer.mean().combine({ reducer2: ee.Reducer.stdDev(), sharedInputs: true }),
+        geometry: getRegion(ee, mosaic, asset),
+        bestEffort: true,
+        maxPixels: 1e8,
+      });
+      const values = await computeValue<Record<string, number | null> | null>(reduced);
+      const mean = values?.[`${firstBand}_mean`];
+      const stdDev = values?.[`${firstBand}_stdDev`];
+      if (typeof mean === 'number' && typeof stdDev === 'number') {
+        const min = mean - stdDev;
+        const max = mean + stdDev;
+        if (Number.isFinite(min) && Number.isFinite(max) && max > min) {
+          visualizationParams = { bands: [firstBand], min, max, palette: ['000000', 'FFFFFF'] };
+        }
+      }
+    } catch (err) {
+      console.warn('ImageCollection thumbnail stretch failed:', err);
+    }
+  }
+  return { url: await requestThumbnail(mosaic.visualize(visualizationParams)), preset: false };
 }
 
 // ==================================================================
