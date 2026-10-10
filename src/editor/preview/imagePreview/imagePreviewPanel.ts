@@ -6,8 +6,8 @@
  * - Left sidebar: thumbnail, Image ID, dates, file size, band count, last modified.
  * - Right content: 3 tabs — DESCRIPTION, BANDS, PROPERTIES.
  *
- * The thumbnail is fetched from the EE thumbnail API using the first band
- * and the image footprint (falls back to near-global extent if missing).
+ * The thumbnail uses the first asset preset, or a one-sigma grayscale stretch
+ * of the first band, over the image footprint (near-global if missing).
  * Band min/max values are computed lazily via the ee.Reducer.minMax()
  * expression endpoint with bestEffort enabled.
  */
@@ -20,6 +20,7 @@ import { filesize } from 'filesize';
 import dayjs from 'dayjs';
 import { ensureEe, computeValue, getThumbUrlRest } from '../../../shared/eeSession.js';
 import { getExtensionUri } from '../../../shared/extensionContext.js';
+import { getPresetThumbnailImage } from '../thumbnailVisualization.js';
 
 import script from './ImagePreview.svelte';
 
@@ -46,12 +47,17 @@ export function openImagePreview(asset: EEAsset, accessToken: string): void {
   panel.webview.html = buildImageHtml(asset, panel.webview);
 
   // Handle messages from the WebView (lazy loading of thumbnail + min/max)
+  let bandStatsPromise: Promise<Record<string, BandStatistics>> | undefined;
   panel.webview.onDidReceiveMessage(async (msg: { type: string }) => {
     if (msg.type === 'ready') {
       // Fire-and-forget: send asynchronous image and parent metadata.
-      sendThumbnail(asset, panel);
-      sendMinMax(asset, panel);
+      bandStatsPromise = computeBandStats(asset);
+      sendThumbnail(asset, panel, bandStatsPromise);
+      sendMinMax(panel, bandStatsPromise);
       sendParentCollection(asset, accessToken, panel);
+    } else if (msg.type === 'thumbnailFallback') {
+      bandStatsPromise ??= computeBandStats(asset);
+      sendThumbnail(asset, panel, bandStatsPromise, true);
     } else if (msg.type === 'copyAssetId') {
       await vscode.env.clipboard.writeText(asset.name);
     } else if (msg.type === 'openParentCollection') {
@@ -110,56 +116,102 @@ async function openParentCollection(asset: EEAsset, accessToken: string): Promis
 // ==================================================================
 // THUMBNAIL
 // ==================================================================
-async function sendThumbnail(asset: EEAsset, panel: vscode.WebviewPanel): Promise<void> {
+async function sendThumbnail(
+  asset: EEAsset,
+  panel: vscode.WebviewPanel,
+  bandStatsPromise: Promise<Record<string, BandStatistics>>,
+  fallbackOnly = false,
+): Promise<void> {
   try {
-    const thumbUrl = await getThumbnailUrl(asset);
-    panel.webview.postMessage({ type: 'thumbnail', url: thumbUrl });
+    const thumbnail = await getThumbnailUrl(asset, bandStatsPromise, fallbackOnly);
+    panel.webview.postMessage({ type: 'thumbnail', ...thumbnail });
   } catch (err) {
-    panel.webview.postMessage({ type: 'thumbnail', url: '' });
+    panel.webview.postMessage({ type: 'thumbnail', url: '', preset: false });
     const msg = err instanceof Error ? err.message : String(err);
     vscode.window.showErrorMessage(`Failed to load thumbnail: ${msg}`);
   }
 }
 
-/** Visualizes the image's first band and requests a 256px thumbnail URL. */
-async function getThumbnailUrl(asset: EEAsset): Promise<string> {
+/** Renders the first asset preset, falling back to the first band's one-sigma stretch. */
+async function getThumbnailUrl(
+  asset: EEAsset,
+  bandStatsPromise: Promise<Record<string, BandStatistics>>,
+  fallbackOnly: boolean,
+): Promise<{ url: string; preset: boolean }> {
   const ee = await ensureEe();
-  const firstBand = asset.bands?.[0]?.id;
   const image = ee.Image(asset.name);
-  const visualized = image.visualize(firstBand ? { bands: [firstBand] } : {});
-
   const isGlobal = !asset.geometry || !hasFiniteCoordinates(asset.geometry);
-  if (isGlobal) {
-    // 178°×178° square centered on 0°,0° with explicit grid origin
-    return getThumbUrlRest(visualized, {
-      format: 'PNG',
-      grid: {
-        dimensions: { width: 256, height: 256 },
-        affineTransform: {
-          scaleX: 178 / 256,
-          shearX: 0,
-          translateX: -89,
-          shearY: 0,
-          scaleY: -178 / 256,
-          translateY: 89,
+  const params = isGlobal
+    ? {
+        format: 'PNG',
+        grid: {
+          dimensions: { width: 256, height: 256 },
+          affineTransform: {
+            scaleX: 178 / 256,
+            shearX: 0,
+            translateX: -89,
+            shearY: 0,
+            scaleY: -178 / 256,
+            translateY: 89,
+          },
+          crsCode: 'EPSG:4326',
         },
-        crsCode: 'EPSG:4326',
-      },
-    });
+      }
+    : { dimensions: [256, 256], region: getRegion(ee, image, asset), format: 'PNG' };
+
+  if (!fallbackOnly) {
+    try {
+      const presetImage = await getPresetThumbnailImage(asset.properties, image, image, ee);
+      if (presetImage) {
+        return { url: await getThumbUrlRest(presetImage, params), preset: true };
+      }
+    } catch (err) {
+      console.warn('Image thumbnail preset failed:', err);
+    }
   }
-  return getThumbUrlRest(visualized, {
-    dimensions: [256, 256],
-    region: getRegion(ee, image, asset),
-    format: 'PNG',
-  });
+
+  let firstBand = asset.bands?.[0]?.id;
+  if (!firstBand) {
+    firstBand = await computeValue<string>((image as any).bandNames().get(0)).catch(
+      () => undefined,
+    );
+  }
+  const bandStats = firstBand
+    ? await bandStatsPromise.then((stats) => stats[firstBand]).catch(() => undefined)
+    : undefined;
+  let visualizationParams: Record<string, unknown> = {};
+  if (firstBand) {
+    visualizationParams = { bands: [firstBand] };
+    if (typeof bandStats?.mean === 'number' && typeof bandStats.stdDev === 'number') {
+      const min = bandStats.mean - bandStats.stdDev;
+      const max = bandStats.mean + bandStats.stdDev;
+      if (Number.isFinite(min) && Number.isFinite(max) && max > min) {
+        visualizationParams = {
+          bands: [firstBand],
+          min,
+          max,
+          palette: ['000000', 'FFFFFF'],
+        };
+      }
+    }
+  }
+  const visualized = image.visualize(visualizationParams);
+  return { url: await getThumbUrlRest(visualized, params), preset: false };
 }
 
 // ==================================================================
 // MIN/MAX
 // ==================================================================
-async function sendMinMax(asset: EEAsset, panel: vscode.WebviewPanel): Promise<void> {
+async function sendMinMax(
+  panel: vscode.WebviewPanel,
+  bandStatsPromise: Promise<Record<string, BandStatistics>>,
+): Promise<void> {
   try {
-    const minMax = await computeMinMax(asset);
+    const bandStats = await bandStatsPromise;
+    const minMax: BandMinMax = {};
+    for (const [bandId, stats] of Object.entries(bandStats)) {
+      minMax[bandId] = { min: stats.min, max: stats.max };
+    }
     panel.webview.postMessage({ type: 'minmax', data: minMax });
   } catch (err) {
     panel.webview.postMessage({ type: 'minmax', data: null });
@@ -172,31 +224,40 @@ interface BandMinMax {
   [bandId: string]: { min: number | null; max: number | null };
 }
 
-/** Reduces the image over its footprint with ee.Reducer.minMax() and groups the result per band. */
-async function computeMinMax(asset: EEAsset): Promise<BandMinMax> {
+interface BandStatistics {
+  min: number | null;
+  max: number | null;
+  mean: number | null;
+  stdDev: number | null;
+}
+
+/** Reduces the image over its footprint and groups min/max and sigma stats per band. */
+async function computeBandStats(asset: EEAsset): Promise<Record<string, BandStatistics>> {
   const ee = await ensureEe();
   const image = ee.Image(asset.name);
   const region = getRegion(ee, image, asset);
 
   const reduced = image.reduceRegion({
-    reducer: ee.Reducer.minMax(),
+    reducer: ee.Reducer.minMax()
+      .combine({ reducer2: ee.Reducer.mean(), sharedInputs: true })
+      .combine({ reducer2: ee.Reducer.stdDev(), sharedInputs: true }),
     geometry: region,
     bestEffort: true,
     maxPixels: 1e8,
   });
-  const values = await computeValue<Record<string, number> | null>(reduced);
+  const values = await computeValue<Record<string, number | null> | null>(reduced);
 
-  const result: BandMinMax = {};
+  const result: Record<string, BandStatistics> = {};
   if (values) {
     for (const [key, val] of Object.entries(values)) {
-      const match = key.match(/^(.+)_(min|max)$/);
+      const match = key.match(/^(.+)_(min|max|mean|stdDev)$/);
       if (match) {
         const bandId = match[1];
-        const kind = match[2] as 'min' | 'max';
+        const statistic = match[2] as keyof BandStatistics;
         if (!result[bandId]) {
-          result[bandId] = { min: null, max: null };
+          result[bandId] = { min: null, max: null, mean: null, stdDev: null };
         }
-        result[bandId][kind] = val;
+        result[bandId][statistic] = val;
       }
     }
   }
