@@ -24,6 +24,18 @@ Usage
     Map.addLayer(image, {"bands": ["B4", "B3", "B2"], "min": 0, "max": 3000}, "RGB")
     Map.centerObject(image, zoom=10)
 
+For a single-band palette with discrete intervals, pass ordered boundaries in
+``breaks``. There must be one more boundary than colors; without ``breaks``,
+``palette`` remains a continuous gradient.
+
+.. code-block:: python
+
+    Map.addLayer(image, {
+        "bands": ["B8"],
+        "breaks": [0, 1000, 2000, 3000],
+        "palette": ["#2b83ba", "#abdda4", "#d7191c"],
+    }, "Near Infrared")
+
 Requirements
 ------------
 

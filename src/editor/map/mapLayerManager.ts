@@ -101,7 +101,23 @@ export class MapLayerManager {
     let resolvedVisParams: Record<string, unknown> = hasDefault ? {} : rawVisParams;
     let displayVisParams: Record<string, unknown> | undefined;
 
-    if (!hasExplicitViz) {
+    if ('breaks' in rawVisParams) {
+      const resolved = resolveSepalViz(
+        {
+          index: -1,
+          name: 'Custom Intervals',
+          type: 'intervals',
+          bands: rawVisParams['bands'] as string[],
+          breaks: rawVisParams['breaks'] as number[],
+          palette: rawVisParams['palette'] as string[],
+        },
+        image,
+        ee,
+      );
+      resolvedImage = resolved.image;
+      resolvedVisParams = resolved.visParams;
+      displayVisParams = resolved.displayVisParams;
+    } else if (!hasExplicitViz) {
       // Either {default: <selector>} or {} — try to resolve a SEPAL viz preset
       // from the image's stored properties.
       try {

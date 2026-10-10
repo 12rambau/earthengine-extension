@@ -5,7 +5,7 @@
   import MapSlider from './MapSlider.svelte';
   import { vscode } from '../../shared/vscode.ts';
   import { trackViewportChanges } from '../../shared/viewportAnchor.ts';
-  import { buildIntervalSld, intervalStops } from '../../shared/sepalViz.ts';
+  import { intervalStops } from '../../shared/sepalViz.ts';
   import {
     mdiCheck,
     mdiChevronDown,
@@ -487,7 +487,11 @@
     }
     const opacity = String(clampOpacityPercent(vizOpacity) / 100);
     if (config.vizType === 'intervals') {
-      return `image.select(${jsonList(config.bands, true)}).sldStyle(\n  """${buildIntervalSld(config.breaks, config.palette)}"""\n)`;
+      return jsonDict([
+        ['bands', jsonList(config.bands, true)],
+        ['breaks', jsonList(config.breaks)],
+        ['palette', jsonList(config.palette, true)],
+      ]);
     }
     const entries = [['bands', jsonList(config.bands, true)]];
 
@@ -1622,7 +1626,7 @@
   <div class="viz-editor-overlay visible viz-code-overlay">
     <div class="viz-editor-dialog viz-code-dialog">
       <div class="viz-editor-header">
-        <span>{vizType === 'intervals' ? 'Python SLD visualization' : 'Python visualization parameters'}</span>
+        <span>Python visualization parameters</span>
         <button
           type="button"
           class="viz-close-btn"

@@ -47,6 +47,16 @@ Map.centerObject(image, zoom=10)
 
 Add a layer to the map. `ee_object` accepts an `ee.Image`, `ee.ImageCollection` (mosaicked automatically), `ee.FeatureCollection`, `ee.Feature`, or `ee.Geometry` (vectors are painted onto an image using the `color` and `strokeWidth` visualisation keys). The object is serialised locally and sent to the extension, which resolves the tile URL.
 
+For a single-band palette with discrete intervals, pass increasing boundaries in `breaks` (one more boundary than palette colors). Without `breaks`, `palette` remains a continuous gradient:
+
+```python
+Map.addLayer(image, {
+	"bands": ["B8"],
+	"breaks": [0, 1000, 2000, 3000],
+	"palette": ["#2b83ba", "#abdda4", "#d7191c"],
+}, "Near Infrared")
+```
+
 ### `Map.centerObject(ee_object, zoom=None)`
 
 Centers and, optionally, zooms the map on the bounds of an `ee.Image`, `ee.ImageCollection`, `ee.FeatureCollection`, `ee.Feature`, or `ee.Geometry`. Computing the bounds calls `getInfo()`, so it requires network access to Earth Engine.

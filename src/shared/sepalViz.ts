@@ -243,10 +243,14 @@ export function resolveSepalViz(
     }
 
     case 'intervals': {
-      const breaks = viz.breaks ?? [];
-      const palette = viz.palette ?? [];
+      const breaks = viz.breaks;
+      const palette = viz.palette;
       if (
+        !Array.isArray(viz.bands) ||
         viz.bands.length !== 1 ||
+        !viz.bands[0] ||
+        !Array.isArray(breaks) ||
+        !Array.isArray(palette) ||
         breaks.length !== palette.length + 1 ||
         palette.length === 0 ||
         breaks.some(
