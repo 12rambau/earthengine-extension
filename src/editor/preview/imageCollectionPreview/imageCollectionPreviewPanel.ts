@@ -214,9 +214,11 @@ async function getCollectionThumbnailUrl(
   let visualizationParams: Record<string, unknown> = firstBand ? { bands: [firstBand] } : {};
   if (firstBand) {
     try {
+      const region = getRegion(ee, mosaic, asset) as any;
       const reduced = mosaic.select([firstBand]).reduceRegion({
         reducer: ee.Reducer.mean().combine({ reducer2: ee.Reducer.stdDev(), sharedInputs: true }),
-        geometry: getRegion(ee, mosaic, asset),
+        geometry: region,
+        scale: region.perimeter(1).divide(1024),
         bestEffort: true,
         maxPixels: 1e8,
       });
