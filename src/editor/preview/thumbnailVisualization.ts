@@ -15,9 +15,7 @@ export async function getPresetThumbnailImage(
   assetName?: string,
   accessToken?: string,
 ): Promise<unknown | undefined> {
-  const presets = assetName
-    ? await getImageVisualizations(properties, propertySource, assetName, accessToken)
-    : await getImageVisualizations(properties, propertySource);
+  const presets = await getImageVisualizations(properties, propertySource, assetName, accessToken);
 
   const preset = selectSepalViz(presets, 0);
   if (!preset) {

@@ -4,7 +4,7 @@
  */
 
 import { getAsset } from '../sidebar/assets/eeApiClient.js';
-import { computeValue, getEeContext } from './eeSession.js';
+import { computeValue, ensureEe, getEeContext } from './eeSession.js';
 import { parseSepalVisualizations, selectImageVisualizations, type SepalViz } from './sepalViz.js';
 
 /** Returns image presets when present, otherwise presets from the immediate parent collection. */
@@ -38,9 +38,18 @@ export async function getImageVisualizations(
   try {
     const token = accessToken ?? (await getEeContext()).token;
     const parent = await getAsset(parentName, token);
-    return parent.type === 'IMAGE_COLLECTION'
-      ? selectImageVisualizations(imageProperties, parent.properties ?? {})
-      : [];
+    if (parent.type !== 'IMAGE_COLLECTION') {
+      return [];
+    }
+    let collectionProperties = parent.properties ?? {};
+    if (parseSepalVisualizations(collectionProperties).length === 0) {
+      const ee = await ensureEe();
+      collectionProperties =
+        (await computeValue<Record<string, unknown> | null>(
+          (ee.ImageCollection(parentName) as any).toDictionary(),
+        )) ?? {};
+    }
+    return selectImageVisualizations(imageProperties, collectionProperties);
   } catch {
     return [];
   }

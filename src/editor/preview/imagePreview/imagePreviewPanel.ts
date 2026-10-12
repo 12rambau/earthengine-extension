@@ -6,8 +6,9 @@
  * - Left sidebar: thumbnail, Image ID, dates, file size, band count, last modified.
  * - Right content: 3 tabs — DESCRIPTION, BANDS, PROPERTIES.
  *
- * The thumbnail uses the first asset preset, or a one-sigma grayscale stretch
- * of the first band, over the image footprint (near-global if missing).
+ * The thumbnail uses the first image or parent-collection preset, or a
+ * one-sigma grayscale stretch of the first band, over the image footprint
+ * (near-global if missing).
  * Band min/max values are computed lazily via the ee.Reducer.minMax()
  * expression endpoint with bestEffort enabled.
  */
@@ -133,7 +134,7 @@ async function sendThumbnail(
   }
 }
 
-/** Renders the first asset preset, falling back to the first band's one-sigma stretch. */
+/** Renders the first available preset, falling back to the first band's one-sigma stretch. */
 async function getThumbnailUrl(
   asset: EEAsset,
   accessToken: string,
