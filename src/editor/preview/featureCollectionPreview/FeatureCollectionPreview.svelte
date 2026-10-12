@@ -101,7 +101,7 @@
       {@html data.columnsTableHtml}
     </section>
 
-    <section class="tab-panel" class:active={activeTab === 'properties'}>
+    <section class="tab-panel properties-panel" class:active={activeTab === 'properties'}>
       {@html data.propsHtml}
     </section>
   </main>
@@ -248,6 +248,10 @@
       overflow: auto;
       flex: 1;
 
+      &.properties-panel {
+        padding-top: 0;
+      }
+
       &.active {
         display: block;
       }
@@ -329,6 +333,10 @@
       position: sticky;
       top: 0;
       white-space: nowrap;
+    }
+    .props-table th {
+      background: var(--vscee-color-editor-background);
+      z-index: 1;
     }
     .features-table td,
     .columns-table td,
