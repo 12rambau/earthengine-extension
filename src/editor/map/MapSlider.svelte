@@ -69,7 +69,7 @@
       /* Carves the ring out of the disc, leaving a round dot in the middle. */
       box-shadow:
         inset 0 0 0 3px var(--vscee-color-editor-background),
-        var(--vscee-shadow-xs);
+        0 0 0 2px var(--vscee-color-editor-background);
     }
     &::-moz-range-thumb {
       width: 12px;
@@ -80,20 +80,18 @@
       background: var(--vscee-color-button-background);
       box-shadow:
         inset 0 0 0 3px var(--vscee-color-editor-background),
-        var(--vscee-shadow-xs);
+        0 0 0 2px var(--vscee-color-editor-background);
     }
     &:focus {
       outline: none;
     }
     &:focus-visible::-webkit-slider-thumb {
-      box-shadow:
-        inset 0 0 0 3px var(--vscee-color-editor-background),
-        var(--vscee-shadow-sm);
+      outline: var(--vscee-border-sm) solid var(--vscee-color-focus);
+      outline-offset: 2px;
     }
     &:focus-visible::-moz-range-thumb {
-      box-shadow:
-        inset 0 0 0 3px var(--vscee-color-editor-background),
-        var(--vscee-shadow-sm);
+      outline: var(--vscee-border-sm) solid var(--vscee-color-focus);
+      outline-offset: 2px;
     }
   }
 
