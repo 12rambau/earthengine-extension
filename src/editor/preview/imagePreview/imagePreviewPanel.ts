@@ -52,12 +52,12 @@ export function openImagePreview(asset: EEAsset, accessToken: string): void {
     if (msg.type === 'ready') {
       // Fire-and-forget: send asynchronous image and parent metadata.
       bandStatsPromise = computeBandStats(asset);
-      sendThumbnail(asset, panel, bandStatsPromise);
+      sendThumbnail(asset, accessToken, panel, bandStatsPromise);
       sendMinMax(panel, bandStatsPromise);
       sendParentCollection(asset, accessToken, panel);
     } else if (msg.type === 'thumbnailFallback') {
       bandStatsPromise ??= computeBandStats(asset);
-      sendThumbnail(asset, panel, bandStatsPromise, true);
+      sendThumbnail(asset, accessToken, panel, bandStatsPromise, true);
     } else if (msg.type === 'copyAssetId') {
       await vscode.env.clipboard.writeText(asset.name);
     } else if (msg.type === 'openParentCollection') {
@@ -118,12 +118,13 @@ async function openParentCollection(asset: EEAsset, accessToken: string): Promis
 // ==================================================================
 async function sendThumbnail(
   asset: EEAsset,
+  accessToken: string,
   panel: vscode.WebviewPanel,
   bandStatsPromise: Promise<Record<string, BandStatistics>>,
   fallbackOnly = false,
 ): Promise<void> {
   try {
-    const thumbnail = await getThumbnailUrl(asset, bandStatsPromise, fallbackOnly);
+    const thumbnail = await getThumbnailUrl(asset, accessToken, bandStatsPromise, fallbackOnly);
     panel.webview.postMessage({ type: 'thumbnail', ...thumbnail });
   } catch (err) {
     panel.webview.postMessage({ type: 'thumbnail', url: '', preset: false });
@@ -135,6 +136,7 @@ async function sendThumbnail(
 /** Renders the first asset preset, falling back to the first band's one-sigma stretch. */
 async function getThumbnailUrl(
   asset: EEAsset,
+  accessToken: string,
   bandStatsPromise: Promise<Record<string, BandStatistics>>,
   fallbackOnly: boolean,
 ): Promise<{ url: string; preset: boolean }> {
@@ -161,7 +163,14 @@ async function getThumbnailUrl(
 
   if (!fallbackOnly) {
     try {
-      const presetImage = await getPresetThumbnailImage(asset.properties, image, image, ee);
+      const presetImage = await getPresetThumbnailImage(
+        asset.properties,
+        image,
+        image,
+        ee,
+        asset.name,
+        accessToken,
+      );
       if (presetImage) {
         return { url: await getThumbUrlRest(presetImage, params), preset: true };
       }

@@ -412,6 +412,7 @@ export class MapPanel extends EditorPanel {
         name,
         shown,
         opacity,
+        assetName: type === 'IMAGE' ? assetName : undefined,
       },
       (m) => this.post(m),
     );

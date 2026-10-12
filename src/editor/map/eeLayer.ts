@@ -23,5 +23,7 @@ export class EeLayer {
     public shown: boolean = true,
     /** Current opacity in [0, 1]. */
     public opacity: number = 1.0,
+    /** Asset name, when this layer was added directly from an asset. */
+    public readonly assetName?: string,
   ) {}
 }

@@ -57,6 +57,7 @@ export function parseSepalVisualizations(props: Record<string, unknown>): SepalV
     if (!match) {
       continue;
     }
+
     const idx = parseInt(match[1], 10);
     const field = match[2];
     if (!byIndex.has(idx)) {
@@ -92,6 +93,17 @@ export function parseSepalVisualizations(props: Record<string, unknown>): SepalV
 // ==================================================================
 // SELECTION
 // ==================================================================
+
+/** Prefers an image's presets over those of its parent image collection. */
+export function selectImageVisualizations(
+  imageProperties: Record<string, unknown>,
+  collectionProperties: Record<string, unknown>,
+): SepalViz[] {
+  const imagePresets = parseSepalVisualizations(imageProperties);
+  return imagePresets.length > 0
+    ? imagePresets
+    : parseSepalVisualizations(collectionProperties);
+}
 
 /**
  * Finds a visualization by name or integer index.
