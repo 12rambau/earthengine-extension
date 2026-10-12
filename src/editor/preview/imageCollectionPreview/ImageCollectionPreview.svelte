@@ -202,7 +202,7 @@
       {@html data.bandsHtml}
     </section>
 
-    <section class="tab-panel" class:active={activeTab === 'properties'}>
+    <section class="tab-panel properties-panel" class:active={activeTab === 'properties'}>
       {@html data.propsHtml}
     </section>
   </main>
@@ -383,6 +383,10 @@
       overflow: auto;
       flex: 1;
 
+      &.properties-panel {
+        padding-top: 0;
+      }
+
       &.active {
         display: block;
       }
@@ -468,6 +472,7 @@
     }
     .props-table th {
       background: var(--vscee-color-editor-background);
+      z-index: 1;
     }
     .images-table td,
     .bands-table td,
