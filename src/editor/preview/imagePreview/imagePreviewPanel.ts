@@ -157,7 +157,7 @@ async function getThumbnailUrl(
           crsCode: 'EPSG:4326',
         },
       }
-    : { dimensions: [256, 256], region: getRegion(ee, image, asset), format: 'PNG' };
+    : { dimensions: [256, 256], region: getThumbnailRegion(ee, image, asset), format: 'PNG' };
 
   if (!fallbackOnly) {
     try {
@@ -289,6 +289,22 @@ function getRegion(ee: any, image: any, asset: EEAsset): unknown {
   if (asset.geometry && hasFiniteCoordinates(asset.geometry)) {
     const bounds = image.geometry().bounds();
     const radius = bounds.perimeter(1).divide(4);
+    return bounds.centroid(1).buffer(radius).bounds();
+  }
+  return ee.Geometry.BBox(...GLOBAL_BBOX);
+}
+
+/** Returns a slightly zoomed square region for the image thumbnail. */
+function getThumbnailRegion(ee: any, image: any, asset: EEAsset): unknown {
+  if (asset.geometry && hasFiniteCoordinates(asset.geometry)) {
+    const bounds = image.geometry().bounds();
+    const corners = ee.List(bounds.coordinates().get(0));
+    const lowerLeft = corners.get(0);
+    const lowerRight = corners.get(1);
+    const upperRight = corners.get(2);
+    const width = ee.Geometry.LineString([lowerLeft, lowerRight]).length(1);
+    const height = ee.Geometry.LineString([lowerRight, upperRight]).length(1);
+    const radius = ee.Number(width).max(height).multiply(0.35);
     return bounds.centroid(1).buffer(radius).bounds();
   }
   return ee.Geometry.BBox(...GLOBAL_BBOX);
