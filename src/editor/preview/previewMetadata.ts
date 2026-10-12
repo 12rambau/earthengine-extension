@@ -74,6 +74,9 @@ export async function savePreviewMetadata(
       await moveAsset(asset.name, destination, accessToken);
     }
     const saved = await getAsset(destination, accessToken);
+    for (const key of Object.keys(asset)) {
+      Reflect.deleteProperty(asset, key);
+    }
     Object.assign(asset, saved);
     panel.title = destination.split('/').pop() || panel.title;
     panel.webview.postMessage({ type: 'metadataSaved', metadata: previewMetadata(saved) });
