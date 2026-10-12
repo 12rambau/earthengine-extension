@@ -237,6 +237,32 @@ export async function getThumbUrlRest(
   };
   if (params.grid) {
     body.grid = params.grid;
+  } else if (params.region && params.dimensions) {
+    const coordinates = await computeValue<number[][][]>(
+      eeAny.Geometry(params.region).bounds(1).coordinates(),
+    );
+    const ring = coordinates[0];
+    const longitudes = ring.map((point) => point[0]);
+    const latitudes = ring.map((point) => point[1]);
+    const west = Math.min(...longitudes);
+    const east = Math.max(...longitudes);
+    const south = Math.min(...latitudes);
+    const north = Math.max(...latitudes);
+    if (![west, east, south, north].every(Number.isFinite) || east <= west || north <= south) {
+      throw new Error('Invalid thumbnail region bounds');
+    }
+    body.grid = {
+      dimensions: { width: params.dimensions[0], height: params.dimensions[1] },
+      affineTransform: {
+        scaleX: (east - west) / params.dimensions[0],
+        shearX: 0,
+        translateX: west,
+        shearY: 0,
+        scaleY: (south - north) / params.dimensions[1],
+        translateY: north,
+      },
+      crsCode: 'EPSG:4326',
+    };
   } else if (params.dimensions) {
     body.grid = { dimensions: { width: params.dimensions[0], height: params.dimensions[1] } };
   }

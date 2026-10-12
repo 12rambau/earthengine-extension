@@ -14,9 +14,10 @@
   // STATE
   // ----------------------------------------------------------------
   let activeTab = $state('description');
-  let thumbnailHtml = $state(
-    '<span class="thumb-loading"><span class="spinner"></span> Loading thumbnail...</span>',
-  );
+  let thumbnailUrl = $state('');
+  let thumbnailLoading = $state(true);
+  let thumbnailPreset = $state(false);
+  let fallbackRequested = $state(false);
   // null = still loading; object = received (may have no entry for a band)
   let minMaxData = $state(null);
   let parentCollection = $state(null);
@@ -31,11 +32,9 @@
   window.addEventListener('message', (event) => {
     const msg = event.data;
     if (msg.type === 'thumbnail') {
-      if (msg.url) {
-        thumbnailHtml = `<img src="${msg.url}" alt="Thumbnail" />`;
-      } else {
-        thumbnailHtml = '<span class="thumb-unavailable">Thumbnail not available.</span>';
-      }
+      thumbnailUrl = msg.url || '';
+      thumbnailPreset = Boolean(msg.preset);
+      thumbnailLoading = false;
     } else if (msg.type === 'minmax') {
       minMaxData = msg.data;
     } else if (msg.type === 'parentCollection') {
@@ -46,6 +45,15 @@
   // ----------------------------------------------------------------
   // ACTIONS
   // ----------------------------------------------------------------
+  function handleThumbnailError() {
+    thumbnailUrl = '';
+    if (thumbnailPreset && !fallbackRequested) {
+      fallbackRequested = true;
+      thumbnailLoading = true;
+      vscode.postMessage({ type: 'thumbnailFallback' });
+    }
+  }
+
   function copyAssetId() {
     vscode.postMessage({ type: 'copyAssetId' });
     assetIdCopied = true;
@@ -92,7 +100,13 @@
   <aside class="sidebar">
     <div class="thumbnail-container">
       <div class="thumbnail-placeholder">
-        {@html thumbnailHtml}
+        {#if thumbnailLoading}
+          <span class="thumb-loading"><span class="spinner"></span> Loading thumbnail...</span>
+        {:else if thumbnailUrl}
+          <img src={thumbnailUrl} alt="Thumbnail" onerror={handleThumbnailError} />
+        {:else}
+          <span class="thumb-unavailable">Thumbnail not available.</span>
+        {/if}
       </div>
     </div>
 
