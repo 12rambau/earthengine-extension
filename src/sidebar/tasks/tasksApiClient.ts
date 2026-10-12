@@ -69,6 +69,8 @@ export type TaskKind =
   | 'table-export'
   | 'video-export'
   | 'classifier-export'
+  | 'image-import'
+  | 'table-import'
   | 'export'
   | 'import'
   | 'unknown';
@@ -157,6 +159,12 @@ export function getTaskKind(op: Operation): TaskKind {
       return 'video-export';
     case 'EXPORT_CLASSIFIER':
       return 'classifier-export';
+    case 'INGEST_IMAGE':
+    case 'IMPORT_IMAGE':
+      return 'image-import';
+    case 'INGEST_TABLE':
+    case 'IMPORT_TABLE':
+      return 'table-import';
     default:
       return isExportTask(op) ? 'export' : isImportTask(op) ? 'import' : 'unknown';
   }
