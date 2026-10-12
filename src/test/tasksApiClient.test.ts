@@ -1,7 +1,14 @@
 /** @module tasksApiClient.test */
 
 import { strict as assert } from 'node:assert';
-import { canPreviewTask, getPreviewAssetName, type Operation } from '../sidebar/tasks/tasksApiClient.js';
+import {
+  canPreviewTask,
+  formatRuntimeLine,
+  getElapsedTime,
+  getPreviewAssetName,
+  isEpochTimestamp,
+  type Operation,
+} from '../sidebar/tasks/tasksApiClient.js';
 
 describe('task asset preview', () => {
   const assetName = 'projects/example/assets/folder/imported';
@@ -40,6 +47,30 @@ describe('task asset preview', () => {
       `https://earthengine.googleapis.com/v1/projects/example/exports?asset=${assetName}`,
     ]);
     assert.equal(getPreviewAssetName(exportTask), assetName);
-    assert.equal(getPreviewAssetName(operation('EXPORT_IMAGE', 'SUCCEEDED', [assetName])), undefined);
+    assert.equal(
+      getPreviewAssetName(operation('EXPORT_IMAGE', 'SUCCEEDED', [assetName])),
+      undefined,
+    );
+  });
+});
+
+describe('task runtime', () => {
+  it('treats any timestamp representing the Unix epoch as an unset start time', () => {
+    const task: Operation = {
+      name: 'projects/example/operations/task',
+      metadata: {
+        state: 'CANCELLED',
+        startTime: '1970-01-01T01:00:00+01:00',
+        endTime: '1970-01-01T00:00:00.000Z',
+      },
+    };
+
+    assert.equal(isEpochTimestamp(task.metadata?.startTime), true);
+    assert.equal(getElapsedTime(task), '');
+    assert.equal(formatRuntimeLine(task), '');
+  });
+
+  it('does not treat a non-epoch timestamp as an unset start time', () => {
+    assert.equal(isEpochTimestamp('1970-01-01T00:00:01.000Z'), false);
   });
 });

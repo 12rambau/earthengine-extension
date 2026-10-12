@@ -181,9 +181,10 @@ export function getPreviewAssetName(op: Operation): string | undefined {
     return undefined;
   }
 
-  const uri = op.metadata?.destinationUris?.find((value) =>
-    /(?:asset=|\/v1\/projects\/[^/]+\/assets\/)/.test(value) ||
-    (isImport && /^projects\/[^/]+\/assets\/[^?#\s]+$/.test(value)),
+  const uri = op.metadata?.destinationUris?.find(
+    (value) =>
+      /(?:asset=|\/v1\/projects\/[^/]+\/assets\/)/.test(value) ||
+      (isImport && /^projects\/[^/]+\/assets\/[^?#\s]+$/.test(value)),
   );
   if (!uri) {
     return undefined;
@@ -206,6 +207,11 @@ export function getTaskState(op: Operation): string {
   return op.metadata?.state || (op.done ? 'SUCCEEDED' : 'PENDING');
 }
 
+/** Returns `true` when a timestamp represents the Unix epoch sentinel. */
+export function isEpochTimestamp(timestamp: string | undefined): boolean {
+  return timestamp !== undefined && Date.parse(timestamp) === 0;
+}
+
 /** Computes a compact elapsed time string (e.g. "42s", "5 minutes", "2 hours"). */
 export function getElapsedTime(op: Operation): string {
   if (getTaskState(op) === 'PENDING') {
@@ -213,7 +219,7 @@ export function getElapsedTime(op: Operation): string {
   }
   const start = op.metadata?.startTime;
   // Treat Unix epoch (1970-01-01T00:00:00.000Z) as sentinel for "not started yet"
-  if (!start || start === '1970-01-01T00:00:00.000Z') {
+  if (!start || isEpochTimestamp(start)) {
     return '';
   }
   const ms = (op.metadata?.endTime ? dayjs(op.metadata.endTime) : dayjs()).diff(start);
@@ -227,7 +233,7 @@ export function formatRuntimeLine(op: Operation): string {
   }
   const startIso = op.metadata?.startTime;
   // Treat Unix epoch (1970-01-01T00:00:00.000Z) as sentinel for "not started yet"
-  if (!startIso || startIso === '1970-01-01T00:00:00.000Z') {
+  if (!startIso || isEpochTimestamp(startIso)) {
     return '';
   }
   const ms = (op.metadata?.endTime ? dayjs(op.metadata.endTime) : dayjs()).diff(startIso);
