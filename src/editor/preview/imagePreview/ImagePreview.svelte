@@ -475,6 +475,9 @@
       position: sticky;
       top: 0;
     }
+    .props-table th {
+      background: var(--vscee-color-editor-background);
+    }
     .bands-table td,
     .props-table td {
       padding: var(--vscee-space-sm) var(--vscee-space-lg);

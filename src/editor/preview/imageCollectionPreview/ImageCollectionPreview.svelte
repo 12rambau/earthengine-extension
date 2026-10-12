@@ -466,6 +466,9 @@
       top: 0;
       white-space: nowrap;
     }
+    .props-table th {
+      background: var(--vscee-color-editor-background);
+    }
     .images-table td,
     .bands-table td,
     .props-table td {

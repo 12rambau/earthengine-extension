@@ -330,6 +330,9 @@
       top: 0;
       white-space: nowrap;
     }
+    .props-table th {
+      background: var(--vscee-color-editor-background);
+    }
     .features-table td,
     .columns-table td,
     .props-table td {
