@@ -1,6 +1,7 @@
 <!-- ImagePreview: tabs, async thumbnail + per-band min/max -->
 <script>
   import { vscode, getInitData } from '../../../shared/vscode.ts';
+  import AssetMetadataEditor from '../../../shared/AssetMetadataEditor.svelte';
 
   const data = getInitData();
 
@@ -14,6 +15,8 @@
   // STATE
   // ----------------------------------------------------------------
   let activeTab = $state('description');
+  let metadata = $state(data.metadata);
+  let editing = $state(false);
   let thumbnailUrl = $state('');
   let thumbnailLoading = $state(true);
   let thumbnailPreset = $state(false);
@@ -91,7 +94,8 @@
 </script>
 
 <header class="title-bar">
-  <h1>Asset details: {data.title}</h1>
+  <h1>Asset details: {metadata.title}</h1>
+  <button title="Edit asset metadata" onclick={() => { activeTab = 'description'; editing = true; }}><i class="codicon codicon-edit"></i> Edit</button>
 </header>
 
 <!-- LAYOUT -->
@@ -113,8 +117,8 @@
     <div class="sidebar-info">
       <div class="info-row">
         <span class="info-label">Image ID</span>
-        <span class="info-value asset-id copyable-id" title={data.assetId}>
-          <span class="copyable-id-value">{data.assetId}</span>
+        <span class="info-value asset-id copyable-id" title={metadata.assetId}>
+          <span class="copyable-id-value">{metadata.assetId}</span>
           <button class="copy-id-btn" title="Copy image ID" onclick={copyAssetId}>
             <i
               class="codicon"
@@ -143,7 +147,7 @@
       {/if}
       <div class="info-row">
         <span class="info-label">Date</span>
-        <span class="info-value">Start date: {data.startDate}<br />End date: {data.endDate}</span>
+        <span class="info-value">Start date: {metadata.startDate}<br />End date: {metadata.endDate}</span>
       </div>
       <div class="info-row">
         <span class="info-label">File Size</span>
@@ -174,7 +178,7 @@
     </nav>
 
     <section class="tab-panel" class:active={activeTab === 'description'}>
-      {@html data.descriptionHtml}
+      <AssetMetadataEditor bind:metadata bind:editing />
     </section>
 
     <section class="tab-panel" class:active={activeTab === 'bands'}>
@@ -247,12 +251,23 @@
        TITLE BAR
        ================================================================== */
     .title-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--vscee-space-lg);
       padding: var(--vscee-space-lg) var(--vscee-space-xxl);
       border-bottom: var(--vscee-border-sm) solid var(--vscee-color-panel-border);
 
       h1 {
         font-size: var(--vscee-font-xl);
         font-weight: 500;
+      }
+      button {
+        padding: var(--vscee-space-xs) var(--vscee-space-md);
+        color: var(--vscee-color-foreground);
+        background: var(--vscee-color-list-hover);
+        border: var(--vscee-border-sm) solid var(--vscee-color-panel-border);
+        cursor: pointer;
       }
     }
 

@@ -102,6 +102,34 @@ export async function getAsset(name: string, accessToken: string): Promise<EEAss
   return JSON.parse(response) as EEAsset;
 }
 
+/** Updates only the editable metadata fields, preserving all other asset properties. */
+export async function updateAssetMetadata(
+  name: string,
+  accessToken: string,
+  changes: { startTime: string | null; endTime: string | null; description: string },
+): Promise<EEAsset> {
+  const asset = await getAsset(name, accessToken);
+  const properties = { ...asset.properties };
+  if (changes.description) {
+    properties['description'] = changes.description;
+  } else {
+    delete properties['description'];
+  }
+  const body = {
+    startTime: changes.startTime,
+    endTime: changes.endTime,
+    properties,
+  };
+  const params = new URLSearchParams({ updateMask: 'startTime,endTime,properties' });
+  const response = await httpRequest(
+    `${EE_API_BASE}/${name}?${params.toString()}`,
+    'PATCH',
+    accessToken,
+    JSON.stringify(body),
+  );
+  return JSON.parse(response) as EEAsset;
+}
+
 /** Lists features (rows) of a TABLE asset with pagination. */
 export async function listFeatures(
   asset: string,
@@ -180,6 +208,14 @@ async function copyContainerProperties(
   const updateFields: string[] = [];
   const body: Record<string, unknown> = {};
 
+  if (source.title) {
+    updateFields.push('title');
+    body.title = source.title;
+  }
+  if (source.description) {
+    updateFields.push('description');
+    body.description = source.description;
+  }
   if (source.properties && Object.keys(source.properties).length > 0) {
     updateFields.push('properties');
     body.properties = source.properties;

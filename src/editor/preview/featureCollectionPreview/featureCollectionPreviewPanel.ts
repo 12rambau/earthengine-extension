@@ -12,15 +12,15 @@
  */
 
 import * as vscode from 'vscode';
-import { marked } from 'marked';
 import { EEAsset, listFeatures } from '../../../sidebar/assets/eeApiClient.js';
-import { designTokens, escapeHtml } from '../../../shared/index.js';
+import { designTokens, codiconsCss, escapeHtml } from '../../../shared/index.js';
 import { filesize } from 'filesize';
 import dayjs from 'dayjs';
 import { ensureEe, getThumbUrlRest } from '../../../shared/eeSession.js';
 import { getExtensionUri } from '../../../shared/extensionContext.js';
 
 import script from './FeatureCollectionPreview.svelte';
+import { previewMetadata, savePreviewMetadata } from '../previewMetadata.js';
 
 // ==================================================================
 // CONSTANTS
@@ -31,7 +31,7 @@ const FEATURES_PAGE_SIZE = 20;
 // ==================================================================
 // PUBLIC API
 // ==================================================================
-/** Opens a read-only WebView showing full metadata for a TABLE asset. */
+/** Opens a WebView showing metadata for a TABLE asset. */
 export async function openFeatureCollectionPreview(
   asset: EEAsset,
   accessToken: string,
@@ -62,9 +62,11 @@ export async function openFeatureCollectionPreview(
   panel.webview.html = buildHtml(asset, features, panel.webview);
 
   // Handle messages from the WebView (lazy thumbnail loading)
-  panel.webview.onDidReceiveMessage(async (msg: { type: string }) => {
+  panel.webview.onDidReceiveMessage(async (msg: { type: string; name?: string; startTime?: string; endTime?: string; description?: string }) => {
     if (msg.type === 'ready') {
       sendThumbnail(asset, panel);
+    } else if (msg.type === 'saveMetadata') {
+      await savePreviewMetadata(msg, asset, accessToken, panel);
     }
   });
 }
@@ -200,14 +202,6 @@ function buildHtml(
   _webview: vscode.Webview,
 ): string {
   const nonce = getNonce();
-  const title = asset.id || asset.name.split('/').pop() || 'Table';
-  const assetId = asset.name;
-  const startDate = asset.startTime
-    ? dayjs.utc(asset.startTime).format('YYYY-MM-DD HH:mm:ss [UTC]')
-    : 'N/A';
-  const endDate = asset.endTime
-    ? dayjs.utc(asset.endTime).format('YYYY-MM-DD HH:mm:ss [UTC]')
-    : 'N/A';
   const fileSize = asset.sizeBytes ? filesize(asset.sizeBytes) : 'N/A';
   const lastModified = asset.updateTime
     ? dayjs.utc(asset.updateTime).format('YYYY-MM-DD HH:mm:ss [UTC]')
@@ -215,11 +209,6 @@ function buildHtml(
   const featureCount = asset.featureCount
     ? parseInt(asset.featureCount, 10).toLocaleString()
     : 'N/A';
-
-  // Description from properties
-  const description = asset.properties?.['description']
-    ? String(asset.properties['description'])
-    : '';
 
   // Columns inferred from first feature
   const columns = inferColumns(features);
@@ -230,20 +219,14 @@ function buildHtml(
   const propsHtml = buildPropertiesRows(asset.properties);
 
   const initData = JSON.stringify({
-    title,
-    assetId,
-    startDate,
-    endDate,
     fileSize,
     featureCount,
     lastModified,
-    descriptionHtml: description
-      ? `<div class="description-text">${marked(description)}</div>`
-      : '<p class="empty-state">No description.</p>',
+    metadata: previewMetadata(asset),
     featuresTableHtml,
     columnsTableHtml,
     propsHtml,
-  });
+  }).replace(/</g, '\\u003c');
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -254,6 +237,7 @@ function buildHtml(
       http-equiv="Content-Security-Policy"
       content="default-src 'none'; img-src https: data:; style-src 'unsafe-inline'; script-src 'nonce-${nonce}';"
     />
+    <style>${codiconsCss}</style>
     <style>${designTokens}</style>
   </head>
   <body>

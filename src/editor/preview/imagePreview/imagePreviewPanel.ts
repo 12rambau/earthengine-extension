@@ -13,7 +13,6 @@
  */
 
 import * as vscode from 'vscode';
-import { marked } from 'marked';
 import { EEAsset, EEBand, getAsset } from '../../../sidebar/assets/eeApiClient.js';
 import { designTokens, codiconsCss, escapeHtml } from '../../../shared/index.js';
 import { filesize } from 'filesize';
@@ -23,6 +22,7 @@ import { getExtensionUri } from '../../../shared/extensionContext.js';
 import { getPresetThumbnailImage } from '../thumbnailVisualization.js';
 
 import script from './ImagePreview.svelte';
+import { previewMetadata, savePreviewMetadata } from '../previewMetadata.js';
 
 // ==================================================================
 // CONSTANTS
@@ -33,7 +33,7 @@ const GLOBAL_BBOX = [-180, -89, 180, 89];
 // ==================================================================
 // PUBLIC API
 // ==================================================================
-/** Opens a read-only WebView showing full metadata for an IMAGE asset. */
+/** Opens a WebView showing metadata for an IMAGE asset. */
 export function openImagePreview(asset: EEAsset, accessToken: string): void {
   const shortName = asset.name.split('/').pop() || 'Image';
   const panel = vscode.window.createWebviewPanel(
@@ -48,7 +48,7 @@ export function openImagePreview(asset: EEAsset, accessToken: string): void {
 
   // Handle messages from the WebView (lazy loading of thumbnail + min/max)
   let bandStatsPromise: Promise<Record<string, BandStatistics>> | undefined;
-  panel.webview.onDidReceiveMessage(async (msg: { type: string }) => {
+  panel.webview.onDidReceiveMessage(async (msg: { type: string; name?: string; startTime?: string; endTime?: string; description?: string }) => {
     if (msg.type === 'ready') {
       // Fire-and-forget: send asynchronous image and parent metadata.
       bandStatsPromise = computeBandStats(asset);
@@ -62,6 +62,8 @@ export function openImagePreview(asset: EEAsset, accessToken: string): void {
       await vscode.env.clipboard.writeText(asset.name);
     } else if (msg.type === 'openParentCollection') {
       await openParentCollection(asset, accessToken);
+    } else if (msg.type === 'saveMetadata') {
+      await savePreviewMetadata(msg, asset, accessToken, panel);
     }
   });
 }
@@ -316,24 +318,11 @@ function getThumbnailRegion(ee: any, image: any, asset: EEAsset): unknown {
 function buildImageHtml(asset: EEAsset, webview: vscode.Webview): string {
   const bands = asset.bands || [];
   const nonce = getNonce();
-  const title = asset.id || asset.name.split('/').pop() || 'Image';
-  const assetId = asset.name;
-  const startDate = asset.startTime
-    ? dayjs.utc(asset.startTime).format('YYYY-MM-DD HH:mm:ss [UTC]')
-    : 'N/A';
-  const endDate = asset.endTime
-    ? dayjs.utc(asset.endTime).format('YYYY-MM-DD HH:mm:ss [UTC]')
-    : 'N/A';
   const fileSize = asset.sizeBytes ? filesize(asset.sizeBytes) : 'N/A';
   const lastModified = asset.updateTime
     ? dayjs.utc(asset.updateTime).format('YYYY-MM-DD HH:mm:ss [UTC]')
     : 'N/A';
   const bandCount = bands.length;
-
-  const description = asset.properties?.['description']
-    ? String(asset.properties['description'])
-    : '';
-
   const bandsData = bands.map((b) => {
     const dims = b.grid?.dimensions
       ? `${b.grid.dimensions.width}x${b.grid.dimensions.height} px`
@@ -349,19 +338,13 @@ function buildImageHtml(asset: EEAsset, webview: vscode.Webview): string {
   const propsHtml = buildPropertiesTable(asset.properties);
 
   const initData = JSON.stringify({
-    title,
-    assetId,
-    startDate,
-    endDate,
     fileSize,
     bandCount: String(bandCount),
     lastModified,
-    descriptionHtml: description
-      ? `<div class="description-text">${marked(description)}</div>`
-      : '<p class="description-text">No description.</p>',
+    metadata: previewMetadata(asset),
     bands: bandsData,
     propsHtml,
-  });
+  }).replace(/</g, '\\u003c');
 
   return `<!DOCTYPE html>
 <html lang="en">

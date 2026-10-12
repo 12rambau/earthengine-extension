@@ -12,7 +12,6 @@
  */
 
 import * as vscode from 'vscode';
-import { marked } from 'marked';
 import { EEAsset, EEBand, listAssets, getAsset } from '../../../sidebar/assets/eeApiClient.js';
 import { designTokens, codiconsCss, escapeHtml } from '../../../shared/index.js';
 import { filesize } from 'filesize';
@@ -22,6 +21,7 @@ import { getExtensionUri } from '../../../shared/extensionContext.js';
 import { getPresetThumbnailImage } from '../thumbnailVisualization.js';
 
 import script from './ImageCollectionPreview.svelte';
+import { previewMetadata, savePreviewMetadata } from '../previewMetadata.js';
 
 // ==================================================================
 // CONSTANTS
@@ -35,7 +35,7 @@ const MOSAIC_LIMIT = 4;
 /** Near-global extent for collections without a usable footprint. */
 const GLOBAL_BBOX = [-180, -89, 180, 89];
 // ==================================================================
-/** Opens a read-only WebView showing full metadata for an IMAGE_COLLECTION asset. */
+/** Opens a WebView showing metadata for an IMAGE_COLLECTION asset. */
 export async function openImageCollectionPreview(
   asset: EEAsset,
   accessToken: string,
@@ -76,13 +76,15 @@ export async function openImageCollectionPreview(
   panel.webview.html = buildHtml(asset, childImages, imageCount, bands, panel.webview);
 
   // Handle messages from the WebView
-  panel.webview.onDidReceiveMessage(async (msg: { type: string; name?: string }) => {
+  panel.webview.onDidReceiveMessage(async (msg: { type: string; name?: string; startTime?: string; endTime?: string; description?: string }) => {
     if (msg.type === 'ready') {
       sendThumbnail(asset, bands, childImages, panel);
     } else if (msg.type === 'thumbnailFallback') {
       sendThumbnail(asset, bands, childImages, panel, true);
     } else if (msg.type === 'copyAssetId') {
       await vscode.env.clipboard.writeText(asset.name);
+    } else if (msg.type === 'saveMetadata') {
+      await savePreviewMetadata(msg, asset, accessToken, panel);
     } else if (msg.type === 'openImage' && msg.name) {
       const token = await getTokenSafe(accessToken);
       try {
@@ -296,21 +298,10 @@ function buildHtml(
   webview: vscode.Webview,
 ): string {
   const nonce = getNonce();
-  const title = asset.id || asset.name.split('/').pop() || 'ImageCollection';
-  const assetId = asset.name;
-  const startDate = asset.startTime
-    ? dayjs.utc(asset.startTime).format('YYYY-MM-DD HH:mm:ss [UTC]')
-    : 'N/A';
-  const endDate = asset.endTime
-    ? dayjs.utc(asset.endTime).format('YYYY-MM-DD HH:mm:ss [UTC]')
-    : 'N/A';
   const fileSize = asset.sizeBytes ? filesize(asset.sizeBytes) : 'N/A';
   const lastModified = asset.updateTime
     ? dayjs.utc(asset.updateTime).format('YYYY-MM-DD HH:mm:ss [UTC]')
     : 'N/A';
-  const description = asset.properties?.['description']
-    ? String(asset.properties['description'])
-    : '';
 
   // Structured image data for the Svelte {#each}
   const imagesData = childImages.map((img) => ({
@@ -329,16 +320,10 @@ function buildHtml(
   const propsHtml = buildPropertiesRows(asset.properties);
 
   const initData = JSON.stringify({
-    title,
-    assetId,
-    startDate,
-    endDate,
     fileSize,
     imageCount: String(imageCount ?? 'N/A'),
     lastModified,
-    descriptionHtml: description
-      ? `<div class="description-text">${marked(description)}</div>`
-      : '<p class="empty-state">No description.</p>',
+    metadata: previewMetadata(asset),
     images: imagesData,
     imagesPageSize: IMAGES_PAGE_SIZE,
     bandsHtml:
@@ -346,7 +331,7 @@ function buildHtml(
         ? '<p class="note">Bands from the first image in the collection.</p>'
         : '') + bandsHtml,
     propsHtml,
-  });
+  }).replace(/</g, '\\u003c');
 
   return `<!DOCTYPE html>
 <html lang="en">
