@@ -165,19 +165,26 @@ export function getTaskKind(op: Operation): TaskKind {
 /** Returns the asset name that can be opened in a preview panel, if any. */
 export function getPreviewAssetName(op: Operation): string | undefined {
   const kind = getTaskKind(op);
-  if (getTaskState(op) !== 'SUCCEEDED' || (kind !== 'image-export' && kind !== 'table-export')) {
+  const isImport = isImportTask(op);
+  if (
+    getTaskState(op) !== 'SUCCEEDED' ||
+    (kind !== 'image-export' && kind !== 'table-export' && !isImport)
+  ) {
     return undefined;
   }
 
   const uri = op.metadata?.destinationUris?.find((value) =>
-    /(?:asset=|\/v1\/projects\/[^/]+\/assets\/)/.test(value),
+    /(?:asset=|\/v1\/projects\/[^/]+\/assets\/)/.test(value) ||
+    (isImport && /^projects\/[^/]+\/assets\/[^?#\s]+$/.test(value)),
   );
   if (!uri) {
     return undefined;
   }
 
   const match =
-    uri.match(/asset=(projects\/[^&\s]+)/) || uri.match(/\/v1\/(projects\/[^/]+\/assets\/.+)/);
+    uri.match(/asset=(projects\/[^&\s]+)/) ||
+    uri.match(/\/v1\/(projects\/[^/]+\/assets\/.+)/) ||
+    (isImport ? uri.match(/^(projects\/[^/]+\/assets\/[^?#\s]+)$/) : null);
   return match ? decodeURIComponent(match[1]) : undefined;
 }
 
