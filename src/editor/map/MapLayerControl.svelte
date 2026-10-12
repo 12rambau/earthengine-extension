@@ -93,11 +93,19 @@
   <div class="layers-panel visible">
     <div class="layers-panel-header">
       <span>Layers</span>
-      <button class="map-btn layers-close-btn" title="Close" onclick={close}>
-        <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" fill="currentColor"
-          ><path d={mdiClose} /></svg
-        >
-      </button>
+      <div class="layers-header-actions">
+        <button
+          class="map-btn layers-clear-btn"
+          title="Delete all layers"
+          disabled={overlays.length === 0}
+          onclick={() => vscode.postMessage({ type: 'clearAllLayers' })}
+        >delete all</button>
+        <button class="map-btn layers-close-btn" title="Close" onclick={close}>
+          <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" fill="currentColor"
+            ><path d={mdiClose} /></svg
+          >
+        </button>
+      </div>
     </div>
     <div class="layers-list">
       {#if overlays.length === 0}
@@ -233,11 +241,34 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
+      gap: var(--vscee-space-md);
       padding: var(--vscee-space-xs) var(--vscee-space-xs) var(--vscee-space-xs)
         var(--vscee-space-lg);
       font-size: var(--vscee-font-compact-sm);
       font-weight: 600;
       color: var(--vscee-color-foreground);
+    }
+    .layers-header-actions {
+      display: flex;
+      align-items: center;
+      gap: var(--vscee-space-xs);
+    }
+    .layers-clear-btn {
+      width: auto;
+      height: 22px;
+      padding: 0 var(--vscee-space-sm);
+      box-shadow: none;
+      background: var(--vscee-color-button-secondary-background);
+      color: var(--vscee-color-button-secondary-foreground);
+      font-size: var(--vscee-font-compact-sm);
+      white-space: nowrap;
+      &:hover:not(:disabled) {
+        background: var(--vscee-color-button-secondary-hover);
+      }
+      &:disabled {
+        opacity: 0.5;
+        cursor: default;
+      }
     }
     .layers-close-btn {
       width: 22px;
