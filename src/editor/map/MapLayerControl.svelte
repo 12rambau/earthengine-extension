@@ -222,7 +222,7 @@
       top: 10px;
       left: 48px;
       z-index: 1000;
-      width: 240px;
+      width: min(600px, calc(100vw - 60px));
       background: var(--vscee-color-editor-background);
       border: var(--vscee-border-sm) solid var(--vscee-color-widget-border);
       border-radius: var(--vscee-radius-md);
@@ -279,6 +279,7 @@
     .layer-name {
       flex: 1;
       min-width: 0;
+      max-width: 50ch;
       font-size: var(--vscee-font-compact-sm);
       color: var(--vscee-color-foreground);
       overflow: hidden;
