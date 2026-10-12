@@ -23,6 +23,7 @@
   let thumbnailPreset = $state(false);
   let fallbackRequested = $state(false);
   let images = $state(data.images);
+  let currentAssetId = $state(data.metadata.assetId);
   let assetIdCopied = $state(false);
   let copyResetTimer;
 
@@ -39,6 +40,14 @@
       thumbnailLoading = false;
     } else if (msg.type === 'imageDeleted') {
       images = images.filter((img) => img.name !== msg.name);
+    } else if (msg.type === 'metadataSaved' && msg.metadata.assetId !== currentAssetId) {
+      images = images.map((img) => ({
+        ...img,
+        name: img.name.startsWith(`${currentAssetId}/`)
+          ? msg.metadata.assetId + img.name.slice(currentAssetId.length)
+          : img.name,
+      }));
+      currentAssetId = msg.metadata.assetId;
     }
   });
 

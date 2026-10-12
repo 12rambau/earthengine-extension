@@ -44,10 +44,14 @@
     vscode.postMessage({
       type: 'saveMetadata',
       name,
-      startTime: startTime ? `${startTime}Z` : '',
-      endTime: endTime ? `${endTime}Z` : '',
+      startTime: toUtc(startTime),
+      endTime: toUtc(endTime),
       description,
     });
+  }
+
+  function toUtc(value) {
+    return value ? `${value.length === 16 ? `${value}:00` : value}Z` : '';
   }
 </script>
 

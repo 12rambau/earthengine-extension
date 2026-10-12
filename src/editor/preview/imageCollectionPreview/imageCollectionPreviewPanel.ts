@@ -84,7 +84,14 @@ export async function openImageCollectionPreview(
     } else if (msg.type === 'copyAssetId') {
       await vscode.env.clipboard.writeText(asset.name);
     } else if (msg.type === 'saveMetadata') {
+      const previousName = asset.name;
       await savePreviewMetadata(msg, asset, accessToken, panel);
+      if (asset.name !== previousName) {
+        childImages = childImages.map((image) => ({
+          ...image,
+          name: asset.name + image.name.slice(previousName.length),
+        }));
+      }
     } else if (msg.type === 'openImage' && msg.name) {
       const token = await getTokenSafe(accessToken);
       try {
