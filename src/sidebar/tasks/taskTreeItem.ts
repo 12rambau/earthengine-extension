@@ -51,6 +51,8 @@ const TREE_MDI_ICONS: Record<TaskKind, string> = {
   'table-export': mdiTable,
   'video-export': mdiVideoBox,
   'classifier-export': mdiChartTree,
+  'image-import': mdiImage,
+  'table-import': mdiTable,
   export: mdiEarth,
   import: mdiEarth,
   unknown: mdiEarth,
