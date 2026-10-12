@@ -135,7 +135,7 @@
 
     // Status bar events
     map.on('mousemove', (e) => {
-      coords = e.latlng.lat.toFixed(4) + ', ' + e.latlng.lng.toFixed(4);
+      coords = e.latlng.lng.toFixed(4) + ', ' + e.latlng.lat.toFixed(4);
     });
     map.on('zoomend', () => {
       zoomLevel = map.getZoom();
