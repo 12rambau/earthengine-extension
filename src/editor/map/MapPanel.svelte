@@ -500,7 +500,7 @@
 
 <!-- STATUS BAR -->
 <div class="status-bar">
-  <span>{coords}</span>
+  <span>lon, lat: {coords}</span>
   <span>Zoom: {zoomLevel}</span>
 </div>
 
