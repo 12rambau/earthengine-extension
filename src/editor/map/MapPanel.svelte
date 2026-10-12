@@ -14,7 +14,6 @@
     mdiLayers,
     mdiMap,
     mdiSatelliteVariant,
-    mdiTrashCan,
   } from '../../shared/icons.ts';
 
   // ----------------------------------------------------------------
@@ -487,17 +486,6 @@
   </MapButton>
 </div>
 
-<div class="map-controls map-controls-right">
-  <MapButton
-    title="Clear all layers"
-    onclick={() => vscode.postMessage({ type: 'clearAllLayers' })}
-  >
-    <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="currentColor"
-      ><path d={mdiTrashCan} /></svg
-    >
-  </MapButton>
-</div>
-
 <!-- STATUS BAR -->
 <div class="status-bar">
   <span>lon, lat: {coords}</span>
@@ -540,10 +528,6 @@
       display: flex;
       flex-direction: column;
       gap: var(--vscee-space-sm);
-    }
-    .map-controls-right {
-      left: auto;
-      right: 10px;
     }
     /* ==================================================================
        BASEMAP ERROR BANNER
