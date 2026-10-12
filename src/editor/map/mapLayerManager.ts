@@ -7,6 +7,7 @@
  */
 
 import { ensureEe, getMapIdUrl, computeValue } from '../../shared/eeSession.js';
+import { getImageVisualizations } from '../../shared/imageVisualizations.js';
 import { EeLayer } from './eeLayer.js';
 import {
   parseSepalVisualizations,
@@ -21,6 +22,7 @@ export interface AddLayerPayload {
   name: string;
   shown: boolean;
   opacity: number;
+  assetName?: string;
 }
 
 /** Percentile pairs backing the `percent-*` stretch modes, as [low, high]. */
@@ -122,7 +124,7 @@ export class MapLayerManager {
       // from the image's stored properties.
       try {
         const props = await computeValue<Record<string, unknown>>((image as any).toDictionary());
-        const vizs = parseSepalVisualizations(props ?? {});
+        const vizs = await getImageVisualizations(props, undefined, payload.assetName);
         if (vizs.length > 0) {
           const selector = hasDefault ? (rawVisParams['default'] as string | number) : 0;
           const viz = selectSepalViz(vizs, selector);
@@ -172,6 +174,7 @@ export class MapLayerManager {
         finalVisParams,
         payload.shown,
         payload.opacity,
+        payload.assetName,
       ),
     );
 
@@ -411,7 +414,8 @@ export class MapLayerManager {
       const ee = await ensureEe();
       const image = ee.Deserializer.fromJSON(layer.serialized);
       const props = await computeValue<Record<string, unknown>>((image as any).toDictionary());
-      return parseSepalVisualizations(props ?? {}).map((v) => ({
+      const vizs = await getImageVisualizations(props, undefined, layer.assetName);
+      return vizs.map((v) => ({
         index: v.index,
         name: v.name,
         type: v.type,
@@ -453,7 +457,7 @@ export class MapLayerManager {
     if (config.preset) {
       const preset = config.preset as { index: number; name: string; type: string };
       const props = await computeValue<Record<string, unknown>>((image as any).toDictionary());
-      const vizs = parseSepalVisualizations(props ?? {});
+      const vizs = await getImageVisualizations(props, undefined, layer.assetName);
       const viz = selectSepalViz(vizs, preset.name);
       if (viz) {
         const resolved = resolveSepalViz(viz, image, ee);

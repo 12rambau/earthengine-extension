@@ -3,12 +3,8 @@
  * Prepares the first asset visualization preset for a PNG preview thumbnail.
  */
 
-import { computeValue } from '../../shared/eeSession.js';
-import {
-  parseSepalVisualizations,
-  resolveSepalViz,
-  selectSepalViz,
-} from '../../shared/sepalViz.js';
+import { getImageVisualizations } from '../../shared/imageVisualizations.js';
+import { resolveSepalViz, selectSepalViz } from '../../shared/sepalViz.js';
 
 /** Returns the first asset preset rendered as a PNG-ready image, or undefined if none exists. */
 export async function getPresetThumbnailImage(
@@ -16,14 +12,10 @@ export async function getPresetThumbnailImage(
   propertySource: any,
   image: any,
   ee: any,
+  assetName?: string,
+  accessToken?: string,
 ): Promise<unknown | undefined> {
-  let presets = parseSepalVisualizations(properties ?? {});
-  if (presets.length === 0) {
-    const serverProperties = await computeValue<Record<string, unknown> | null>(
-      propertySource.toDictionary(),
-    );
-    presets = parseSepalVisualizations(serverProperties ?? {});
-  }
+  const presets = await getImageVisualizations(properties, propertySource, assetName, accessToken);
 
   const preset = selectSepalViz(presets, 0);
   if (!preset) {
