@@ -200,7 +200,7 @@
       &.running i,
       &.cancelling i {
         display: inline-block;
-        animation: spin 0.8s linear infinite;
+        animation: spin 1.5s linear infinite;
       }
     }
     @keyframes spin {

@@ -656,7 +656,7 @@
       border-top-color: transparent;
       border-radius: 50%;
       display: inline-block;
-      animation: spin 1s linear infinite;
+      animation: spin 1.5s linear infinite;
     }
     /* ==================================================================
        ROW ACTIONS
