@@ -14,7 +14,7 @@
 
 import * as vscode from 'vscode';
 import { EEAsset, EEBand, getAsset } from '../../../sidebar/assets/eeApiClient.js';
-import { designTokens, codiconsCss, escapeHtml } from '../../../shared/index.js';
+import { designTokens, codiconsCss } from '../../../shared/index.js';
 import { filesize } from 'filesize';
 import dayjs from 'dayjs';
 import { ensureEe, computeValue, getThumbUrlRest } from '../../../shared/eeSession.js';
@@ -48,24 +48,32 @@ export function openImagePreview(asset: EEAsset, accessToken: string): void {
 
   // Handle messages from the WebView (lazy loading of thumbnail + min/max)
   let bandStatsPromise: Promise<Record<string, BandStatistics>> | undefined;
-  panel.webview.onDidReceiveMessage(async (msg: { type: string; name?: string; startTime?: string; endTime?: string; description?: string }) => {
-    if (msg.type === 'ready') {
-      // Fire-and-forget: send asynchronous image and parent metadata.
-      bandStatsPromise = computeBandStats(asset);
-      sendThumbnail(asset, panel, bandStatsPromise);
-      sendMinMax(panel, bandStatsPromise);
-      sendParentCollection(asset, accessToken, panel);
-    } else if (msg.type === 'thumbnailFallback') {
-      bandStatsPromise ??= computeBandStats(asset);
-      sendThumbnail(asset, panel, bandStatsPromise, true);
-    } else if (msg.type === 'copyAssetId') {
-      await vscode.env.clipboard.writeText(asset.name);
-    } else if (msg.type === 'openParentCollection') {
-      await openParentCollection(asset, accessToken);
-    } else if (msg.type === 'saveMetadata') {
-      await savePreviewMetadata(msg, asset, accessToken, panel);
-    }
-  });
+  panel.webview.onDidReceiveMessage(
+    async (msg: {
+      type: string;
+      name?: string;
+      startTime?: string;
+      endTime?: string;
+      description?: string;
+    }) => {
+      if (msg.type === 'ready') {
+        // Fire-and-forget: send asynchronous image and parent metadata.
+        bandStatsPromise = computeBandStats(asset);
+        sendThumbnail(asset, panel, bandStatsPromise);
+        sendMinMax(panel, bandStatsPromise);
+        sendParentCollection(asset, accessToken, panel);
+      } else if (msg.type === 'thumbnailFallback') {
+        bandStatsPromise ??= computeBandStats(asset);
+        sendThumbnail(asset, panel, bandStatsPromise, true);
+      } else if (msg.type === 'copyAssetId') {
+        await vscode.env.clipboard.writeText(asset.name);
+      } else if (msg.type === 'openParentCollection') {
+        await openParentCollection(asset, accessToken);
+      } else if (msg.type === 'saveMetadata') {
+        await savePreviewMetadata(msg, asset, accessToken, panel);
+      }
+    },
+  );
 }
 
 // ==================================================================
@@ -335,15 +343,12 @@ function buildImageHtml(asset: EEAsset, webview: vscode.Webview): string {
     return { id: b.id, dtype, dims, crs, scale };
   });
 
-  const propsHtml = buildPropertiesTable(asset.properties);
-
   const initData = JSON.stringify({
     fileSize,
     bandCount: String(bandCount),
     lastModified,
     metadata: previewMetadata(asset),
     bands: bandsData,
-    propsHtml,
   }).replace(/</g, '\\u003c');
 
   return `<!DOCTYPE html>
@@ -353,7 +358,7 @@ function buildImageHtml(asset: EEAsset, webview: vscode.Webview): string {
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'none'; img-src https: data:; font-src data:; style-src 'unsafe-inline'; script-src 'nonce-${nonce}';"
+      content="default-src 'none'; img-src https: data:; font-src data:; style-src 'unsafe-inline'; script-src 'nonce-${nonce}'; worker-src blob:;"
     />
     <style>${codiconsCss}</style>
     <style>${designTokens}</style>
@@ -364,31 +369,6 @@ function buildImageHtml(asset: EEAsset, webview: vscode.Webview): string {
     <script nonce="${nonce}">${script}</script>
   </body>
 </html>`;
-}
-
-// ==================================================================
-// PROPERTIES HELPER
-// ==================================================================
-/** Property keys excluded from the PROPERTIES tab (system + description). */
-const EXCLUDED_PROP_PREFIXES = ['system:'];
-const EXCLUDED_PROP_KEYS = new Set(['description']);
-
-function buildPropertiesTable(props?: Record<string, unknown>): string {
-  if (!props || Object.keys(props).length === 0) {
-    return '<table class="props-table"><tbody><tr><td colspan="2"><em>No properties</em></td></tr></tbody></table>';
-  }
-  const entries = Object.entries(props)
-    .filter(
-      ([k]) => !EXCLUDED_PROP_PREFIXES.some((p) => k.startsWith(p)) && !EXCLUDED_PROP_KEYS.has(k),
-    )
-    .sort(([a], [b]) => a.localeCompare(b));
-  if (entries.length === 0) {
-    return '<table class="props-table"><tbody><tr><td colspan="2"><em>No properties</em></td></tr></tbody></table>';
-  }
-  const rows = entries
-    .map(([k, v]) => `<tr><td>${escapeHtml(k)}</td><td>${escapeHtml(String(v ?? ''))}</td></tr>`)
-    .join('');
-  return `<table class="props-table"><thead><tr><th>Property</th><th>Value</th></tr></thead><tbody>${rows}</tbody></table>`;
 }
 
 // ==================================================================

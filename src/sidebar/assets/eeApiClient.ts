@@ -106,28 +106,63 @@ export async function getAsset(name: string, accessToken: string): Promise<EEAss
 export async function updateAssetMetadata(
   name: string,
   accessToken: string,
-  changes: { startTime: string | null; endTime: string | null; description: string },
+  changes: {
+    startTime: string | null;
+    endTime: string | null;
+    description: string;
+    properties: Record<string, unknown>;
+  },
 ): Promise<EEAsset> {
   const asset = await getAsset(name, accessToken);
-  const properties = { ...asset.properties };
-  if (changes.description) {
-    properties['description'] = changes.description;
-  } else {
-    delete properties['description'];
-  }
-  const body = {
-    startTime: changes.startTime,
-    endTime: changes.endTime,
-    properties,
-  };
-  const params = new URLSearchParams({ updateMask: 'startTime,endTime,properties' });
+  const body = assetMetadataPatch(asset, changes);
   const response = await httpRequest(
-    `${EE_API_BASE}/${name}?${params.toString()}`,
+    `${EE_API_BASE}/${name}`,
     'PATCH',
     accessToken,
     JSON.stringify(body),
   );
   return JSON.parse(response) as EEAsset;
+}
+
+/** Builds the projects.assets.patch request body (UpdateAssetRequest). */
+export function assetMetadataPatch(
+  asset: Pick<EEAsset, 'startTime' | 'endTime' | 'properties'>,
+  changes: {
+    startTime: string | null;
+    endTime: string | null;
+    description: string;
+    properties: Record<string, unknown>;
+  },
+) {
+  const previous = asset.properties ?? {};
+  const desired: Record<string, unknown> = { ...changes.properties };
+  if (changes.description) {
+    desired['description'] = changes.description;
+  }
+  const keys = [...new Set([...Object.keys(previous), ...Object.keys(desired)])].filter(
+    (key) =>
+      !key.startsWith('system:') && JSON.stringify(previous[key]) !== JSON.stringify(desired[key]),
+  );
+  const properties = Object.fromEntries(
+    keys
+      .filter((key) => Object.prototype.hasOwnProperty.call(desired, key))
+      .map((key) => [key, desired[key]]),
+  );
+  const startTime = asset.startTime ? new Date(asset.startTime).toISOString() : null;
+  const endTime = asset.endTime ? new Date(asset.endTime).toISOString() : null;
+  const updateMask = [
+    ...(startTime === changes.startTime ? [] : ['startTime']),
+    ...(endTime === changes.endTime ? [] : ['endTime']),
+    ...keys.map((key) => `properties.${key}`),
+  ];
+  return {
+    asset: {
+      ...(startTime === changes.startTime ? {} : { startTime: changes.startTime }),
+      ...(endTime === changes.endTime ? {} : { endTime: changes.endTime }),
+      properties,
+    },
+    updateMask: updateMask.join(','),
+  };
 }
 
 /** Lists features (rows) of a TABLE asset with pagination. */

@@ -62,13 +62,21 @@ export async function openFeatureCollectionPreview(
   panel.webview.html = buildHtml(asset, features, panel.webview);
 
   // Handle messages from the WebView (lazy thumbnail loading)
-  panel.webview.onDidReceiveMessage(async (msg: { type: string; name?: string; startTime?: string; endTime?: string; description?: string }) => {
-    if (msg.type === 'ready') {
-      sendThumbnail(asset, panel);
-    } else if (msg.type === 'saveMetadata') {
-      await savePreviewMetadata(msg, asset, accessToken, panel);
-    }
-  });
+  panel.webview.onDidReceiveMessage(
+    async (msg: {
+      type: string;
+      name?: string;
+      startTime?: string;
+      endTime?: string;
+      description?: string;
+    }) => {
+      if (msg.type === 'ready') {
+        sendThumbnail(asset, panel);
+      } else if (msg.type === 'saveMetadata') {
+        await savePreviewMetadata(msg, asset, accessToken, panel);
+      }
+    },
+  );
 }
 
 // ==================================================================
@@ -216,7 +224,6 @@ function buildHtml(
   // Build tab content HTML
   const featuresTableHtml = buildFeaturesTable(features, columns);
   const columnsTableHtml = buildColumnsTable(columns);
-  const propsHtml = buildPropertiesRows(asset.properties);
 
   const initData = JSON.stringify({
     fileSize,
@@ -225,7 +232,6 @@ function buildHtml(
     metadata: previewMetadata(asset),
     featuresTableHtml,
     columnsTableHtml,
-    propsHtml,
   }).replace(/</g, '\\u003c');
 
   return `<!DOCTYPE html>
@@ -235,7 +241,7 @@ function buildHtml(
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'none'; img-src https: data:; style-src 'unsafe-inline'; script-src 'nonce-${nonce}';"
+      content="default-src 'none'; img-src https: data:; font-src data:; style-src 'unsafe-inline'; script-src 'nonce-${nonce}'; worker-src blob:;"
     />
     <style>${codiconsCss}</style>
     <style>${designTokens}</style>
@@ -301,36 +307,6 @@ function buildColumnsTable(columns: ColumnInfo[]): string {
 
   return `<table class="columns-table">
     <thead><tr><th>Index</th><th>Column Name</th><th>Inferred Type</th></tr></thead>
-    <tbody>${rows}</tbody>
-  </table>`;
-}
-
-// ==================================================================
-// PROPERTIES HELPER
-// ==================================================================
-/** System property prefixes and keys to exclude from the PROPERTIES tab. */
-const SYSTEM_PREFIXES = ['system:'];
-const EXCLUDED_KEYS = new Set(['description']);
-
-function buildPropertiesRows(props?: Record<string, unknown>): string {
-  if (!props || Object.keys(props).length === 0) {
-    return '<p class="empty-state">No properties.</p>';
-  }
-
-  const entries = Object.entries(props)
-    .filter(([k]) => !SYSTEM_PREFIXES.some((p) => k.startsWith(p)) && !EXCLUDED_KEYS.has(k))
-    .sort(([a], [b]) => a.localeCompare(b));
-
-  if (entries.length === 0) {
-    return '<p class="empty-state">No properties.</p>';
-  }
-
-  const rows = entries
-    .map(([k, v]) => `<tr><td>${escapeHtml(k)}</td><td>${escapeHtml(String(v ?? ''))}</td></tr>`)
-    .join('');
-
-  return `<table class="props-table">
-    <thead><tr><th>Property</th><th>Value</th></tr></thead>
     <tbody>${rows}</tbody>
   </table>`;
 }

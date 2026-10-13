@@ -76,49 +76,57 @@ export async function openImageCollectionPreview(
   panel.webview.html = buildHtml(asset, childImages, imageCount, bands, panel.webview);
 
   // Handle messages from the WebView
-  panel.webview.onDidReceiveMessage(async (msg: { type: string; name?: string; startTime?: string; endTime?: string; description?: string }) => {
-    if (msg.type === 'ready') {
-      sendThumbnail(asset, bands, childImages, panel);
-    } else if (msg.type === 'thumbnailFallback') {
-      sendThumbnail(asset, bands, childImages, panel, true);
-    } else if (msg.type === 'copyAssetId') {
-      await vscode.env.clipboard.writeText(asset.name);
-    } else if (msg.type === 'saveMetadata') {
-      const previousName = asset.name;
-      await savePreviewMetadata(msg, asset, accessToken, panel);
-      if (asset.name !== previousName) {
-        childImages = childImages.map((image) => ({
-          ...image,
-          name: asset.name + image.name.slice(previousName.length),
-        }));
-      }
-    } else if (msg.type === 'openImage' && msg.name) {
-      const token = await getTokenSafe(accessToken);
-      try {
-        const { openAssetPreview } = await import('../assetPreviewPanel.js');
-        await openAssetPreview(msg.name, token);
-      } catch (err) {
-        const errMsg = err instanceof Error ? err.message : String(err);
-        vscode.window.showErrorMessage(`Failed to open image: ${errMsg}`);
-      }
-    } else if (msg.type === 'deleteImage' && msg.name) {
-      const confirm = await vscode.window.showWarningMessage(
-        `Delete "${msg.name.split('/').pop()}"? This action cannot be undone.`,
-        'Delete',
-      );
-      if (confirm === 'Delete') {
+  panel.webview.onDidReceiveMessage(
+    async (msg: {
+      type: string;
+      name?: string;
+      startTime?: string;
+      endTime?: string;
+      description?: string;
+    }) => {
+      if (msg.type === 'ready') {
+        sendThumbnail(asset, bands, childImages, panel);
+      } else if (msg.type === 'thumbnailFallback') {
+        sendThumbnail(asset, bands, childImages, panel, true);
+      } else if (msg.type === 'copyAssetId') {
+        await vscode.env.clipboard.writeText(asset.name);
+      } else if (msg.type === 'saveMetadata') {
+        const previousName = asset.name;
+        await savePreviewMetadata(msg, asset, accessToken, panel);
+        if (asset.name !== previousName) {
+          childImages = childImages.map((image) => ({
+            ...image,
+            name: asset.name + image.name.slice(previousName.length),
+          }));
+        }
+      } else if (msg.type === 'openImage' && msg.name) {
+        const token = await getTokenSafe(accessToken);
         try {
-          const { deleteAsset } = await import('../../../sidebar/assets/eeApiClient.js');
-          await deleteAsset(msg.name, accessToken);
-          vscode.window.showInformationMessage(`Image "${msg.name}" deleted.`);
-          panel.webview.postMessage({ type: 'imageDeleted', name: msg.name });
+          const { openAssetPreview } = await import('../assetPreviewPanel.js');
+          await openAssetPreview(msg.name, token);
         } catch (err) {
           const errMsg = err instanceof Error ? err.message : String(err);
-          vscode.window.showErrorMessage(`Failed to delete: ${errMsg}`);
+          vscode.window.showErrorMessage(`Failed to open image: ${errMsg}`);
+        }
+      } else if (msg.type === 'deleteImage' && msg.name) {
+        const confirm = await vscode.window.showWarningMessage(
+          `Delete "${msg.name.split('/').pop()}"? This action cannot be undone.`,
+          'Delete',
+        );
+        if (confirm === 'Delete') {
+          try {
+            const { deleteAsset } = await import('../../../sidebar/assets/eeApiClient.js');
+            await deleteAsset(msg.name, accessToken);
+            vscode.window.showInformationMessage(`Image "${msg.name}" deleted.`);
+            panel.webview.postMessage({ type: 'imageDeleted', name: msg.name });
+          } catch (err) {
+            const errMsg = err instanceof Error ? err.message : String(err);
+            vscode.window.showErrorMessage(`Failed to delete: ${errMsg}`);
+          }
         }
       }
-    }
-  });
+    },
+  );
 }
 
 /** Returns accessToken (placeholder for token refresh). */
@@ -324,7 +332,6 @@ function buildHtml(
   }));
 
   const bandsHtml = buildBandsTable(bands);
-  const propsHtml = buildPropertiesRows(asset.properties);
 
   const initData = JSON.stringify({
     fileSize,
@@ -337,7 +344,6 @@ function buildHtml(
       (bands.length > 0
         ? '<p class="note">Bands from the first image in the collection.</p>'
         : '') + bandsHtml,
-    propsHtml,
   }).replace(/</g, '\\u003c');
 
   return `<!DOCTYPE html>
@@ -347,7 +353,7 @@ function buildHtml(
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'none'; img-src https: data:; font-src data:; style-src 'unsafe-inline'; script-src 'nonce-${nonce}';"
+      content="default-src 'none'; img-src https: data:; font-src data:; style-src 'unsafe-inline'; script-src 'nonce-${nonce}'; worker-src blob:;"
     />
     <style>${codiconsCss}</style>
     <style>${designTokens}</style>
@@ -390,35 +396,6 @@ function buildBandsTable(bands: EEBand[]): string {
     .join('');
 
   return `<table class="bands-table"><thead><tr><th>Index</th><th>Name</th><th>Type</th><th>Dimensions</th><th>CRS</th><th>Nominal Scale</th></tr></thead><tbody>${rows}</tbody></table>`;
-}
-
-// ==================================================================
-// PROPERTIES HELPER
-// ==================================================================
-const SYSTEM_PREFIXES = ['system:'];
-const EXCLUDED_KEYS = new Set(['description']);
-
-function buildPropertiesRows(props?: Record<string, unknown>): string {
-  if (!props || Object.keys(props).length === 0) {
-    return '<p class="empty-state">No properties.</p>';
-  }
-
-  const entries = Object.entries(props)
-    .filter(([k]) => !SYSTEM_PREFIXES.some((p) => k.startsWith(p)) && !EXCLUDED_KEYS.has(k))
-    .sort(([a], [b]) => a.localeCompare(b));
-
-  if (entries.length === 0) {
-    return '<p class="empty-state">No properties.</p>';
-  }
-
-  const rows = entries
-    .map(([k, v]) => `<tr><td>${escapeHtml(k)}</td><td>${escapeHtml(String(v ?? ''))}</td></tr>`)
-    .join('');
-
-  return `<table class="props-table">
-    <thead><tr><th>Property</th><th>Value</th></tr></thead>
-    <tbody>${rows}</tbody>
-  </table>`;
 }
 
 // ==================================================================

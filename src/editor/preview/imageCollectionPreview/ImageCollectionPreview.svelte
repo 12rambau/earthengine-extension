@@ -2,6 +2,8 @@
 <script>
   import { vscode, getInitData } from '../../../shared/vscode.ts';
   import AssetMetadataEditor from '../../../shared/AssetMetadataEditor.svelte';
+  import AssetPropertiesEditor from '../../../shared/AssetPropertiesEditor.svelte';
+  import DatePicker from '../../../shared/DatePicker.svelte';
 
   const data = getInitData();
 
@@ -18,6 +20,11 @@
   let activeTab = $state('description');
   let metadata = $state(data.metadata);
   let editing = $state(false);
+  let name = $state('');
+  let startTime = $state('');
+  let endTime = $state('');
+  let properties = $state([]);
+  let saving = $state(false);
   let thumbnailUrl = $state('');
   let thumbnailLoading = $state(true);
   let thumbnailPreset = $state(false);
@@ -80,8 +87,8 @@
 </script>
 
 <header class="title-bar">
-  <h1>Asset details: {metadata.title} (ImageCollection)</h1>
-  <button title="Edit asset metadata" onclick={() => { activeTab = 'description'; editing = true; }}><i class="codicon codicon-edit"></i> Edit</button>
+  <h1>Asset details: {metadata.title.slice(0, metadata.title.lastIndexOf('/') + 1)}{#if editing}<input aria-label="Asset name" required pattern="[A-Za-z0-9_-]+" bind:value={name} disabled={saving} />{:else}{metadata.title.split('/').pop()}{/if} (ImageCollection)</h1>
+  <button class="edit-button" class:active={editing} aria-pressed={editing} type="button" disabled={saving} onclick={() => { activeTab = 'description'; if (editing) { document.getElementById('asset-metadata-form')?.requestSubmit(); } else { editing = true; } }}>{saving ? 'Saving…' : 'Edit'}</button>
 </header>
 
 <!-- LAYOUT -->
@@ -116,7 +123,10 @@
       </div>
       <div class="info-row">
         <span class="info-label">Date</span>
-        <span class="info-value">Start date: {metadata.startDate}<br />End date: {metadata.endDate}</span>
+        <div class="info-value date-values">
+          <div>Start date: {#if editing}<DatePicker mode="datetime" utc label="Start date (UTC)" bind:value={startTime} disabled={saving} />{:else}{metadata.startDate}{/if}</div>
+          <div>End date: {#if editing}<DatePicker mode="datetime" utc label="End date (UTC)" bind:value={endTime} disabled={saving} />{:else}{metadata.endDate}{/if}</div>
+        </div>
       </div>
       <div class="info-row">
         <span class="info-label">File Size</span>
@@ -146,8 +156,8 @@
       {/each}
     </nav>
 
-    <section class="tab-panel" class:active={activeTab === 'description'}>
-      <AssetMetadataEditor bind:metadata bind:editing />
+    <section class="tab-panel description-panel" class:active={activeTab === 'description'}>
+      <AssetMetadataEditor bind:metadata bind:editing bind:name bind:startTime bind:endTime bind:properties bind:saving />
     </section>
 
     <section class="tab-panel" class:active={activeTab === 'images'}>
@@ -216,7 +226,7 @@
     </section>
 
     <section class="tab-panel properties-panel" class:active={activeTab === 'properties'}>
-      {@html data.propsHtml}
+      <AssetPropertiesEditor {metadata} bind:rows={properties} {editing} {saving} />
     </section>
   </main>
 </div>
@@ -252,13 +262,40 @@
       h1 {
         font-size: var(--vscee-font-xl);
         font-weight: 500;
+        min-width: 0;
+        overflow-wrap: anywhere;
+
+        input {
+          width: min(22ch, 100%);
+          font: inherit;
+          padding: 0 var(--vscee-space-xs);
+          color: var(--vscee-color-foreground);
+          background: var(--vscee-color-input-background);
+          border: var(--vscee-border-sm) solid var(--vscee-color-input-border);
+          border-radius: var(--vscee-radius-md);
+        }
       }
-      button {
+      .edit-button {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--vscee-space-sm);
+        flex: none;
         padding: var(--vscee-space-xs) var(--vscee-space-md);
-        color: var(--vscee-color-foreground);
-        background: var(--vscee-color-list-hover);
-        border: var(--vscee-border-sm) solid var(--vscee-color-panel-border);
+        color: var(--vscee-color-button-secondary-foreground);
+        background: var(--vscee-color-button-secondary-background);
+        border: var(--vscee-border-sm) solid var(--vscee-color-input-border);
+        border-radius: var(--vscee-radius-md);
+        font-size: var(--vscee-font-sm);
+        line-height: 1;
         cursor: pointer;
+
+        &:hover { background: var(--vscee-color-button-secondary-hover); }
+        &.active {
+          color: var(--vscee-color-button-foreground);
+          background: var(--vscee-color-button-background);
+          border-color: transparent;
+        }
+        &:disabled { opacity: 0.5; cursor: default; }
       }
     }
 
@@ -321,6 +358,12 @@
     .info-value {
       font-size: var(--vscee-font-sm);
       opacity: 0.85;
+    }
+    .date-values {
+      display: flex;
+      flex-direction: column;
+      gap: var(--vscee-space-xs);
+      width: 100%;
     }
     .asset-id {
       font-family: var(--vscee-editor-font-family, monospace);
@@ -406,6 +449,10 @@
       padding: var(--vscee-space-xl);
       overflow: auto;
       flex: 1;
+      min-height: 0;
+
+      &.description-panel.active { display: flex; flex-direction: column; }
+      &.description-panel > :first-child { flex: 1; min-height: 0; }
 
       &.properties-panel {
         padding-top: 0;
