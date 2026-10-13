@@ -12,6 +12,7 @@ import {
   Operation,
   getTaskState,
   getElapsedTime,
+  isEpochTimestamp,
   cancelOperation,
   getOperation,
   getPreviewAssetName,
@@ -354,7 +355,7 @@ function getNonce(): string {
 
 /** Returns an elapsed duration for filtering, or null when the task has not started. */
 function getElapsedMs(startTime: string, endTime: string): number | null {
-  if (!startTime || startTime === '1970-01-01T00:00:00.000Z') {
+  if (!startTime || isEpochTimestamp(startTime)) {
     return null;
   }
   const start = Date.parse(startTime);
