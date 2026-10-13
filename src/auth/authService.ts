@@ -12,7 +12,12 @@
  */
 
 import * as vscode from 'vscode';
-import { authenticateNotebookFlow, getAccessToken, addServiceAccountFlow } from './oauth.js';
+import {
+  authenticateNotebookFlow,
+  getAccessToken,
+  addServiceAccountFlow,
+  TokenRequestError,
+} from './oauth.js';
 import { TokenStorage, Profile } from './tokenStorage.js';
 
 export class AuthService {
@@ -30,6 +35,8 @@ export class AuthService {
 
   /** The currently active profile, or undefined if signed out. */
   private activeProfile: Profile | undefined;
+  private tokenRequest: Promise<string> | undefined;
+  private cachedToken: { value: string; expiresAt: number } | undefined;
 
   constructor(private readonly storage: TokenStorage) {
     // Restore the last active profile from persistent storage
@@ -70,6 +77,7 @@ export class AuthService {
 
       const { credentials, email, project } = result;
       const profile = await this.storage.saveProfile(email, project, credentials);
+      this.clearToken();
       this.activeProfile = profile;
       this._onDidChangeAuth.fire(profile);
 
@@ -105,6 +113,7 @@ export class AuthService {
       return;
     }
 
+    this.clearToken();
     this.activeProfile = profile;
     await this.storage.setActiveProfile(profile);
     this._onDidChangeAuth.fire(profile);
@@ -118,24 +127,57 @@ export class AuthService {
   // ==================================================================
 
   /**
-   * Get a fresh access token for the active profile.
-   * Returns undefined if not authenticated. Automatically signs out
-   * if the token refresh fails (expired/revoked credentials).
+   * Get an access token for the active profile, sharing concurrent refreshes.
+   * Returns undefined if not authenticated; transient refresh failures propagate.
    */
   async getToken(): Promise<string | undefined> {
-    if (!this.activeProfile) {
+    const profile = this.activeProfile;
+    if (!profile) {
       return undefined;
     }
-    const creds = this.storage.getCredentials(this.activeProfile);
+    if (this.cachedToken && Date.now() < this.cachedToken.expiresAt) {
+      return this.cachedToken.value;
+    }
+    if (this.tokenRequest) {
+      return this.tokenRequest;
+    }
+    const creds = this.storage.getCredentials(profile);
     if (!creds) {
       return undefined;
     }
-    try {
-      return await getAccessToken(creds);
-    } catch {
-      this.signOut();
-      return undefined;
-    }
+    const request = getAccessToken(creds)
+      .then((token) => {
+        if (this.activeProfile === profile) {
+          this.cachedToken = { value: token, expiresAt: Date.now() + 5 * 60 * 1000 };
+        }
+        return token;
+      })
+      .catch((err: unknown) => {
+        const status = err instanceof TokenRequestError ? err.status : undefined;
+        const code = err instanceof TokenRequestError ? err.oauthCode : undefined;
+        const type = err instanceof Error ? err.name : typeof err;
+        console.error('[Auth] Token request failed:', { type, status, code });
+        if (
+          this.activeProfile === profile &&
+          status === 400 &&
+          (code === 'invalid_grant' || code === 'invalid_client')
+        ) {
+          this.signOut();
+        }
+        throw err;
+      })
+      .finally(() => {
+        if (this.tokenRequest === request) {
+          this.tokenRequest = undefined;
+        }
+      });
+    this.tokenRequest = request;
+    return request;
+  }
+
+  private clearToken(): void {
+    this.cachedToken = undefined;
+    this.tokenRequest = undefined;
   }
 
   // ==================================================================
@@ -144,6 +186,7 @@ export class AuthService {
 
   /** Clear the active profile without deleting stored credentials. */
   signOut(): void {
+    this.clearToken();
     this.activeProfile = undefined;
     this._onDidChangeAuth.fire(undefined);
   }
@@ -178,6 +221,7 @@ export class AuthService {
 
       const { credentials, email, project } = result;
       const profile = await this.storage.saveProfile(email, project, credentials);
+      this.clearToken();
       this.activeProfile = profile;
       this._onDidChangeAuth.fire(profile);
 

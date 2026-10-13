@@ -14,7 +14,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
 import { URLSearchParams } from 'url';
-import { postForm, postJson, getRequest, fetchJson } from '../shared/httpClient.js';
+import { postForm, postJson, getRequest, fetchJson, httpRequestRaw } from '../shared/httpClient.js';
 import { showSecretInputBox } from '../shared/secretInputBox.js';
 
 // ==================================================================
@@ -215,6 +215,49 @@ export async function authenticateNotebookFlow(): Promise<
 // ==================================================================
 // TOKEN REFRESH
 // ==================================================================
+/** Safe token exchange failure details (never includes the response body or credentials). */
+export class TokenRequestError extends Error {
+  constructor(
+    readonly status: number,
+    readonly oauthCode: string | undefined,
+  ) {
+    super(`Token request failed (HTTP ${status}${oauthCode ? `, ${oauthCode}` : ''})`);
+    this.name = 'TokenRequestError';
+  }
+}
+
+async function exchangeToken(url: string, params: URLSearchParams): Promise<string> {
+  const body = params.toString();
+  const response = await httpRequestRaw(
+    url,
+    'POST',
+    {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'Content-Length': Buffer.byteLength(body),
+    },
+    body,
+    30_000,
+  );
+  let data: { access_token?: string; error?: string } | null;
+  try {
+    data = JSON.parse(response.body);
+  } catch {
+    throw new TokenRequestError(response.status, undefined);
+  }
+  if (response.status >= 400 || !data || typeof data.access_token !== 'string') {
+    const code = data?.error;
+    const safeCode =
+      typeof code === 'string' &&
+      /^(invalid_grant|invalid_client|invalid_request|unauthorized_client|unsupported_grant_type|temporarily_unavailable|server_error)$/.test(
+        code,
+      )
+        ? code
+        : undefined;
+    throw new TokenRequestError(response.status, safeCode);
+  }
+  return data.access_token;
+}
+
 /**
  * Obtains a short-lived access token from stored credentials.
  * Handles both user (refresh token) and service account (JWT) flows.
@@ -232,9 +275,7 @@ export async function getAccessToken(creds: StoredCredentials): Promise<string> 
     grant_type: 'refresh_token',
   });
 
-  const response = await postForm(TOKEN_URI, params.toString());
-  const data = JSON.parse(response);
-  return data.access_token;
+  return exchangeToken(TOKEN_URI, params);
 }
 
 /**
@@ -276,9 +317,7 @@ async function getServiceAccountToken(creds: ServiceAccountCredentials): Promise
     assertion: jwt,
   });
 
-  const response = await postForm(tokenUri, params.toString());
-  const data = JSON.parse(response);
-  return data.access_token;
+  return exchangeToken(tokenUri, params);
 }
 
 /**

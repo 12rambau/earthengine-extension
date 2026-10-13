@@ -480,7 +480,11 @@ export class MapPanel extends EditorPanel {
 
     // Subscribe once to bridge commands; the panel opens on demand.
     this.commandDisposable = this.bridgeServer.onCommand((cmd) => {
-      void this.handleBridgeCommand(cmd);
+      void this.handleBridgeCommand(cmd).catch((err: unknown) => {
+        vscode.window.showErrorMessage(
+          `[Map] ${cmd.type} error: ${err instanceof Error ? err.message : String(err)}`,
+        );
+      });
     });
 
     // A basemap override changes the createSession body, so the cached session
@@ -530,13 +534,7 @@ export class MapPanel extends EditorPanel {
         shown: boolean;
         opacity: number;
       };
-      try {
-        await this.layerManager.add(d, (m) => this.post(m));
-      } catch (err) {
-        vscode.window.showErrorMessage(
-          `[Map] Layer error: ${err instanceof Error ? err.message : String(err)}`,
-        );
-      }
+      await this.layerManager.add(d, (m) => this.post(m));
       return;
     }
 

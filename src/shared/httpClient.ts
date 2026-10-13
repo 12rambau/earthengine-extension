@@ -110,6 +110,7 @@ export function httpRequestRaw(
   method: string,
   headers: Record<string, string | number>,
   body?: string | Buffer,
+  timeoutMs?: number,
 ): Promise<HttpResponse> {
   return new Promise((resolve, reject) => {
     const parsed = new URL(url);
@@ -134,6 +135,11 @@ export function httpRequestRaw(
       },
     );
     req.on('error', reject);
+    const timeout =
+      timeoutMs === undefined
+        ? undefined
+        : setTimeout(() => req.destroy(new Error('HTTP request timed out')), timeoutMs);
+    req.on('close', () => clearTimeout(timeout));
     if (body !== undefined) {
       req.write(body);
     }
@@ -144,7 +150,8 @@ export function httpRequestRaw(
 /**
  * Perform an HTTPS POST with form-encoded body (no auth header).
  */
-export function postForm(url: string, body: string): Promise<string> {  return new Promise((resolve, reject) => {
+export function postForm(url: string, body: string): Promise<string> {
+  return new Promise((resolve, reject) => {
     const parsed = new URL(url);
     const req = https.request(
       {
