@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.11.1](https://github.com/12rambau/earthengine-extension/compare/v0.11.0...v0.11.1) (2026-10-13)
+
+### Bug Fixes
+
+- improve output files for publication ([461b552](https://github.com/12rambau/earthengine-extension/commit/461b5526345db601fb2036db4a75000f159923ea))
+
 ## [0.11.0](https://github.com/12rambau/earthengine-extension/compare/v0.10.1...v0.11.0) (2026-10-13)
 
 ### Features
