@@ -14,9 +14,8 @@
  */
 
 import * as vscode from 'vscode';
-import { marked } from 'marked';
 import { EEAsset, EEBand, getAsset } from '../../../sidebar/assets/eeApiClient.js';
-import { designTokens, codiconsCss, escapeHtml } from '../../../shared/index.js';
+import { designTokens, codiconsCss } from '../../../shared/index.js';
 import { filesize } from 'filesize';
 import dayjs from 'dayjs';
 import { ensureEe, computeValue, getThumbUrlRest } from '../../../shared/eeSession.js';
@@ -24,6 +23,7 @@ import { getExtensionUri } from '../../../shared/extensionContext.js';
 import { getPresetThumbnailImage } from '../thumbnailVisualization.js';
 
 import script from './ImagePreview.svelte';
+import { previewMetadata, savePreviewMetadata } from '../previewMetadata.js';
 
 // ==================================================================
 // CONSTANTS
@@ -34,7 +34,7 @@ const GLOBAL_BBOX = [-180, -89, 180, 89];
 // ==================================================================
 // PUBLIC API
 // ==================================================================
-/** Opens a read-only WebView showing full metadata for an IMAGE asset. */
+/** Opens a WebView showing metadata for an IMAGE asset. */
 export function openImagePreview(asset: EEAsset, accessToken: string): void {
   const shortName = asset.name.split('/').pop() || 'Image';
   const panel = vscode.window.createWebviewPanel(
@@ -49,22 +49,33 @@ export function openImagePreview(asset: EEAsset, accessToken: string): void {
 
   // Handle messages from the WebView (lazy loading of thumbnail + min/max)
   let bandStatsPromise: Promise<Record<string, BandStatistics>> | undefined;
-  panel.webview.onDidReceiveMessage(async (msg: { type: string }) => {
-    if (msg.type === 'ready') {
-      // Fire-and-forget: send asynchronous image and parent metadata.
-      bandStatsPromise = computeBandStats(asset);
-      sendThumbnail(asset, accessToken, panel, bandStatsPromise);
-      sendMinMax(panel, bandStatsPromise);
-      sendParentCollection(asset, accessToken, panel);
-    } else if (msg.type === 'thumbnailFallback') {
-      bandStatsPromise ??= computeBandStats(asset);
-      sendThumbnail(asset, accessToken, panel, bandStatsPromise, true);
-    } else if (msg.type === 'copyAssetId') {
-      await vscode.env.clipboard.writeText(asset.name);
-    } else if (msg.type === 'openParentCollection') {
-      await openParentCollection(asset, accessToken);
-    }
-  });
+  panel.webview.onDidReceiveMessage(
+    async (msg: {
+      type: string;
+      name?: string;
+      startTime?: string;
+      endTime?: string;
+      description?: string;
+      properties?: { key: string; value: unknown }[];
+    }) => {
+      if (msg.type === 'ready') {
+        // Fire-and-forget: send asynchronous image and parent metadata.
+        bandStatsPromise = computeBandStats(asset);
+        sendThumbnail(asset, accessToken, panel, bandStatsPromise);
+        sendMinMax(panel, bandStatsPromise);
+        sendParentCollection(asset, accessToken, panel);
+      } else if (msg.type === 'thumbnailFallback') {
+        bandStatsPromise ??= computeBandStats(asset);
+        sendThumbnail(asset, accessToken, panel, bandStatsPromise, true);
+      } else if (msg.type === 'copyAssetId') {
+        await vscode.env.clipboard.writeText(asset.name);
+      } else if (msg.type === 'openParentCollection') {
+        await openParentCollection(asset, accessToken);
+      } else if (msg.type === 'saveMetadata') {
+        await savePreviewMetadata(msg, asset, accessToken, panel);
+      }
+    },
+  );
 }
 
 // ==================================================================
@@ -326,24 +337,11 @@ function getThumbnailRegion(ee: any, image: any, asset: EEAsset): unknown {
 function buildImageHtml(asset: EEAsset, webview: vscode.Webview): string {
   const bands = asset.bands || [];
   const nonce = getNonce();
-  const title = asset.id || asset.name.split('/').pop() || 'Image';
-  const assetId = asset.name;
-  const startDate = asset.startTime
-    ? dayjs.utc(asset.startTime).format('YYYY-MM-DD HH:mm:ss [UTC]')
-    : 'N/A';
-  const endDate = asset.endTime
-    ? dayjs.utc(asset.endTime).format('YYYY-MM-DD HH:mm:ss [UTC]')
-    : 'N/A';
   const fileSize = asset.sizeBytes ? filesize(asset.sizeBytes) : 'N/A';
   const lastModified = asset.updateTime
     ? dayjs.utc(asset.updateTime).format('YYYY-MM-DD HH:mm:ss [UTC]')
     : 'N/A';
   const bandCount = bands.length;
-
-  const description = asset.properties?.['description']
-    ? String(asset.properties['description'])
-    : '';
-
   const bandsData = bands.map((b) => {
     const dims = b.grid?.dimensions
       ? `${b.grid.dimensions.width}x${b.grid.dimensions.height} px`
@@ -356,22 +354,13 @@ function buildImageHtml(asset: EEAsset, webview: vscode.Webview): string {
     return { id: b.id, dtype, dims, crs, scale };
   });
 
-  const propsHtml = buildPropertiesTable(asset.properties);
-
   const initData = JSON.stringify({
-    title,
-    assetId,
-    startDate,
-    endDate,
     fileSize,
     bandCount: String(bandCount),
     lastModified,
-    descriptionHtml: description
-      ? `<div class="description-text">${marked(description)}</div>`
-      : '<p class="description-text">No description.</p>',
+    metadata: previewMetadata(asset),
     bands: bandsData,
-    propsHtml,
-  });
+  }).replace(/</g, '\\u003c');
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -380,7 +369,7 @@ function buildImageHtml(asset: EEAsset, webview: vscode.Webview): string {
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'none'; img-src https: data:; font-src data:; style-src 'unsafe-inline'; script-src 'nonce-${nonce}';"
+      content="default-src 'none'; img-src https: data:; font-src data:; style-src 'unsafe-inline'; script-src 'nonce-${nonce}'; worker-src blob:;"
     />
     <style>${codiconsCss}</style>
     <style>${designTokens}</style>
@@ -391,31 +380,6 @@ function buildImageHtml(asset: EEAsset, webview: vscode.Webview): string {
     <script nonce="${nonce}">${script}</script>
   </body>
 </html>`;
-}
-
-// ==================================================================
-// PROPERTIES HELPER
-// ==================================================================
-/** Property keys excluded from the PROPERTIES tab (system + description). */
-const EXCLUDED_PROP_PREFIXES = ['system:'];
-const EXCLUDED_PROP_KEYS = new Set(['description']);
-
-function buildPropertiesTable(props?: Record<string, unknown>): string {
-  if (!props || Object.keys(props).length === 0) {
-    return '<table class="props-table"><tbody><tr><td colspan="2"><em>No properties</em></td></tr></tbody></table>';
-  }
-  const entries = Object.entries(props)
-    .filter(
-      ([k]) => !EXCLUDED_PROP_PREFIXES.some((p) => k.startsWith(p)) && !EXCLUDED_PROP_KEYS.has(k),
-    )
-    .sort(([a], [b]) => a.localeCompare(b));
-  if (entries.length === 0) {
-    return '<table class="props-table"><tbody><tr><td colspan="2"><em>No properties</em></td></tr></tbody></table>';
-  }
-  const rows = entries
-    .map(([k, v]) => `<tr><td>${escapeHtml(k)}</td><td>${escapeHtml(String(v ?? ''))}</td></tr>`)
-    .join('');
-  return `<table class="props-table"><thead><tr><th>Property</th><th>Value</th></tr></thead><tbody>${rows}</tbody></table>`;
 }
 
 // ==================================================================

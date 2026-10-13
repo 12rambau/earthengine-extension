@@ -115,6 +115,33 @@ const webviewCssPlugin = {
   },
 };
 
+/** Bundles Monaco's editor worker as text for the inline WebView script. */
+const monacoWorkerTextPlugin = {
+  name: 'monaco-worker-text',
+  setup(build) {
+    build.onResolve({ filter: /^monaco-worker-text$/ }, () => ({
+      path: 'monaco-worker-text',
+      namespace: 'monaco-worker-text',
+    }));
+    build.onLoad({ filter: /.*/, namespace: 'monaco-worker-text' }, async () => {
+      const result = await esbuild.build({
+        entryPoints: [require.resolve('monaco-editor/editor/editor.worker')],
+        bundle: true,
+        format: 'iife',
+        platform: 'browser',
+        write: false,
+        minify: production,
+        metafile: true,
+      });
+      return {
+        contents: `export default ${JSON.stringify(result.outputFiles[0].text).replace(/</g, '\\u003c')};`,
+        loader: 'js',
+        watchFiles: Object.keys(result.metafile.inputs),
+      };
+    });
+  },
+};
+
 /**
  * Svelte root components are bundled into a self-contained IIFE and returned
  * as a text string so the host can inline them in the WebView HTML shell.
@@ -149,13 +176,20 @@ const webviewScriptTextPlugin = {
         format: 'iife',
         platform: 'browser',
         write: false,
+        outdir: 'out',
         minify: production,
         sourcemap: false,
         metafile: true,
-        plugins: [sveltePlugin({ compilerOptions: { css: 'injected' } })],
+        loader: { '.ttf': 'dataurl', '.woff': 'dataurl', '.woff2': 'dataurl' },
+        plugins: [monacoWorkerTextPlugin, sveltePlugin({ compilerOptions: { css: 'injected' } })],
       });
+      const script = result.outputFiles.find((file) => file.path.endsWith('.js'))?.text;
+      const css = result.outputFiles.find((file) => file.path.endsWith('.css'))?.text;
+      if (!script) throw new Error(`No script generated for ${args.path}`);
       return {
-        contents: result.outputFiles[0].text,
+        contents: css
+          ? `const style = document.createElement('style'); style.textContent = ${JSON.stringify(css).replace(/</g, '\\u003c')}; document.head.appendChild(style);\n${script}`
+          : script,
         loader: 'text',
         // Propagate all bundled inputs so the outer watcher re-runs when any
         // component file changes.

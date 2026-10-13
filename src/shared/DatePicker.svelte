@@ -5,6 +5,7 @@
   let {
     value = $bindable(''),
     mode = 'date',
+    utc = false,
     label = 'Choose a date',
     disabled = false,
     onchange,
@@ -107,7 +108,10 @@
       return;
     }
     if (!open) {
-      const date = parseDate(selectedDate) ?? new Date();
+      const now = new Date();
+      const date = parseDate(selectedDate) ?? (utc
+        ? new Date(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())
+        : now);
       viewedMonth = date.getMonth();
       viewedYear = Math.max(firstYear, Math.min(currentYear, date.getFullYear()));
       hour = value.slice(11, 13) || '00';
@@ -264,11 +268,11 @@
           class="today-action"
           onclick={() => {
             const now = new Date();
-            hour = pad(now.getHours());
-            minute = pad(now.getMinutes());
-            viewedMonth = now.getMonth();
-            viewedYear = now.getFullYear();
-            commit(formatDate(now));
+            hour = pad(utc ? now.getUTCHours() : now.getHours());
+            minute = pad(utc ? now.getUTCMinutes() : now.getMinutes());
+            viewedMonth = utc ? now.getUTCMonth() : now.getMonth();
+            viewedYear = utc ? now.getUTCFullYear() : now.getFullYear();
+            commit(utc ? now.toISOString().slice(0, 10) : formatDate(now));
           }}>Today</button
         >
         <div class="action-end">
