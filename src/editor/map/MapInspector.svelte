@@ -9,6 +9,7 @@
   let inspectorMarker = $state(null);
   let inspectorContent = $state({ type: 'hint' });
   let pendingInspect = $state(null);
+  let coordinatesCopied = $state(false);
 
   const inspectorMarkerIcon = L.divIcon({
     className: 'inspector-marker',
@@ -35,8 +36,21 @@
       inspectorMarker = L.marker([lat, lng], { icon: inspectorMarkerIcon }).addTo(map);
     }
     inspectorContent = { type: 'loading' };
+    coordinatesCopied = false;
     pendingInspect = { lat, lng };
     vscode.postMessage({ type: 'inspect', data: { lat, lng, zoom: map.getZoom() } });
+  }
+
+  async function copyCoordinates(lng, lat) {
+    try {
+      await navigator.clipboard.writeText(`ee.Geometry.Point(${lng}, ${lat})`);
+      coordinatesCopied = true;
+      setTimeout(() => {
+        coordinatesCopied = false;
+      }, 1500);
+    } catch {
+      coordinatesCopied = false;
+    }
   }
 
   function closeInspector() {
@@ -99,7 +113,20 @@
         </p>
       {:else if inspectorContent.type === 'result'}
         {@const d = inspectorContent.data}
-        <p class="inspector-coords">{d.lng.toFixed(4)}, {d.lat.toFixed(4)} @ {d.scale}m</p>
+        <div class="inspector-coords">
+          <span>{d.lng.toFixed(4)}, {d.lat.toFixed(4)} @ {d.scale}m</span>
+          <button
+            type="button"
+            class="inspector-copy"
+            title={coordinatesCopied ? 'Copied' : 'Copy as ee.Geometry.Point'}
+            aria-label={coordinatesCopied ? 'Copied' : 'Copy as ee.Geometry.Point'}
+            onclick={() => copyCoordinates(d.lng, d.lat)}
+            ><i
+              class="codicon {coordinatesCopied ? 'codicon-check' : 'codicon-copy'}"
+              aria-hidden="true"
+            ></i></button
+          >
+        </div>
         {#each d.results as layer}
           <div class="inspector-layer">
             <span class="inspector-layer-name">{layer.name}</span>
@@ -185,9 +212,23 @@
       padding: var(--vscee-space-xs) 0;
     }
     .inspector-coords {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
       font-size: var(--vscee-font-compact-sm);
       color: var(--vscee-color-muted);
       margin-bottom: var(--vscee-space-sm);
+    }
+    .inspector-copy {
+      border: none;
+      background: none;
+      color: var(--vscee-color-muted);
+      cursor: pointer;
+      padding: 0 var(--vscee-space-xxs);
+
+      &:hover {
+        color: var(--vscee-color-foreground);
+      }
     }
     .inspector-loading {
       font-size: var(--vscee-font-compact-sm);
