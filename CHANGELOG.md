@@ -1,5 +1,37 @@
 # Changelog
 
+## [0.11.0](https://github.com/12rambau/earthengine-extension/compare/v0.10.1...v0.11.0) (2026-10-13)
+
+### Features
+
+- add a datepicker ([e7829eb](https://github.com/12rambau/earthengine-extension/commit/e7829eb8da046da7ecd95e7175334bfa2e69762f))
+- add GDAL support for vector file ingestion and conversion to Shapefile ([3376374](https://github.com/12rambau/earthengine-extension/commit/3376374f3d2c6a1d267dbb00feb64697176e676d))
+- add raster to COG conversion and update asset upload logic ([dbef789](https://github.com/12rambau/earthengine-extension/commit/dbef789fbc61b9c448b0f1cece8c4a7df1bbdcb6))
+- add support for discrete interval palettes in Map.addLayer ([3d826ca](https://github.com/12rambau/earthengine-extension/commit/3d826cafd0c8e95e5e21a7a3b3bb98e7bcb26731))
+- add timeout support to httpRequestRaw function ([fc17438](https://github.com/12rambau/earthengine-extension/commit/fc17438766dfe7b4b92c218285c6d3cd6d962c9c))
+- enhance authentication service with token management and error handling ([18cdc8a](https://github.com/12rambau/earthengine-extension/commit/18cdc8a962bdfa685ea5b92c2291af73b06e142d))
+- enhance thumbnail generation with band statistics for improved visualization ([3a6b680](https://github.com/12rambau/earthengine-extension/commit/3a6b68006983acbb83cf0307d18de62a40a7113e))
+- implement enhanced thumbnail generation with preset visualizations and fallback handling ([744ed4b](https://github.com/12rambau/earthengine-extension/commit/744ed4b01f8f8ffb8a61ff0e55cdb49dffb0ce93))
+- implement zoomed region calculation for thumbnails in image and collection previews ([34d4df4](https://github.com/12rambau/earthengine-extension/commit/34d4df441108c9846c5f65eab50ed0e90115125f))
+- optimize thumbnail URL generation by refining region calculation and scaling ([d257ea0](https://github.com/12rambau/earthengine-extension/commit/d257ea0044fee773ffee58c9de66470d3ebea541))
+- refactor asset metadata handling and improve properties editing ([2f1235a](https://github.com/12rambau/earthengine-extension/commit/2f1235a2ec54ef44855b6953822f924d1a0bc56c))
+- update visualization command to demo and enhance documentation ([ec33e63](https://github.com/12rambau/earthengine-extension/commit/ec33e6351b9518ff5de2c5aa741bf164a7ef751e))
+
+### Bug Fixes
+
+- display coordinates in longitude, latitude format in status bar ([7bee757](https://github.com/12rambau/earthengine-extension/commit/7bee7578edfff8e292f045857bebdca898f7e1fd))
+- improve error handling in shapefile conversion and source file resolution ([7424cd2](https://github.com/12rambau/earthengine-extension/commit/7424cd2d51f62fad365aa3e46d186040b232fb4a))
+- **layer-manager:** adjust width and max-width for better layer name display ([c054fa6](https://github.com/12rambau/earthengine-extension/commit/c054fa6d91c240daa94fd200c70a90b77501adc0))
+- make preview property headers opaque ([dfe646f](https://github.com/12rambau/earthengine-extension/commit/dfe646f14f2908dece7660d3c0e4e253905dd2a4))
+- **map:** add outer ring to slider thumb ([fb96593](https://github.com/12rambau/earthengine-extension/commit/fb96593ec46bd4a73a78ccc81ce56b10cf87c666))
+- **map:** match inspector close button to layer manager ([e0e417c](https://github.com/12rambau/earthengine-extension/commit/e0e417c6887b204a498f081402dab1ca16c94b6d))
+- **map:** widen layer name display ([dbaae8e](https://github.com/12rambau/earthengine-extension/commit/dbaae8e2f96290d2f2e5cb23233abe416598ba55))
+- remove header transparency for properties panels in previews ([c5b54e6](https://github.com/12rambau/earthengine-extension/commit/c5b54e6010a0195df856b2b6a2040fabc6be7925))
+- remove nighttime lights test command and related documentation ([56479d7](https://github.com/12rambau/earthengine-extension/commit/56479d70f64acae6a3240e53b239001c3678e3d1))
+- **tasks:** ignore epoch task start times ([cf7d644](https://github.com/12rambau/earthengine-extension/commit/cf7d644d4143830e04f3a64ae54c703514af9315))
+- update DatePicker usage in NewAssetDialog and improve keyboard event handling ([0ebf099](https://github.com/12rambau/earthengine-extension/commit/0ebf09980e7a4f9178a9adce4291603229f3acd0))
+- update example in README to use Near Infrared band with new breaks ([4652f66](https://github.com/12rambau/earthengine-extension/commit/4652f6633be06e7c8987d300cb5869274f2cccf1))
+
 ## [0.10.1](https://github.com/12rambau/earthengine-extension/compare/v0.10.0...v0.10.1) (2026-10-08)
 
 ### Bug Fixes
