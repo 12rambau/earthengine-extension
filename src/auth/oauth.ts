@@ -236,6 +236,7 @@ async function exchangeToken(url: string, params: URLSearchParams): Promise<stri
       'Content-Length': Buffer.byteLength(body),
     },
     body,
+    30_000,
   );
   let data: { access_token?: string; error?: string } | null;
   try {
