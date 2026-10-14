@@ -423,6 +423,37 @@ export async function createFolder(
   return postCreateAsset(projectRoot, assetId, 'FOLDER', accessToken);
 }
 
+/**
+ * Makes sure a folder exists at the given full path, creating it and any
+ * missing ancestors. Existing folders are reused; a non-folder asset sitting
+ * at that path is an error.
+ */
+export async function ensureFolder(fullPath: string, accessToken: string): Promise<void> {
+  const path = fullPath.trim().replace(/\/+$/, '');
+  const parts = path.split('/');
+  // "projects/<project>/assets" is the implicit root; nothing to create.
+  if (parts.length <= 3) {
+    return;
+  }
+  let existing: EEAsset | undefined;
+  try {
+    existing = await getAsset(path, accessToken);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    if (!/HTTP 40[34]\b/.test(message)) {
+      throw err;
+    }
+  }
+  if (existing) {
+    if (existing.type !== 'FOLDER') {
+      throw new Error(`"${path}" already exists and is not a folder.`);
+    }
+    return;
+  }
+  await ensureFolder(parts.slice(0, -1).join('/'), accessToken);
+  await createContainerByPath(path, 'FOLDER', accessToken);
+}
+
 // ==================================================================
 // INGESTION
 // ==================================================================

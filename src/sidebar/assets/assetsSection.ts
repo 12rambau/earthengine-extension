@@ -16,6 +16,7 @@ import {
   copyAsset,
   createFolder,
   deleteAsset,
+  ensureFolder,
   moveAsset,
 } from './eeApiClient.js';
 import { openAssetPreview } from '../../editor/preview/assetPreviewPanel.js';
@@ -434,7 +435,8 @@ export class AssetsSection extends SidebarSection {
         if (!['delete', 'move', 'copy'].includes(action) || !names?.length) {
           return false;
         }
-        if (!(await this.authService.getToken())) {
+        const accessToken = await this.authService.getToken();
+        if (!accessToken) {
           vscode.window.showErrorMessage('Not authenticated.');
           return false;
         }
@@ -452,7 +454,7 @@ export class AssetsSection extends SidebarSection {
           const verb = action === 'move' ? 'Move' : 'Copy';
           const defaultFolder = names[0].slice(0, names[0].lastIndexOf('/'));
           const folder = await vscode.window.showInputBox({
-            prompt: `${verb} ${names.length} assets into folder`,
+            prompt: `${verb} ${names.length} assets into folder (created if it does not exist)`,
             value: defaultFolder,
             validateInput: (value) =>
               /^projects\/[^/]+\/assets(?:\/.+)?$/.test(value.trim().replace(/\/+$/, ''))
@@ -462,8 +464,16 @@ export class AssetsSection extends SidebarSection {
           if (folder === undefined) {
             return false;
           }
+          const destinationFolder = folder.trim().replace(/\/+$/, '');
           try {
-            targets = bulkAssetDestinations(names, folder.trim());
+            targets = bulkAssetDestinations(names, destinationFolder);
+            await vscode.window.withProgress(
+              {
+                location: vscode.ProgressLocation.Notification,
+                title: 'Preparing destination folder…',
+              },
+              () => ensureFolder(destinationFolder, accessToken),
+            );
           } catch (err) {
             vscode.window.showErrorMessage((err as Error).message);
             return false;

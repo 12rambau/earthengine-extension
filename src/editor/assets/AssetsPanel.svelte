@@ -59,8 +59,8 @@
   let selectedAssets = $state(new Set());
   let bulkBusy = $state(false);
   let selectedNames = $derived([...selectedAssets]);
-  let pageSelected = $derived(
-    table.pageRows.length > 0 && table.pageRows.every((a) => selectedAssets.has(a.name)),
+  let allSelected = $derived(
+    table.sortedRows.length > 0 && table.sortedRows.every((a) => selectedAssets.has(a.name)),
   );
 
   let newMenuOpen = $state(false);
@@ -172,16 +172,12 @@
     selectedAssets = next;
   }
 
-  function togglePage() {
-    const next = new Set(selectedAssets);
-    for (const asset of table.pageRows) {
-      if (pageSelected) {
-        next.delete(asset.name);
-      } else {
-        next.add(asset.name);
-      }
+  function toggleAll() {
+    if (allSelected) {
+      selectedAssets = new Set();
+      return;
     }
-    selectedAssets = next;
+    selectedAssets = new Set(table.sortedRows.map((asset) => asset.name));
   }
 
   function bulkAction(action) {
@@ -307,18 +303,6 @@
         </div>
       {/if}
     </div>
-    <button disabled={isLoading || bulkBusy || table.pageRows.length === 0} onclick={togglePage}>
-      {pageSelected ? 'Deselect page' : 'Select page'}
-    </button>
-    {#if selectedNames.length}
-      <span class="selection-count">{selectedNames.length} selected</span>
-      <button disabled={bulkBusy || isLoading} onclick={() => (selectedAssets = new Set())}
-        >Clear</button
-      >
-      <button disabled={bulkBusy || isLoading} onclick={() => bulkAction('copy')}>Copy</button>
-      <button disabled={bulkBusy || isLoading} onclick={() => bulkAction('move')}>Move</button>
-      <button disabled={bulkBusy || isLoading} onclick={() => bulkAction('delete')}>Delete</button>
-    {/if}
     <button class="btn-primary" class:loading={isLoading} disabled={isLoading} onclick={refresh}>
       <i class="codicon codicon-sync refresh-icon" aria-hidden="true"></i>
       <span>{isLoading ? 'Refreshing…' : 'Refresh'}</span>
@@ -330,6 +314,39 @@
         <button onclick={() => navigate(part.path)}>{part.label}</button>
       {/each}
     </div>
+  {/snippet}
+
+  {#snippet toolbarEnd()}
+    {#if selectedNames.length}
+      <div class="bulk-actions">
+        <span class="selection-count">{selectedNames.length} selected</span>
+        <button disabled={bulkBusy || isLoading} onclick={() => bulkAction('copy')}>
+          <i class="codicon codicon-copy"></i> Copy
+        </button>
+        <button disabled={bulkBusy || isLoading} onclick={() => bulkAction('move')}>
+          <i class="codicon codicon-clippy"></i> Move
+        </button>
+        <button disabled={bulkBusy || isLoading} onclick={() => bulkAction('delete')}>
+          <i class="codicon codicon-trash"></i> Delete
+        </button>
+      </div>
+    {/if}
+  {/snippet}
+
+  {#snippet headerCell(column)}
+    {#if column.key === 'selection'}
+      <input
+        type="checkbox"
+        aria-label={allSelected ? 'Deselect all assets' : 'Select all assets'}
+        title={allSelected ? 'Deselect all assets' : 'Select all loaded assets'}
+        checked={allSelected}
+        indeterminate={!allSelected && selectedNames.length > 0}
+        disabled={bulkBusy || isLoading || table.sortedRows.length === 0}
+        onchange={toggleAll}
+      />
+    {:else}
+      {column.label}
+    {/if}
   {/snippet}
 
   {#snippet row(a, columns)}
@@ -820,6 +837,21 @@
     /* ==================================================================
        ASSET NAME & ICONS
        ================================================================== */
+    .bulk-actions {
+      display: flex;
+      align-items: center;
+      gap: var(--vscee-space-md);
+
+      button {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--vscee-space-xs);
+        white-space: nowrap;
+      }
+      .codicon {
+        font-size: var(--vscee-font-icon-sm);
+      }
+    }
     .selection-count {
       white-space: nowrap;
       font-size: var(--vscee-font-sm);
