@@ -1,7 +1,11 @@
 /** @module mapGeometry.test */
 
 import { strict as assert } from 'node:assert';
-import { geometryToPython, parseMapGeometries } from '../editor/map/mapGeometry.js';
+import {
+  geometryMapPositions,
+  geometryToPython,
+  parseMapGeometries,
+} from '../editor/map/mapGeometry.js';
 
 describe('map geometries', () => {
   it('serializes points, lines, and closed polygon rings as Python EE expressions', () => {
@@ -82,5 +86,22 @@ describe('map geometries', () => {
     ]);
     coordinates[0][0] = 5;
     assert.equal(geometryToPython(geometry), 'ee.Geometry.LineString([[0,0],[1,1]])');
+  });
+
+  it('renders shapes in the closest world copy, including lines across the antimeridian', () => {
+    assert.deepEqual(geometryMapPositions([[-122, 37]], 238), [[37, 238]]);
+    assert.deepEqual(
+      geometryMapPositions(
+        [
+          [179, 0],
+          [-179, 1],
+        ],
+        -181,
+      ),
+      [
+        [0, -181],
+        [1, -179],
+      ],
+    );
   });
 });

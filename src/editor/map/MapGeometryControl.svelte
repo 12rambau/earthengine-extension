@@ -2,7 +2,7 @@
 <script>
   import L from 'leaflet';
   import { vscode } from '../../shared/vscode.ts';
-  import { parseMapGeometries } from './mapGeometry.js';
+  import { geometryMapPositions, parseMapGeometries } from './mapGeometry.js';
 
   let { map, visible = $bindable(false), drawMode = $bindable(null) } = $props();
 
@@ -16,6 +16,7 @@
   let nameInput = $state('');
   let deleteId = $state(null);
   let copiedId = $state(null);
+  let worldCenterLng = $state(0);
   let nextName = 1;
 
   const vertexIcon = L.divIcon({
@@ -94,6 +95,10 @@
     return [wrapped.lng, Math.max(-90, Math.min(90, wrapped.lat))];
   }
 
+  function displayPoints(coordinates) {
+    return geometryMapPositions(coordinates, worldCenterLng);
+  }
+
   function handleMapClick(e) {
     if (!drawMode) {
       return;
@@ -157,9 +162,9 @@
   function zoomTo(item) {
     const points = item.type === 'Point' ? [item.coordinates] : item.coordinates;
     if (item.type === 'Point') {
-      map.setView([points[0][1], points[0][0]], Math.max(12, map.getZoom()));
+      map.setView(displayPoints(points)[0], Math.max(12, map.getZoom()));
     } else {
-      map.fitBounds(L.latLngBounds(points.map(([lng, lat]) => [lat, lng])));
+      map.fitBounds(L.latLngBounds(displayPoints(points)));
     }
     if (item.visible) {
       selectedId = item.id;
@@ -179,10 +184,16 @@
     if (!map) {
       return;
     }
+    const updateWorldCenter = () => {
+      worldCenterLng = map.getCenter().lng;
+    };
+    updateWorldCenter();
     map.on('click', handleMapClick);
+    map.on('moveend', updateWorldCenter);
     window.addEventListener('keydown', keydown);
     return () => {
       map.off('click', handleMapClick);
+      map.off('moveend', updateWorldCenter);
       window.removeEventListener('keydown', keydown);
     };
   });
@@ -204,10 +215,7 @@
       if (!item.visible) {
         continue;
       }
-      const points =
-        item.type === 'Point'
-          ? [item.coordinates[1], item.coordinates[0]]
-          : item.coordinates.map(([lng, lat]) => [lat, lng]);
+      const points = displayPoints(item.type === 'Point' ? [item.coordinates] : item.coordinates);
       const options = {
         color: 'var(--vscode-focusBorder)',
         weight: 3,
@@ -217,7 +225,7 @@
       };
       const shape =
         item.type === 'Point'
-          ? L.circleMarker(points, { ...options, radius: 7 })
+          ? L.circleMarker(points[0], { ...options, radius: 7 })
           : item.type === 'Polygon'
             ? L.polygon(points, options)
             : L.polyline(points, options);
@@ -231,8 +239,8 @@
         continue;
       }
       const vertices = item.type === 'Point' ? [item.coordinates] : item.coordinates;
-      vertices.forEach(([lng, lat], index) => {
-        const handle = L.marker([lat, lng], { icon: vertexIcon, draggable: true }).addTo(map);
+      vertices.forEach((_, index) => {
+        const handle = L.marker(points[index], { icon: vertexIcon, draggable: true }).addTo(map);
         handle.on('dragend', () => {
           const updated = [...vertices];
           updated[index] = position(handle.getLatLng());
@@ -262,9 +270,9 @@
       if (item.type !== 'Point') {
         const edges = item.type === 'Polygon' ? vertices.length : vertices.length - 1;
         for (let index = 0; index < edges; index++) {
-          const a = vertices[index];
-          const b = vertices[(index + 1) % vertices.length];
-          const midpoint = L.marker([(a[1] + b[1]) / 2, (a[0] + b[0]) / 2], {
+          const a = points[index];
+          const b = points[(index + 1) % vertices.length];
+          const midpoint = L.marker([(a[0] + b[0]) / 2, (a[1] + b[1]) / 2], {
             icon: midpointIcon,
             draggable: true,
           }).addTo(map);
@@ -290,7 +298,7 @@
     if (!map || !drawMode || draft.length === 0) {
       return;
     }
-    const points = draft.map(([lng, lat]) => [lat, lng]);
+    const points = displayPoints(draft);
     const layer = L.polyline(points, {
       color: 'var(--vscode-focusBorder)',
       dashArray: '6 4',

@@ -84,3 +84,13 @@ export function geometryToPython(geometry: MapGeometry): string {
   }
   return `ee.Geometry.${geometry.type}(${JSON.stringify(geometry.coordinates)})`;
 }
+
+/** Places canonical [longitude, latitude] vertices in the world copy nearest the map view. */
+export function geometryMapPositions(coordinates: Position[], centerLng: number): Position[] {
+  let previousLng = centerLng;
+  return coordinates.map(([lng, lat]) => {
+    const displayLng = lng + 360 * Math.round((previousLng - lng) / 360);
+    previousLng = displayLng;
+    return [lat, displayLng];
+  });
+}
