@@ -163,6 +163,9 @@ export class MapPanel extends EditorPanel {
       } else if (msg.type === 'layerOpacity') {
         const d = msg.data as { layerIndex: number; opacity: number };
         this.layerManager.setLayerOpacity(d.layerIndex, d.opacity);
+      } else if (msg.type === 'moveLayer') {
+        const d = msg.data as { layerIndex: number; direction: number };
+        this.layerManager.move(d.layerIndex, d.direction);
       } else if (msg.type === 'removeLayer') {
         const d = msg.data as { layerIndex: number };
         this.layerManager.remove(d.layerIndex);

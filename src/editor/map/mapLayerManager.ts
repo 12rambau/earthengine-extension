@@ -227,6 +227,24 @@ export class MapLayerManager {
     }
   }
 
+  /** Moves a layer one position in replay order, toward the top (+1) or bottom (-1). */
+  move(layerIndex: number, direction: number): void {
+    if (direction !== 1 && direction !== -1) {
+      return;
+    }
+    const entries = [...this._layers.entries()];
+    const index = entries.findIndex(([key]) => key === layerIndex);
+    const target = index + direction;
+    if (index < 0 || target < 0 || target >= entries.length) {
+      return;
+    }
+    [entries[index], entries[target]] = [entries[target], entries[index]];
+    this._layers.clear();
+    for (const [key, layer] of entries) {
+      this._layers.set(key, layer);
+    }
+  }
+
   /** Removes the layer identified by `layerIndex`. */
   remove(layerIndex: number): void {
     this._layers.delete(layerIndex);
