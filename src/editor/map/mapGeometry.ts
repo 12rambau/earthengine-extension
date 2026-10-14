@@ -34,6 +34,7 @@ export function parseMapGeometries(value: unknown): MapGeometry[] {
       typeof item !== 'object' ||
       typeof item.id !== 'string' ||
       !item.id ||
+      item.id.length > 100 ||
       ids.has(item.id) ||
       typeof item.name !== 'string' ||
       !item.name.trim() ||
@@ -44,17 +45,29 @@ export function parseMapGeometries(value: unknown): MapGeometry[] {
     }
     const { type, coordinates } = item;
     if (type === 'Point' && isPosition(coordinates)) {
-      result.push({ id: item.id, name: item.name, visible: item.visible, type, coordinates });
+      result.push({
+        id: item.id,
+        name: item.name,
+        visible: item.visible,
+        type,
+        coordinates: [coordinates[0], coordinates[1]],
+      });
     } else if (
       (type === 'LineString' || type === 'Polygon') &&
       Array.isArray(coordinates) &&
       coordinates.length >= (type === 'Polygon' ? 3 : 2) &&
       coordinates.length <= 10000 &&
       coordinates.every(isPosition) &&
-      (type !== 'Polygon' ||
-        new Set(coordinates.map((point: Position) => JSON.stringify(point))).size >= 3)
+      new Set(coordinates.map((point: Position) => JSON.stringify(point))).size >=
+        (type === 'Polygon' ? 3 : 2)
     ) {
-      result.push({ id: item.id, name: item.name, visible: item.visible, type, coordinates });
+      result.push({
+        id: item.id,
+        name: item.name,
+        visible: item.visible,
+        type,
+        coordinates: coordinates.map(([lng, lat]: Position): Position => [lng, lat]),
+      });
     } else {
       continue;
     }

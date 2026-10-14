@@ -12,14 +12,21 @@ describe('map geometries', () => {
         name: 'Line 1',
         visible: true,
         type: 'LineString',
-        coordinates: [[0, 0], [1, 2]],
+        coordinates: [
+          [0, 0],
+          [1, 2],
+        ],
       },
       {
         id: '3',
         name: 'Polygon 1',
         visible: false,
         type: 'Polygon',
-        coordinates: [[0, 0], [1, 0], [1, 1]],
+        coordinates: [
+          [0, 0],
+          [1, 0],
+          [1, 1],
+        ],
       },
     ]);
     assert.equal(geometries.length, 3);
@@ -40,14 +47,40 @@ describe('map geometries', () => {
         { id: 'x', name: 'Duplicate', visible: true, type: 'Point', coordinates: [0, 0] },
         { id: 'y', name: 'Short', visible: true, type: 'LineString', coordinates: [[0, 0]] },
         {
+          id: 'same',
+          name: 'Zero length',
+          visible: true,
+          type: 'LineString',
+          coordinates: [
+            [0, 0],
+            [0, 0],
+          ],
+        },
+        {
           id: 'z',
           name: 'Degenerate',
           visible: true,
           type: 'Polygon',
-          coordinates: [[0, 0], [0, 0], [1, 1]],
+          coordinates: [
+            [0, 0],
+            [0, 0],
+            [1, 1],
+          ],
         },
       ]),
       [{ id: 'x', name: 'Valid', visible: true, type: 'Point', coordinates: [180, -90] }],
     );
+  });
+
+  it('copies coordinates into plain, independent arrays for WebView messages', () => {
+    const coordinates: [number, number][] = [
+      [0, 0],
+      [1, 1],
+    ];
+    const [geometry] = parseMapGeometries([
+      { id: 'line', name: 'Line', visible: true, type: 'LineString', coordinates },
+    ]);
+    coordinates[0][0] = 5;
+    assert.equal(geometryToPython(geometry), 'ee.Geometry.LineString([[0,0],[1,1]])');
   });
 });

@@ -18,12 +18,14 @@ import { MapInspector } from './mapInspector.js';
 import { MapTilesService, NO_API_KEY_MESSAGE, ViewportBounds } from './mapTilesService.js';
 import { BASEMAP_IDS, BasemapId, FALLBACK_BASEMAPS } from './basemapPresets.js';
 import { getGlobalState } from '../../shared/extensionContext.js';
+import { geometryToPython, MapGeometry, parseMapGeometries } from './mapGeometry.js';
 
 import { codiconsCss, designTokens, leafletCss } from '../../shared/index.js';
 import script from './MapPanel.svelte';
 
 /** Global-state flag set when the user dismisses the fallback warning for good. */
 const FALLBACK_NOTICE_KEY = 'earthengine.map.fallbackNoticeDismissed';
+const GEOMETRIES_KEY = 'earthengine.map.geometries';
 
 /** Summary of a map layer, as reported to callers of {@link MapPanel.listLayers}. */
 export interface MapLayerInfo {
@@ -58,6 +60,8 @@ export class MapPanel extends EditorPanel {
   private readonly layerManager = new MapLayerManager();
   private readonly inspector = new MapInspector();
   private readonly tiles = new MapTilesService();
+  private geometries: MapGeometry[] = [];
+  private workspaceState: vscode.Memento | undefined;
 
   constructor() {
     super();
@@ -106,6 +110,7 @@ export class MapPanel extends EditorPanel {
       if (msg.type === 'ready') {
         this.webviewReady = true;
         this.layerManager.replay((m) => this.post(m));
+        this.post({ type: 'geometries', data: this.geometries });
         if (this.pendingView) {
           this.post({ type: 'setCenter', data: this.pendingView });
           this.pendingView = undefined;
@@ -113,6 +118,21 @@ export class MapPanel extends EditorPanel {
         if (this.pendingBounds) {
           this.post({ type: 'centerObject', data: { bounds: this.pendingBounds } });
           this.pendingBounds = undefined;
+        }
+      } else if (msg.type === 'saveGeometries') {
+        this.geometries = parseMapGeometries(msg.data);
+        await this.workspaceState?.update(GEOMETRIES_KEY, this.geometries);
+      } else if (msg.type === 'copyGeometry') {
+        const geometry = this.geometries.find((item) => item.id === msg.data?.id);
+        if (geometry) {
+          try {
+            await vscode.env.clipboard.writeText(geometryToPython(geometry));
+            this.post({ type: 'geometryCopied', data: { id: geometry.id } });
+          } catch (err) {
+            vscode.window.showErrorMessage(
+              `[Map] Could not copy geometry: ${err instanceof Error ? err.message : String(err)}`,
+            );
+          }
         }
       } else if (msg.type === 'requestBasemap') {
         const d = msg.data as { id: BasemapId };
@@ -472,6 +492,8 @@ export class MapPanel extends EditorPanel {
 
   /** Registers map commands. */
   register(context: vscode.ExtensionContext): void {
+    this.workspaceState = context.workspaceState;
+    this.geometries = parseMapGeometries(context.workspaceState.get(GEOMETRIES_KEY));
     // Start the bridge server on activation so Python scripts can connect
     // before the user has manually opened the map panel.
     void this.bridgeServer.start().catch((err) => {
