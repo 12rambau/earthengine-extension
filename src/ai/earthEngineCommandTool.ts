@@ -19,6 +19,8 @@ export const AI_COMMANDS: Readonly<Record<string, string>> = {
   'earthengine.refreshDatasets': 'Refresh the dataset catalog tree.',
   'earthengine.refreshDocs': 'Refresh the API docs tree.',
   'earthengine.showAuthStatus': 'Show the current Earth Engine authentication status.',
+  'earthengine.newScript':
+    'Create and open a temporary Earth Engine Python script for the active profile.',
 };
 
 /** Input accepted by the tool. */
@@ -46,9 +48,13 @@ export class EarthEngineCommandTool implements vscode.LanguageModelTool<EarthEng
         `Unknown command '${command}'. Available: ${Object.keys(AI_COMMANDS).join(', ')}`,
       );
     }
-    await vscode.commands.executeCommand(command);
+    const result = await vscode.commands.executeCommand<string | undefined>(command);
     return new vscode.LanguageModelToolResult([
-      new vscode.LanguageModelTextPart(`Command ${command} completed.`),
+      new vscode.LanguageModelTextPart(
+        command === 'earthengine.newScript'
+          ? `Temporary Python script: ${result}`
+          : `Command ${command} completed.`,
+      ),
     ]);
   }
 
