@@ -2,6 +2,7 @@
 <script>
   import L from 'leaflet';
   import MapButton from './MapButton.svelte';
+  import MapGeometryControl from './MapGeometryControl.svelte';
   import MapInspector from './MapInspector.svelte';
   import MapLayerControl from './MapLayerControl.svelte';
   import MapScale from './MapScale.svelte';
@@ -14,6 +15,7 @@
     mdiLayers,
     mdiMap,
     mdiSatelliteVariant,
+    mdiShapeOutline,
   } from '../../shared/icons.ts';
 
   // ----------------------------------------------------------------
@@ -23,6 +25,8 @@
   let map = $state(null);
   let overlays = $state([]);
   let layersPanelVisible = $state(false);
+  let geometriesPanelVisible = $state(false);
+  let drawMode = $state(null);
   let inspectorActive = $state(false);
   let activeScaleIndex = $state(-1);
   let coords = $state('0.0000, 0.0000');
@@ -395,6 +399,12 @@
       initMap();
     }
   });
+
+  $effect(() => {
+    if (map) {
+      overlays.forEach((entry, index) => entry.tileLayer.setZIndex(index + 1));
+    }
+  });
 </script>
 
 <!-- MAP -->
@@ -402,8 +412,9 @@
 <MapInspector
   {map}
   bind:active={inspectorActive}
-  cursor={activeScaleIndex >= 0 ? 'crosshair' : ''}
+  cursor={drawMode || activeScaleIndex >= 0 ? 'crosshair' : ''}
 />
+<MapGeometryControl {map} bind:visible={geometriesPanelVisible} bind:drawMode />
 <MapLayerControl
   {map}
   bind:overlays
@@ -447,6 +458,8 @@
       layersPanelVisible = !layersPanelVisible;
       if (layersPanelVisible) {
         inspectorActive = false;
+        geometriesPanelVisible = false;
+        drawMode = null;
       }
     }}
   >
@@ -455,11 +468,30 @@
     >
   </MapButton>
   <MapButton
+    active={geometriesPanelVisible}
+    title="Manage geometries"
+    onclick={() => {
+      geometriesPanelVisible = !geometriesPanelVisible;
+      if (geometriesPanelVisible) {
+        inspectorActive = false;
+        layersPanelVisible = false;
+      } else {
+        drawMode = null;
+      }
+    }}
+  >
+    <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="currentColor"
+      ><path d={mdiShapeOutline} /></svg
+    >
+  </MapButton>
+  <MapButton
     active={inspectorActive}
     title="Pixel inspector"
     onclick={() => {
       inspectorActive = !inspectorActive;
       layersPanelVisible = false;
+      geometriesPanelVisible = false;
+      drawMode = null;
     }}
   >
     <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="currentColor"

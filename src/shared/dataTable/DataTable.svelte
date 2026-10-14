@@ -13,6 +13,7 @@
     toolbar,
     toolbarEnd,
     headerCell,
+    headerContent,
     row,
     onpreferenceschange,
   } = $props();
@@ -92,6 +93,7 @@
               <span class="header-label"
                 >{#if headerCell}{@render headerCell(column)}{:else}{column.label}{/if}</span
               >
+              {#if headerContent}{@render headerContent(column)}{/if}
               <span class="header-actions">
                 {#if column.sortable}
                   <button

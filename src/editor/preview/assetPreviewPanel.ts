@@ -5,14 +5,15 @@
  */
 
 import * as vscode from 'vscode';
-import { EEAsset, getAsset } from '../../sidebar/assets/eeApiClient.js';
-import { designTokens, renderPropertiesTable } from '../../shared/index.js';
+import { AssetSharingChanges, EEAsset, getAsset, saveAssetSharing } from '../../sidebar/assets/eeApiClient.js';
+import { codiconsCss, designTokens, renderPropertiesTable } from '../../shared/index.js';
 import { filesize } from 'filesize';
 import dayjs from 'dayjs';
 import { openImagePreview } from './imagePreview/imagePreviewPanel.js';
 import { openImageCollectionPreview } from './imageCollectionPreview/imageCollectionPreviewPanel.js';
 import { openFeatureCollectionPreview } from './featureCollectionPreview/featureCollectionPreviewPanel.js';
 import script from './assetPreviewPanel.svelte';
+import { loadPreviewSharing } from './previewMetadata.js';
 
 // ==================================================================
 // PUBLIC API
@@ -32,14 +33,14 @@ export async function openAssetPreview(assetName: string, accessToken: string): 
       await openFeatureCollectionPreview(asset, accessToken);
       break;
     default:
-      openGenericPreview(asset);
+      openGenericPreview(asset, accessToken);
   }
 }
 
 // ==================================================================
 // FALLBACK
 // ==================================================================
-function openGenericPreview(asset: EEAsset): void {
+function openGenericPreview(asset: EEAsset, accessToken: string): void {
   const panel = vscode.window.createWebviewPanel(
     'earthengine.assetPreview',
     asset.id || asset.name.split('/').pop() || 'Asset',
@@ -56,6 +57,7 @@ function openGenericPreview(asset: EEAsset): void {
       : 'N/A',
     size: asset.sizeBytes ? filesize(asset.sizeBytes) : 'N/A',
     propertiesTable: renderPropertiesTable(asset.properties),
+    assetName: asset.name,
   }).replace(/</g, '\\u003c');
 
   panel.webview.html = `<!DOCTYPE html>
@@ -64,6 +66,7 @@ function openGenericPreview(asset: EEAsset): void {
     <meta charset="UTF-8" />
     <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'nonce-${nonce}';" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <style>${codiconsCss}</style>
     <style>${designTokens}</style>
   </head>
   <body>
@@ -72,6 +75,21 @@ function openGenericPreview(asset: EEAsset): void {
     <script nonce="${nonce}">${script}</script>
   </body>
 </html>`;
+
+  panel.webview.onDidReceiveMessage(async (msg: { type: string; sharing?: AssetSharingChanges }) => {
+    if (msg.type === 'ready') {
+      loadPreviewSharing(asset, accessToken, panel);
+    } else if (msg.type === 'saveSharing' && msg.sharing) {
+      try {
+        await saveAssetSharing(asset.name, accessToken, msg.sharing);
+        panel.webview.postMessage({ type: 'sharingSaved' });
+        loadPreviewSharing(asset, accessToken, panel);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        panel.webview.postMessage({ type: 'sharingSaveError', message });
+      }
+    }
+  });
 }
 
 function getNonce(): string {

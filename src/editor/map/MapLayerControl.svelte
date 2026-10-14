@@ -69,6 +69,26 @@
     vscode.postMessage({ type: 'removeLayer', data: { layerIndex: entry.layerIndex } });
   }
 
+  function moveLayer(index, direction) {
+    const target = index + direction;
+    if (target < 0 || target >= overlays.length) {
+      return;
+    }
+    const moved = overlays[index];
+    const reordered = [...overlays];
+    [reordered[index], reordered[target]] = [reordered[target], reordered[index]];
+    overlays = reordered;
+    if (activeScaleIndex === index) {
+      activeScaleIndex = target;
+    } else if (activeScaleIndex === target) {
+      activeScaleIndex = index;
+    }
+    vscode.postMessage({
+      type: 'moveLayer',
+      data: { layerIndex: moved.layerIndex, direction },
+    });
+  }
+
   function toggleScale(index) {
     if (activeScaleIndex === index) {
       activeScaleIndex = -1;
@@ -111,8 +131,29 @@
       {#if overlays.length === 0}
         <p class="layers-empty">No layers yet.</p>
       {:else}
-        {#each overlays as entry, index}
+        {#each overlays.slice().reverse() as entry, reverseIndex}
+          {@const index = overlays.length - 1 - reverseIndex}
           <div class="layer-row">
+            <div class="layer-order-controls">
+              <button
+                class="map-btn layer-vis-btn"
+                title="Move layer up"
+                aria-label={`Move ${entry.name} up`}
+                disabled={index === overlays.length - 1}
+                onclick={() => moveLayer(index, 1)}
+              >
+                <i class="codicon codicon-arrow-up" aria-hidden="true"></i>
+              </button>
+              <button
+                class="map-btn layer-vis-btn"
+                title="Move layer down"
+                aria-label={`Move ${entry.name} down`}
+                disabled={index === 0}
+                onclick={() => moveLayer(index, -1)}
+              >
+                <i class="codicon codicon-arrow-down" aria-hidden="true"></i>
+              </button>
+            </div>
             <span class="layer-name" title={entry.name}>{entry.name}</span>
             <div class="layer-controls">
               <MapSlider
@@ -307,6 +348,15 @@
       opacity: 1;
       background: transparent;
       color: var(--vscee-color-foreground);
+    }
+    .layer-order-controls {
+      display: flex;
+      flex-shrink: 0;
+      gap: var(--vscee-space-xs);
+      .layer-vis-btn:disabled {
+        opacity: 0.25;
+        cursor: default;
+      }
     }
     .layer-name {
       flex: 1;

@@ -1,18 +1,51 @@
-<!-- AssetPreviewPanel: static generic asset preview for unsupported asset types -->
+<!-- AssetPreviewPanel: generic asset properties and sharing preview -->
 <script>
-  import { getInitData } from '../../shared/vscode.ts';
+  import { vscode, getInitData } from '../../shared/vscode.ts';
+  import AssetSharingEditor from '../../shared/AssetSharingEditor.svelte';
 
   const { title, assetType, updated, size, propertiesTable } = getInitData();
+  let activeTab = $state('properties');
+  let editing = $state(false);
+  let saving = $state(false);
+  let sharing = $state(null);
+  let error = $state('');
+
+  window.addEventListener('message', (event) => {
+    if (event.data.type === 'sharingSaved') {
+      editing = false;
+      saving = false;
+      sharing = null;
+    } else if (event.data.type === 'sharingSaveError') {
+      error = event.data.message;
+      saving = false;
+    }
+  });
+  vscode.postMessage({ type: 'ready' });
+
+  function toggleEdit() {
+    if (!editing) {
+      editing = true;
+    } else if (sharing) {
+      saving = true;
+      error = '';
+      // $state proxies are not structured-cloneable, so postMessage would throw.
+      vscode.postMessage({ type: 'saveSharing', sharing: $state.snapshot(sharing) });
+    } else {
+      editing = false;
+    }
+  }
 </script>
 
-<h1>{title}</h1>
+<header><h1>{title}</h1><button type="button" aria-pressed={editing} disabled={saving} onclick={toggleEdit}>{saving ? 'Saving…' : 'Edit'}</button></header>
 <span class="badge">{assetType}</span>
 <div class="meta">
   <div class="meta-item"><strong>Last Updated</strong>{updated}</div>
   <div class="meta-item"><strong>Size</strong>{size}</div>
 </div>
-<h2>Properties</h2>
-{@html propertiesTable}
+<nav class="tabs"><button class:active={activeTab === 'properties'} onclick={() => (activeTab = 'properties')}>PROPERTIES</button><button class:active={activeTab === 'sharing'} onclick={() => (activeTab = 'sharing')}>SHARING</button></nav>
+<div hidden={activeTab !== 'properties'}>{@html propertiesTable}</div>
+<div hidden={activeTab !== 'sharing'}><AssetSharingEditor {editing} {saving} bind:sharing /></div>
+{#if error}<p role="alert">{error}</p>{/if}
 
 <style>
   :global {
@@ -33,6 +66,23 @@
       border-bottom: var(--vscee-border-sm) solid var(--vscee-color-panel-border);
       padding-bottom: var(--vscee-space-xs);
     }
+    header { display: flex; justify-content: space-between; align-items: center; gap: var(--vscee-space-lg); }
+    header button, .tabs button {
+      padding: var(--vscee-space-xs) var(--vscee-space-md);
+      color: var(--vscee-color-foreground);
+      background: var(--vscee-color-button-secondary-background);
+      border: none;
+      cursor: pointer;
+    }
+    .tabs {
+      display: flex;
+      gap: var(--vscee-space-lg);
+      margin-top: var(--vscee-space-xl);
+      border-bottom: var(--vscee-border-sm) solid var(--vscee-color-panel-border);
+    }
+    .tabs button { background: none; }
+    .tabs button.active { border-bottom: var(--vscee-border-md) solid var(--vscee-color-focus); }
+    p[role="alert"] { color: var(--vscee-color-error); }
     .badge {
       display: inline-block;
       background: var(--vscee-color-badge-background);

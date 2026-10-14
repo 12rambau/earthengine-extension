@@ -29,6 +29,7 @@
   }
 
   const ALL_COLS = [
+    { key: 'selection', label: '', required: true },
     { key: 'icon', label: '', required: true },
     {
       key: 'state',
@@ -116,6 +117,16 @@
   let allTasks = $state([]);
   let isLoading = $state(true);
   let isRefreshing = $state(false);
+  let selectedNames = $state(new Set());
+  let isCancelling = $state(false);
+  let allPageSelected = $derived(
+    table.pageRows.length > 0 && table.pageRows.every((task) => selectedNames.has(task.name)),
+  );
+
+  // Only these states can still be cancelled server-side; anything else is already terminal.
+  function isCancelable(task) {
+    return task.state === 'RUNNING' || task.state === 'PENDING';
+  }
 
   // ----------------------------------------------------------------
   // ACTIONS
@@ -137,6 +148,30 @@
             return type.startsWith('INGEST') || type.startsWith('IMPORT');
           });
     table.setRows(rows);
+    const visibleNames = new Set(rows.map((task) => task.name));
+    selectedNames = new Set([...selectedNames].filter((name) => visibleNames.has(name)));
+  }
+
+  function toggleSelection(name) {
+    const next = new Set(selectedNames);
+    if (next.has(name)) {
+      next.delete(name);
+    } else {
+      next.add(name);
+    }
+    selectedNames = next;
+  }
+
+  function togglePageSelection() {
+    const next = new Set(selectedNames);
+    for (const task of table.pageRows) {
+      if (allPageSelected) {
+        next.delete(task.name);
+      } else {
+        next.add(task.name);
+      }
+    }
+    selectedNames = next;
   }
 
   function changeFilter(filter) {
@@ -145,6 +180,7 @@
     }
     preferencesByFilter = { ...preferencesByFilter, [currentFilter]: table.exportPreferences() };
     currentFilter = filter;
+    selectedNames = new Set();
     table.applyPreferences(preferencesByFilter[currentFilter]);
     syncRows();
     saveState();
@@ -152,6 +188,26 @@
 
   function cancelTask(name) {
     vscode.postMessage({ type: 'cancel', name });
+  }
+
+  function cancelSelected() {
+    if (isCancelling) {
+      return;
+    }
+    const names = allTasks
+      .filter((task) => selectedNames.has(task.name) && isCancelable(task))
+      .map((task) => task.name);
+    const skipped = selectedNames.size - names.length;
+    if (!names.length) {
+      alert('None of the selected tasks can be cancelled.');
+      return;
+    }
+    const suffix = skipped > 0 ? ` (${skipped} already finished or cancelling will be skipped)` : '';
+    if (!confirm(`Cancel ${names.length} selected tasks?${suffix}`)) {
+      return;
+    }
+    isCancelling = true;
+    vscode.postMessage({ type: 'cancelBulk', names });
   }
 
   function previewAsset(assetName) {
@@ -184,9 +240,12 @@
       isRefreshing = true;
     } else if (msg.type === 'loading') {
       isLoading = true;
+      selectedNames = new Set();
     } else if (msg.type === 'cancelled') {
       allTasks = allTasks.map((t) => (t.name === msg.name ? { ...t, state: 'CANCELLING' } : t));
       syncRows();
+    } else if (msg.type === 'bulkCancelDone') {
+      isCancelling = false;
     } else if (msg.type === 'error') {
       isRefreshing = false;
       isLoading = false;
@@ -202,6 +261,17 @@
   rowKey={(task) => task.name}
   onpreferenceschange={saveState}
 >
+  {#snippet headerContent(column)}
+    {#if column.key === 'selection'}
+      <input
+        type="checkbox"
+        aria-label="Select all tasks on this page"
+        checked={allPageSelected}
+        disabled={table.pageRows.length === 0}
+        onclick={togglePageSelection}
+      />
+    {/if}
+  {/snippet}
   {#snippet toolbar()}
     <!-- Filter toggle -->
     <div class="toggle-switch">
@@ -235,10 +305,28 @@
       <i class="codicon codicon-sync refresh-icon" aria-hidden="true"></i>
       {isRefreshing ? 'Refreshing…' : 'Refresh'}
     </button>
+
+    <!-- Rendered last so showing/hiding it never shifts the other toolbar items -->
+    {#if selectedNames.size > 0}
+      <button class="bulk-cancel" disabled={isCancelling} onclick={cancelSelected}>
+        <i class="codicon codicon-stop-circle" aria-hidden="true"></i>
+        {isCancelling ? 'Cancelling…' : `Cancel selected (${selectedNames.size})`}
+      </button>
+    {/if}
   {/snippet}
 
   {#snippet row(t, columns)}
     {@const visible = new Set(columns.map((column) => column.key))}
+    {#if visible.has('selection')}
+      <td class="selection-cell">
+        <input
+          type="checkbox"
+          aria-label={`Select ${t.description}`}
+          checked={selectedNames.has(t.name)}
+          onclick={() => toggleSelection(t.name)}
+        />
+      </td>
+    {/if}
     {#if visible.has('icon')}
       <td class="icon-col">
         {#if t.state === 'RUNNING' || t.state === 'CANCELLING'}
@@ -549,6 +637,12 @@
         }
       }
     }
+    .bulk-cancel {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--vscee-space-xs);
+      color: var(--vscee-color-error);
+    }
     .page-info {
       font-size: var(--vscee-font-sm);
       opacity: 0.7;
@@ -596,6 +690,10 @@
     .icon-col {
       width: 24px;
       padding: var(--vscee-space-xs) var(--vscee-space-xs);
+      text-align: center;
+    }
+    .selection-cell {
+      width: 32px;
       text-align: center;
     }
     .status {

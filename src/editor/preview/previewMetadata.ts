@@ -4,9 +4,15 @@ import * as vscode from 'vscode';
 import { marked, Renderer } from 'marked';
 import dayjs from 'dayjs';
 import {
+  applyAssetSharing,
+  AssetSharingChanges,
   EEAsset,
   getAsset,
+  getAssetIamPolicy,
+  mergeAssetIamPolicies,
   moveAsset,
+  saveAssetSharing,
+  setAssetIamPolicy,
   updateAssetMetadata,
 } from '../../sidebar/assets/eeApiClient.js';
 import { escapeHtml } from '../../shared/index.js';
@@ -58,6 +64,7 @@ export async function savePreviewMetadata(
     endTime?: string;
     description?: string;
     properties?: { key: string; value: unknown }[];
+    sharing?: AssetSharingChanges | null;
   },
   asset: EEAsset,
   accessToken: string,
@@ -112,7 +119,13 @@ export async function savePreviewMetadata(
       throw new Error('Property names must be unique.');
     }
     const properties = Object.fromEntries(msg.properties.map(({ key, value }) => [key, value]));
+    const previousName = asset.name;
     const destination = `${asset.name.slice(0, asset.name.lastIndexOf('/') + 1)}${msg.name}`;
+    const sourcePolicy =
+      destination !== previousName ? await getAssetIamPolicy(previousName, accessToken) : null;
+    if (msg.sharing) {
+      applyAssetSharing(sourcePolicy ?? (await getAssetIamPolicy(previousName, accessToken)), msg.sharing);
+    }
     const changed =
       startTime !== (asset.startTime ? new Date(asset.startTime).toISOString() : null) ||
       endTime !== (asset.endTime ? new Date(asset.endTime).toISOString() : null) ||
@@ -142,12 +155,50 @@ export async function savePreviewMetadata(
     }
     Object.assign(asset, saved);
     panel.title = destination.split('/').pop() || panel.title;
-    panel.webview.postMessage({ type: 'metadataSaved', metadata: previewMetadata(saved) });
     await vscode.commands
       .executeCommand('earthengine.refreshAssets')
       .then(undefined, () => undefined);
+    try {
+      if (sourcePolicy) {
+        const destinationPolicy = await getAssetIamPolicy(destination, accessToken);
+        const merged = mergeAssetIamPolicies(destinationPolicy, sourcePolicy);
+        const updated = msg.sharing
+          ? applyAssetSharing(merged, { ...msg.sharing, etag: merged.etag ?? '' })
+          : merged;
+        if (JSON.stringify(updated.bindings) !== JSON.stringify(destinationPolicy.bindings)) {
+          await setAssetIamPolicy(destination, accessToken, updated);
+        }
+      } else if (msg.sharing) {
+        await saveAssetSharing(destination, accessToken, msg.sharing);
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      panel.webview.postMessage({ type: 'metadataSaved', metadata: previewMetadata(saved) });
+      panel.webview.postMessage({
+        type: 'sharingSaveError',
+        message: `Metadata saved, but sharing could not be saved: ${message}. Reopen the preview to retry.`,
+      });
+      return;
+    }
+    panel.webview.postMessage({ type: 'metadataSaved', metadata: previewMetadata(saved) });
+    loadPreviewSharing(asset, accessToken, panel);
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     panel.webview.postMessage({ type: 'metadataError', message });
+  }
+}
+
+/** Loads sharing separately so inaccessible policies do not block the asset preview. */
+export async function loadPreviewSharing(
+  asset: EEAsset,
+  accessToken: string,
+  panel: vscode.WebviewPanel,
+): Promise<void> {
+  try {
+    const policy = await getAssetIamPolicy(asset.name, accessToken);
+    panel.webview.postMessage({ type: 'sharingLoaded', policy });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    panel.webview.postMessage({ type: 'sharingError', message });
   }
 }
