@@ -155,7 +155,6 @@ export async function savePreviewMetadata(
     }
     Object.assign(asset, saved);
     panel.title = destination.split('/').pop() || panel.title;
-    panel.webview.postMessage({ type: 'metadataSaved', metadata: previewMetadata(saved) });
     await vscode.commands
       .executeCommand('earthengine.refreshAssets')
       .then(undefined, () => undefined);
@@ -174,12 +173,14 @@ export async function savePreviewMetadata(
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
+      panel.webview.postMessage({ type: 'metadataSaved', metadata: previewMetadata(saved) });
       panel.webview.postMessage({
         type: 'sharingSaveError',
         message: `Metadata saved, but sharing could not be saved: ${message}. Reopen the preview to retry.`,
       });
       return;
     }
+    panel.webview.postMessage({ type: 'metadataSaved', metadata: previewMetadata(saved) });
     loadPreviewSharing(asset, accessToken, panel);
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
