@@ -59,9 +59,151 @@ export interface ListFeaturesResponse {
   nextPageToken?: string;
 }
 
+/** IAM policy returned for an asset; bindings outside the editable roles are retained. */
+export interface AssetIamPolicy {
+  bindings?: { role: string; members?: string[]; condition?: unknown }[];
+  etag?: string;
+  version?: number;
+}
+
+/** Sharing changes submitted by an asset preview. */
+export interface AssetSharingChanges {
+  etag: string;
+  publicRead: boolean;
+  users: { email: string; role: 'reader' | 'writer' }[];
+}
+
 // ==================================================================
 // API FUNCTIONS
 // ==================================================================
+/** Reads the IAM policy for any Earth Engine asset. */
+export async function getAssetIamPolicy(name: string, accessToken: string): Promise<AssetIamPolicy> {
+  const response = await httpRequest(
+    `${EE_API_BASE}/${name}:getIamPolicy`,
+    'POST',
+    accessToken,
+    JSON.stringify({ options: { requestedPolicyVersion: 3 } }),
+  );
+  return JSON.parse(response) as AssetIamPolicy;
+}
+
+/** Sets the complete policy on an asset, using the destination's etag after a rename. */
+export async function setAssetIamPolicy(
+  name: string,
+  accessToken: string,
+  policy: AssetIamPolicy,
+): Promise<void> {
+  await httpRequest(
+    `${EE_API_BASE}/${name}:setIamPolicy`,
+    'POST',
+    accessToken,
+    JSON.stringify({ policy }),
+  );
+}
+
+/** Replaces only the editable user and public bindings, retaining every other grant. */
+export function applyAssetSharing(
+  policy: AssetIamPolicy,
+  changes: AssetSharingChanges,
+): AssetIamPolicy {
+  if (typeof changes.publicRead !== 'boolean' || !Array.isArray(changes.users)) {
+    throw new Error('Invalid sharing settings.');
+  }
+  const seen = new Set<string>();
+  for (const user of changes.users) {
+    if (
+      !user ||
+      typeof user.email !== 'string' ||
+      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(user.email) ||
+      (user.role !== 'reader' && user.role !== 'writer') ||
+      seen.has(user.email.toLowerCase())
+    ) {
+      throw new Error('Enter unique, valid email addresses and access levels.');
+    }
+    seen.add(user.email.toLowerCase());
+  }
+  if (changes.etag !== (policy.etag ?? '')) {
+    throw new Error('Sharing changed elsewhere. Reopen the preview before saving.');
+  }
+
+  const bindings = (policy.bindings ?? []).map((binding) => ({
+    ...binding,
+    members: [...(binding.members ?? [])],
+  }));
+  for (const binding of bindings) {
+    if (!binding.condition && (binding.role === 'roles/viewer' || binding.role === 'roles/editor')) {
+      binding.members = binding.members.filter(
+        (member) => !member.startsWith('user:') && member !== 'allUsers',
+      );
+    }
+  }
+  const add = (role: string, member: string) => {
+    let binding = bindings.find((item) => item.role === role && !item.condition);
+    if (!binding) {
+      binding = { role, members: [] };
+      bindings.push(binding);
+    }
+    if (!binding.members.includes(member)) {
+      binding.members.push(member);
+    }
+  };
+  if (changes.publicRead) {
+    add('roles/viewer', 'allUsers');
+  }
+  for (const user of changes.users) {
+    add(user.role === 'writer' ? 'roles/editor' : 'roles/viewer', `user:${user.email}`);
+  }
+  return {
+    ...policy,
+    bindings: bindings.filter(
+      (binding) =>
+        binding.members.length > 0 ||
+        !!binding.condition ||
+        (binding.role !== 'roles/viewer' && binding.role !== 'roles/editor'),
+    ),
+  };
+}
+
+/** Carries a renamed asset's direct grants into its replacement policy. */
+export function mergeAssetIamPolicies(
+  destination: AssetIamPolicy,
+  source: AssetIamPolicy,
+): AssetIamPolicy {
+  const bindings = (destination.bindings ?? []).map((binding) => ({
+    ...binding,
+    members: [...(binding.members ?? [])],
+  }));
+  for (const sourceBinding of source.bindings ?? []) {
+    const binding = bindings.find(
+      (item) =>
+        item.role === sourceBinding.role &&
+        JSON.stringify(item.condition) === JSON.stringify(sourceBinding.condition),
+    );
+    if (binding) {
+      binding.members = [...new Set([...binding.members, ...(sourceBinding.members ?? [])])];
+    } else {
+      bindings.push({ ...sourceBinding, members: [...(sourceBinding.members ?? [])] });
+    }
+  }
+  return {
+    ...source,
+    ...destination,
+    version: Math.max(source.version ?? 1, destination.version ?? 1),
+    bindings,
+  };
+}
+
+/** Saves sharing with an etag check, preserving grants the preview cannot edit. */
+export async function saveAssetSharing(
+  name: string,
+  accessToken: string,
+  changes: AssetSharingChanges,
+): Promise<void> {
+  const policy = await getAssetIamPolicy(name, accessToken);
+  const updated = applyAssetSharing(policy, changes);
+  await setAssetIamPolicy(name, accessToken, updated);
+}
+
 /** Lists child assets of a parent path with pagination support. */
 export async function listAssets(
   parent: string,

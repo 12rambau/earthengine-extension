@@ -3,6 +3,7 @@
   import { vscode, getInitData } from '../../../shared/vscode.ts';
   import AssetMetadataEditor from '../../../shared/AssetMetadataEditor.svelte';
   import AssetPropertiesEditor from '../../../shared/AssetPropertiesEditor.svelte';
+  import AssetSharingEditor from '../../../shared/AssetSharingEditor.svelte';
   import DatePicker from '../../../shared/DatePicker.svelte';
 
   const data = getInitData();
@@ -12,6 +13,7 @@
     { id: 'features', label: 'FEATURES' },
     { id: 'columns', label: 'COLUMNS' },
     { id: 'properties', label: 'PROPERTIES' },
+    { id: 'sharing', label: 'SHARING' },
   ];
 
   // ----------------------------------------------------------------
@@ -24,6 +26,7 @@
   let startTime = $state('');
   let endTime = $state('');
   let properties = $state([]);
+  let sharing = $state(null);
   let saving = $state(false);
   let thumbnailHtml = $state(
     '<span class="thumb-loading"><span class="spinner"></span> Loading thumbnail...</span>',
@@ -104,7 +107,7 @@
     </nav>
 
     <section class="tab-panel description-panel" class:active={activeTab === 'description'}>
-      <AssetMetadataEditor bind:metadata bind:editing bind:name bind:startTime bind:endTime bind:properties bind:saving />
+      <AssetMetadataEditor bind:metadata bind:editing bind:name bind:startTime bind:endTime bind:properties bind:sharing bind:saving />
     </section>
 
     <section class="tab-panel" class:active={activeTab === 'features'}>
@@ -117,6 +120,11 @@
 
     <section class="tab-panel properties-panel" class:active={activeTab === 'properties'}>
       <AssetPropertiesEditor {metadata} bind:rows={properties} {editing} {saving} />
+    </section>
+
+    <!-- TAB: sharing -->
+    <section class="tab-panel" class:active={activeTab === 'sharing'}>
+      <AssetSharingEditor {editing} {saving} bind:sharing />
     </section>
   </main>
 </div>
