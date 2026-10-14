@@ -238,6 +238,36 @@ export async function openTasksPanel(
         const m = err instanceof Error ? err.message : String(err);
         panel.webview.postMessage({ type: 'error', message: m });
       }
+    } else if (msg.type === 'cancelBulk') {
+      try {
+        const names = Array.isArray(msg.names) ? [...new Set(msg.names)] : [];
+        const eligible = names.filter((name): name is string =>
+          typeof name === 'string' &&
+          allOps.some((op) => op.name === name && ['PENDING', 'RUNNING'].includes(getTaskState(op))),
+        );
+        const t = await authService.getToken();
+        if (!t) {
+          throw new Error('Not authenticated.');
+        }
+        const results = await Promise.allSettled(eligible.map((name) => cancelOperation(name, t)));
+        results.forEach((result, index) => {
+          if (result.status === 'fulfilled') {
+            panel.webview.postMessage({ type: 'cancelled', name: eligible[index] });
+          }
+        });
+        const failures = results.filter((result) => result.status === 'rejected');
+        if (failures.length) {
+          panel.webview.postMessage({
+            type: 'error',
+            message: `Failed to cancel ${failures.length} of ${eligible.length} selected tasks.`,
+          });
+        }
+      } catch (err) {
+        const m = err instanceof Error ? err.message : String(err);
+        panel.webview.postMessage({ type: 'error', message: m });
+      } finally {
+        panel.webview.postMessage({ type: 'bulkCancelDone' });
+      }
     } else if (msg.type === 'preview') {
       try {
         const t = await authService.getToken();
