@@ -119,12 +119,14 @@
   let isRefreshing = $state(false);
   let selectedNames = $state(new Set());
   let isCancelling = $state(false);
-  let pageCancelable = $derived(
-    table.pageRows.filter((task) => task.state === 'RUNNING' || task.state === 'PENDING'),
-  );
   let allPageSelected = $derived(
-    pageCancelable.length > 0 && pageCancelable.every((task) => selectedNames.has(task.name)),
+    table.pageRows.length > 0 && table.pageRows.every((task) => selectedNames.has(task.name)),
   );
+
+  // Only these states can still be cancelled server-side; anything else is already terminal.
+  function isCancelable(task) {
+    return task.state === 'RUNNING' || task.state === 'PENDING';
+  }
 
   // ----------------------------------------------------------------
   // ACTIONS
@@ -146,12 +148,8 @@
             return type.startsWith('INGEST') || type.startsWith('IMPORT');
           });
     table.setRows(rows);
-    const eligible = new Set(
-      rows
-        .filter((task) => task.state === 'RUNNING' || task.state === 'PENDING')
-        .map((task) => task.name),
-    );
-    selectedNames = new Set([...selectedNames].filter((name) => eligible.has(name)));
+    const visibleNames = new Set(rows.map((task) => task.name));
+    selectedNames = new Set([...selectedNames].filter((name) => visibleNames.has(name)));
   }
 
   function toggleSelection(name) {
@@ -166,7 +164,7 @@
 
   function togglePageSelection() {
     const next = new Set(selectedNames);
-    for (const task of pageCancelable) {
+    for (const task of table.pageRows) {
       if (allPageSelected) {
         next.delete(task.name);
       } else {
@@ -193,8 +191,19 @@
   }
 
   function cancelSelected() {
-    const names = [...selectedNames];
-    if (!names.length || isCancelling || !confirm(`Cancel ${names.length} selected tasks?`)) {
+    if (isCancelling) {
+      return;
+    }
+    const names = allTasks
+      .filter((task) => selectedNames.has(task.name) && isCancelable(task))
+      .map((task) => task.name);
+    const skipped = selectedNames.size - names.length;
+    if (!names.length) {
+      alert('None of the selected tasks can be cancelled.');
+      return;
+    }
+    const suffix = skipped > 0 ? ` (${skipped} already finished or cancelling will be skipped)` : '';
+    if (!confirm(`Cancel ${names.length} selected tasks?${suffix}`)) {
       return;
     }
     isCancelling = true;
@@ -256,9 +265,9 @@
     {#if column.key === 'selection'}
       <input
         type="checkbox"
-        aria-label="Select all cancelable tasks on this page"
+        aria-label="Select all tasks on this page"
         checked={allPageSelected}
-        disabled={pageCancelable.length === 0}
+        disabled={table.pageRows.length === 0}
         onclick={togglePageSelection}
       />
     {/if}
@@ -286,13 +295,6 @@
       ></span>
     </div>
 
-    {#if selectedNames.size > 0}
-      <button class="bulk-cancel" disabled={isCancelling} onclick={cancelSelected}>
-        <i class="codicon codicon-stop-circle" aria-hidden="true"></i>
-        {isCancelling ? 'Cancelling…' : `Cancel selected (${selectedNames.size})`}
-      </button>
-    {/if}
-
     <!-- Refresh button -->
     <button
       class="btn-primary"
@@ -303,6 +305,14 @@
       <i class="codicon codicon-sync refresh-icon" aria-hidden="true"></i>
       {isRefreshing ? 'Refreshing…' : 'Refresh'}
     </button>
+
+    <!-- Rendered last so showing/hiding it never shifts the other toolbar items -->
+    {#if selectedNames.size > 0}
+      <button class="bulk-cancel" disabled={isCancelling} onclick={cancelSelected}>
+        <i class="codicon codicon-stop-circle" aria-hidden="true"></i>
+        {isCancelling ? 'Cancelling…' : `Cancel selected (${selectedNames.size})`}
+      </button>
+    {/if}
   {/snippet}
 
   {#snippet row(t, columns)}
@@ -313,7 +323,6 @@
           type="checkbox"
           aria-label={`Select ${t.description}`}
           checked={selectedNames.has(t.name)}
-          disabled={t.state !== 'RUNNING' && t.state !== 'PENDING'}
           onclick={() => toggleSelection(t.name)}
         />
       </td>
@@ -627,12 +636,12 @@
           animation: spin 0.8s linear infinite;
         }
       }
-      .bulk-cancel {
-        display: inline-flex;
-        align-items: center;
-        gap: var(--vscee-space-xs);
-        color: var(--vscee-color-error);
-      }
+    }
+    .bulk-cancel {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--vscee-space-xs);
+      color: var(--vscee-color-error);
     }
     .page-info {
       font-size: var(--vscee-font-sm);
