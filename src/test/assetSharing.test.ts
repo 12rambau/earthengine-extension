@@ -1,7 +1,7 @@
 /** @module assetSharing.test */
 
 import { strict as assert } from 'node:assert';
-import { applyAssetSharing } from '../sidebar/assets/eeApiClient.js';
+import { applyAssetSharing, mergeAssetIamPolicies } from '../sidebar/assets/eeApiClient.js';
 
 describe('asset sharing', () => {
   const policy = {
@@ -71,6 +71,35 @@ describe('asset sharing', () => {
       conditional,
       { role: 'roles/editor', members: ['serviceAccount:worker@example.com'] },
     ]);
+  });
+
+  it('carries source grants across a rename without dropping new destination grants or etag', () => {
+    const merged = mergeAssetIamPolicies(
+      { etag: 'destination', bindings: [{ role: 'roles/owner', members: ['user:owner@example.com'] }] },
+      {
+        etag: 'source',
+        version: 3,
+        bindings: [
+          { role: 'roles/owner', members: ['user:owner@example.com'] },
+          { role: 'roles/viewer', members: ['group:team@example.com', 'allUsers'] },
+        ],
+      },
+    );
+    assert.deepEqual(merged, {
+      etag: 'destination',
+      version: 3,
+      bindings: [
+        { role: 'roles/owner', members: ['user:owner@example.com'] },
+        { role: 'roles/viewer', members: ['group:team@example.com', 'allUsers'] },
+      ],
+    });
+    assert.deepEqual(
+      applyAssetSharing(merged, { etag: 'destination', publicRead: false, users: [] }).bindings,
+      [
+        { role: 'roles/owner', members: ['user:owner@example.com'] },
+        { role: 'roles/viewer', members: ['group:team@example.com'] },
+      ],
+    );
   });
 
   it('rejects stale policies, duplicate users and invalid grants', () => {

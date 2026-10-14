@@ -23,6 +23,8 @@
       error = `Unable to load sharing: ${msg.message}`;
       policy = null;
       sharing = null;
+    } else if (msg.type === 'sharingSaveError') {
+      error = msg.message;
     } else if (msg.type === 'sharingLoaded') {
       policy = msg.policy;
       error = '';
