@@ -28,7 +28,8 @@
     } else if (sharing) {
       saving = true;
       error = '';
-      vscode.postMessage({ type: 'saveSharing', sharing });
+      // $state proxies are not structured-cloneable, so postMessage would throw.
+      vscode.postMessage({ type: 'saveSharing', sharing: $state.snapshot(sharing) });
     } else {
       editing = false;
     }

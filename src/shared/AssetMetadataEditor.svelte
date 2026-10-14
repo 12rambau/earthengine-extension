@@ -155,7 +155,8 @@
       endTime: toUtc(endTime),
       description,
       properties: entries,
-      sharing,
+      // $state proxies are not structured-cloneable, so postMessage would throw.
+      sharing: sharing ? $state.snapshot(sharing) : null,
     });
   }
 
