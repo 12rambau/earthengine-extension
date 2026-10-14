@@ -9,6 +9,7 @@
   const saved = getInitData();
 
   const ALL_COLS = [
+    { key: 'selection', label: '', required: true },
     { key: 'icon', label: '', required: true },
     {
       key: 'shortName',
@@ -55,6 +56,12 @@
   let rootPath = $state('');
   let isLoading = $state(true);
   let busyAssets = $state(new Map());
+  let selectedAssets = $state(new Set());
+  let bulkBusy = $state(false);
+  let selectedNames = $derived([...selectedAssets]);
+  let allSelected = $derived(
+    table.sortedRows.length > 0 && table.sortedRows.every((a) => selectedAssets.has(a.name)),
+  );
 
   let newMenuOpen = $state(false);
   let newMenuWrap = $state(null);
@@ -91,6 +98,7 @@
 
   function navigate(path) {
     table.currentPage = 0;
+    selectedAssets = new Set();
     isLoading = true;
     vscode.postMessage({ type: 'navigate', path });
   }
@@ -154,6 +162,32 @@
     vscode.postMessage({ type: 'action', action, name });
   }
 
+  function toggleAsset(name) {
+    const next = new Set(selectedAssets);
+    if (next.has(name)) {
+      next.delete(name);
+    } else {
+      next.add(name);
+    }
+    selectedAssets = next;
+  }
+
+  function toggleAll() {
+    if (allSelected) {
+      selectedAssets = new Set();
+      return;
+    }
+    selectedAssets = new Set(table.sortedRows.map((asset) => asset.name));
+  }
+
+  function bulkAction(action) {
+    if (bulkBusy || isLoading || selectedNames.length === 0) {
+      return;
+    }
+    bulkBusy = true;
+    vscode.postMessage({ type: 'bulkAction', action, names: selectedNames });
+  }
+
   // ----------------------------------------------------------------
   // HELPERS
   // ----------------------------------------------------------------
@@ -172,7 +206,14 @@
   window.addEventListener('message', (e) => {
     const msg = e.data;
     if (msg.type === 'data') {
+      if (currentParent && currentParent !== msg.parent) {
+        selectedAssets = new Set();
+      }
       table.setRows(msg.assets);
+      if (!msg.loading) {
+        const available = new Set(msg.assets.map((asset) => asset.name));
+        selectedAssets = new Set([...selectedAssets].filter((name) => available.has(name)));
+      }
       currentParent = msg.parent;
       rootPath = msg.root;
       isLoading = msg.loading;
@@ -181,6 +222,11 @@
     } else if (msg.type === 'actionDone') {
       busyAssets.delete(msg.name);
       busyAssets = new Map(busyAssets);
+    } else if (msg.type === 'bulkDone') {
+      bulkBusy = false;
+      if (msg.changed) {
+        selectedAssets = new Set();
+      }
     } else if (msg.type === 'buckets') {
       buckets = msg.buckets;
       defaultBucket = msg.defaultBucket;
@@ -270,8 +316,52 @@
     </div>
   {/snippet}
 
+  {#snippet toolbarEnd()}
+    {#if selectedNames.length}
+      <div class="bulk-actions">
+        <span class="selection-count">{selectedNames.length} selected</span>
+        <button disabled={bulkBusy || isLoading} onclick={() => bulkAction('copy')}>
+          <i class="codicon codicon-copy"></i> Copy
+        </button>
+        <button disabled={bulkBusy || isLoading} onclick={() => bulkAction('move')}>
+          <i class="codicon codicon-clippy"></i> Move
+        </button>
+        <button disabled={bulkBusy || isLoading} onclick={() => bulkAction('delete')}>
+          <i class="codicon codicon-trash"></i> Delete
+        </button>
+      </div>
+    {/if}
+  {/snippet}
+
+  {#snippet headerCell(column)}
+    {#if column.key === 'selection'}
+      <input
+        type="checkbox"
+        aria-label={allSelected ? 'Deselect all assets' : 'Select all assets'}
+        title={allSelected ? 'Deselect all assets' : 'Select all loaded assets'}
+        checked={allSelected}
+        indeterminate={!allSelected && selectedNames.length > 0}
+        disabled={bulkBusy || isLoading || table.sortedRows.length === 0}
+        onchange={toggleAll}
+      />
+    {:else}
+      {column.label}
+    {/if}
+  {/snippet}
+
   {#snippet row(a, columns)}
     {@const visible = new Set(columns.map((column) => column.key))}
+    {#if visible.has('selection')}
+      <td class="selection-cell">
+        <input
+          type="checkbox"
+          aria-label={`Select ${a.shortName}`}
+          checked={selectedAssets.has(a.name)}
+          disabled={bulkBusy || isLoading}
+          onchange={() => toggleAsset(a.name)}
+        />
+      </td>
+    {/if}
     {#if visible.has('icon')}
       <td class="icon-col">
         {#if a.type === 'FOLDER'}
@@ -327,7 +417,7 @@
             <button
               class="action-btn"
               title="New folder"
-              disabled={isBusy(a.name)}
+              disabled={bulkBusy || isBusy(a.name)}
               onclick={() => assetAction('createFolder', a.name)}
             >
               <i class="codicon codicon-new-folder"></i>
@@ -336,7 +426,7 @@
             <button
               class="action-btn"
               title="Preview"
-              disabled={isBusy(a.name)}
+              disabled={bulkBusy || isBusy(a.name)}
               onclick={() => preview(a.name)}
             >
               <i class="codicon codicon-open-preview"></i>
@@ -345,7 +435,7 @@
           <button
             class="action-btn"
             title="Copy asset"
-            disabled={isBusy(a.name)}
+            disabled={bulkBusy || isBusy(a.name)}
             onclick={() => assetAction('copy', a.name)}
           >
             <i class="codicon codicon-copy"></i>
@@ -353,7 +443,7 @@
           <button
             class="action-btn"
             title="Move asset"
-            disabled={isBusy(a.name)}
+            disabled={bulkBusy || isBusy(a.name)}
             onclick={() => assetAction('move', a.name)}
           >
             <i class="codicon codicon-clippy"></i>
@@ -361,7 +451,7 @@
           <button
             class="action-btn danger"
             title="Delete asset"
-            disabled={isBusy(a.name)}
+            disabled={bulkBusy || isBusy(a.name)}
             onclick={() => assetAction('delete', a.name)}
           >
             <i class="codicon codicon-trash"></i>
@@ -445,6 +535,7 @@
       align-items: center;
       gap: var(--vscee-space-md);
       min-width: 0;
+      flex-wrap: wrap;
     }
 
     /* ==================================================================
@@ -746,6 +837,29 @@
     /* ==================================================================
        ASSET NAME & ICONS
        ================================================================== */
+    .bulk-actions {
+      display: flex;
+      align-items: center;
+      gap: var(--vscee-space-md);
+
+      button {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--vscee-space-xs);
+        white-space: nowrap;
+      }
+      .codicon {
+        font-size: var(--vscee-font-icon-sm);
+      }
+    }
+    .selection-count {
+      white-space: nowrap;
+      font-size: var(--vscee-font-sm);
+    }
+    .selection-cell {
+      width: 32px;
+      text-align: center;
+    }
     .name-link {
       background: none;
       border: none;

@@ -11,6 +11,8 @@
     rowKey,
     rowClass = () => '',
     toolbar,
+    toolbarEnd,
+    headerCell,
     headerContent,
     row,
     onpreferenceschange,
@@ -66,6 +68,7 @@
     {#if toolbar}{@render toolbar()}{/if}
   </div>
   <div class="topbar-right">
+    {#if toolbarEnd}{@render toolbarEnd()}{/if}
     {#if table.activeFilterCount > 0}
       <button class="reset-filters" title="Clear all active filters" onclick={clearFilters}>
         <i class="codicon codicon-clear-all"></i>
@@ -87,7 +90,9 @@
         {#each table.visibleColumns as column}
           <th class:sorted={table.sort?.column === column.key}>
             <span class="header-content">
-              <span class="header-label">{column.label}</span>
+              <span class="header-label"
+                >{#if headerCell}{@render headerCell(column)}{:else}{column.label}{/if}</span
+              >
               {#if headerContent}{@render headerContent(column)}{/if}
               <span class="header-actions">
                 {#if column.sortable}

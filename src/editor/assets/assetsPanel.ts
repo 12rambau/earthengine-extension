@@ -256,6 +256,46 @@ export async function openAssetsPanel(
             }
           })();
         }
+      } else if (msg.type === 'bulkAction') {
+        const available = new Set(allAssets.map((asset) => asset.name));
+        const names = Array.isArray(msg.names)
+          ? [
+              ...new Set<string>(
+                msg.names.filter(
+                  (name: unknown): name is string =>
+                    typeof name === 'string' && available.has(name),
+                ),
+              ),
+            ]
+          : [];
+        if (names.length && ['delete', 'move', 'copy'].includes(msg.action)) {
+          const parent = currentParentPath;
+          void (async () => {
+            let changed = false;
+            try {
+              changed =
+                (await vscode.commands.executeCommand<boolean>(
+                  'earthengine.bulkAssetAction',
+                  msg.action,
+                  names,
+                )) === true;
+              if (changed && !disposed && parent === currentParentPath) {
+                await loadAndStream(parent);
+              }
+            } catch (err) {
+              if (!disposed) {
+                const message = err instanceof Error ? err.message : String(err);
+                panel.webview.postMessage({ type: 'error', message });
+              }
+            } finally {
+              if (!disposed) {
+                panel.webview.postMessage({ type: 'bulkDone', changed });
+              }
+            }
+          })();
+        } else {
+          panel.webview.postMessage({ type: 'bulkDone', changed: false });
+        }
       } else if (msg.type === 'savePrefs') {
         await context.globalState.update(PREFS_KEY, msg.preferences as AssetPrefs);
       } else if (msg.type === 'listBuckets') {

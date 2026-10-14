@@ -520,6 +520,26 @@ export async function copyAsset(
   return copyAssetImpl(asset, destinationName, accessToken, onProgress);
 }
 
+/** Maps selected assets into one destination folder, rejecting overlapping or duplicate paths. */
+export function bulkAssetDestinations(
+  names: readonly string[],
+  folder: string,
+): { source: string; destination: string }[] {
+  const destinations = new Set<string>();
+  return names.map((source) => {
+    const destination = `${folder.replace(/\/+$/, '')}/${source.split('/').pop()}`;
+    if (
+      destination === source ||
+      destination.startsWith(source + '/') ||
+      destinations.has(destination)
+    ) {
+      throw new Error(`Invalid or duplicate destination for "${source}".`);
+    }
+    destinations.add(destination);
+    return { source, destination };
+  });
+}
+
 /**
  * Creates a new folder asset under the given parent path.
  * @param parent The parent path (e.g. "projects/my-project/assets/my-folder")
@@ -543,6 +563,37 @@ export async function createFolder(
   }
 
   return postCreateAsset(projectRoot, assetId, 'FOLDER', accessToken);
+}
+
+/**
+ * Makes sure a folder exists at the given full path, creating it and any
+ * missing ancestors. Existing folders are reused; a non-folder asset sitting
+ * at that path is an error.
+ */
+export async function ensureFolder(fullPath: string, accessToken: string): Promise<void> {
+  const path = fullPath.trim().replace(/\/+$/, '');
+  const parts = path.split('/');
+  // "projects/<project>/assets" is the implicit root; nothing to create.
+  if (parts.length <= 3) {
+    return;
+  }
+  let existing: EEAsset | undefined;
+  try {
+    existing = await getAsset(path, accessToken);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    if (!/HTTP 40[34]\b/.test(message)) {
+      throw err;
+    }
+  }
+  if (existing) {
+    if (existing.type !== 'FOLDER') {
+      throw new Error(`"${path}" already exists and is not a folder.`);
+    }
+    return;
+  }
+  await ensureFolder(parts.slice(0, -1).join('/'), accessToken);
+  await createContainerByPath(path, 'FOLDER', accessToken);
 }
 
 // ==================================================================

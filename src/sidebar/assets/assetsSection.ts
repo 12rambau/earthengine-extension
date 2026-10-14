@@ -11,7 +11,14 @@ import { SidebarSection } from '../../shared/baseComponents.js';
 import { AuthService } from '../../auth/index.js';
 import { AssetsTreeDataProvider } from './assetsTreeDataProvider.js';
 import { AssetTreeItem } from './assetTreeItem.js';
-import { copyAsset, createFolder, deleteAsset, moveAsset } from './eeApiClient.js';
+import {
+  bulkAssetDestinations,
+  copyAsset,
+  createFolder,
+  deleteAsset,
+  ensureFolder,
+  moveAsset,
+} from './eeApiClient.js';
 import { openAssetPreview } from '../../editor/preview/assetPreviewPanel.js';
 import { openAssetsPanel } from '../../editor/assets/assetsPanel.js';
 import {
@@ -419,6 +426,87 @@ export class AssetsSection extends SidebarSection {
           vscode.window.showErrorMessage(`Failed to copy asset: ${msg}`);
           return false;
         }
+      },
+    );
+
+    this.registerCommand(
+      'earthengine.bulkAssetAction',
+      async (action: string, names: string[]): Promise<boolean> => {
+        if (!['delete', 'move', 'copy'].includes(action) || !names?.length) {
+          return false;
+        }
+        const accessToken = await this.authService.getToken();
+        if (!accessToken) {
+          vscode.window.showErrorMessage('Not authenticated.');
+          return false;
+        }
+
+        let targets: { source: string; destination: string }[] = [];
+        if (action === 'delete') {
+          const confirm = await vscode.window.showWarningMessage(
+            `Delete ${names.length} assets? This action cannot be undone.`,
+            'Delete',
+          );
+          if (confirm !== 'Delete') {
+            return false;
+          }
+        } else {
+          const verb = action === 'move' ? 'Move' : 'Copy';
+          const defaultFolder = names[0].slice(0, names[0].lastIndexOf('/'));
+          const folder = await vscode.window.showInputBox({
+            prompt: `${verb} ${names.length} assets into folder (created if it does not exist)`,
+            value: defaultFolder,
+            validateInput: (value) =>
+              /^projects\/[^/]+\/assets(?:\/.+)?$/.test(value.trim().replace(/\/+$/, ''))
+                ? null
+                : 'Enter a full Earth Engine destination folder path',
+          });
+          if (folder === undefined) {
+            return false;
+          }
+          const destinationFolder = folder.trim().replace(/\/+$/, '');
+          try {
+            targets = bulkAssetDestinations(names, destinationFolder);
+            await vscode.window.withProgress(
+              {
+                location: vscode.ProgressLocation.Notification,
+                title: 'Preparing destination folder…',
+              },
+              () => ensureFolder(destinationFolder, accessToken),
+            );
+          } catch (err) {
+            vscode.window.showErrorMessage((err as Error).message);
+            return false;
+          }
+        }
+
+        let completed = 0;
+        const failures: string[] = [];
+        for (const [index, name] of names.entries()) {
+          try {
+            if (action === 'delete') {
+              await this.deleteAssetAt(name);
+            } else if (action === 'move') {
+              await this.moveAssetTo(name, targets[index].destination);
+            } else {
+              await this.copyAssetTo(name, targets[index].destination);
+            }
+            completed++;
+          } catch (err) {
+            failures.push(`${name}: ${err instanceof Error ? err.message : String(err)}`);
+          }
+        }
+        if (failures.length) {
+          const summary = failures.slice(0, 3).join('; ');
+          vscode.window.showWarningMessage(
+            `${completed} of ${names.length} assets ${action === 'copy' ? 'copied' : action === 'move' ? 'moved' : 'deleted'}. Failed: ${summary}${failures.length > 3 ? ` (and ${failures.length - 3} more)` : ''}`,
+          );
+        } else {
+          vscode.window.showInformationMessage(
+            `${names.length} assets ${action === 'copy' ? 'copied' : action === 'move' ? 'moved' : 'deleted'}.`,
+          );
+        }
+        return completed > 0;
       },
     );
 
