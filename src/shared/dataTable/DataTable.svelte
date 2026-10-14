@@ -11,6 +11,7 @@
     rowKey,
     rowClass = () => '',
     toolbar,
+    headerContent,
     row,
     onpreferenceschange,
   } = $props();
@@ -87,6 +88,7 @@
           <th class:sorted={table.sort?.column === column.key}>
             <span class="header-content">
               <span class="header-label">{column.label}</span>
+              {#if headerContent}{@render headerContent(column)}{/if}
               <span class="header-actions">
                 {#if column.sortable}
                   <button
