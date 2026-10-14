@@ -395,6 +395,12 @@
       initMap();
     }
   });
+
+  $effect(() => {
+    if (map) {
+      overlays.forEach((entry, index) => entry.tileLayer.setZIndex(index + 1));
+    }
+  });
 </script>
 
 <!-- MAP -->
