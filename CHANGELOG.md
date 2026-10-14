@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.12.0](https://github.com/12rambau/earthengine-extension/compare/v0.11.1...v0.12.0) (2026-10-14)
+
+### Features
+
+- add temporary Python script creation and management for Earth Engine commands ([864d363](https://github.com/12rambau/earthengine-extension/commit/864d3630e345de1cf37119ec878e2e54d52ad76c))
+- enhance temporary script management and cleanup in ProfilesSection ([52a6050](https://github.com/12rambau/earthengine-extension/commit/52a6050732627f5822f45a859db9b0689b7f950f))
+- improve geometry management ([7bbc84f](https://github.com/12rambau/earthengine-extension/commit/7bbc84f9655ac94b10ea5a194022a3ae05824d30))
+- **map:** allow reordering map layers with arrow controls ([e72ec86](https://github.com/12rambau/earthengine-extension/commit/e72ec86b58f752500a18dff98df0420f44de1958))
+- support bulk asset actions in manager ([baacffd](https://github.com/12rambau/earthengine-extension/commit/baacffd6aa1a57069cb05e1360ef28a6310b24a9))
+
+### Bug Fixes
+
+- reverse selection logic of the tasks ([2f19f78](https://github.com/12rambau/earthengine-extension/commit/2f19f78cc9caf6662c9198220ff7e8c8b4fce993))
+- sanitize multi-select ([7a4603d](https://github.com/12rambau/earthengine-extension/commit/7a4603d666e718adf99fd51c4f3cd9f082ed5af1))
+- sharing serialization for structured cloning in asset preview and metadata editor ([b06cf2b](https://github.com/12rambau/earthengine-extension/commit/b06cf2b382096968e7dfa379189bea05a44631f7))
+
 ## [0.11.1](https://github.com/12rambau/earthengine-extension/compare/v0.11.0...v0.11.1) (2026-10-13)
 
 ### Bug Fixes
