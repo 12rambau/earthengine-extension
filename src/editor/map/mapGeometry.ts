@@ -2,11 +2,22 @@
 
 type Position = [number, number];
 
+/** Fallback stroke colour for geometries saved before colours existed. */
+export const DEFAULT_GEOMETRY_COLOR = '#d63000';
+
+type GeometryBase = { id: string; name: string; visible: boolean; color: string };
+
 /** A user-drawn geometry; polygon rings are stored without a duplicate closing vertex. */
 export type MapGeometry =
-  | { id: string; name: string; visible: boolean; type: 'Point'; coordinates: Position }
-  | { id: string; name: string; visible: boolean; type: 'LineString'; coordinates: Position[] }
-  | { id: string; name: string; visible: boolean; type: 'Polygon'; coordinates: Position[] };
+  | (GeometryBase & { type: 'Point'; coordinates: Position })
+  | (GeometryBase & { type: 'LineString'; coordinates: Position[] })
+  | (GeometryBase & { type: 'Polygon'; coordinates: Position[] });
+
+function normalizeColor(value: unknown): string {
+  return typeof value === 'string' && /^#[0-9a-f]{6}$/i.test(value)
+    ? value.toLowerCase()
+    : DEFAULT_GEOMETRY_COLOR;
+}
 
 function isPosition(value: unknown): value is Position {
   return (
@@ -49,6 +60,7 @@ export function parseMapGeometries(value: unknown): MapGeometry[] {
         id: item.id,
         name: item.name,
         visible: item.visible,
+        color: normalizeColor(item.color),
         type,
         coordinates: [coordinates[0], coordinates[1]],
       });
@@ -65,6 +77,7 @@ export function parseMapGeometries(value: unknown): MapGeometry[] {
         id: item.id,
         name: item.name,
         visible: item.visible,
+        color: normalizeColor(item.color),
         type,
         coordinates: coordinates.map(([lng, lat]: Position): Position => [lng, lat]),
       });

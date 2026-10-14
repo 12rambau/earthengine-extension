@@ -15,6 +15,7 @@
     mdiLayers,
     mdiMap,
     mdiSatelliteVariant,
+    mdiShapeOutline,
   } from '../../shared/icons.ts';
 
   // ----------------------------------------------------------------
@@ -473,7 +474,9 @@
       }
     }}
   >
-    <i class="codicon codicon-symbol-color" aria-hidden="true"></i>
+    <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="currentColor"
+      ><path d={mdiShapeOutline} /></svg
+    >
   </MapButton>
   <MapButton
     active={inspectorActive}

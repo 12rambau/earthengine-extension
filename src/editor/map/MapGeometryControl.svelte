@@ -1,8 +1,13 @@
 <!-- MapGeometryControl: draw, edit, and manage user geometries on the map -->
 <script>
   import L from 'leaflet';
+  import ColorPicker from './ColorPicker.svelte';
   import { vscode } from '../../shared/vscode.ts';
-  import { geometryMapPositions, parseMapGeometries } from './mapGeometry.js';
+  import {
+    DEFAULT_GEOMETRY_COLOR,
+    geometryMapPositions,
+    parseMapGeometries,
+  } from './mapGeometry.js';
 
   let { map, visible = $bindable(false), drawMode = $bindable(null) } = $props();
 
@@ -12,12 +17,9 @@
   let geometries = $state([]);
   let selectedId = $state(null);
   let draft = $state([]);
-  let editingId = $state(null);
-  let nameInput = $state('');
-  let deleteId = $state(null);
   let copiedId = $state(null);
   let worldCenterLng = $state(0);
-  let nextName = 1;
+  let colorSaveTimer = null;
 
   const vertexIcon = L.divIcon({
     className: 'geometry-vertex',
@@ -38,7 +40,6 @@
   window.addEventListener('message', (e) => {
     if (e.data.type === 'geometries') {
       geometries = parseMapGeometries(e.data.data);
-      nextName = geometries.length + 1;
     } else if (e.data.type === 'geometryCopied') {
       copiedId = e.data.data.id;
       setTimeout(() => {
@@ -72,19 +73,34 @@
     draft = [];
   }
 
-  function addGeometry(type, coordinates, label = type) {
+  /** Lowest `Geometry N` number not already taken, so deleted numbers get reused. */
+  function nextName() {
+    const used = new Set(
+      geometries
+        .map((item) => /^Geometry (\d+)$/.exec(item.name))
+        .filter(Boolean)
+        .map((match) => Number(match[1])),
+    );
+    let number = 1;
+    while (used.has(number)) {
+      number++;
+    }
+    return `Geometry ${number}`;
+  }
+
+  function addGeometry(type, coordinates) {
     const item = {
       id: crypto.randomUUID(),
-      name: `${label === 'LineString' ? 'Line' : label} ${nextName}`,
+      name: nextName(),
       type,
       coordinates,
       visible: true,
+      color: DEFAULT_GEOMETRY_COLOR,
     };
     const validated = parseMapGeometries([item]);
     if (!validated.length || geometries.length >= 1000) {
       return;
     }
-    nextName++;
     save([...geometries, item]);
     cancelDrawing();
     selectedId = item.id;
@@ -106,13 +122,6 @@
     const point = position(e.latlng);
     if (drawMode === 'Point') {
       addGeometry('Point', point);
-    } else if (drawMode === 'Rectangle' && draft.length === 1) {
-      const first = draft[0];
-      addGeometry(
-        'Polygon',
-        [first, [point[0], first[1]], point, [first[0], point[1]]],
-        'Rectangle',
-      );
     } else if (draft.length < 10000) {
       draft = [...draft, point];
     }
@@ -141,34 +150,24 @@
     }
   }
 
-  function rename(item) {
-    const name = nameInput.trim();
-    if (name) {
-      save(
-        geometries.map((geometry) => (geometry.id === item.id ? { ...geometry, name } : geometry)),
-      );
-      editingId = null;
-    }
-  }
-
   function remove(id) {
     save(geometries.filter((item) => item.id !== id));
     if (selectedId === id) {
       selectedId = null;
     }
-    deleteId = null;
   }
 
-  function zoomTo(item) {
-    const points = item.type === 'Point' ? [item.coordinates] : item.coordinates;
-    if (item.type === 'Point') {
-      map.setView(displayPoints(points)[0], Math.max(12, map.getZoom()));
-    } else {
-      map.fitBounds(L.latLngBounds(displayPoints(points)));
-    }
-    if (item.visible) {
-      selectedId = item.id;
-    }
+  function select(item) {
+    selectedId = item.visible && selectedId !== item.id ? item.id : null;
+  }
+
+  function setColor(item, color) {
+    geometries = geometries.map((geometry) =>
+      geometry.id === item.id ? { ...geometry, color } : geometry,
+    );
+    // The picker streams a colour per pointer move, so persist once the drag settles.
+    clearTimeout(colorSaveTimer);
+    colorSaveTimer = setTimeout(() => save(geometries), 200);
   }
 
   function keydown(e) {
@@ -217,7 +216,7 @@
       }
       const points = displayPoints(item.type === 'Point' ? [item.coordinates] : item.coordinates);
       const options = {
-        color: 'var(--vscode-focusBorder)',
+        color: item.color,
         weight: 3,
         fillOpacity: 0.2,
         interactive: !drawMode && visible,
@@ -231,7 +230,7 @@
             : L.polyline(points, options);
       shape.addTo(map);
       shape.on('click', () => {
-        selectedId = item.id;
+        select(item);
       });
       layers.push(shape);
 
@@ -323,9 +322,9 @@
   <!-- GEOMETRY LIST -->
   <div class="geometry-panel">
     <div class="geometry-header">
-      <strong>Geometries</strong>
+      <span>Geometries</span>
       <button
-        class="geometry-action"
+        class="map-btn layers-close-btn"
         title="Close"
         onclick={() => {
           visible = false;
@@ -336,7 +335,7 @@
       </button>
     </div>
     <div class="geometry-draw">
-      {#each ['Point', 'LineString', 'Polygon', 'Rectangle'] as type}
+      {#each ['Point', 'LineString', 'Polygon'] as type}
         <button
           class:active={drawMode === type}
           title={`Draw ${type === 'LineString' ? 'line' : type.toLowerCase()}`}
@@ -346,11 +345,7 @@
     </div>
     {#if drawMode}
       <div class="geometry-hint">
-        {drawMode === 'Point'
-          ? 'Click to place a point.'
-          : drawMode === 'Rectangle'
-            ? 'Click two opposite corners.'
-            : 'Click to add vertices, then finish.'}
+        {drawMode === 'Point' ? 'Click to place a point.' : 'Click to add vertices, then finish.'}
         {#if drawMode === 'LineString' || drawMode === 'Polygon'}
           <button disabled={draft.length < (drawMode === 'Polygon' ? 3 : 2)} onclick={finishDrawing}
             >Finish</button
@@ -365,72 +360,31 @@
       {/if}
       {#each geometries as item (item.id)}
         <div class="geometry-row" class:selected={selectedId === item.id}>
-          {#if editingId === item.id}
-            <form
-              onsubmit={(e) => {
-                e.preventDefault();
-                rename(item);
-              }}
-            >
-              <input aria-label="Geometry name" maxlength="100" bind:value={nameInput} />
-              <button class="geometry-action" title="Save name" type="submit"
-                ><i class="codicon codicon-check"></i></button
-              >
-              <button
-                class="geometry-action"
-                title="Cancel rename"
-                type="button"
-                onclick={() => (editingId = null)}><i class="codicon codicon-close"></i></button
-              >
-            </form>
-          {:else if deleteId === item.id}
-            <span>Delete {item.name}?</span>
-            <button class="geometry-action" title="Confirm deletion" onclick={() => remove(item.id)}
-              >Delete</button
-            >
-            <button
-              class="geometry-action"
-              title="Cancel deletion"
-              onclick={() => (deleteId = null)}>Cancel</button
-            >
-          {:else}
-            <button
-              class="geometry-name"
-              title={`Select and zoom to ${item.name}`}
-              onclick={() => zoomTo(item)}>{item.name}</button
-            >
-            <button
-              class="geometry-action"
-              title={item.visible ? 'Hide geometry' : 'Show geometry'}
-              onclick={() => toggleVisibility(item)}
-            >
-              <i class="codicon {item.visible ? 'codicon-eye' : 'codicon-eye-closed'}"></i>
-            </button>
-            <button
-              class="geometry-action"
-              title="Rename geometry"
-              onclick={() => {
-                editingId = item.id;
-                nameInput = item.name;
-              }}
-            >
-              <i class="codicon codicon-edit"></i>
-            </button>
-            <button
-              class="geometry-action"
-              title={copiedId === item.id ? 'Copied' : 'Copy as Earth Engine Python'}
-              onclick={() => vscode.postMessage({ type: 'copyGeometry', data: { id: item.id } })}
-            >
-              <i class="codicon {copiedId === item.id ? 'codicon-check' : 'codicon-copy'}"></i>
-            </button>
-            <button
-              class="geometry-action"
-              title="Delete geometry"
-              onclick={() => (deleteId = item.id)}
-            >
-              <i class="codicon codicon-trash"></i>
-            </button>
-          {/if}
+          <ColorPicker
+            value={item.color}
+            label={`Colour of ${item.name}`}
+            onChange={(color) => setColor(item, color)}
+          />
+          <button class="geometry-name" title={`Select ${item.name}`} onclick={() => select(item)}
+            >{item.name}</button
+          >
+          <button
+            class="geometry-action"
+            title={item.visible ? 'Hide geometry' : 'Show geometry'}
+            onclick={() => toggleVisibility(item)}
+          >
+            <i class="codicon {item.visible ? 'codicon-eye' : 'codicon-eye-closed'}"></i>
+          </button>
+          <button
+            class="geometry-action"
+            title={copiedId === item.id ? 'Copied' : 'Copy as Earth Engine Python'}
+            onclick={() => vscode.postMessage({ type: 'copyGeometry', data: { id: item.id } })}
+          >
+            <i class="codicon {copiedId === item.id ? 'codicon-check' : 'codicon-copy'}"></i>
+          </button>
+          <button class="geometry-action" title="Delete geometry" onclick={() => remove(item.id)}>
+            <i class="codicon codicon-trash"></i>
+          </button>
         </div>
       {/each}
     </div>
@@ -455,12 +409,20 @@
       width: min(410px, calc(100vw - 60px));
       max-height: calc(100vh - 40px);
       overflow-y: auto;
-      background: var(--vscode-editor-background);
-      color: var(--vscode-foreground);
-      border: 1px solid var(--vscode-widget-border);
+      background: var(--vscee-color-editor-background);
+      color: var(--vscee-color-foreground);
+      border: var(--vscee-border-sm) solid var(--vscee-color-widget-border);
       border-radius: var(--vscee-radius-md);
-      box-shadow: var(--vscode-widget-shadow);
+      box-shadow: var(--vscee-shadow-md);
       font-size: var(--vscee-font-compact-sm);
+
+      button {
+        font-family: inherit;
+        font-size: inherit;
+      }
+      .codicon {
+        font-size: var(--vscee-font-icon-sm);
+      }
     }
     .geometry-header,
     .geometry-draw,
@@ -473,25 +435,28 @@
     }
     .geometry-header {
       justify-content: space-between;
+      padding: var(--vscee-space-xs) var(--vscee-space-xs) var(--vscee-space-xs)
+        var(--vscee-space-lg);
+      font-weight: 600;
     }
     .geometry-draw {
       flex-wrap: wrap;
       button {
-        background: var(--vscode-button-secondaryBackground);
-        color: var(--vscode-button-secondaryForeground);
+        background: var(--vscee-color-button-secondary-background);
+        color: var(--vscee-color-button-secondary-foreground);
         border: none;
-        border-radius: var(--vscee-radius-sm);
-        padding: var(--vscee-space-xs);
+        border-radius: var(--vscee-radius-pill);
+        padding: var(--vscee-space-xs) var(--vscee-space-md);
         cursor: pointer;
         &.active,
         &:hover {
-          background: var(--vscode-button-background);
-          color: var(--vscode-button-foreground);
+          background: var(--vscee-color-button-background);
+          color: var(--vscee-color-button-foreground);
         }
       }
     }
     .geometry-hint {
-      color: var(--vscode-descriptionForeground);
+      color: var(--vscee-color-muted);
       flex-wrap: wrap;
       button {
         cursor: pointer;
@@ -507,19 +472,8 @@
     }
     .geometry-row {
       &.selected {
-        background: var(--vscode-list-activeSelectionBackground);
-        color: var(--vscode-list-activeSelectionForeground);
-      }
-      form {
-        display: flex;
-        min-width: 0;
-        input {
-          min-width: 0;
-          width: 100%;
-          background: var(--vscode-input-background);
-          color: var(--vscode-input-foreground);
-          border: 1px solid var(--vscode-input-border);
-        }
+        background: var(--vscee-color-list-selection-background);
+        color: var(--vscee-color-list-selection-foreground);
       }
     }
     .geometry-name {
@@ -530,23 +484,28 @@
       white-space: nowrap;
       text-align: left;
     }
+    .geometry-action {
+      display: flex;
+      align-items: center;
+    }
     .geometry-action,
     .geometry-name {
       border: none;
       background: transparent;
       color: inherit;
       cursor: pointer;
-      padding: 4px;
+      padding: var(--vscee-space-xxs) var(--vscee-space-xs);
+      border-radius: var(--vscee-radius-sm);
       &:hover {
-        background: var(--vscode-toolbar-hoverBackground);
+        background: var(--vscee-color-list-hover);
       }
     }
     .geometry-vertex,
     .geometry-midpoint {
-      background: var(--vscode-focusBorder);
-      border: 2px solid var(--vscode-editor-background);
+      background: var(--vscee-color-focus);
+      border: var(--vscee-border-md) solid var(--vscee-color-editor-background);
       border-radius: 50%;
-      box-shadow: var(--vscode-widget-shadow);
+      box-shadow: var(--vscee-shadow-xs);
     }
     .geometry-midpoint {
       opacity: 0.65;

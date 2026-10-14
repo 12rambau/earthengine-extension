@@ -21,6 +21,7 @@ export {
   mdiMapOutline,
   mdiRuler,
   mdiSatelliteVariant,
+  mdiShapeOutline,
   mdiTable,
   mdiTableMultiple,
   mdiTrashCan,
