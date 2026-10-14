@@ -1,6 +1,6 @@
 ---
 name: earthengine-python
-description: Google Earth Engine analysis with Python in VS Code. Use for ANY Earth Engine request beyond displaying one existing asset unchanged - filtering image collections by date, region or clouds, cloud masking, composites (median, mosaic), monthly or yearly aggregation, NDVI or other spectral indices and band math, reducers, zonal statistics, time series, change detection, classification, sampling, charts and plots (static or interactive), and exports to Drive, Cloud Storage or assets. Explains how to write and run a Python script with earthengine-api, geetools and ipygee, and display results on the VS Code Earth Engine map with vscee.Map.
+description: Google Earth Engine analysis with Python in VS Code. Use for ANY Earth Engine request beyond displaying one existing asset unchanged - filtering image collections by date, region or clouds, cloud masking, composites (median, mosaic), monthly or yearly aggregation, NDVI or other spectral indices and band math, reducers, zonal statistics, time series, change detection, classification, sampling, charts and plots (static or interactive), and exports to Drive, Cloud Storage or assets. Explains how to write and run a Python script (in a temporary file when no save location is requested) with earthengine-api, geetools and ipygee, and display results on the VS Code Earth Engine map with vscee.Map.
 ---
 
 # Earth Engine with Python in VS Code
@@ -34,26 +34,33 @@ and do not answer with Code Editor JavaScript unless the user asks for it.
 ## Workflow
 
 1. **Get the header**: call `earthengine_getPythonSetup`. It returns the active project and
-   the `header` every script starts with (`import ee`, `from vscee import Map`,
-   `ee.Initialize(project="<project>")`). Use it verbatim. If `project` is null, ask the
+   the `header` every script must include (`import ee`, `from vscee import Map`,
+   `ee.Initialize(project="<project>")`). Use it verbatim, after any temporary-file
+   notice. If `project` is null, ask the
    user which Google Cloud project to use (or to sign in from the Earth Engine sidebar).
    If `ee.Initialize` fails with an authentication error, ask the user to run
    `earthengine authenticate` once in the terminal.
 2. **Prepare Python**: make sure a Python environment is selected, then install the
    libraries in it: `pip install earthengine-api vscee geetools ipygee`.
-3. **Pick the format, then write the code** in the workspace, never in a temporary
-   location the user cannot see:
+3. **Pick the format, then write the code**:
    - **Notebook** (`ee_notebooks/<topic>.ipynb`) - the default for exploration, charts
      and any iterative analysis. First cell = header, then one step per cell.
-   - **Script** (`ee_scripts/<topic>.py`) - for one-shot pipelines, exports and anything
-     the user wants to re-run unchanged. Follow the template below.
+   - **Script** - for one-shot pipelines, exports and anything the user wants to
+     re-run unchanged. If the user specifies a save location, use it. Otherwise
+     call `earthengine_runCommand` with `{"command":"earthengine.newScript"}`.
+     This invokes the New Python Script button's command: it opens a managed
+     temporary `.py` file and returns its path. Edit that file to replace the
+     example code with the requested analysis, keeping its temporary-file notice
+     and the Python setup for the active profile. Follow the template below.
+     Never use an untitled editor or silently create `ee_scripts/` when no save
+     location was requested.
 4. **Always run it yourself** right after writing it - never stop at showing the code or
    telling the user to run it.
    - Notebook: run the cells in order with the notebook tools; outputs and plots appear
      inline.
    - Script: use the terminal tool in the foreground (not a background process or
      subagent) so the output stays visible in the user's terminal:
-     `<selected python interpreter> ee_scripts/<topic>.py`.
+     `<selected python interpreter> <script path>`.
    - Exception: code that starts export tasks (`task.start()`) consumes EECU and writes
      outputs. Run it only after the user explicitly authorizes it; otherwise return the
      code without running it.
@@ -65,7 +72,9 @@ and do not answer with Code Editor JavaScript unless the user asks for it.
 
 5. **Report**: summarize the printed output; for exports, give the task description and
    offer to follow it with `earthengine_listTasks` (runtime, EECU cost) or cancel it with
-   `earthengine_cancelTask`.
+   `earthengine_cancelTask`. For a temporary script, explicitly tell the user in the
+   final report that the file is not persisted and must be saved outside the system
+   temporary directory with Save As (Ctrl+Shift+S) for later revision.
 
 ## Libraries
 

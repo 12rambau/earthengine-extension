@@ -358,8 +358,8 @@
         "displayName": "Run Earth Engine Command",
         "icon": "$(globe)",
         "canBeReferencedInPrompt": true,
-        "userDescription": "Run Earth Engine extension commands (open the map, load example layers, open panels, refresh trees).",
-        "modelDescription": "Runs a command of the Earth Engine VS Code extension. Use it when the user asks to open the Earth Engine map, show the visualization demo (one layer per preset on the demo image), open the asset manager or the export/import task tables, or refresh a tree. Commands: earthengine.openMap (open the map), earthengine.map.demo (visualization demo), earthengine.openAssetsPanel, earthengine.openExportTasksPanel, earthengine.openImportTasksPanel, earthengine.refreshAssets, earthengine.refreshTasks, earthengine.refreshDatasets, earthengine.refreshDocs, earthengine.showAuthStatus. For any Earth Engine analysis (filtering, computing, exporting), load the earthengine-python skill and write a Python script instead.",
+        "userDescription": "Run Earth Engine extension commands (open the map, create a temporary Python script, open panels, refresh trees).",
+        "modelDescription": "Runs a command of the Earth Engine VS Code extension. Use it to open the map, show the visualization demo, open panels, refresh trees, or create a temporary Python script. Commands: earthengine.openMap, earthengine.map.demo, earthengine.openAssetsPanel, earthengine.openExportTasksPanel, earthengine.openImportTasksPanel, earthengine.refreshAssets, earthengine.refreshTasks, earthengine.refreshDatasets, earthengine.refreshDocs, earthengine.showAuthStatus, earthengine.newScript (creates and opens a temporary .py file for the active profile and returns its path). For Earth Engine analysis, load the earthengine-python skill and write the analysis in a Python script.",
         "tags": [
           "earthengine",
           "map",
@@ -380,7 +380,8 @@
                 "earthengine.refreshTasks",
                 "earthengine.refreshDatasets",
                 "earthengine.refreshDocs",
-                "earthengine.showAuthStatus"
+                "earthengine.showAuthStatus",
+                "earthengine.newScript"
               ],
               "description": "The command id to run."
             }
