@@ -12,6 +12,7 @@
     metadata = $bindable(), editing = $bindable(),
     name = $bindable(''), startTime = $bindable(''), endTime = $bindable(''),
     properties = $bindable([]),
+    sharing = $bindable(null),
     saving = $bindable(false),
   } = $props();
   let description = $state('');
@@ -154,6 +155,7 @@
       endTime: toUtc(endTime),
       description,
       properties: entries,
+      sharing,
     });
   }
 

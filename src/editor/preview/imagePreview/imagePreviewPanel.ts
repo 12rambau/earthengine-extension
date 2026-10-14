@@ -14,7 +14,7 @@
  */
 
 import * as vscode from 'vscode';
-import { EEAsset, EEBand, getAsset } from '../../../sidebar/assets/eeApiClient.js';
+import { AssetSharingChanges, EEAsset, EEBand, getAsset } from '../../../sidebar/assets/eeApiClient.js';
 import { designTokens, codiconsCss } from '../../../shared/index.js';
 import { filesize } from 'filesize';
 import dayjs from 'dayjs';
@@ -23,7 +23,7 @@ import { getExtensionUri } from '../../../shared/extensionContext.js';
 import { getPresetThumbnailImage } from '../thumbnailVisualization.js';
 
 import script from './ImagePreview.svelte';
-import { previewMetadata, savePreviewMetadata } from '../previewMetadata.js';
+import { loadPreviewSharing, previewMetadata, savePreviewMetadata } from '../previewMetadata.js';
 
 // ==================================================================
 // CONSTANTS
@@ -57,8 +57,10 @@ export function openImagePreview(asset: EEAsset, accessToken: string): void {
       endTime?: string;
       description?: string;
       properties?: { key: string; value: unknown }[];
+      sharing?: AssetSharingChanges | null;
     }) => {
       if (msg.type === 'ready') {
+        loadPreviewSharing(asset, accessToken, panel);
         // Fire-and-forget: send asynchronous image and parent metadata.
         bandStatsPromise = computeBandStats(asset);
         sendThumbnail(asset, accessToken, panel, bandStatsPromise);

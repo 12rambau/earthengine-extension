@@ -12,7 +12,7 @@
  */
 
 import * as vscode from 'vscode';
-import { EEAsset, listFeatures } from '../../../sidebar/assets/eeApiClient.js';
+import { AssetSharingChanges, EEAsset, listFeatures } from '../../../sidebar/assets/eeApiClient.js';
 import { designTokens, codiconsCss, escapeHtml } from '../../../shared/index.js';
 import { filesize } from 'filesize';
 import dayjs from 'dayjs';
@@ -20,7 +20,7 @@ import { ensureEe, getThumbUrlRest } from '../../../shared/eeSession.js';
 import { getExtensionUri } from '../../../shared/extensionContext.js';
 
 import script from './FeatureCollectionPreview.svelte';
-import { previewMetadata, savePreviewMetadata } from '../previewMetadata.js';
+import { loadPreviewSharing, previewMetadata, savePreviewMetadata } from '../previewMetadata.js';
 
 // ==================================================================
 // CONSTANTS
@@ -69,8 +69,10 @@ export async function openFeatureCollectionPreview(
       startTime?: string;
       endTime?: string;
       description?: string;
+      sharing?: AssetSharingChanges | null;
     }) => {
       if (msg.type === 'ready') {
+        loadPreviewSharing(asset, accessToken, panel);
         sendThumbnail(asset, panel);
       } else if (msg.type === 'saveMetadata') {
         await savePreviewMetadata(msg, asset, accessToken, panel);

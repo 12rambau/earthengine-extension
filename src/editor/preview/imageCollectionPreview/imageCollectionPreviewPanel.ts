@@ -12,7 +12,7 @@
  */
 
 import * as vscode from 'vscode';
-import { EEAsset, EEBand, listAssets, getAsset } from '../../../sidebar/assets/eeApiClient.js';
+import { AssetSharingChanges, EEAsset, EEBand, listAssets, getAsset } from '../../../sidebar/assets/eeApiClient.js';
 import { designTokens, codiconsCss, escapeHtml } from '../../../shared/index.js';
 import { filesize } from 'filesize';
 import dayjs from 'dayjs';
@@ -21,7 +21,7 @@ import { getExtensionUri } from '../../../shared/extensionContext.js';
 import { getPresetThumbnailImage } from '../thumbnailVisualization.js';
 
 import script from './ImageCollectionPreview.svelte';
-import { previewMetadata, savePreviewMetadata } from '../previewMetadata.js';
+import { loadPreviewSharing, previewMetadata, savePreviewMetadata } from '../previewMetadata.js';
 
 // ==================================================================
 // CONSTANTS
@@ -83,8 +83,10 @@ export async function openImageCollectionPreview(
       startTime?: string;
       endTime?: string;
       description?: string;
+      sharing?: AssetSharingChanges | null;
     }) => {
       if (msg.type === 'ready') {
+        loadPreviewSharing(asset, accessToken, panel);
         sendThumbnail(asset, bands, childImages, panel);
       } else if (msg.type === 'thumbnailFallback') {
         sendThumbnail(asset, bands, childImages, panel, true);
