@@ -22,6 +22,10 @@ import { ProfilesTreeDataProvider } from './profilesTreeDataProvider.js';
 export class ProfilesSection extends SidebarSection {
   private provider: ProfilesTreeDataProvider;
   private readonly temporaryScripts = new Set<string>();
+  private readonly runningScripts = new Map<
+    vscode.TerminalShellExecution,
+    { file: string; terminal: vscode.Terminal }
+  >();
 
   constructor(private readonly authService: AuthService) {
     super();
@@ -94,8 +98,19 @@ export class ProfilesSection extends SidebarSection {
       ].join('\n');
       const file = path.join(os.tmpdir(), `vscee-script-${randomUUID()}.py`);
       await fs.promises.writeFile(file, content, { encoding: 'utf8', flag: 'wx', mode: 0o600 });
-      const doc = await vscode.workspace.openTextDocument(vscode.Uri.file(file));
-      await vscode.window.showTextDocument(doc);
+      try {
+        const doc = await vscode.workspace.openTextDocument(vscode.Uri.file(file));
+        await vscode.window.showTextDocument(doc);
+      } catch (error) {
+        try {
+          await fs.promises.unlink(file);
+        } catch (unlinkError) {
+          if ((unlinkError as NodeJS.ErrnoException).code !== 'ENOENT') {
+            vscode.window.showWarningMessage(`Could not remove temporary Python script: ${file}`);
+          }
+        }
+        throw error;
+      }
       this.temporaryScripts.add(file);
       return file;
     });
@@ -104,7 +119,24 @@ export class ProfilesSection extends SidebarSection {
       vscode.window.tabGroups.onDidChangeTabs(() => {
         void this.cleanupTemporaryScripts();
       }),
-      vscode.window.onDidCloseTerminal(() => {
+      vscode.window.onDidStartTerminalShellExecution(({ terminal, execution }) => {
+        const file = [...this.temporaryScripts].find((script) =>
+          execution.commandLine.value.includes(script),
+        );
+        if (file) {
+          this.runningScripts.set(execution, { file, terminal });
+        }
+      }),
+      vscode.window.onDidEndTerminalShellExecution(({ execution }) => {
+        this.runningScripts.delete(execution);
+        void this.cleanupTemporaryScripts();
+      }),
+      vscode.window.onDidCloseTerminal((terminal) => {
+        for (const [execution, run] of this.runningScripts) {
+          if (run.terminal === terminal) {
+            this.runningScripts.delete(execution);
+          }
+        }
         void this.cleanupTemporaryScripts();
       }),
       vscode.debug.onDidTerminateDebugSession(() => {
@@ -119,7 +151,7 @@ export class ProfilesSection extends SidebarSection {
   }
 
   private async cleanupTemporaryScripts(): Promise<void> {
-    if (vscode.window.terminals.length || vscode.debug.activeDebugSession) {
+    if (vscode.debug.activeDebugSession) {
       return;
     }
 
@@ -129,15 +161,17 @@ export class ProfilesSection extends SidebarSection {
           (tab) => tab.input instanceof vscode.TabInputText && tab.input.uri.fsPath === file,
         ),
       );
-      if (isOpen) {
+      if (isOpen || [...this.runningScripts.values()].some((run) => run.file === file)) {
         continue;
       }
 
-      this.temporaryScripts.delete(file);
       try {
         await fs.promises.unlink(file);
+        this.temporaryScripts.delete(file);
       } catch (error) {
-        if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
+        if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+          this.temporaryScripts.delete(file);
+        } else {
           vscode.window.showWarningMessage(`Could not remove temporary Python script: ${file}`);
         }
       }
