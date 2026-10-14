@@ -378,6 +378,26 @@ export async function copyAsset(
   return copyAssetImpl(asset, destinationName, accessToken, onProgress);
 }
 
+/** Maps selected assets into one destination folder, rejecting overlapping or duplicate paths. */
+export function bulkAssetDestinations(
+  names: readonly string[],
+  folder: string,
+): { source: string; destination: string }[] {
+  const destinations = new Set<string>();
+  return names.map((source) => {
+    const destination = `${folder.replace(/\/+$/, '')}/${source.split('/').pop()}`;
+    if (
+      destination === source ||
+      destination.startsWith(source + '/') ||
+      destinations.has(destination)
+    ) {
+      throw new Error(`Invalid or duplicate destination for "${source}".`);
+    }
+    destinations.add(destination);
+    return { source, destination };
+  });
+}
+
 /**
  * Creates a new folder asset under the given parent path.
  * @param parent The parent path (e.g. "projects/my-project/assets/my-folder")
