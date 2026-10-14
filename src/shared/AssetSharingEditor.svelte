@@ -82,79 +82,200 @@
   <p>Loading sharing settings…</p>
 {:else}
   <div class="sharing-editor">
-    <table>
-      <thead><tr><th>Principal</th><th>Access</th>{#if editing}<th>Actions</th>{/if}</tr></thead>
-      <tbody>
-        <tr>
-          <td>Everyone</td>
-          <td>
-            {#if editing}
-              <label><input type="checkbox" bind:checked={publicRead} onchange={update} disabled={saving} /> Can read</label>
-            {:else}
-              {publicRead ? 'Reader' : 'No access'}
-            {/if}
-          </td>
-          {#if editing}<td></td>{/if}
-        </tr>
-        {#each users as user, i}
-          <tr>
-            <td>
-              {#if editing}
-                <input type="email" aria-label="User email" placeholder="user@example.com" bind:value={user.email} oninput={update} disabled={saving} />
-              {:else}
-                {user.email}
-              {/if}
-            </td>
-            <td>
-              {#if editing}
-                <select aria-label="Access for {user.email || 'new user'}" bind:value={user.role} onchange={update} disabled={saving}>
-                  <option value="reader">Reader</option>
-                  <option value="writer">Writer</option>
-                </select>
-              {:else}
-                {user.role === 'writer' ? 'Writer' : 'Reader'}
-              {/if}
-            </td>
-            {#if editing}
-              <td><button type="button" class="remove" title="Revoke access for {user.email}" aria-label="Revoke access for {user.email}" disabled={saving} onclick={() => removeUser(i)}><i class="codicon codicon-trash"></i></button></td>
-            {/if}
-          </tr>
-        {/each}
-        {#each otherGrants as grant}
-          <tr><td>{grant.member}</td><td>{grant.role}</td>{#if editing}<td></td>{/if}</tr>
-        {/each}
-      </tbody>
-    </table>
+    <div class="public-access">
+      <label class="switch">
+        <input type="checkbox" role="switch" aria-label="Everyone can read this asset" bind:checked={publicRead} onchange={update} disabled={!editing || saving} />
+        <span class="track"><span class="knob"></span></span>
+      </label>
+      <span class="public-access-label">
+        <strong>Everyone</strong>
+        <span class="hint">{publicRead ? 'Anyone can read this asset' : 'Only the principals below have access'}</span>
+      </span>
+    </div>
     {#if editing}
-      <button type="button" class="add" disabled={saving} onclick={addUser}><i class="codicon codicon-add"></i> Add user</button>
+      <div class="sharing-rows">
+        {#each users as user, i}
+          <div class="sharing-row">
+            <input type="email" aria-label="User email" placeholder="user@example.com" bind:value={user.email} oninput={update} disabled={saving} />
+            <select aria-label="Access for {user.email || 'new user'}" bind:value={user.role} onchange={update} disabled={saving}>
+              <option value="reader">Reader</option>
+              <option value="writer">Writer</option>
+            </select>
+            <button type="button" class="remove-user" title="Revoke access" aria-label="Revoke access for {user.email}" disabled={saving} onclick={() => removeUser(i)}><i class="codicon codicon-trash" aria-hidden="true"></i></button>
+          </div>
+        {/each}
+      </div>
+      <button type="button" class="add-user" disabled={saving} onclick={addUser}>+ Add user</button>
+      {#if otherGrants.length}
+        <p class="grants-caption">Grants managed outside this editor</p>
+        <table class="grants-table">
+          <thead><tr><th>Principal</th><th>Access</th></tr></thead>
+          <tbody>
+            {#each otherGrants as grant}
+              <tr><td>{grant.member}</td><td>{grant.role}</td></tr>
+            {/each}
+          </tbody>
+        </table>
+      {/if}
+    {:else if users.length || otherGrants.length}
+      <table class="grants-table">
+        <thead><tr><th>Principal</th><th>Access</th></tr></thead>
+        <tbody>
+          {#each users as user}
+            <tr><td>{user.email}</td><td>{user.role === 'writer' ? 'Writer' : 'Reader'}</td></tr>
+          {/each}
+          {#each otherGrants as grant}
+            <tr><td>{grant.member}</td><td>{grant.role}</td></tr>
+          {/each}
+        </tbody>
+      </table>
+    {:else}
+      <p class="empty-state">No individual grants.</p>
     {/if}
   </div>
 {/if}
 
 <style>
+  /* ==================================================================
+     LAYOUT
+     ================================================================== */
   .sharing-editor { overflow-x: auto; }
-  table { width: 100%; border-collapse: collapse; font-size: var(--vscee-font-sm); }
+
+  /* ==================================================================
+     PUBLIC ACCESS SWITCH
+     ================================================================== */
+  .public-access {
+    display: flex;
+    align-items: center;
+    gap: var(--vscee-space-lg);
+    margin-bottom: var(--vscee-space-xl);
+    padding: var(--vscee-space-md) var(--vscee-space-lg);
+    border: var(--vscee-border-sm) solid var(--vscee-color-panel-border);
+    border-radius: var(--vscee-radius-md);
+  }
+  .public-access-label {
+    display: flex;
+    flex-direction: column;
+    font-size: var(--vscee-font-sm);
+
+    .hint { color: var(--vscee-color-muted); }
+  }
+  .switch {
+    position: relative;
+    display: inline-flex;
+    flex-shrink: 0;
+
+    input {
+      position: absolute;
+      inset: 0;
+      margin: 0;
+      opacity: 0;
+      cursor: pointer;
+
+      &:checked + .track {
+        background: var(--vscee-color-button-background);
+        border-color: var(--vscee-color-button-background);
+
+        .knob {
+          background: var(--vscee-color-button-foreground);
+          transform: translateX(12px);
+        }
+      }
+      &:focus-visible + .track {
+        outline: var(--vscee-border-sm) solid var(--vscee-color-focus);
+        outline-offset: var(--vscee-space-xxs);
+      }
+      &:disabled {
+        cursor: default;
+        + .track { opacity: 0.6; }
+      }
+    }
+    .track {
+      display: inline-flex;
+      align-items: center;
+      width: 28px;
+      height: 16px;
+      padding: 0 var(--vscee-space-xxs);
+      border: var(--vscee-border-sm) solid var(--vscee-color-input-border);
+      border-radius: 999px;
+      background: var(--vscee-color-button-secondary-background);
+      transition: background 0.15s;
+    }
+    .knob {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--vscee-color-foreground);
+      transition: transform 0.15s;
+    }
+  }
+
+  /* ==================================================================
+     GRANTS TABLE
+     ================================================================== */
+  .grants-table { width: 100%; border-collapse: collapse; font-size: var(--vscee-font-sm); }
   th, td { text-align: left; padding: var(--vscee-space-sm) var(--vscee-space-lg); border-bottom: var(--vscee-border-sm) solid var(--vscee-color-panel-border); }
   th { background: var(--vscee-color-list-hover); }
   td:first-child { overflow-wrap: anywhere; }
-  input[type="email"], select {
-    width: 100%;
-    min-width: 10em;
-    padding: var(--vscee-space-xs);
-    background: var(--vscee-color-input-background);
-    color: var(--vscee-color-foreground);
-    border: var(--vscee-border-sm) solid var(--vscee-color-input-border);
+  .grants-caption {
+    margin: var(--vscee-space-xl) 0 var(--vscee-space-sm);
+    color: var(--vscee-color-muted);
+    font-size: var(--vscee-font-sm);
   }
-  input[type="checkbox"] { margin-right: var(--vscee-space-xs); }
-  button {
-    padding: var(--vscee-space-xs) var(--vscee-space-sm);
+  .empty-state { color: var(--vscee-color-muted); }
+
+  /* ==================================================================
+     GRANT ROW EDITOR
+     ================================================================== */
+  .sharing-rows {
+    display: flex;
+    flex-direction: column;
+    gap: var(--vscee-space-xxs);
+  }
+  .sharing-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--vscee-space-xxs);
+    padding: var(--vscee-space-xxs);
+    border-radius: var(--vscee-radius-sm);
+    background: var(--vscee-color-editor-widget-background);
+  }
+  input[type="email"], select {
+    min-width: 0;
+    background: var(--vscee-color-input-background);
+    color: var(--vscee-color-input-foreground);
+    border: var(--vscee-border-sm) solid var(--vscee-color-input-border);
+    border-radius: var(--vscee-radius-md);
+    font: inherit;
+    padding: var(--vscee-space-xxs) var(--vscee-space-xs);
+  }
+  input[type="email"] { flex: 1 1 180px; }
+  select { flex: 0 0 96px; }
+  .remove-user {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    padding: 0;
+    border: 0;
+    background: transparent;
     color: var(--vscee-color-foreground);
-    background: var(--vscee-color-button-secondary-background);
-    border: none;
+    opacity: 0.65;
     cursor: pointer;
   }
-  .add { margin-top: var(--vscee-space-lg); }
-  .remove { background: none; color: var(--vscee-color-error); }
+  .add-user {
+    margin-top: var(--vscee-space-sm);
+    padding: var(--vscee-space-xs) var(--vscee-space-md);
+    border: var(--vscee-border-sm) solid var(--vscee-color-input-border);
+    border-radius: var(--vscee-radius-md);
+    background: var(--vscee-color-button-secondary-background);
+    color: var(--vscee-color-button-secondary-foreground);
+    cursor: pointer;
+
+    &:hover { background: var(--vscee-color-button-secondary-hover); }
+  }
   button:disabled { opacity: 0.5; cursor: default; }
   p[role="alert"] { color: var(--vscee-color-error); }
 </style>
