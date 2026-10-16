@@ -2,8 +2,8 @@
 <script>
   import { vscode, getInitData } from '../../shared/vscode.ts';
   import { mdiImage, mdiImageMultiple, mdiTableMultiple } from '../../shared/icons.ts';
-  import DataTable from '../../shared/dataTable/DataTable.svelte';
-  import { createDataTable } from '../../shared/dataTable/dataTable.svelte.ts';
+  import DataTable from '../dataTable/DataTable.svelte';
+  import { createDataTable } from '../dataTable/dataTable.svelte.ts';
   import NewAssetDialog from './NewAssetDialog.svelte';
 
   const saved = getInitData();

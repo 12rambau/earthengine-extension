@@ -15,7 +15,7 @@ import { TASK_STATES } from '../../sidebar/tasks/tasksTreeDataProvider.js';
 import { openTasksPanel } from '../../editor/tasks/tasksPanel.js';
 
 // ==================================================================
-// PANELTASKSSECTION
+// PANEL TASKS SECTION
 // ==================================================================
 /** Panel section displaying export and import task WebViews. */
 export class PanelTasksSection extends SidebarSection {
@@ -27,8 +27,8 @@ export class PanelTasksSection extends SidebarSection {
   }
 
   register(context: vscode.ExtensionContext): void {
-    this.exportViewProvider = new PanelTasksViewProvider(this.authService, 'export', context);
-    this.importViewProvider = new PanelTasksViewProvider(this.authService, 'import', context);
+    this.exportViewProvider = new PanelTasksViewProvider(this.authService, 'export');
+    this.importViewProvider = new PanelTasksViewProvider(this.authService, 'import');
 
     this.disposables.push(
       vscode.window.registerWebviewViewProvider(

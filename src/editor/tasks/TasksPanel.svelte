@@ -1,8 +1,8 @@
 <!-- TasksPanel: sortable/paginated task table with filter toggle and column picker -->
 <script>
   import { vscode, getInitData } from '../../shared/vscode.ts';
-  import DataTable from '../../shared/dataTable/DataTable.svelte';
-  import { createDataTable } from '../../shared/dataTable/dataTable.svelte.ts';
+  import DataTable from '../dataTable/DataTable.svelte';
+  import { createDataTable } from '../dataTable/dataTable.svelte.ts';
 
   const saved = getInitData();
 
