@@ -1,6 +1,6 @@
 <!-- ColumnFilter: header popover for a declarative data-table column filter -->
 <script>
-  import DatePicker from '../DatePicker.svelte';
+  import DatePicker from '../../editor/DatePicker.svelte';
 
   let { column, filter, open = false, align = 'end', onchange, onopenchange } = $props();
 

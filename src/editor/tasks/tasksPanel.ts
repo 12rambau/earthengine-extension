@@ -22,7 +22,7 @@ import { AuthService } from '../../auth/index.js';
 import { openAssetPreview } from '../preview/assetPreviewPanel.js';
 import { getExtensionUri } from '../../shared/extensionContext.js';
 import { designTokens, codiconsCss } from '../../shared/index.js';
-import type { TablePreferences } from '../../shared/dataTable/tableTypes.js';
+import type { TablePreferences } from '../dataTable/tableTypes.js';
 
 import script from './TasksPanel.svelte';
 
@@ -241,9 +241,12 @@ export async function openTasksPanel(
     } else if (msg.type === 'cancelBulk') {
       try {
         const names = Array.isArray(msg.names) ? [...new Set(msg.names)] : [];
-        const eligible = names.filter((name): name is string =>
-          typeof name === 'string' &&
-          allOps.some((op) => op.name === name && ['PENDING', 'RUNNING'].includes(getTaskState(op))),
+        const eligible = names.filter(
+          (name): name is string =>
+            typeof name === 'string' &&
+            allOps.some(
+              (op) => op.name === name && ['PENDING', 'RUNNING'].includes(getTaskState(op)),
+            ),
         );
         const t = await authService.getToken();
         if (!t) {
