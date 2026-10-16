@@ -6,6 +6,7 @@
  * with live status updates, cancel buttons, and auto-refresh.
  */
 
+import { randomBytes } from 'node:crypto';
 import * as vscode from 'vscode';
 import {
   listOperationsPage,
@@ -41,7 +42,7 @@ function getMaxScan(): number {
 }
 
 // ==================================================================
-// PANELTASKSVIEWPROVIDER
+// PANEL TASKS VIEW PROVIDER
 // ==================================================================
 /** Provides a WebView for the bottom-panel task list. */
 export class PanelTasksViewProvider implements vscode.WebviewViewProvider {
@@ -56,20 +57,15 @@ export class PanelTasksViewProvider implements vscode.WebviewViewProvider {
   constructor(
     private readonly authService: AuthService,
     private readonly filter: TaskFilter,
-    private readonly context: vscode.ExtensionContext,
   ) {}
 
-  resolveWebviewView(
-    webviewView: vscode.WebviewView,
-    _context: vscode.WebviewViewResolveContext,
-    _token: vscode.CancellationToken,
-  ): void {
+  resolveWebviewView(webviewView: vscode.WebviewView): void {
     this.view = webviewView;
     webviewView.webview.options = {
       enableScripts: true,
       localResourceRoots: [],
     };
-    webviewView.webview.html = this.getHtml(webviewView.webview);
+    webviewView.webview.html = this.getHtml();
 
     // Listen for messages from the webview
     webviewView.webview.onDidReceiveMessage(
@@ -81,7 +77,7 @@ export class PanelTasksViewProvider implements vscode.WebviewViewProvider {
     // Auto-refresh every 15 s
     this.refreshTimer = setInterval(() => {
       if (webviewView.visible) {
-        this.refreshIncremental().catch(() => this.sendData(false));
+        this.refreshIncremental().catch(() => this.sendData());
       }
     }, 15_000);
 
@@ -133,7 +129,7 @@ export class PanelTasksViewProvider implements vscode.WebviewViewProvider {
   /** Sets the status filter. Pass undefined or empty set to clear. */
   setStatusFilter(states: Set<string> | undefined): void {
     this.statusFilter = states && states.size > 0 ? states : undefined;
-    this.sendData(false);
+    this.sendData();
   }
 
   /** Returns the current status filter, if any. */
@@ -215,7 +211,7 @@ export class PanelTasksViewProvider implements vscode.WebviewViewProvider {
     const historyDays = getTaskHistoryDays();
     this.allOps = filterOperationsByHistory(this.allOps, historyDays).operations;
     if (this.allOps.length === 0) {
-      await this.loadAndStream(++this.loadGeneration);
+      await this.loadAndStream(generation);
       return;
     }
 
@@ -262,7 +258,7 @@ export class PanelTasksViewProvider implements vscode.WebviewViewProvider {
     await Promise.all(
       nonTerminal.map(async (op) => {
         try {
-          const updated = await getOperation(op.name, token!);
+          const updated = await getOperation(op.name, token);
           if (generation !== this.loadGeneration) {
             return;
           }
@@ -277,7 +273,7 @@ export class PanelTasksViewProvider implements vscode.WebviewViewProvider {
     if (generation !== this.loadGeneration) {
       return;
     }
-    this.sendData(false);
+    this.sendData();
   }
 
   // ==================================================================
@@ -317,15 +313,14 @@ export class PanelTasksViewProvider implements vscode.WebviewViewProvider {
   // HTML
   // ==================================================================
 
-  private getHtml(webview: vscode.Webview): string {
-    const nonce = getNonce();
+  private getHtml(): string {
+    const nonce = randomBytes(16).toString('base64');
     const csp = [
       `default-src 'none'`,
       `font-src data:`,
       `style-src 'unsafe-inline'`,
       `script-src 'nonce-${nonce}'`,
     ].join('; ');
-    const initJson = JSON.stringify({ filter: this.filter }).replace(/</g, '\\u003c');
     return `<!DOCTYPE html>
 <html lang="en">
   <head>
@@ -337,7 +332,6 @@ export class PanelTasksViewProvider implements vscode.WebviewViewProvider {
   </head>
   <body>
     <div id="app"></div>
-    <script id="init-data" type="application/json" nonce="${nonce}">${initJson}</script>
     <script nonce="${nonce}">${script}</script>
   </body>
 </html>`;
@@ -349,13 +343,4 @@ export class PanelTasksViewProvider implements vscode.WebviewViewProvider {
     }
     this.disposables.forEach((d) => d.dispose());
   }
-}
-
-function getNonce(): string {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  let nonce = '';
-  for (let i = 0; i < 32; i++) {
-    nonce += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return nonce;
 }
