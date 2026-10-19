@@ -12,8 +12,11 @@
   import { trackViewportChanges } from '../../shared/viewportAnchor.ts';
   import {
     mdiAlertCircleOutline,
+    mdiCrosshairsGps,
+    mdiLayers,
     mdiMap,
     mdiSatelliteVariant,
+    mdiShapeOutline,
   } from '../../shared/icons.ts';
 
   // ----------------------------------------------------------------
@@ -451,7 +454,9 @@
 <div class="map-controls">
   <MapMenu title="Manage layers" bind:visible={layersPanelVisible} onopen={() => openMenu('layers')}>
     {#snippet icon()}
-      <i class="codicon codicon-layers" aria-hidden="true"></i>
+      <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="currentColor"
+        ><path d={mdiLayers} /></svg
+      >
     {/snippet}
     {#snippet panel()}
       <MapLayerControl {map} bind:overlays bind:visible={layersPanelVisible}
@@ -462,7 +467,9 @@
     onopen={() => openMenu('geometries')}
     onclose={() => (drawMode = null)}>
     {#snippet icon()}
-      <i class="codicon codicon-symbol-color" aria-hidden="true"></i>
+      <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="currentColor"
+        ><path d={mdiShapeOutline} /></svg
+      >
     {/snippet}
     {#snippet panel()}
       <MapGeometryControl {map} bind:visible={geometriesPanelVisible} bind:drawMode />
@@ -472,7 +479,9 @@
     onopen={() => openMenu('inspector')}
     onclose={() => (drawMode = null)}>
     {#snippet icon()}
-      <i class="codicon codicon-target" aria-hidden="true"></i>
+      <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="currentColor"
+        ><path d={mdiCrosshairsGps} /></svg
+      >
     {/snippet}
     {#snippet panel()}
       <MapInspector {map} bind:active={inspectorActive}

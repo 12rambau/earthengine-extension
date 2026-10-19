@@ -57,8 +57,11 @@ def addLayer(ee_object, vis_params=None, name=None, shown=True, opacity=1.0):
                 to ee.Image.visualize (bands, min, max, gamma, palette,
                 gain, bias, forceRgbOutput). For intervals, use one band,
                 increasing breaks, and one palette color per interval
-                (len(breaks) == len(palette) + 1). For vectors, use color
-                and strokeWidth. Use default to select a stored SEPAL
+                (len(breaks) == len(palette) + 1). For vectors, use color,
+                fillColor, width, pointSize, or a single property with a palette
+                (vizType: continuous with min/max, intervals with breaks, or
+                categorical with values).
+                Use default to select a stored SEPAL
                 visualization preset by name or index.
         name: Layer name. Auto-generated if not provided.
         shown: Whether the layer is visible.
@@ -74,12 +77,12 @@ def addLayer(ee_object, vis_params=None, name=None, shown=True, opacity=1.0):
         Map.addLayer(image, {"bands": ["B4"], "breaks": [0, 1000, 3000],
                  "palette": ["#2b83ba", "#d7191c"]}, "Intervals")
         Map.addLayer(image, {"default": "Natural Color"}, "Preset")
-        Map.addLayer(features, {"color": "FF0000", "strokeWidth": 2},
+        Map.addLayer(features, {"color": "FF0000", "width": 2},
                  "Outlines", opacity=0.7)
     """
     vis_params = dict(vis_params or {})
 
-    # Normalise to a single ee.Image (expression only — no API calls) ------
+    # Normalize geometry and feature inputs without making API calls.
 
     if isinstance(ee_object, ee.ImageCollection):
         ee_object = ee_object.mosaic()
@@ -89,13 +92,8 @@ def addLayer(ee_object, vis_params=None, name=None, shown=True, opacity=1.0):
     elif isinstance(ee_object, ee.Feature):
         ee_object = ee.FeatureCollection([ee_object])
 
-    if isinstance(ee_object, ee.FeatureCollection):
-        stroke_width = vis_params.pop("strokeWidth", 2)
-        color = vis_params.pop("color", "000000")
-        ee_object = ee.Image().paint(ee_object, 1, stroke_width)
-        vis_params = {"min": 0, "max": 1, "palette": [color]}
-
-    if not isinstance(ee_object, ee.Image):
+    source_type = "featureCollection" if isinstance(ee_object, ee.FeatureCollection) else "image"
+    if not isinstance(ee_object, (ee.Image, ee.FeatureCollection)):
         print(f"[Map] Unsupported object type: {type(ee_object)}")
         return
 
@@ -103,6 +101,7 @@ def addLayer(ee_object, vis_params=None, name=None, shown=True, opacity=1.0):
         "addLayer",
         {
             "serialized": ee_object.serialize(),
+            "sourceType": source_type,
             "visParams": vis_params,
             "name": name or "Layer",
             "shown": shown,

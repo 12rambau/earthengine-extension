@@ -11,7 +11,7 @@ export class EeLayer {
   constructor(
     /** Insertion-order index used to correlate with the WebView overlay. */
     public readonly index: number,
-    /** Serialized EE expression (legacy `toJSON` format) before `visualize()`. */
+    /** Serialized source expression (image or collection) before rendering. */
     public readonly serialized: string,
     /** Display name shown in the layer panel. */
     public readonly name: string,
@@ -25,5 +25,7 @@ export class EeLayer {
     public opacity: number = 1.0,
     /** Asset name, when this layer was added directly from an asset. */
     public readonly assetName?: string,
+    /** Source expression kind, retained independently of the rendered tile image. */
+    public readonly sourceType: 'image' | 'featureCollection' = 'image',
   ) {}
 }

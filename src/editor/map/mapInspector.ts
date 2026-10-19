@@ -12,7 +12,7 @@ import { EeLayer } from './eeLayer.js';
 /** Band values returned for one layer after a pixel inspection. */
 export interface InspectResult {
   name: string;
-  values: Record<string, number | null>;
+  values: Record<string, unknown>;
   error?: string;
 }
 
@@ -53,6 +53,16 @@ export class MapInspector {
         continue;
       }
       try {
+        if (layer.sourceType === 'featureCollection') {
+          const collection = eeAny.FeatureCollection(eeAny.Deserializer.fromJSON(layer.serialized));
+          const nearby = collection.filterBounds(point.buffer(scale * 4));
+          const exists = await computeValue<boolean>(nearby.size().gt(0));
+          const values = exists
+            ? await computeValue<Record<string, unknown>>(nearby.first().toDictionary())
+            : {};
+          results.push({ name: layer.name, values });
+          continue;
+        }
         const image = eeAny.Image(eeAny.Deserializer.fromJSON(layer.serialized));
         const reduced = image.reduceRegion({
           reducer: eeAny.Reducer.mean(),
