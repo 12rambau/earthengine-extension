@@ -35,6 +35,7 @@ declare module '@google/earthengine' {
 
   interface EeFeatureCollection extends EeComputedObject {
     select(...properties: unknown[]): EeFeatureCollection;
+    size(): EeComputedObject;
   }
 
   interface EeImage extends EeComputedObject {
