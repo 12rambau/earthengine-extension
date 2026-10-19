@@ -38,4 +38,21 @@
     text-align: center;
     padding: var(--vscee-space-lg);
   }
+  .spinner {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border: var(--vscee-border-md) solid var(--vscee-color-foreground);
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    opacity: 0.5;
+    vertical-align: middle;
+    margin-right: var(--vscee-space-sm);
+  }
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
 </style>

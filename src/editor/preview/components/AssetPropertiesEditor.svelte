@@ -1,5 +1,7 @@
 <!-- AssetPropertiesEditor: inline editable Earth Engine property rows -->
 <script>
+  import PreviewTable from './PreviewTable.svelte';
+
   let { metadata, rows = $bindable([]), editing = false, saving = false } = $props();
 
   function addProperty() {
@@ -35,14 +37,16 @@
     <button type="button" class="add-property" disabled={saving} onclick={addProperty}>+ Add property</button>
   </div>
 {:else if metadata.propertyEntries.length}
-  <table class="props-table">
-    <thead><tr><th>Property</th><th>Value</th></tr></thead>
-    <tbody>
-      {#each metadata.propertyEntries as [key, value]}
-        <tr><td>{key}</td><td>{displayValue(value)}</td></tr>
-      {/each}
-    </tbody>
-  </table>
+  <PreviewTable keyColumn>
+    <table class="props-table">
+      <thead><tr><th>Property</th><th>Value</th></tr></thead>
+      <tbody>
+        {#each metadata.propertyEntries as [key, value]}
+          <tr><td>{key}</td><td>{displayValue(value)}</td></tr>
+        {/each}
+      </tbody>
+    </table>
+  </PreviewTable>
 {:else}
   <p class="empty-state">No properties.</p>
 {/if}

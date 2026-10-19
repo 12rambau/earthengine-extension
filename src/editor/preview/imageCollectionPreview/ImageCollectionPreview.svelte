@@ -6,6 +6,7 @@
   import AssetSharingEditor from '../components/AssetSharingEditor.svelte';
   import PreviewFrame from '../components/PreviewFrame.svelte';
   import PreviewSystemMetadata from '../components/PreviewSystemMetadata.svelte';
+  import PreviewTable from '../components/PreviewTable.svelte';
   import PreviewTabs from '../components/PreviewTabs.svelte';
   import PreviewThumbnail from '../components/PreviewThumbnail.svelte';
   import PreviewTitleBar from '../components/PreviewTitleBar.svelte';
@@ -115,7 +116,7 @@
     <section class="tab-panel" class:active={activeTab === 'images'}>
       {#if images.length > 0}
         <p class="note">Limited to the first {data.imagesPageSize} images.</p>
-        <div class="table-scroll">
+        <PreviewTable>
           <table class="images-table">
             <thead>
               <tr>
@@ -167,14 +168,14 @@
               {/each}
             </tbody>
           </table>
-        </div>
+        </PreviewTable>
       {:else}
         <p class="empty-state">No images found.</p>
       {/if}
     </section>
 
     <section class="tab-panel" class:active={activeTab === 'bands'}>
-      {@html data.bandsHtml}
+      <PreviewTable>{@html data.bandsHtml}</PreviewTable>
     </section>
 
     <section class="tab-panel properties-panel" class:active={activeTab === 'properties'}>
@@ -282,42 +283,8 @@
     /* ==================================================================
        TABLES
        ================================================================== */
-    .table-scroll {
-      overflow: auto;
-      max-height: 100%;
-    }
-    .images-table,
-    .bands-table,
-    .props-table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: var(--vscee-font-sm);
-    }
-    .images-table th,
-    .bands-table th,
-    .props-table th {
-      text-align: left;
-      background: var(--vscee-color-list-hover);
-      padding: var(--vscee-space-sm) var(--vscee-space-lg);
-      font-weight: 600;
-      position: sticky;
-      top: 0;
+    .images-table td {
       white-space: nowrap;
-    }
-    .props-table th {
-      background: var(--vscee-color-editor-background);
-      z-index: 1;
-    }
-    .images-table td,
-    .bands-table td,
-    .props-table td {
-      padding: var(--vscee-space-sm) var(--vscee-space-lg);
-      border-bottom: var(--vscee-border-sm) solid var(--vscee-color-panel-border);
-      white-space: nowrap;
-    }
-    .images-table tbody tr:nth-child(even),
-    .bands-table tbody tr:nth-child(even) {
-      background: var(--vscee-color-list-hover);
     }
     .img-id {
       max-width: 200px;
@@ -328,10 +295,6 @@
       font-weight: 500;
       opacity: 0.7;
       width: 60px;
-    }
-    .props-table td:first-child {
-      font-weight: 500;
-      width: 30%;
     }
 
     /* ==================================================================
@@ -391,25 +354,5 @@
       }
     }
 
-    /* ==================================================================
-       SPINNER
-       ================================================================== */
-    .spinner {
-      display: inline-block;
-      width: 12px;
-      height: 12px;
-      border: var(--vscee-border-md) solid var(--vscee-color-foreground);
-      border-top-color: transparent;
-      border-radius: 50%;
-      animation: spin 0.8s linear infinite;
-      opacity: 0.5;
-      vertical-align: middle;
-      margin-right: var(--vscee-space-sm);
-    }
-    @keyframes spin {
-      to {
-        transform: rotate(360deg);
-      }
-    }
   }
 </style>

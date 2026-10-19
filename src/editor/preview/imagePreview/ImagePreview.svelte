@@ -6,6 +6,7 @@
   import AssetSharingEditor from '../components/AssetSharingEditor.svelte';
   import PreviewFrame from '../components/PreviewFrame.svelte';
   import PreviewSystemMetadata from '../components/PreviewSystemMetadata.svelte';
+  import PreviewTable from '../components/PreviewTable.svelte';
   import PreviewTabs from '../components/PreviewTabs.svelte';
   import PreviewThumbnail from '../components/PreviewThumbnail.svelte';
   import PreviewTitleBar from '../components/PreviewTitleBar.svelte';
@@ -128,46 +129,48 @@
     </section>
 
     <section class="tab-panel" class:active={activeTab === 'bands'}>
-      <table class="bands-table">
-        <thead>
-          <tr>
-            <th>Index</th>
-            <th>Name</th>
-            <th>Type</th>
-            <th>Dimensions</th>
-            <th>CRS</th>
-            <th>Nominal Scale</th>
-            <th>Min</th>
-            <th>Max</th>
-          </tr>
-        </thead>
-        <tbody>
-          {#each data.bands as band, i}
+      <PreviewTable>
+        <table class="bands-table">
+          <thead>
             <tr>
-              <td>{i}</td>
-              <td>{band.id}</td>
-              <td>{band.dtype}</td>
-              <td>{band.dims}</td>
-              <td>{band.crs}</td>
-              <td>{band.scale}</td>
-              <td class="minmax">
-                {#if minMaxData === null}
-                  <span class="spinner"></span>
-                {:else}
-                  {formatNum(getMin(band.id))}
-                {/if}
-              </td>
-              <td class="minmax">
-                {#if minMaxData === null}
-                  <span class="spinner"></span>
-                {:else}
-                  {formatNum(getMax(band.id))}
-                {/if}
-              </td>
+              <th>Index</th>
+              <th>Name</th>
+              <th>Type</th>
+              <th>Dimensions</th>
+              <th>CRS</th>
+              <th>Nominal Scale</th>
+              <th>Min</th>
+              <th>Max</th>
             </tr>
-          {/each}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {#each data.bands as band, i}
+              <tr>
+                <td>{i}</td>
+                <td>{band.id}</td>
+                <td>{band.dtype}</td>
+                <td>{band.dims}</td>
+                <td>{band.crs}</td>
+                <td>{band.scale}</td>
+                <td class="minmax">
+                  {#if minMaxData === null}
+                    <span class="spinner"></span>
+                  {:else}
+                    {formatNum(getMin(band.id))}
+                  {/if}
+                </td>
+                <td class="minmax">
+                  {#if minMaxData === null}
+                    <span class="spinner"></span>
+                  {:else}
+                    {formatNum(getMax(band.id))}
+                  {/if}
+                </td>
+              </tr>
+            {/each}
+          </tbody>
+        </table>
+      </PreviewTable>
     </section>
 
     <section class="tab-panel properties-panel" class:active={activeTab === 'properties'}>
@@ -235,44 +238,9 @@
     }
 
     /* ==================================================================
-       TABLES
-       ================================================================== */
-    .bands-table,
-    .props-table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: var(--vscee-font-sm);
-    }
-    .bands-table th,
-    .props-table th {
-      text-align: left;
-      background: var(--vscee-color-list-hover);
-      padding: var(--vscee-space-sm) var(--vscee-space-lg);
-      font-weight: 600;
-      position: sticky;
-      top: 0;
-    }
-    .props-table th {
-      background: var(--vscee-color-editor-background);
-      z-index: 1;
-    }
-    .bands-table td,
-    .props-table td {
-      padding: var(--vscee-space-sm) var(--vscee-space-lg);
-      border-bottom: var(--vscee-border-sm) solid var(--vscee-color-panel-border);
-    }
-    .bands-table tbody tr:nth-child(even) {
-      background: var(--vscee-color-list-hover);
-    }
-    .props-table td:first-child {
-      font-weight: 500;
-      width: 30%;
-    }
-
-    /* ==================================================================
        SPINNER
        ================================================================== */
-    .spinner {
+    .minmax .spinner {
       display: inline-block;
       width: 12px;
       height: 12px;
