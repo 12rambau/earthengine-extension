@@ -1,7 +1,7 @@
 /**
  * @module sepalViz
- * Parses and converts SEPAL-format visualization metadata stored as EE image
- * properties into standard EE vis-params.
+ * Parses and converts visualization metadata stored as EE asset properties
+ * into standard EE vis-params.
  *
  * SEPAL stores visualization presets directly on an image asset using property
  * keys of the form `visualization_<N>_<keyword>: <value>` (values are always
@@ -22,7 +22,7 @@ export interface SepalViz {
   /** Display name (defaults to `"Visualization <index>"` if absent). */
   name: string;
   /** Rendering type. */
-  type: 'rgb' | 'hsv' | 'continuous' | 'categorical' | 'intervals';
+  type: 'rgb' | 'hsv' | 'continuous' | 'categorical' | 'intervals' | 'uniform';
   /** Band names or numbers (as strings). */
   bands: string[];
   min?: number[];
@@ -37,6 +37,9 @@ export interface SepalViz {
   values?: number[];
   /** Ordered interval boundaries (`intervals` only; one more than colors). */
   breaks?: number[];
+  color?: string;
+  fillColor?: string;
+  width?: number;
 }
 
 // ==================================================================
@@ -85,6 +88,9 @@ export function parseSepalVisualizations(props: Record<string, unknown>): SepalV
       labels: fields['labels'] ? splitComma(fields['labels']) : undefined,
       values: fields['values'] ? parseFloats(fields['values']) : undefined,
       breaks: fields['breaks'] ? parseFloats(fields['breaks']) : undefined,
+      color: fields['color'],
+      fillColor: fields['fillColor'],
+      width: fields['width'] ? Number(fields['width']) : undefined,
     });
   }
   return result;
@@ -100,9 +106,7 @@ export function selectImageVisualizations(
   collectionProperties: Record<string, unknown>,
 ): SepalViz[] {
   const imagePresets = parseSepalVisualizations(imageProperties);
-  return imagePresets.length > 0
-    ? imagePresets
-    : parseSepalVisualizations(collectionProperties);
+  return imagePresets.length > 0 ? imagePresets : parseSepalVisualizations(collectionProperties);
 }
 
 /**

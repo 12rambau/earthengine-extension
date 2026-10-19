@@ -176,21 +176,29 @@ export class MapPanel extends EditorPanel {
         );
       } else if (msg.type === 'openVizEditor') {
         const { layerIndex } = msg.data as { layerIndex: number };
+        const layer = this.layerManager.layers.get(layerIndex);
+        const isVector = layer?.sourceType === 'featureCollection';
         // Fetch band names and presets independently — one failure should not
         // prevent the editor from opening.
         const [bands, presets] = await Promise.all([
-          this.layerManager.getBandNames(layerIndex).catch(() => [] as string[]),
-          this.layerManager
-            .getPresets(layerIndex)
-            .catch(() => [] as Array<{ index: number; name: string; type: string }>),
+          (isVector
+            ? this.layerManager.getPropertyNames(layerIndex)
+            : this.layerManager.getBandNames(layerIndex)
+          ).catch(() => [] as string[]),
+          this.layerManager.getPresets(layerIndex).catch((error: unknown) => {
+            vscode.window.showErrorMessage(
+              `[Map] Could not load visualization presets: ${error instanceof Error ? error.message : String(error)}`,
+            );
+            return [] as Array<{ index: number; name: string; type: string }>;
+          }),
         ]);
-        const layer = this.layerManager.layers.get(layerIndex);
         this.post({
           type: 'vizEditorData',
           data: {
             layerIndex,
             bands,
             presets,
+            sourceType: layer?.sourceType ?? 'image',
             currentVisParams: layer?.visParams ?? {},
             opacity: layer?.opacity ?? 1,
           },
@@ -234,12 +242,11 @@ export class MapPanel extends EditorPanel {
           scale: number;
         };
         try {
-          const { values, truncated } = await this.layerManager.computeClasses(
-            d.layerIndex,
-            d.band,
-            d.bounds,
-            d.scale,
-          );
+          const layer = this.layerManager.layers.get(d.layerIndex);
+          const { values, truncated } =
+            layer?.sourceType === 'featureCollection'
+              ? await this.layerManager.getPropertyClasses(d.layerIndex, d.band, d.bounds)
+              : await this.layerManager.computeClasses(d.layerIndex, d.band, d.bounds, d.scale);
           this.post({
             type: 'vizClasses',
             data: { layerIndex: d.layerIndex, values, truncated },
@@ -250,6 +257,28 @@ export class MapPanel extends EditorPanel {
             data: {
               layerIndex: d.layerIndex,
               values: null,
+              error: err instanceof Error ? err.message : String(err),
+            },
+          });
+        }
+      } else if (msg.type === 'computePropertyRange') {
+        const d = msg.data as {
+          layerIndex: number;
+          property: string;
+          bounds: [number, number, number, number];
+        };
+        try {
+          const range = await this.layerManager.getPropertyRange(
+            d.layerIndex,
+            d.property,
+            d.bounds,
+          );
+          this.post({ type: 'vizPropertyRange', data: { layerIndex: d.layerIndex, range } });
+        } catch (err) {
+          this.post({
+            type: 'vizPropertyRange',
+            data: {
+              layerIndex: d.layerIndex,
               error: err instanceof Error ? err.message : String(err),
             },
           });
@@ -388,6 +417,59 @@ export class MapPanel extends EditorPanel {
     }
   }
 
+  /** Adds one map layer for each supported visualization preset on the demo table. */
+  private async demoCollection(): Promise<void> {
+    await this.open();
+
+    const eeAny = (await ensureEe()) as any;
+    const assetId = 'projects/earthengine-extension/assets/demo-collection';
+    const { token } = await getEeContext();
+    const asset = await getAsset(assetId, token);
+    if (asset.type !== 'TABLE') {
+      throw new Error(`Asset '${assetId}' is not a FeatureCollection.`);
+    }
+    const presets = parseSepalVisualizations(asset.properties ?? {}).filter((preset) =>
+      ['uniform', 'continuous', 'categorical', 'intervals'].includes(preset.type),
+    );
+    if (presets.length === 0) {
+      throw new Error(`No FeatureCollection visualization presets found on '${assetId}'.`);
+    }
+
+    const serialized = eeAny.Serializer.toJSON(eeAny.FeatureCollection(assetId)) as string;
+    for (const preset of presets) {
+      await this.layerManager.add(
+        {
+          serialized,
+          sourceType: 'featureCollection',
+          assetName: assetId,
+          visParams:
+            preset.type === 'uniform'
+              ? {
+                  vizType: 'uniform',
+                  color: preset.color,
+                  fillColor: preset.fillColor,
+                  width: preset.width,
+                }
+              : {
+                  vizType: preset.type,
+                  property: preset.bands[0],
+                  palette: preset.palette,
+                  min: preset.min?.[0],
+                  max: preset.max?.[0],
+                  values: preset.values,
+                  labels: preset.labels,
+                  breaks: preset.breaks,
+                },
+          name: preset.name,
+          shown: true,
+          opacity: 1.0,
+        },
+        (m) => this.post(m),
+      );
+    }
+    await this.setView({ lat: 46.6, lon: 2.4, zoom: 6 });
+  }
+
   // ==================================================================
   // PROGRAMMATIC API
   // ==================================================================
@@ -422,8 +504,7 @@ export class MapPanel extends EditorPanel {
     } else if (type === 'IMAGE_COLLECTION') {
       eeObject = eeAny.ImageCollection(assetId).mosaic();
     } else if (type === 'TABLE') {
-      eeObject = eeAny.FeatureCollection(assetId).style(visParams);
-      layerVisParams = {};
+      eeObject = eeAny.FeatureCollection(assetId);
     } else {
       throw new Error(`Asset '${assetId}' has type ${type}, which cannot be displayed on the map.`);
     }
@@ -435,7 +516,8 @@ export class MapPanel extends EditorPanel {
         name,
         shown,
         opacity,
-        assetName: type === 'IMAGE' ? assetName : undefined,
+        assetName: type === 'IMAGE' || type === 'TABLE' ? assetName : undefined,
+        sourceType: type === 'TABLE' ? 'featureCollection' : 'image',
       },
       (m) => this.post(m),
     );
@@ -534,6 +616,9 @@ export class MapPanel extends EditorPanel {
         this.clearApiKey(),
       ),
       vscode.commands.registerCommand('earthengine.map.demo', () => this.demo()),
+      vscode.commands.registerCommand('earthengine.map.demoCollection', () =>
+        this.demoCollection(),
+      ),
       this,
     );
   }
@@ -554,6 +639,7 @@ export class MapPanel extends EditorPanel {
     if (cmd.type === 'addLayer') {
       const d = cmd.data as {
         serialized: string;
+        sourceType?: 'image' | 'featureCollection';
         visParams: Record<string, unknown>;
         name: string;
         shown: boolean;

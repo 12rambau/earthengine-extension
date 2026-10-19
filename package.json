@@ -345,6 +345,11 @@
         "icon": "$(beaker)"
       },
       {
+        "command": "earthengine.map.demoCollection",
+        "title": "Earth Engine: Demo – Feature Collection",
+        "icon": "$(beaker)"
+      },
+      {
         "command": "earthengine.openCommunityDatasetPanel",
         "title": "Open Details",
         "icon": "$(open-preview)",
@@ -359,7 +364,7 @@
         "icon": "$(globe)",
         "canBeReferencedInPrompt": true,
         "userDescription": "Run Earth Engine extension commands (open the map, create a temporary Python script, open panels, refresh trees).",
-        "modelDescription": "Runs a command of the Earth Engine VS Code extension. Use it to open the map, show the visualization demo, open panels, refresh trees, or create a temporary Python script. Commands: earthengine.openMap, earthengine.map.demo, earthengine.openAssetsPanel, earthengine.openExportTasksPanel, earthengine.openImportTasksPanel, earthengine.refreshAssets, earthengine.refreshTasks, earthengine.refreshDatasets, earthengine.refreshDocs, earthengine.showAuthStatus, earthengine.newScript (creates and opens a temporary .py file for the active profile and returns its path). For Earth Engine analysis, load the earthengine-python skill and write the analysis in a Python script.",
+        "modelDescription": "Runs a command of the Earth Engine VS Code extension. Use it to open the map, show the visualization demo, show the demo feature collection, open panels, refresh trees, or create a temporary Python script. Commands: earthengine.openMap, earthengine.map.demo, earthengine.map.demoCollection, earthengine.openAssetsPanel, earthengine.openExportTasksPanel, earthengine.openImportTasksPanel, earthengine.refreshAssets, earthengine.refreshTasks, earthengine.refreshDatasets, earthengine.refreshDocs, earthengine.showAuthStatus, earthengine.newScript (creates and opens a temporary .py file for the active profile and returns its path). For Earth Engine analysis, load the earthengine-python skill and write the analysis in a Python script.",
         "tags": [
           "earthengine",
           "map",
@@ -373,6 +378,7 @@
               "enum": [
                 "earthengine.openMap",
                 "earthengine.map.demo",
+                "earthengine.map.demoCollection",
                 "earthengine.openAssetsPanel",
                 "earthengine.openExportTasksPanel",
                 "earthengine.openImportTasksPanel",

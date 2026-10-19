@@ -6,8 +6,9 @@
  * for downstream use (pixel inspection), and notifies the WebView.
  */
 
-import { ensureEe, getMapIdUrl, computeValue } from '../../shared/eeSession.js';
+import { ensureEe, getEeContext, getMapIdUrl, computeValue } from '../../shared/eeSession.js';
 import { getImageVisualizations } from '../../shared/imageVisualizations.js';
+import { getAsset } from '../../sidebar/assets/eeApiClient.js';
 import { EeLayer } from './eeLayer.js';
 import {
   parseSepalVisualizations,
@@ -15,9 +16,10 @@ import {
   selectSepalViz,
 } from '../../shared/sepalViz.js';
 
-/** Shape of an `addLayer` command payload received from the bridge server. */
+/** Shape of an `addLayer` payload received from the bridge or asset API. */
 export interface AddLayerPayload {
   serialized: string;
+  sourceType?: 'image' | 'featureCollection';
   visParams: Record<string, unknown>;
   name: string;
   shown: boolean;
@@ -37,6 +39,121 @@ const STRETCH_ERROR_MARGIN = 1000;
 
 /** Upper bound on the classes `computeClasses` reports, keeping the legend usable. */
 const MAX_AUTO_CLASSES = 30;
+
+function styleFeatureCollection(source: any, visParams: Record<string, unknown>, ee: any): unknown {
+  const collection = ee.FeatureCollection(source);
+  const { property, vizType, palette, values, breaks, min, max, strokeWidth, ...style } = visParams;
+  const base = {
+    color: style['color'] ?? '000000',
+    fillColor: style['fillColor'] ?? '00000000',
+    width: style['width'] ?? strokeWidth ?? 2,
+    pointSize: style['pointSize'] ?? 3,
+    ...(style['pointShape'] ? { pointShape: style['pointShape'] } : {}),
+    ...(style['lineType'] ? { lineType: style['lineType'] } : {}),
+  };
+  if (!property && !palette && (!vizType || vizType === 'uniform')) {
+    return collection.style({ ...style, ...base });
+  }
+  if (
+    typeof property !== 'string' ||
+    !['continuous', 'categorical', 'intervals'].includes(String(vizType))
+  ) {
+    throw new Error('Select one property and a supported vector visualization mode.');
+  }
+  if (!Array.isArray(palette) || palette.length === 0) {
+    throw new Error('A palette is required for property styling.');
+  }
+
+  let colors = palette;
+  if (vizType === 'continuous') {
+    if (typeof min !== 'number' || typeof max !== 'number' || min >= max || palette.length < 2) {
+      throw new Error('A continuous palette requires at least two colors and increasing min/max.');
+    }
+    const stops = palette.map((color) => {
+      const hex = String(color).replace(/^#/, '');
+      if (!/^[0-9a-fA-F]{6}$/.test(hex)) {
+        throw new Error('Palette colors must be hex RGB.');
+      }
+      return [0, 2, 4].map((index) => parseInt(hex.slice(index, index + 2), 16));
+    });
+    colors = Array.from({ length: 256 }, (_, index) => {
+      const position = (index / 255) * (stops.length - 1);
+      const start = Math.min(Math.floor(position), stops.length - 2);
+      return stops[start]
+        .map((channel, offset) =>
+          Math.round(channel + (stops[start + 1][offset] - channel) * (position - start))
+            .toString(16)
+            .padStart(2, '0'),
+        )
+        .join('');
+    });
+  } else if (
+    vizType === 'categorical' &&
+    (!Array.isArray(values) || values.length !== palette.length)
+  ) {
+    throw new Error('Categorical values and colors must have the same length.');
+  } else if (
+    vizType === 'intervals' &&
+    (!Array.isArray(breaks) ||
+      breaks.length !== palette.length + 1 ||
+      breaks.some(
+        (value, index) => typeof value !== 'number' || (index > 0 && value <= breaks[index - 1]),
+      ))
+  ) {
+    throw new Error('Intervals require increasing breaks and one color per interval.');
+  }
+
+  if (palette.some((color) => !/^#?[0-9a-fA-F]{6}$/.test(String(color)))) {
+    throw new Error('Palette colors must be hex RGB.');
+  }
+  const colorList = ee.List(colors.map((color) => String(color).replace(/^#/, '')));
+  const valueList = vizType === 'categorical' ? ee.List(values) : null;
+  const intervalBreaks = vizType === 'intervals' ? (breaks as number[]) : [];
+  const styled = collection.map((feature: any) => {
+    const value = feature.get(property);
+    const number = ee.Number(ee.Algorithms.If(ee.Algorithms.IsEqual(value, null), 0, value));
+    let index: any;
+    if (vizType === 'continuous') {
+      index = number
+        .subtract(min)
+        .divide(ee.Number(max).subtract(min))
+        .multiply(255)
+        .round()
+        .max(0)
+        .min(255);
+    } else if (vizType === 'categorical') {
+      index = valueList.indexOf(value);
+    } else {
+      index = ee.Number(-1);
+      for (let offset = 0; offset < palette.length; offset++) {
+        index = ee.Number(
+          ee.Algorithms.If(
+            number.gte(intervalBreaks[offset]).and(number.lt(intervalBreaks[offset + 1])),
+            offset,
+            index,
+          ),
+        );
+      }
+    }
+    const color = ee.String(colorList.get(ee.Number(index).max(0)));
+    const fallback = ee.String(base.color).replace('#', '');
+    const selected = ee.String(
+      ee.Algorithms.If(
+        ee.Algorithms.IsEqual(value, null),
+        fallback,
+        vizType === 'continuous'
+          ? color
+          : ee.Algorithms.If(ee.Number(index).gte(0), color, fallback),
+      ),
+    );
+    return feature.set('_vsceeStyle', {
+      ...base,
+      color: selected,
+      fillColor: selected.cat('AA'),
+    });
+  });
+  return styled.style({ styleProperty: '_vsceeStyle' });
+}
 
 // ==================================================================
 // MAPLAYERMANAGER
@@ -92,6 +209,37 @@ export class MapLayerManager {
 
     const ee = await ensureEe();
     const image = ee.Deserializer.fromJSON(payload.serialized);
+
+    if (payload.sourceType === 'featureCollection') {
+      const url = await getMapIdUrl(styleFeatureCollection(image, payload.visParams, ee), {});
+      const layerIndex = existingLayer?.index ?? this.layerCount++;
+      this._layers.set(
+        layerIndex,
+        new EeLayer(
+          layerIndex,
+          payload.serialized,
+          payload.name,
+          url,
+          payload.visParams,
+          payload.shown,
+          payload.opacity,
+          payload.assetName,
+          'featureCollection',
+        ),
+      );
+      postMessage({
+        type: existingLayer ? 'replaceTileLayer' : 'addTileLayer',
+        data: {
+          url,
+          name: payload.name,
+          shown: payload.shown,
+          opacity: payload.opacity,
+          layerIndex,
+          visParams: payload.visParams,
+        },
+      });
+      return;
+    }
 
     const rawVisParams = payload.visParams ?? {};
     const hasDefault = 'default' in rawVisParams;
@@ -175,6 +323,7 @@ export class MapLayerManager {
         payload.shown,
         payload.opacity,
         payload.assetName,
+        'image',
       ),
     );
 
@@ -271,6 +420,81 @@ export class MapLayerManager {
     } catch {
       return [];
     }
+  }
+
+  /** Returns properties present on the first feature of a vector layer. */
+  async getPropertyNames(layerIndex: number): Promise<string[]> {
+    const layer = this._layers.get(layerIndex);
+    if (!layer || layer.sourceType !== 'featureCollection') {
+      return [];
+    }
+    try {
+      const ee = await ensureEe();
+      const collection = ee.Deserializer.fromJSON(layer.serialized) as any;
+      const names = await computeValue<string[]>(collection.first().propertyNames());
+      return names.filter((name) => !name.startsWith('system:'));
+    } catch {
+      return [];
+    }
+  }
+
+  /** Detects class values in the visible part of a vector collection. */
+  async getPropertyClasses(
+    layerIndex: number,
+    property: string,
+    bounds: [number, number, number, number],
+  ): Promise<{ values: (string | number)[]; truncated: boolean }> {
+    const layer = this._layers.get(layerIndex);
+    if (!layer || layer.sourceType !== 'featureCollection') {
+      return { values: [], truncated: false };
+    }
+    const ee = (await ensureEe()) as any;
+    const [south, west, north, east] = bounds;
+    const region = ee.Geometry.Rectangle([west, south, east, north], null, false);
+    const collection = ee.Deserializer.fromJSON(layer.serialized);
+    const histogram = await computeValue<Record<string, number>>(
+      collection.filterBounds(region).aggregate_histogram(property),
+    );
+    const entries = Object.entries(histogram ?? {}).sort((left, right) => right[1] - left[1]);
+    const first = await computeValue<unknown>(
+      collection
+        .filter(ee.Filter.notNull([property]))
+        .first()
+        .get(property),
+    );
+    const numeric = typeof first === 'number';
+    const values = entries
+      .slice(0, MAX_AUTO_CLASSES)
+      .map(([value]) => (numeric ? Number(value) : value));
+    values.sort((left, right) =>
+      numeric ? Number(left) - Number(right) : String(left).localeCompare(String(right)),
+    );
+    return { values, truncated: entries.length > MAX_AUTO_CLASSES };
+  }
+
+  /** Returns the numeric range of a vector property inside the viewport. */
+  async getPropertyRange(
+    layerIndex: number,
+    property: string,
+    bounds: [number, number, number, number],
+  ): Promise<{ min: number; max: number }> {
+    const layer = this._layers.get(layerIndex);
+    if (!layer || layer.sourceType !== 'featureCollection') {
+      throw new Error('Vector layer not found.');
+    }
+    const ee = (await ensureEe()) as any;
+    const [south, west, north, east] = bounds;
+    const region = ee.Geometry.Rectangle([west, south, east, north], null, false);
+    const collection = ee.Deserializer.fromJSON(layer.serialized)
+      .filterBounds(region)
+      .filter(ee.Filter.notNull([property]));
+    const range = await computeValue<{ min: number | null; max: number | null }>(
+      collection.reduceColumns(ee.Reducer.minMax(), [property]),
+    );
+    if (!Number.isFinite(range?.min) || !Number.isFinite(range?.max)) {
+      throw new Error('No numeric values found for this property in the visible area.');
+    }
+    return { min: range.min!, max: range.max! };
   }
 
   /**
@@ -407,7 +631,7 @@ export class MapLayerManager {
     return { values: kept, truncated: counted.length > MAX_AUTO_CLASSES };
   }
 
-  /** Returns parsed SEPAL visualization presets for the image at `layerIndex`. */
+  /** Returns parsed visualization presets for the asset at `layerIndex`. */
 
   async getPresets(layerIndex: number): Promise<
     Array<{
@@ -422,6 +646,9 @@ export class MapLayerManager {
       labels?: string[];
       values?: number[];
       breaks?: number[];
+      color?: string;
+      fillColor?: string;
+      width?: number;
     }>
   > {
     const layer = this._layers.get(layerIndex);
@@ -429,10 +656,20 @@ export class MapLayerManager {
       return [];
     }
     try {
-      const ee = await ensureEe();
-      const image = ee.Deserializer.fromJSON(layer.serialized);
-      const props = await computeValue<Record<string, unknown>>((image as any).toDictionary());
-      const vizs = await getImageVisualizations(props, undefined, layer.assetName);
+      let props: Record<string, unknown>;
+      if (layer.sourceType === 'featureCollection' && layer.assetName) {
+        props = (await getAsset(layer.assetName, (await getEeContext()).token)).properties ?? {};
+      } else {
+        const ee = await ensureEe();
+        const source = ee.Deserializer.fromJSON(layer.serialized);
+        props = await computeValue<Record<string, unknown>>((source as any).toDictionary());
+      }
+      const vizs =
+        layer.sourceType === 'featureCollection'
+          ? parseSepalVisualizations(props).filter((viz) =>
+              ['uniform', 'continuous', 'categorical', 'intervals'].includes(viz.type),
+            )
+          : await getImageVisualizations(props, undefined, layer.assetName);
       return vizs.map((v) => ({
         index: v.index,
         name: v.name,
@@ -445,8 +682,14 @@ export class MapLayerManager {
         labels: v.labels,
         values: v.values,
         breaks: v.breaks,
+        color: v.color,
+        fillColor: v.fillColor,
+        width: v.width,
       }));
-    } catch {
+    } catch (error) {
+      if (layer.sourceType === 'featureCollection' && layer.assetName) {
+        throw error;
+      }
       return [];
     }
   }
@@ -466,6 +709,17 @@ export class MapLayerManager {
     }
     const ee = await ensureEe();
     const image = ee.Deserializer.fromJSON(layer.serialized);
+
+    if (layer.sourceType === 'featureCollection') {
+      const visParams = { ...config };
+      delete visParams['opacity'];
+      delete visParams['layerIndex'];
+      const url = await getMapIdUrl(styleFeatureCollection(image, visParams, ee), {});
+      layer.url = url;
+      layer.visParams = visParams;
+      postMessage({ type: 'replaceTileLayer', data: { layerIndex, url, visParams } });
+      return;
+    }
 
     let resolvedImage: unknown = image;
     let resolvedVisParams: Record<string, unknown> = {};

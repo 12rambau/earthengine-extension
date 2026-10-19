@@ -48,7 +48,7 @@
         type: 'gradient',
         rows: [
           {
-            label: bands[0] || 'b0',
+            label: vp.property || bands[0] || 'b0',
             min: minArr[0],
             max: maxArr[0],
             gradient: paletteGradient(palette),

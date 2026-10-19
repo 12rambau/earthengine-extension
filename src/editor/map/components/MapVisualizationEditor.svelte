@@ -117,6 +117,10 @@
     { id: 'percent-98', label: 'Stretch: 98%' },
     { id: 'percent-100', label: 'Stretch: 100%' },
   ];
+  const VECTOR_RANGE_MODES = [
+    { id: 'custom', label: 'Custom' },
+    { id: 'visible', label: 'Visible min/max' },
+  ];
 
   // ----------------------------------------------------------------
   // STATE
@@ -126,6 +130,15 @@
   let vizCodeVisible = $state(false);
   let vizCodeCopied = $state(false);
   let vizLayerIndex = $state(-1);
+  let vizSourceType = $state('image');
+  let vizProperty = $state('');
+  let vizVectorColor = $state('#000000');
+  let vizVectorStroke = $state(true);
+  let vizVectorFill = $state(false);
+  let vizVectorFillColor = $state('#000000');
+  let vizVectorWidth = $state(2);
+  let vizVectorPointSize = $state(3);
+  let vizVectorNotice = $state('');
   let vizBands = $state([]);
   let vizPresets = $state([]);
   let vizType = $state('rgb');
@@ -269,18 +282,29 @@
   // ----------------------------------------------------------------
 
   function applyVisParams(vp) {
-    const bands = vp.bands || [];
+    vizVectorNotice = '';
+    const bands = vizSourceType === 'featureCollection' ? [vp.property].filter(Boolean) : vp.bands || [];
     const isCat = Array.isArray(vp.values) && vp.values.length > 0;
 
-    if (vp.vizType === 'intervals' || (Array.isArray(vp.breaks) && vp.breaks.length > 1)) {
+    if (vizSourceType === 'featureCollection' && !vp.property) {
+      vizType = 'uniform';
+    } else if (vp.vizType === 'intervals' || (Array.isArray(vp.breaks) && vp.breaks.length > 1)) {
       vizType = 'intervals';
     } else if (isCat) {
       vizType = 'categorical';
     } else if (vp.palette && bands.length <= 1) {
       vizType = 'continuous';
     } else {
-      vizType = 'rgb';
+      vizType = vizSourceType === 'featureCollection' ? 'uniform' : 'rgb';
     }
+
+    vizProperty = vp.property || '';
+    vizVectorColor = normalizeHex(vp.color || '000000');
+    vizVectorStroke = vp.color !== '00000000';
+    vizVectorFill = Boolean(vp.fillColor && vp.fillColor !== '00000000');
+    vizVectorFillColor = normalizeHex(vp.fillColor || '000000');
+    vizVectorWidth = Number(vp.width ?? vp.strokeWidth ?? 2);
+    vizVectorPointSize = Number(vp.pointSize ?? 3);
 
     const minArr = Array.isArray(vp.min) ? vp.min : [vp.min];
     const maxArr = Array.isArray(vp.max) ? vp.max : [vp.max];
@@ -368,6 +392,32 @@
   }
 
   function collectVisParams() {
+    const vector = vizSourceType === 'featureCollection';
+    const vectorSize = {
+      width: Number(vizVectorWidth),
+      pointSize: Number(vizVectorPointSize),
+    };
+    const vectorStyle = {
+      ...vectorSize,
+      color: vizVectorStroke ? vizVectorColor : '00000000',
+      ...(vizVectorFill ? { fillColor: vizVectorFillColor } : {}),
+    };
+    if (vector && (
+      (vizType === 'uniform' && (
+        (vizVectorStroke && !parseHex(vizVectorColor)) ||
+        (vizVectorFill && !parseHex(vizVectorFillColor))
+      )) ||
+      !Number.isFinite(vectorSize.width) || vectorSize.width < 0 ||
+      !Number.isFinite(vectorSize.pointSize) || vectorSize.pointSize < 1
+    )) {
+      return null;
+    }
+    if (vector && vizType === 'uniform') {
+      return { vizType: 'uniform', ...vectorStyle };
+    }
+    if (vector && !vizProperty) {
+      return null;
+    }
     if (vizType === 'rgb' || vizType === 'hsv') {
       const isRgb = vizType === 'rgb';
       const bands = isRgb ? [vizRgbR, vizRgbG, vizRgbB] : [vizHsvH, vizHsvS, vizHsvV];
@@ -395,11 +445,14 @@
       if (!Number.isFinite(min) || !Number.isFinite(max)) {
         return null;
       }
+      if (vector && (min >= max || vizContColors.length < 2)) {
+        return null;
+      }
       return {
         vizType: 'continuous',
-        bands: [vizContBand],
-        min: [min],
-        max: [max],
+        ...(vector ? { property: vizProperty, ...vectorSize } : { bands: [vizContBand] }),
+        min: vector ? min : [min],
+        max: vector ? max : [max],
         palette: [...vizContColors],
       };
     }
@@ -408,19 +461,25 @@
         labels = [],
         palette = [];
       for (const row of vizCatRows) {
-        const v = parseInt(row.value);
-        if (!isNaN(v)) {
+        const raw = String(row.value).trim();
+        const v = vector ? (raw && Number.isFinite(Number(raw)) ? Number(raw) : raw) : parseInt(row.value);
+        if (vector ? v !== '' : !isNaN(v)) {
           values.push(v);
           labels.push(row.label || 'Class ' + values.length);
           palette.push(row.color);
         }
       }
-      return { vizType: 'categorical', bands: [vizCatBand], values, labels, palette };
+      if (vector && values.length === 0) {
+        return null;
+      }
+      return { vizType: 'categorical',
+        ...(vector ? { property: vizProperty, ...vectorSize } : { bands: [vizCatBand] }),
+        values, labels, palette };
     }
     if (vizType === 'intervals') {
       const breaks = [Number(vizIntStart), ...vizIntRows.map((row) => Number(row.upper))];
       if (
-        !vizIntBand ||
+        !(vector ? vizProperty : vizIntBand) ||
         !String(vizIntStart ?? '').trim() ||
         vizIntRows.length === 0 ||
         vizIntRows.some((row) => !String(row.upper ?? '').trim()) ||
@@ -432,7 +491,7 @@
       }
       return {
         vizType: 'intervals',
-        bands: [vizIntBand],
+        ...(vector ? { property: vizProperty, ...vectorSize } : { bands: [vizIntBand] }),
         breaks,
         palette: vizIntRows.map((row) => row.color),
         labels: vizIntRows.map((row) => row.label),
@@ -444,8 +503,15 @@
   function vizApply() {
     const config = collectVisParams();
     if (!config) {
-      if (vizType === 'intervals') {
-        vizIntNotice = 'Select a band and enter increasing interval boundaries.';
+      if (vizSourceType === 'featureCollection' || vizType === 'intervals') {
+        const notice = vizSourceType === 'featureCollection'
+          ? 'Check the colours and sizes, then select a property and complete its palette if needed.'
+          : 'Select a band and enter increasing interval boundaries.';
+        if (vizSourceType === 'featureCollection') {
+          vizVectorNotice = notice;
+        } else {
+          vizIntNotice = notice;
+        }
       }
       return;
     }
@@ -486,6 +552,9 @@
       return 'Complete the visualization parameters first.';
     }
     const opacity = String(clampOpacityPercent(vizOpacity) / 100);
+    if (vizSourceType === 'featureCollection') {
+      return JSON.stringify(config, null, 2);
+    }
     if (config.vizType === 'intervals') {
       return jsonDict([
         ['bands', jsonList(config.bands, true)],
@@ -697,6 +766,22 @@
     if (!p) {
       return;
     }
+    if (vizSourceType === 'featureCollection') {
+      applyVisParams({
+        vizType: p.type,
+        property: p.type === 'uniform' ? '' : p.bands?.[0],
+        color: p.color,
+        fillColor: p.fillColor,
+        width: p.width,
+        min: p.min?.[0],
+        max: p.max?.[0],
+        palette: p.palette,
+        values: p.values,
+        labels: p.labels,
+        breaks: p.breaks,
+      });
+      return;
+    }
     const vp = { bands: p.bands || [] };
     if (p.min) {
       vp.min = p.min;
@@ -850,8 +935,8 @@
   /** Reads back the class values actually drawn in the current viewport. */
   function autoDetectClasses() {
     vizCatNotice = '';
-    if (!vizCatBand) {
-      vizCatNotice = 'Select a band first.';
+    if (!(vizSourceType === 'featureCollection' ? vizProperty : vizCatBand)) {
+      vizCatNotice = vizSourceType === 'featureCollection' ? 'Select a property first.' : 'Select a band first.';
       return;
     }
     const b = map.getBounds();
@@ -860,11 +945,27 @@
       type: 'computeClasses',
       data: {
         layerIndex: vizLayerIndex,
-        band: vizCatBand,
+        band: vizSourceType === 'featureCollection' ? vizProperty : vizCatBand,
         bounds: [b.getSouth(), b.getWest(), b.getNorth(), b.getEast()],
         scale: viewportScale(),
       },
     });
+  }
+
+  function detectPropertyRange() {
+    if (!vizProperty) {
+      vizStretchError = 'Select a property first.';
+      vizStretch = 'custom';
+      return;
+    }
+    const bounds = map.getBounds();
+    vizStretchError = '';
+    vizComputing = true;
+    vscode.postMessage({ type: 'computePropertyRange', data: {
+      layerIndex: vizLayerIndex,
+      property: vizProperty,
+      bounds: [bounds.getSouth(), bounds.getWest(), bounds.getNorth(), bounds.getEast()],
+    } });
   }
 
   function applyDetectedClasses(values, truncated) {
@@ -948,6 +1049,7 @@
     const msg = e.data;
     if (msg.type === 'vizEditorData') {
       vizLayerIndex = msg.data.layerIndex;
+      vizSourceType = msg.data.sourceType || 'image';
       vizBands = msg.data.bands || [];
       vizPresets = msg.data.presets || [];
       applyVisParams(msg.data.currentVisParams || {});
@@ -975,6 +1077,21 @@
           vizCatNotice = msg.data.error || 'Class detection failed.';
         }
       }
+    } else if (msg.type === 'vizPropertyRange' && msg.data.layerIndex === vizLayerIndex) {
+      vizComputing = false;
+      if (msg.data.range) {
+        if (vizType === 'continuous') {
+          vizContMin = fmtVal(msg.data.range.min);
+          vizContMax = fmtVal(msg.data.range.max);
+        } else if (vizType === 'intervals') {
+          vizIntStart = fmtVal(msg.data.range.min);
+          vizIntMax = fmtVal(msg.data.range.max);
+          generateIntRows();
+        }
+      } else {
+        vizStretchError = msg.data.error || 'Could not detect the property range.';
+        vizStretch = 'custom';
+      }
     }
   });
 
@@ -997,9 +1114,17 @@
       class="viz-band-select"
       disabled={vizComputing}
       value={vizStretch}
-      onchange={(e) => applyStretch(e.target.value)}
+      onchange={(e) => {
+        if (vizSourceType === 'featureCollection') {
+          vizStretch = e.target.value;
+          vizStretchError = '';
+          if (vizStretch === 'visible') detectPropertyRange();
+        } else {
+          applyStretch(e.target.value);
+        }
+      }}
     >
-      {#each STRETCH_MODES as mode}
+      {#each vizSourceType === 'featureCollection' ? VECTOR_RANGE_MODES : STRETCH_MODES as mode}
         <option value={mode.id}>{mode.label}</option>
       {/each}
     </select>
@@ -1078,8 +1203,12 @@
             }
           }}
         >
-          <option value="rgb">RGB</option>
-          <option value="hsv">HSV</option>
+          {#if vizSourceType === 'featureCollection'}
+            <option value="uniform">Uniform</option>
+          {:else}
+            <option value="rgb">RGB</option>
+            <option value="hsv">HSV</option>
+          {/if}
           <option value="continuous">Continuous</option>
           <option value="categorical">Categorical</option>
           <option value="intervals">Intervals</option>
@@ -1096,6 +1225,33 @@
       </div>
       <!-- Body -->
       <div class="viz-editor-body">
+        {#if vizSourceType === 'featureCollection'}
+          {#if vizType === 'categorical'}
+            <div class="viz-channel-row">
+              <span class="viz-channel-label">Property</span>
+              <select class="viz-band-select" bind:value={vizProperty} onchange={markRangeCustom}>
+                <option value="">—</option>
+                {#each vizBands as property}<option value={property}>{property}</option>{/each}
+              </select>
+            </div>
+          {:else if vizType === 'uniform'}
+            <div class="viz-channel-row">
+              <label class="viz-channel-label" for="viz-vector-stroke">Stroke</label>
+              <ColorPicker bind:value={vizVectorColor} label="Stroke colour" />
+              <input type="text" class="viz-input viz-vector-hex" aria-label="Stroke colour hex" bind:value={vizVectorColor} />
+              <input id="viz-vector-stroke" class="viz-color-switch" type="checkbox" role="switch"
+                aria-label="Enable stroke" bind:checked={vizVectorStroke} />
+            </div>
+            <div class="viz-channel-row">
+              <label class="viz-channel-label" for="viz-vector-fill">Fill</label>
+              <ColorPicker bind:value={vizVectorFillColor} label="Fill colour" />
+              <input type="text" class="viz-input viz-vector-hex" aria-label="Fill colour hex" bind:value={vizVectorFillColor} />
+              <input id="viz-vector-fill" class="viz-color-switch" type="checkbox" role="switch"
+                aria-label="Enable fill" bind:checked={vizVectorFill} />
+            </div>
+          {/if}
+          {#if vizVectorNotice}<p class="viz-stretch-error">{vizVectorNotice}</p>{/if}
+        {/if}
         <!-- RGB -->
         {#if vizType === 'rgb'}
           <div class="viz-channel-row">
@@ -1241,11 +1397,19 @@
         <!-- Continuous -->
         {#if vizType === 'continuous'}
           <div class="viz-channel-row">
-            <span class="viz-channel-label">Band</span>
-            <select class="viz-band-select" bind:value={vizContBand}>
-              <option value="">—</option>
-              {#each vizBands as b}<option value={b}>{b}</option>{/each}
-            </select>
+            {#if vizSourceType === 'image'}
+              <span class="viz-channel-label">Band</span>
+              <select class="viz-band-select" bind:value={vizContBand}>
+                <option value="">—</option>
+                {#each vizBands as b}<option value={b}>{b}</option>{/each}
+              </select>
+            {:else}
+              <span class="viz-channel-label">Property</span>
+              <select class="viz-band-select" bind:value={vizProperty} onchange={markRangeCustom}>
+                <option value="">—</option>
+                {#each vizBands as property}<option value={property}>{property}</option>{/each}
+              </select>
+            {/if}
             <input
               class="viz-input"
               placeholder="Min"
@@ -1343,13 +1507,15 @@
         {/if}
         <!-- Categorical -->
         {#if vizType === 'categorical'}
-          <div class="viz-channel-row">
-            <span class="viz-channel-label">Band</span>
-            <select class="viz-band-select" bind:value={vizCatBand}>
-              <option value="">—</option>
-              {#each vizBands as b}<option value={b}>{b}</option>{/each}
-            </select>
-          </div>
+          {#if vizSourceType === 'image'}
+            <div class="viz-channel-row">
+              <span class="viz-channel-label">Band</span>
+              <select class="viz-band-select" bind:value={vizCatBand}>
+                <option value="">—</option>
+                {#each vizBands as b}<option value={b}>{b}</option>{/each}
+              </select>
+            </div>
+          {/if}
           <div class="viz-section-label">Classes</div>
           <div class="viz-channel-row">
             <span class="viz-channel-label">Scheme</span>
@@ -1413,7 +1579,7 @@
                   }}
                 />
                 <input
-                  type="number"
+                  type={vizSourceType === 'featureCollection' ? 'text' : 'number'}
                   class="viz-legend-value viz-legend-value-wide"
                   placeholder="Value"
                   bind:value={row.value}
@@ -1447,11 +1613,19 @@
         <!-- Intervals -->
         {#if vizType === 'intervals'}
           <div class="viz-channel-row">
-            <span class="viz-channel-label">Band</span>
-            <select class="viz-band-select" bind:value={vizIntBand}>
-              <option value="">—</option>
-              {#each vizBands as band}<option value={band}>{band}</option>{/each}
-            </select>
+            {#if vizSourceType === 'image'}
+              <span class="viz-channel-label">Band</span>
+              <select class="viz-band-select" bind:value={vizIntBand}>
+                <option value="">—</option>
+                {#each vizBands as band}<option value={band}>{band}</option>{/each}
+              </select>
+            {:else}
+              <span class="viz-channel-label">Property</span>
+              <select class="viz-band-select" bind:value={vizProperty} onchange={markRangeCustom}>
+                <option value="">—</option>
+                {#each vizBands as property}<option value={property}>{property}</option>{/each}
+              </select>
+            {/if}
             <input
               type="number"
               step="any"
@@ -1578,6 +1752,16 @@
           >
         {/if}
       </div>
+      {#if vizSourceType === 'featureCollection'}
+        <div class="viz-vector-settings">
+          <div class="viz-channel-row">
+            <label class="viz-channel-label" for="viz-vector-width">Width</label>
+            <input id="viz-vector-width" class="viz-input" type="number" min="0" step="1" bind:value={vizVectorWidth} />
+            <label class="viz-channel-label" for="viz-vector-size">Point size</label>
+            <input id="viz-vector-size" class="viz-input" type="number" min="1" step="1" bind:value={vizVectorPointSize} />
+          </div>
+        </div>
+      {/if}
       <!-- Opacity (all viz types) -->
       <div class="viz-opacity-bar">
         <span class="viz-channel-label">Opacity</span>
@@ -1687,6 +1871,7 @@
       border-radius: var(--vscee-radius-lg);
       box-shadow: var(--vscee-shadow-xl);
       width: 420px;
+      max-width: calc(100vw - 24px);
       max-height: 80vh;
       display: flex;
       flex-direction: column;
@@ -1858,6 +2043,45 @@
     .viz-input {
       width: 60px;
     }
+    .viz-vector-hex {
+      flex: 1;
+      min-width: 0;
+    }
+    .viz-color-switch {
+      appearance: none;
+      position: relative;
+      flex: none;
+      width: 32px;
+      height: 18px;
+      margin-left: auto;
+      border: var(--vscee-border-sm) solid var(--vscee-color-widget-border);
+      border-radius: 9px;
+      background: var(--vscee-color-input-background);
+      cursor: pointer;
+
+      &::before {
+        content: '';
+        position: absolute;
+        top: 2px;
+        left: 2px;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: var(--vscee-color-foreground);
+      }
+      &:checked {
+        background: var(--vscee-color-button-background);
+
+        &::before {
+          transform: translateX(14px);
+          background: var(--vscee-color-button-foreground);
+        }
+      }
+      &:focus-visible {
+        outline: 2px solid var(--vscee-color-focus);
+        outline-offset: 2px;
+      }
+    }
     .viz-stretch-status {
       display: inline-flex;
       color: var(--vscee-color-muted);
@@ -2027,6 +2251,14 @@
     .viz-range-value {
       width: 56px;
       font-variant-numeric: tabular-nums;
+    }
+    .viz-vector-settings {
+      padding: var(--vscee-space-md) var(--vscee-space-lg) 0;
+
+      .viz-input {
+        flex: 1;
+        min-width: 0;
+      }
     }
     .viz-opacity-bar {
       display: flex;

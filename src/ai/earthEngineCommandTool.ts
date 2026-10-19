@@ -11,6 +11,8 @@ export const AI_COMMANDS: Readonly<Record<string, string>> = {
   'earthengine.openMap': 'Open (or reveal) the interactive Earth Engine map panel.',
   'earthengine.map.demo':
     'Open the map and add one layer for each visualization preset on projects/earthengine-extension/assets/demo-image.',
+  'earthengine.map.demoCollection':
+    'Open the map and add one layer for each visualization preset on projects/earthengine-extension/assets/demo-collection.',
   'earthengine.openAssetsPanel': 'Open the asset manager panel.',
   'earthengine.openExportTasksPanel': 'Open the export tasks table.',
   'earthengine.openImportTasksPanel': 'Open the import tasks table.',

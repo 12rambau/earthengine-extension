@@ -45,7 +45,16 @@ Map.centerObject(image, zoom=10)
 
 ### `Map.addLayer(ee_object, vis_params=None, name=None, shown=True, opacity=1.0)`
 
-Add a layer to the map. `ee_object` accepts an `ee.Image`, `ee.ImageCollection` (mosaicked automatically), `ee.FeatureCollection`, `ee.Feature`, or `ee.Geometry` (vectors are painted onto an image using the `color` and `strokeWidth` visualisation keys). The object is serialised locally and sent to the extension, which resolves the tile URL.
+Add a layer to the map. `ee_object` accepts an `ee.Image`, `ee.ImageCollection` (mosaicked automatically), `ee.FeatureCollection`, `ee.Feature`, or `ee.Geometry`. Vectors are sent as collections; the extension styles them when it creates the tile layer. Use `color`, `fillColor`, `width`, and `pointSize` for a uniform style. For a palette, choose one `property` and set `vizType` to `continuous` (`min`, `max`, `palette`), `intervals` (`breaks`, `palette`), or `categorical` (`values`, `palette`). The map's visualization editor offers the same palette controls as images, with a property selector instead of bands.
+
+```python
+Map.addLayer(features, {
+	"property": "population",
+	"vizType": "continuous",
+	"min": 0, "max": 1000,
+	"palette": ["#ffffcc", "#800026"],
+}, "Population")
+```
 
 For a single-band palette with discrete intervals, pass increasing boundaries in `breaks` (one more boundary than palette colors). Without `breaks`, `palette` remains a continuous gradient:
 
