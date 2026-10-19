@@ -1,6 +1,6 @@
 <!-- AssetSharingEditor: view and edit asset IAM reader and writer grants -->
 <script>
-  import { vscode } from '../../shared/vscode.ts';
+  import { vscode } from '../../../shared/vscode.ts';
 
   let { editing, saving, sharing = $bindable(null) } = $props();
 
