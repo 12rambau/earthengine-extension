@@ -689,9 +689,11 @@
       opacity: 0.4;
     }
     .action-dot {
-      padding: var(--vscee-space-xxs) var(--vscee-space-sm);
       display: inline-flex;
       align-items: center;
+      justify-content: center;
+      width: 30px;
+      height: 22px;
 
       .codicon {
         font-size: var(--vscee-font-icon-sm);
@@ -724,6 +726,9 @@
       }
     }
     .action-btn {
+      box-sizing: border-box;
+      width: 30px;
+      padding: 0;
       opacity: 0.7;
       &:hover {
         opacity: 1;

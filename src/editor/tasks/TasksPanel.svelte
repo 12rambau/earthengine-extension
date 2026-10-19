@@ -390,6 +390,9 @@
         {#if hasCancel || hasPreview}
           <span class="action-dots">
             <span class="action-dot"><i class="codicon codicon-circle-small-filled"></i></span>
+            {#if hasCancel && hasPreview}
+              <span class="action-dot"><i class="codicon codicon-circle-small-filled"></i></span>
+            {/if}
           </span>
           <span class="action-btns">
             {#if hasCancel}
@@ -606,9 +609,11 @@
       opacity: 0.4;
     }
     .action-dot {
-      padding: var(--vscee-space-xxs) var(--vscee-space-sm);
       display: inline-flex;
       align-items: center;
+      justify-content: center;
+      width: 30px;
+      height: 22px;
     }
     .action-btns {
       display: none;
@@ -630,6 +635,9 @@
       }
     }
     .action-btn {
+      box-sizing: border-box;
+      width: 30px;
+      padding: 0;
       opacity: 0.7;
       &:hover {
         opacity: 1;
