@@ -16,7 +16,7 @@ import { AssetSharingChanges, EEAsset, listFeatures } from '../../../sidebar/ass
 import { designTokens, codiconsCss, escapeHtml } from '../../../shared/index.js';
 import { filesize } from 'filesize';
 import dayjs from 'dayjs';
-import { ensureEe, getThumbUrlRest } from '../../../shared/eeSession.js';
+import { computeValue, ensureEe, getThumbUrlRest } from '../../../shared/eeSession.js';
 import { getExtensionUri } from '../../../shared/extensionContext.js';
 
 import script from './FeatureCollectionPreview.svelte';
@@ -51,15 +51,13 @@ export async function openFeatureCollectionPreview(
   );
 
   // Fetch the first 20 features upfront (needed for FEATURES + COLUMNS tabs)
-  let features: { properties?: Record<string, unknown> }[] = [];
-  try {
-    const resp = await listFeatures(asset.name, accessToken, FEATURES_PAGE_SIZE);
-    features = resp.features ?? [];
-  } catch {
-    // Will show empty table
-  }
+  const [resp, featureCount] = await Promise.all([
+    listFeatures(asset.name, accessToken, FEATURES_PAGE_SIZE).catch(() => ({ features: [] })),
+    getFeatureCollectionCount(asset.name).catch(() => undefined),
+  ]);
+  const features = resp.features ?? [];
 
-  panel.webview.html = buildHtml(asset, features, panel.webview);
+  panel.webview.html = buildHtml(asset, features, featureCount, panel.webview);
 
   // Handle messages from the WebView (lazy thumbnail loading)
   panel.webview.onDidReceiveMessage(
@@ -79,6 +77,12 @@ export async function openFeatureCollectionPreview(
       }
     },
   );
+}
+
+/** Returns the number of features in a FeatureCollection, evaluated server-side. */
+async function getFeatureCollectionCount(assetName: string): Promise<number> {
+  const ee = await ensureEe();
+  return computeValue<number>(ee.FeatureCollection(assetName).size());
 }
 
 // ==================================================================
@@ -209,6 +213,7 @@ function inferType(val: unknown): string {
 function buildHtml(
   asset: EEAsset,
   features: { properties?: Record<string, unknown> }[],
+  featureCount: number | undefined,
   _webview: vscode.Webview,
 ): string {
   const nonce = getNonce();
@@ -216,9 +221,7 @@ function buildHtml(
   const lastModified = asset.updateTime
     ? dayjs.utc(asset.updateTime).format('YYYY-MM-DD HH:mm:ss [UTC]')
     : 'N/A';
-  const featureCount = asset.featureCount
-    ? parseInt(asset.featureCount, 10).toLocaleString()
-    : 'N/A';
+  const formattedFeatureCount = formatFeatureCount(featureCount ?? asset.featureCount);
 
   // Columns inferred from first feature
   const columns = inferColumns(features);
@@ -229,7 +232,7 @@ function buildHtml(
 
   const initData = JSON.stringify({
     fileSize,
-    featureCount,
+    featureCount: formattedFeatureCount,
     lastModified,
     metadata: previewMetadata(asset),
     featuresTableHtml,
@@ -254,6 +257,15 @@ function buildHtml(
     <script nonce="${nonce}">${script}</script>
   </body>
 </html>`;
+}
+
+/** Formats a feature count from the API or an evaluated FeatureCollection size. */
+export function formatFeatureCount(count: number | string | undefined): string {
+  if (count === undefined || count === '') {
+    return 'N/A';
+  }
+  const numericCount = typeof count === 'string' ? Number(count) : count;
+  return Number.isFinite(numericCount) ? numericCount.toLocaleString() : 'N/A';
 }
 
 // ==================================================================
