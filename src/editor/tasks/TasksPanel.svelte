@@ -123,6 +123,15 @@
   let allPageSelected = $derived(
     table.pageRows.length > 0 && table.pageRows.every((task) => selectedNames.has(task.name)),
   );
+  let selectedCount = $derived(table.pageRows.filter((task) => selectedNames.has(task.name)).length);
+
+  $effect(() => {
+    const visibleNames = new Set(table.pageRows.map((task) => task.name));
+    const remaining = [...selectedNames].filter((name) => visibleNames.has(name));
+    if (remaining.length !== selectedNames.size) {
+      selectedNames = new Set(remaining);
+    }
+  });
 
   // Only these states can still be cancelled server-side; anything else is already terminal.
   function isCancelable(task) {
@@ -195,10 +204,10 @@
     if (isCancelling) {
       return;
     }
-    const names = allTasks
+    const names = table.pageRows
       .filter((task) => selectedNames.has(task.name) && isCancelable(task))
       .map((task) => task.name);
-    const skipped = selectedNames.size - names.length;
+    const skipped = selectedCount - names.length;
     if (!names.length) {
       alert('None of the selected tasks can be cancelled.');
       return;
@@ -258,6 +267,7 @@
 <DataTable
   {table}
   itemLabel="tasks"
+  showToolbarEndSeparator={selectedCount > 0}
   loading={isLoading}
   rowKey={(task) => task.name}
   onpreferenceschange={saveState}
@@ -266,10 +276,12 @@
     {#if column.key === 'selection'}
       <input
         type="checkbox"
-        aria-label="Select all tasks on this page"
+        aria-label={allPageSelected ? 'Deselect all visible tasks' : 'Select all visible tasks'}
+        title={allPageSelected ? 'Deselect all visible tasks' : 'Select all visible tasks'}
         checked={allPageSelected}
-        disabled={table.pageRows.length === 0}
-        onclick={togglePageSelection}
+        indeterminate={!allPageSelected && selectedCount > 0}
+        disabled={isCancelling || isLoading || table.pageRows.length === 0}
+        onchange={togglePageSelection}
       />
     {/if}
   {/snippet}
@@ -308,12 +320,16 @@
       {isRefreshing ? 'Refreshing…' : 'Refresh'}
     </TableButton>
 
-    <!-- Rendered last so showing/hiding it never shifts the other toolbar items -->
-    {#if selectedNames.size > 0}
-      <TableButton class="bulk-cancel" danger disabled={isCancelling} onclick={cancelSelected}>
-        <i class="codicon codicon-stop-circle" aria-hidden="true"></i>
-        {isCancelling ? 'Cancelling…' : `Cancel selected (${selectedNames.size})`}
-      </TableButton>
+  {/snippet}
+
+  {#snippet toolbarEnd()}
+    {#if selectedCount > 0}
+      <div class="bulk-actions">
+        <span class="selection-count">{selectedCount} {selectedCount === 1 ? 'task' : 'tasks'} selected</span>
+        <TableButton danger disabled={isCancelling} onclick={cancelSelected}>
+          <i class="codicon codicon-stop-circle" aria-hidden="true"></i> Cancel
+        </TableButton>
+      </div>
     {/if}
   {/snippet}
 
@@ -325,7 +341,8 @@
           type="checkbox"
           aria-label={`Select ${t.description}`}
           checked={selectedNames.has(t.name)}
-          onclick={() => toggleSelection(t.name)}
+          disabled={isCancelling || isLoading}
+          onchange={() => toggleSelection(t.name)}
         />
       </td>
     {/if}
@@ -444,6 +461,16 @@
       align-items: center;
       gap: var(--vscee-space-md);
       flex-shrink: 0;
+    }
+
+    .bulk-actions {
+      display: flex;
+      align-items: center;
+      gap: var(--vscee-space-md);
+    }
+    .selection-count {
+      white-space: nowrap;
+      font-size: var(--vscee-font-sm);
     }
 
     /* ==================================================================

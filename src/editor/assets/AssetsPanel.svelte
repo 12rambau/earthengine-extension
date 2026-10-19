@@ -59,10 +59,21 @@
   let busyAssets = $state(new Map());
   let selectedAssets = $state(new Set());
   let bulkBusy = $state(false);
-  let selectedNames = $derived([...selectedAssets]);
-  let allSelected = $derived(
-    table.sortedRows.length > 0 && table.sortedRows.every((a) => selectedAssets.has(a.name)),
+  let selectedNames = $derived(
+    table.pageRows.filter((asset) => selectedAssets.has(asset.name)).map((asset) => asset.name),
   );
+  let allSelected = $derived(
+    table.pageRows.length > 0 && table.pageRows.every((a) => selectedAssets.has(a.name)),
+  );
+  let pageHasSelection = $derived(table.pageRows.some((a) => selectedAssets.has(a.name)));
+
+  $effect(() => {
+    const visibleNames = new Set(table.pageRows.map((asset) => asset.name));
+    const remaining = [...selectedAssets].filter((name) => visibleNames.has(name));
+    if (remaining.length !== selectedAssets.size) {
+      selectedAssets = new Set(remaining);
+    }
+  });
 
   let newMenuOpen = $state(false);
   let newMenuWrap = $state(null);
@@ -174,11 +185,15 @@
   }
 
   function toggleAll() {
-    if (allSelected) {
-      selectedAssets = new Set();
-      return;
+    const next = new Set(selectedAssets);
+    for (const asset of table.pageRows) {
+      if (allSelected) {
+        next.delete(asset.name);
+      } else {
+        next.add(asset.name);
+      }
     }
-    selectedAssets = new Set(table.sortedRows.map((asset) => asset.name));
+    selectedAssets = next;
   }
 
   function bulkAction(action) {
@@ -260,6 +275,7 @@
 <DataTable
   {table}
   itemLabel="assets"
+  showToolbarEndSeparator={selectedNames.length > 0}
   loading={isLoading}
   rowKey={(asset) => asset.name}
   rowClass={(asset) => (isBusy(asset.name) ? 'busy' : '')}
@@ -322,14 +338,14 @@
   {#snippet toolbarEnd()}
     {#if selectedNames.length}
       <div class="bulk-actions">
-        <span class="selection-count">{selectedNames.length} selected</span>
+        <span class="selection-count">{selectedNames.length} {selectedNames.length === 1 ? 'asset' : 'assets'} selected</span>
         <TableButton disabled={bulkBusy || isLoading} onclick={() => bulkAction('copy')}>
           <i class="codicon codicon-copy"></i> Copy
         </TableButton>
         <TableButton disabled={bulkBusy || isLoading} onclick={() => bulkAction('move')}>
           <i class="codicon codicon-clippy"></i> Move
         </TableButton>
-        <TableButton disabled={bulkBusy || isLoading} onclick={() => bulkAction('delete')}>
+        <TableButton danger disabled={bulkBusy || isLoading} onclick={() => bulkAction('delete')}>
           <i class="codicon codicon-trash"></i> Delete
         </TableButton>
       </div>
@@ -340,11 +356,11 @@
     {#if column.key === 'selection'}
       <input
         type="checkbox"
-        aria-label={allSelected ? 'Deselect all assets' : 'Select all assets'}
-        title={allSelected ? 'Deselect all assets' : 'Select all loaded assets'}
+        aria-label={allSelected ? 'Deselect all visible assets' : 'Select all visible assets'}
+        title={allSelected ? 'Deselect all visible assets' : 'Select all visible assets'}
         checked={allSelected}
-        indeterminate={!allSelected && selectedNames.length > 0}
-        disabled={bulkBusy || isLoading || table.sortedRows.length === 0}
+        indeterminate={!allSelected && pageHasSelection}
+        disabled={bulkBusy || isLoading || table.pageRows.length === 0}
         onchange={toggleAll}
       />
     {:else}

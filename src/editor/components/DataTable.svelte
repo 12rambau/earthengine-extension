@@ -13,6 +13,7 @@
     rowClass = () => '',
     toolbar,
     toolbarEnd,
+    showToolbarEndSeparator = false,
     headerCell,
     headerContent,
     row,
@@ -69,7 +70,10 @@
     {#if toolbar}{@render toolbar()}{/if}
   </div>
   <div class="topbar-right">
-    {#if toolbarEnd}{@render toolbarEnd()}{/if}
+    {#if toolbarEnd}
+      {@render toolbarEnd()}
+      {#if showToolbarEndSeparator}<span class="toolbar-separator" aria-hidden="true"></span>{/if}
+    {/if}
     {#if table.activeFilterCount > 0}
       <TableButton title="Clear all active filters" onclick={clearFilters}>
         <i class="codicon codicon-clear-all"></i>
@@ -183,6 +187,11 @@
 
   .topbar-right {
     margin-left: auto;
+  }
+
+  .toolbar-separator {
+    height: 20px;
+    border-left: var(--vscee-border-sm) solid var(--vscee-color-panel-border);
   }
 
   /* ==================================================================
