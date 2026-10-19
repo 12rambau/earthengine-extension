@@ -1,6 +1,6 @@
 <!-- DatePicker: themed calendar input with optional local time selection -->
 <script>
-  import { trackViewportChanges } from './viewportAnchor.ts';
+  import { trackViewportChanges } from '../shared/viewportAnchor.ts';
 
   let {
     value = $bindable(''),

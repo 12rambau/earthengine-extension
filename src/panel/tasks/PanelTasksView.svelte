@@ -1,36 +1,6 @@
-<!-- PanelTasksView: compact task list with live updates and row actions -->
+<!-- PanelTasksView: compact task list with live updates -->
 <script>
-  import { vscode } from '../../shared/vscode.ts';
-  import {
-    mdiChartTree,
-    mdiEarth,
-    mdiImage,
-    mdiMapOutline,
-    mdiTable,
-    mdiVideoBox,
-  } from '../../shared/icons.ts';
-
-  const STATE_ICONS = {
-    PENDING: 'codicon codicon-circle-outline',
-    RUNNING: 'codicon codicon-sync',
-    CANCELLING: 'codicon codicon-sync',
-    SUCCEEDED: 'codicon codicon-check',
-    FAILED: 'codicon codicon-error',
-    CANCELLED: 'codicon codicon-circle-slash',
-  };
-
-  const TASK_TYPE_ICONS = {
-    'image-export': mdiImage,
-    'map-export': mdiMapOutline,
-    'table-export': mdiTable,
-    'video-export': mdiVideoBox,
-    'classifier-export': mdiChartTree,
-    'image-import': mdiImage,
-    'table-import': mdiTable,
-    export: mdiEarth,
-    import: mdiEarth,
-    unknown: mdiEarth,
-  };
+  import TaskRow from './TaskRow.svelte';
 
   // ----------------------------------------------------------------
   // STATE
@@ -59,26 +29,6 @@
       isLoading = true;
     }
   });
-
-  // ----------------------------------------------------------------
-  // HELPERS
-  // ----------------------------------------------------------------
-  function stateClass(state) {
-    const s = (state || '').toUpperCase();
-    const anim = s === 'RUNNING' || s === 'CANCELLING' ? ' running' : '';
-    return 'state-icon state-' + s + anim;
-  }
-
-  // ----------------------------------------------------------------
-  // ACTIONS
-  // ----------------------------------------------------------------
-  function cancel(name) {
-    vscode.postMessage({ type: 'cancel', name });
-  }
-
-  function preview(assetName) {
-    vscode.postMessage({ type: 'preview', assetName });
-  }
 </script>
 
 <ul class="task-list">
@@ -90,32 +40,7 @@
     <li class="empty-state">no tasks</li>
   {:else}
     {#each tasks as task (task.name)}
-      <li class="task-row" title={task.id || ''}>
-        <span class={stateClass(task.state)}
-          ><i class={STATE_ICONS[task.state] || 'codicon codicon-question'}></i></span
-        >
-        <span class={stateClass(task.state)}
-          ><svg class="task-type-icon" viewBox="0 0 24 24" aria-hidden="true"
-            ><path d={TASK_TYPE_ICONS[task.kind] || mdiEarth} /></svg
-          ></span
-        >
-        <span class="task-name">{task.description || task.id || ''}</span>
-        <span class="task-elapsed">{task.state !== 'PENDING' ? task.elapsed || '' : ''}</span>
-        <span class="task-actions">
-          {#if task.state === 'RUNNING' || task.state === 'PENDING'}
-            <button type="button" class="danger" title="Cancel" onclick={() => cancel(task.name)}
-              ><i class="codicon codicon-stop-circle"></i></button
-            >
-          {:else if task.previewAssetName}
-            <button
-              type="button"
-              title="Preview asset"
-              onclick={() => preview(task.previewAssetName)}
-              ><i class="codicon codicon-open-preview"></i></button
-            >
-          {/if}
-        </span>
-      </li>
+      <TaskRow {task} />
     {/each}
   {/if}
 </ul>
@@ -131,13 +56,12 @@
       box-sizing: border-box;
       font-family: inherit;
     }
-    html,
-    body {
+    html {
       height: 100%;
-      overflow: hidden;
-      margin: 0;
     }
     body {
+      height: 100%;
+      margin: 0;
       font-family: var(--vscee-editor-font-family, 'Courier New', Courier, monospace);
       font-size: var(--vscee-editor-font-size, 13px);
       color: var(--vscee-color-foreground);
@@ -152,7 +76,6 @@
       min-height: 0;
       display: flex;
       flex-direction: column;
-      overflow: hidden;
     }
 
     /* ==================================================================
@@ -166,138 +89,24 @@
       margin: 0;
       list-style: none;
     }
-    .task-row {
-      display: flex;
-      align-items: center;
-      gap: var(--vscee-space-sm);
-      padding: var(--vscee-space-xs) var(--vscee-space-md);
-      cursor: default;
-      border-bottom: var(--vscee-border-sm) solid var(--vscee-color-panel-border);
-      white-space: nowrap;
-      overflow: hidden;
 
-      &:hover {
-        background: var(--vscee-color-list-hover);
-        .task-actions {
-          visibility: visible;
-        }
-      }
-    }
-
-    /* ==================================================================
-       STATUS INDICATORS
+     /* ==================================================================
+       STATUS STATES
        ================================================================== */
-    .state-icon {
-      flex-shrink: 0;
-      width: 14px;
-      height: 14px;
+     .empty-state,
+     .loading-state {
+      padding: var(--vscee-space-xl);
       text-align: center;
-      font-size: var(--vscee-font-sm);
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-
-      &.running i,
-      &.cancelling i {
-        display: inline-block;
-        animation: spin 1.5s linear infinite;
-      }
+      opacity: 0.5;
+     }
+     .empty-state {
+      font-style: italic;
     }
+
     @keyframes spin {
       to {
         transform: rotate(360deg);
       }
-    }
-    .state-PENDING {
-      color: var(--vscee-color-chart-yellow);
-    }
-    .state-RUNNING {
-      color: var(--vscee-color-progress);
-    }
-    .state-CANCELLING {
-      color: var(--vscee-color-disabled);
-    }
-    .state-SUCCEEDED {
-      color: var(--vscee-color-testing-passed);
-    }
-    .state-FAILED {
-      color: var(--vscee-color-testing-failed);
-    }
-    .state-CANCELLED {
-      color: var(--vscee-color-disabled);
-    }
-    .task-type-icon {
-      width: 14px;
-      height: 14px;
-      display: block;
-      fill: currentColor;
-    }
-
-    /* ==================================================================
-       TASK FIELDS
-       ================================================================== */
-    .task-name {
-      flex: 1;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    .task-elapsed {
-      flex-shrink: 0;
-      opacity: 0.6;
-      font-size: var(--vscee-font-md);
-      font-family: var(--vscee-editor-font-family, 'Courier New', Courier, monospace);
-      min-width: 40px;
-      text-align: right;
-    }
-
-    /* ==================================================================
-       ROW ACTIONS
-       ================================================================== */
-    .task-actions {
-      flex-shrink: 0;
-      width: 26px;
-      display: flex;
-      justify-content: center;
-      visibility: hidden;
-
-      button {
-        background: transparent;
-        border: none;
-        color: var(--vscee-color-foreground);
-        cursor: pointer;
-        padding: var(--vscee-space-xxs) var(--vscee-space-xs);
-        border-radius: var(--vscee-radius-md);
-        opacity: 0.7;
-        font-family: inherit;
-        font-size: var(--vscee-font-md);
-
-        &:hover {
-          background: var(--vscee-color-list-hover);
-          opacity: 1;
-        }
-        &.danger:hover {
-          color: var(--vscee-color-testing-failed);
-        }
-      }
-    }
-
-    /* ==================================================================
-       EMPTY STATE
-       ================================================================== */
-    .empty-state {
-      padding: var(--vscee-space-xl);
-      text-align: center;
-      opacity: 0.5;
-      font-style: italic;
-    }
-
-    /* ==================================================================
-       LOADING
-       ================================================================== */
-    .loading-state {
-      padding: var(--vscee-space-xl);
-      text-align: center;
-      opacity: 0.5;
     }
     .loading-spinner {
       display: inline-block;

@@ -1,10 +1,10 @@
 <!-- ImagePreview: tabs, async thumbnail + per-band min/max -->
 <script>
   import { vscode, getInitData } from '../../../shared/vscode.ts';
-  import AssetMetadataEditor from '../../../shared/AssetMetadataEditor.svelte';
-  import AssetPropertiesEditor from '../../../shared/AssetPropertiesEditor.svelte';
-  import AssetSharingEditor from '../../../shared/AssetSharingEditor.svelte';
-  import DatePicker from '../../../shared/DatePicker.svelte';
+  import AssetMetadataEditor from '../AssetMetadataEditor.svelte';
+  import AssetPropertiesEditor from '../AssetPropertiesEditor.svelte';
+  import AssetSharingEditor from '../AssetSharingEditor.svelte';
+  import DatePicker from '../../DatePicker.svelte';
 
   const data = getInitData();
 
