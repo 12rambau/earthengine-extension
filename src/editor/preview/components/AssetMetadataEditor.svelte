@@ -126,6 +126,9 @@
     const keys = new Set();
     try {
       for (const row of properties) {
+        if (!row.key.trim() || !row.value.trim()) {
+          continue;
+        }
         if (!row.key.trim() || row.key === 'description' || row.key.startsWith('system:') || keys.has(row.key)) {
           throw new Error('Property names must be unique and cannot be empty, description, or system:*');
         }
