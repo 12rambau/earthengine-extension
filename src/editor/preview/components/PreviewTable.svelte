@@ -22,6 +22,7 @@
       background: var(--vscee-color-editor-background);
       padding: var(--vscee-space-sm) var(--vscee-space-lg);
       font-weight: 600;
+      border-bottom: var(--vscee-border-md) solid var(--vscee-color-panel-border);
       position: sticky;
       top: 0;
       z-index: 1;
