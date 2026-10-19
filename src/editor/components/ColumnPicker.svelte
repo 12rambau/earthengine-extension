@@ -1,5 +1,7 @@
 <!-- ColumnPicker: toggleable dropdown for shared table column visibility -->
 <script>
+  import TableButton from './TableButton.svelte';
+
   let { columns, visibleCols, onchange } = $props();
 
   let open = $state(false);
@@ -27,9 +29,8 @@
 />
 
 <div class="wrap" bind:this={wrap}>
-  <button
-    class="trigger"
-    class:open
+  <TableButton
+    active={open}
     title="Choose visible columns"
     onclick={(event) => {
       event.stopPropagation();
@@ -39,7 +40,7 @@
     <i class="codicon codicon-list-filter"></i>
     Columns
     <i class="codicon codicon-chevron-down chevron" class:open></i>
-  </button>
+  </TableButton>
 
   {#if open}
     <div class="menu">
@@ -65,31 +66,6 @@
      ================================================================== */
   .wrap {
     position: relative;
-  }
-
-  .trigger {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--vscee-space-sm);
-    padding: var(--vscee-space-xs) var(--vscee-space-md);
-    background: var(--vscee-color-button-secondary-background);
-    color: var(--vscee-color-button-secondary-foreground);
-    border: var(--vscee-border-sm) solid var(--vscee-color-input-border);
-    border-radius: var(--vscee-radius-md);
-    cursor: pointer;
-    font-size: var(--vscee-font-sm);
-    font-family: var(--vscee-font-family);
-    line-height: 1;
-    white-space: nowrap;
-
-    &:hover {
-      background: var(--vscee-color-button-secondary-hover);
-    }
-    &.open {
-      background: var(--vscee-color-button-background);
-      color: var(--vscee-color-button-foreground);
-      border-color: transparent;
-    }
   }
 
   .chevron {

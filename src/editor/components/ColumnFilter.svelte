@@ -1,6 +1,7 @@
 <!-- ColumnFilter: header popover for a declarative data-table column filter -->
 <script>
-  import DatePicker from '../DatePicker.svelte';
+  import DatePicker from './DatePicker.svelte';
+  import TableButton from './TableButton.svelte';
 
   let { column, filter, open = false, align = 'end', onchange, onopenchange } = $props();
 
@@ -59,9 +60,10 @@
 />
 
 <div class="wrap" bind:this={wrap}>
-  <button
-    class="filter-trigger"
-    class:active
+  <TableButton
+    variant="ghost"
+    size="icon"
+    {active}
     aria-label={`Filter ${column.label}`}
     title={`Filter ${column.label}`}
     onclick={(event) => {
@@ -70,7 +72,7 @@
     }}
   >
     <i class:codicon-filter-filled={active} class:codicon-filter={!active} class="codicon"></i>
-  </button>
+  </TableButton>
 
   {#if open}
     <div class="menu" class:align-start={align === 'start'}>
@@ -151,10 +153,12 @@
       {/if}
 
       {#if active}
-        <button class="clear" onclick={clearFilter}>
-          <i class="codicon codicon-clear-all"></i>
-          Clear filter
-        </button>
+        <div class="clear-wrap">
+          <TableButton variant="menu" onclick={clearFilter}>
+            <i class="codicon codicon-clear-all"></i>
+            Clear filter
+          </TableButton>
+        </div>
       {/if}
     </div>
   {/if}
@@ -167,30 +171,6 @@
   .wrap {
     display: inline-flex;
     position: relative;
-  }
-
-  .filter-trigger {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 22px;
-    height: 22px;
-    padding: 0;
-    background: transparent;
-    border: none;
-    border-radius: var(--vscee-radius-sm);
-    color: var(--vscee-color-foreground);
-    cursor: pointer;
-    opacity: 0.55;
-
-    &:hover,
-    &.active {
-      background: var(--vscee-color-list-hover);
-      opacity: 1;
-    }
-    &.active {
-      color: var(--vscee-color-button-background);
-    }
   }
 
   /* ==================================================================
@@ -258,23 +238,7 @@
     gap: var(--vscee-space-xs);
   }
 
-  .clear {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--vscee-space-sm);
-    width: 100%;
+  .clear-wrap {
     margin-top: var(--vscee-space-sm);
-    padding: var(--vscee-space-xs);
-    background: transparent;
-    color: var(--vscee-color-link);
-    border: none;
-    border-radius: var(--vscee-radius-sm);
-    cursor: pointer;
-    font: inherit;
-    font-size: var(--vscee-font-sm);
-
-    &:hover {
-      background: var(--vscee-color-list-hover);
-    }
   }
 </style>

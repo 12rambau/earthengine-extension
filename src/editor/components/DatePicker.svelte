@@ -1,6 +1,6 @@
 <!-- DatePicker: themed calendar input with optional local time selection -->
 <script>
-  import { trackViewportChanges } from '../shared/viewportAnchor.ts';
+  import { trackViewportChanges } from '../../shared/viewportAnchor.ts';
 
   let {
     value = $bindable(''),
@@ -362,14 +362,17 @@
     gap: var(--vscee-space-xs);
     margin-bottom: var(--vscee-space-sm);
   }
-  .navigation select {
-    min-width: 0;
+  .navigation select,
+  .time select {
     padding: var(--vscee-space-xs);
     font: inherit;
     color: var(--vscee-color-input-foreground);
     background: var(--vscee-color-input-background);
     border: var(--vscee-border-sm) solid var(--vscee-color-input-border);
     border-radius: var(--vscee-radius-sm);
+  }
+  .navigation select {
+    min-width: 0;
   }
   .navigation select:first-of-type {
     flex: 1;
@@ -444,12 +447,6 @@
   .time select {
     box-sizing: border-box;
     width: 100%;
-    padding: var(--vscee-space-xs);
-    font: inherit;
-    color: var(--vscee-color-input-foreground);
-    background: var(--vscee-color-input-background);
-    border: var(--vscee-border-sm) solid var(--vscee-color-input-border);
-    border-radius: var(--vscee-radius-sm);
   }
   .actions {
     display: flex;

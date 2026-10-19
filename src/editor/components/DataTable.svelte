@@ -3,6 +3,7 @@
   import ColumnFilter from './ColumnFilter.svelte';
   import ColumnPicker from './ColumnPicker.svelte';
   import Pagination from './Pagination.svelte';
+  import TableButton from './TableButton.svelte';
 
   let {
     table,
@@ -12,6 +13,7 @@
     rowClass = () => '',
     toolbar,
     toolbarEnd,
+    showToolbarEndSeparator = false,
     headerCell,
     headerContent,
     row,
@@ -68,12 +70,15 @@
     {#if toolbar}{@render toolbar()}{/if}
   </div>
   <div class="topbar-right">
-    {#if toolbarEnd}{@render toolbarEnd()}{/if}
+    {#if toolbarEnd}
+      {@render toolbarEnd()}
+      {#if showToolbarEndSeparator}<span class="toolbar-separator" aria-hidden="true"></span>{/if}
+    {/if}
     {#if table.activeFilterCount > 0}
-      <button class="reset-filters" title="Clear all active filters" onclick={clearFilters}>
+      <TableButton title="Clear all active filters" onclick={clearFilters}>
         <i class="codicon codicon-clear-all"></i>
         Clear filters ({table.activeFilterCount})
-      </button>
+      </TableButton>
     {/if}
     <ColumnPicker
       columns={table.columns}
@@ -96,15 +101,16 @@
               {#if headerContent}{@render headerContent(column)}{/if}
               <span class="header-actions">
                 {#if column.sortable}
-                  <button
-                    class="header-action"
-                    class:active={table.sort?.column === column.key}
+                  <TableButton
+                    variant="ghost"
+                    size="icon"
+                    active={table.sort?.column === column.key}
                     aria-label={`Sort ${column.label}`}
                     title={`Sort ${column.label}`}
                     onclick={() => toggleSort(column.key)}
                   >
                     <i class={`codicon ${sortIcon(column)}`}></i>
-                  </button>
+                  </TableButton>
                 {/if}
                 {#if column.filter}
                   <ColumnFilter
@@ -183,22 +189,9 @@
     margin-left: auto;
   }
 
-  .reset-filters {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--vscee-space-sm);
-    padding: var(--vscee-space-xs) var(--vscee-space-md);
-    background: transparent;
-    color: var(--vscee-color-link);
-    border: var(--vscee-border-sm) solid var(--vscee-color-input-border);
-    border-radius: var(--vscee-radius-md);
-    cursor: pointer;
-    font: inherit;
-    font-size: var(--vscee-font-sm);
-
-    &:hover {
-      background: var(--vscee-color-list-hover);
-    }
+  .toolbar-separator {
+    height: 20px;
+    border-left: var(--vscee-border-sm) solid var(--vscee-color-panel-border);
   }
 
   /* ==================================================================
@@ -230,9 +223,15 @@
     z-index: 1;
     padding: var(--vscee-space-sm) var(--vscee-space-md);
     text-align: left;
+    cursor: pointer;
+    user-select: none;
     background: var(--vscee-color-editor-background);
     border-bottom: var(--vscee-border-md) solid var(--vscee-color-panel-border);
     white-space: nowrap;
+
+    &:hover {
+      background: var(--vscee-color-list-hover);
+    }
   }
 
   .header-content,
@@ -247,32 +246,6 @@
 
   .header-actions {
     gap: var(--vscee-space-xxs);
-  }
-
-  .header-action {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 22px;
-    height: 22px;
-    padding: 0;
-    background: transparent;
-    color: var(--vscee-color-foreground);
-    border: none;
-    border-radius: var(--vscee-radius-sm);
-    cursor: pointer;
-    font: inherit;
-    font-size: var(--vscee-font-xs);
-    opacity: 0.55;
-
-    &:hover,
-    &.active {
-      background: var(--vscee-color-list-hover);
-      opacity: 1;
-    }
-    &.active {
-      color: var(--vscee-color-button-background);
-    }
   }
 
   .sort-neutral {
@@ -296,6 +269,7 @@
   .page-info {
     color: var(--vscee-color-muted);
     font-size: var(--vscee-font-sm);
+    opacity: 0.7;
   }
 
   .spinner-inline {

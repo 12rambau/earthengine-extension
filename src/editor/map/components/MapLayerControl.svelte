@@ -1,7 +1,7 @@
 <!-- MapLayerControl: layer list, visibility, opacity and visualization actions -->
 <script>
   import MapSlider from './MapSlider.svelte';
-  import { vscode } from '../../shared/vscode.ts';
+  import { vscode } from '../../../shared/vscode.ts';
   import {
     mdiClose,
     mdiEye,
@@ -9,7 +9,7 @@
     mdiRuler,
     mdiTrashCan,
     mdiTune,
-  } from '../../shared/icons.ts';
+  } from '../../../shared/icons.ts';
 
   let {
     map,
@@ -267,7 +267,7 @@
       color: var(--vscee-color-button-foreground);
     }
     .layers-panel {
-      position: absolute;
+      position: fixed;
       top: 10px;
       left: 48px;
       z-index: 1000;
@@ -333,9 +333,6 @@
       align-items: center;
       gap: var(--vscee-space-sm);
       min-width: 0;
-    }
-    .layer-row:last-child {
-      border-bottom: none;
     }
     .layer-vis-btn {
       width: 22px;

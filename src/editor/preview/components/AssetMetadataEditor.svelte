@@ -1,6 +1,6 @@
 <!-- AssetMetadataEditor: save preview metadata and edit the Markdown description -->
 <script>
-  import { vscode } from '../../shared/vscode.ts';
+  import { vscode } from '../../../shared/vscode.ts';
   import * as monaco from 'monaco-editor/editor/editor.api';
   import { conf, language } from 'monaco-editor/languages/definitions/markdown/markdown';
   import workerCode from 'monaco-worker-text';

@@ -1,8 +1,8 @@
 <!-- MapInspector: map click inspection, marker and pixel values panel -->
 <script>
   import L from 'leaflet';
-  import { vscode } from '../../shared/vscode.ts';
-  import { mdiClose, mdiLoading, mdiMapMarker } from '../../shared/icons.ts';
+  import { vscode } from '../../../shared/vscode.ts';
+  import { mdiClose, mdiLoading, mdiMapMarker } from '../../../shared/icons.ts';
 
   let { map, active = $bindable(false), cursor = '' } = $props();
 
@@ -180,7 +180,7 @@
       }
     }
     .inspector-panel {
-      position: absolute;
+      position: fixed;
       top: 10px;
       left: 48px;
       z-index: 1000;
@@ -205,7 +205,8 @@
       overflow-y: auto;
       padding: var(--vscee-space-sm) var(--vscee-space-md);
     }
-    .inspector-hint {
+    .inspector-hint,
+    .inspector-loading {
       font-size: var(--vscee-font-compact-sm);
       color: var(--vscee-color-muted);
       text-align: center;
@@ -229,12 +230,6 @@
       &:hover {
         color: var(--vscee-color-foreground);
       }
-    }
-    .inspector-loading {
-      font-size: var(--vscee-font-compact-sm);
-      color: var(--vscee-color-muted);
-      text-align: center;
-      padding: var(--vscee-space-xs) 0;
     }
     .inspector-layer {
       margin-bottom: var(--vscee-space-md);

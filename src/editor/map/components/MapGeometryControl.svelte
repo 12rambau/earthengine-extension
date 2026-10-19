@@ -2,12 +2,12 @@
 <script>
   import L from 'leaflet';
   import ColorPicker from './ColorPicker.svelte';
-  import { vscode } from '../../shared/vscode.ts';
+  import { vscode } from '../../../shared/vscode.ts';
   import {
     DEFAULT_GEOMETRY_COLOR,
     geometryMapPositions,
     parseMapGeometries,
-  } from './mapGeometry.js';
+  } from '../mapGeometry.js';
 
   let { map, visible = $bindable(false), drawMode = $bindable(null) } = $props();
 
@@ -402,7 +402,7 @@
        GEOMETRY MANAGER
        ================================================================== */
     .geometry-panel {
-      position: absolute;
+      position: fixed;
       top: 10px;
       left: 48px;
       z-index: 1000;

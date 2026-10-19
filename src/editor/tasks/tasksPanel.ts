@@ -22,7 +22,7 @@ import { AuthService } from '../../auth/index.js';
 import { openAssetPreview } from '../preview/assetPreviewPanel.js';
 import { getExtensionUri } from '../../shared/extensionContext.js';
 import { designTokens, codiconsCss } from '../../shared/index.js';
-import type { TablePreferences } from '../dataTable/tableTypes.js';
+import type { TablePreferences } from '../components/tableTypes.js';
 
 import script from './TasksPanel.svelte';
 

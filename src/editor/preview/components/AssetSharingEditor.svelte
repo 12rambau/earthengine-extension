@@ -1,6 +1,7 @@
 <!-- AssetSharingEditor: view and edit asset IAM reader and writer grants -->
 <script>
-  import { vscode } from '../../shared/vscode.ts';
+  import PreviewTable from './PreviewTable.svelte';
+  import { vscode } from '../../../shared/vscode.ts';
 
   let { editing, saving, sharing = $bindable(null) } = $props();
 
@@ -108,27 +109,31 @@
       <button type="button" class="add-user" disabled={saving} onclick={addUser}>+ Add user</button>
       {#if otherGrants.length}
         <p class="grants-caption">Grants managed outside this editor</p>
+        <PreviewTable keyColumn>
+          <table class="grants-table">
+            <thead><tr><th>Principal</th><th>Access</th></tr></thead>
+            <tbody>
+              {#each otherGrants as grant}
+                <tr><td>{grant.member}</td><td>{grant.role}</td></tr>
+              {/each}
+            </tbody>
+          </table>
+        </PreviewTable>
+      {/if}
+    {:else if users.length || otherGrants.length}
+      <PreviewTable keyColumn>
         <table class="grants-table">
           <thead><tr><th>Principal</th><th>Access</th></tr></thead>
           <tbody>
+            {#each users as user}
+              <tr><td>{user.email}</td><td>{user.role === 'writer' ? 'Writer' : 'Reader'}</td></tr>
+            {/each}
             {#each otherGrants as grant}
               <tr><td>{grant.member}</td><td>{grant.role}</td></tr>
             {/each}
           </tbody>
         </table>
-      {/if}
-    {:else if users.length || otherGrants.length}
-      <table class="grants-table">
-        <thead><tr><th>Principal</th><th>Access</th></tr></thead>
-        <tbody>
-          {#each users as user}
-            <tr><td>{user.email}</td><td>{user.role === 'writer' ? 'Writer' : 'Reader'}</td></tr>
-          {/each}
-          {#each otherGrants as grant}
-            <tr><td>{grant.member}</td><td>{grant.role}</td></tr>
-          {/each}
-        </tbody>
-      </table>
+      </PreviewTable>
     {:else}
       <p class="empty-state">No individual grants.</p>
     {/if}
@@ -213,9 +218,6 @@
   /* ==================================================================
      GRANTS TABLE
      ================================================================== */
-  .grants-table { width: 100%; border-collapse: collapse; font-size: var(--vscee-font-sm); }
-  th, td { text-align: left; padding: var(--vscee-space-sm) var(--vscee-space-lg); border-bottom: var(--vscee-border-sm) solid var(--vscee-color-panel-border); }
-  th { background: var(--vscee-color-list-hover); }
   td:first-child { overflow-wrap: anywhere; }
   .grants-caption {
     margin: var(--vscee-space-xl) 0 var(--vscee-space-sm);

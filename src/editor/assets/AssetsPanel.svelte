@@ -2,8 +2,9 @@
 <script>
   import { vscode, getInitData } from '../../shared/vscode.ts';
   import { mdiImage, mdiImageMultiple, mdiTableMultiple } from '../../shared/icons.ts';
-  import DataTable from '../dataTable/DataTable.svelte';
-  import { createDataTable } from '../dataTable/dataTable.svelte.ts';
+  import DataTable from '../components/DataTable.svelte';
+  import TableButton from '../components/TableButton.svelte';
+  import { createDataTable } from '../components/dataTable.svelte.ts';
   import NewAssetDialog from './NewAssetDialog.svelte';
 
   const saved = getInitData();
@@ -58,10 +59,21 @@
   let busyAssets = $state(new Map());
   let selectedAssets = $state(new Set());
   let bulkBusy = $state(false);
-  let selectedNames = $derived([...selectedAssets]);
-  let allSelected = $derived(
-    table.sortedRows.length > 0 && table.sortedRows.every((a) => selectedAssets.has(a.name)),
+  let selectedNames = $derived(
+    table.pageRows.filter((asset) => selectedAssets.has(asset.name)).map((asset) => asset.name),
   );
+  let allSelected = $derived(
+    table.pageRows.length > 0 && table.pageRows.every((a) => selectedAssets.has(a.name)),
+  );
+  let pageHasSelection = $derived(table.pageRows.some((a) => selectedAssets.has(a.name)));
+
+  $effect(() => {
+    const visibleNames = new Set(table.pageRows.map((asset) => asset.name));
+    const remaining = [...selectedAssets].filter((name) => visibleNames.has(name));
+    if (remaining.length !== selectedAssets.size) {
+      selectedAssets = new Set(remaining);
+    }
+  });
 
   let newMenuOpen = $state(false);
   let newMenuWrap = $state(null);
@@ -173,11 +185,15 @@
   }
 
   function toggleAll() {
-    if (allSelected) {
-      selectedAssets = new Set();
-      return;
+    const next = new Set(selectedAssets);
+    for (const asset of table.pageRows) {
+      if (allSelected) {
+        next.delete(asset.name);
+      } else {
+        next.add(asset.name);
+      }
     }
-    selectedAssets = new Set(table.sortedRows.map((asset) => asset.name));
+    selectedAssets = next;
   }
 
   function bulkAction(action) {
@@ -259,6 +275,7 @@
 <DataTable
   {table}
   itemLabel="assets"
+  showToolbarEndSeparator={selectedNames.length > 0}
   loading={isLoading}
   rowKey={(asset) => asset.name}
   rowClass={(asset) => (isBusy(asset.name) ? 'busy' : '')}
@@ -266,9 +283,9 @@
 >
   {#snippet toolbar()}
     <div class="new-menu" bind:this={newMenuWrap}>
-      <button
+      <TableButton
         class="trigger"
-        class:open={newMenuOpen}
+        active={newMenuOpen}
         title="Create a new asset"
         onclick={(e) => {
           e.stopPropagation();
@@ -278,19 +295,19 @@
         <i class="codicon codicon-add"></i>
         New
         <i class="codicon codicon-chevron-down chevron" class:open={newMenuOpen}></i>
-      </button>
+      </TableButton>
       {#if newMenuOpen}
         <div class="new-menu-items">
-          <button onclick={newFolder}>
+          <TableButton variant="menu" onclick={newFolder}>
             <i class="codicon codicon-folder"></i> New folder
-          </button>
-          <button onclick={() => openNewAsset('image')}>
+          </TableButton>
+          <TableButton variant="menu" onclick={() => openNewAsset('image')}>
             <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="var(--vscee-color-image)"
               ><path d={mdiImage} /></svg
             >
             New image
-          </button>
-          <button onclick={() => openNewAsset('table')}>
+          </TableButton>
+          <TableButton variant="menu" onclick={() => openNewAsset('table')}>
             <svg
               viewBox="0 0 24 24"
               width="16"
@@ -299,19 +316,21 @@
               fill="var(--vscee-color-table)"><path d={mdiTableMultiple} /></svg
             >
             New feature collection
-          </button>
+          </TableButton>
         </div>
       {/if}
     </div>
-    <button class="btn-primary" class:loading={isLoading} disabled={isLoading} onclick={refresh}>
+    <TableButton variant="primary" class="btn-primary" loading={isLoading} disabled={isLoading} onclick={refresh}>
       <i class="codicon codicon-sync refresh-icon" aria-hidden="true"></i>
       <span>{isLoading ? 'Refreshing…' : 'Refresh'}</span>
-    </button>
-    <button title="Go to parent" disabled={currentParent === rootPath} onclick={goUp}>↑</button>
+    </TableButton>
+    <TableButton title="Go to parent" aria-label="Go to parent" disabled={currentParent === rootPath} onclick={goUp}>
+      <i class="codicon codicon-arrow-up"></i>
+    </TableButton>
     <div class="breadcrumb">
       {#each breadcrumbParts as part, i}
         {#if i > 0}<span class="sep"> / </span>{/if}
-        <button onclick={() => navigate(part.path)}>{part.label}</button>
+        <TableButton variant="link" onclick={() => navigate(part.path)}>{part.label}</TableButton>
       {/each}
     </div>
   {/snippet}
@@ -319,16 +338,16 @@
   {#snippet toolbarEnd()}
     {#if selectedNames.length}
       <div class="bulk-actions">
-        <span class="selection-count">{selectedNames.length} selected</span>
-        <button disabled={bulkBusy || isLoading} onclick={() => bulkAction('copy')}>
+        <span class="selection-count">{selectedNames.length} {selectedNames.length === 1 ? 'asset' : 'assets'} selected</span>
+        <TableButton disabled={bulkBusy || isLoading} onclick={() => bulkAction('copy')}>
           <i class="codicon codicon-copy"></i> Copy
-        </button>
-        <button disabled={bulkBusy || isLoading} onclick={() => bulkAction('move')}>
+        </TableButton>
+        <TableButton disabled={bulkBusy || isLoading} onclick={() => bulkAction('move')}>
           <i class="codicon codicon-clippy"></i> Move
-        </button>
-        <button disabled={bulkBusy || isLoading} onclick={() => bulkAction('delete')}>
+        </TableButton>
+        <TableButton danger disabled={bulkBusy || isLoading} onclick={() => bulkAction('delete')}>
           <i class="codicon codicon-trash"></i> Delete
-        </button>
+        </TableButton>
       </div>
     {/if}
   {/snippet}
@@ -337,11 +356,11 @@
     {#if column.key === 'selection'}
       <input
         type="checkbox"
-        aria-label={allSelected ? 'Deselect all assets' : 'Select all assets'}
-        title={allSelected ? 'Deselect all assets' : 'Select all loaded assets'}
+        aria-label={allSelected ? 'Deselect all visible assets' : 'Select all visible assets'}
+        title={allSelected ? 'Deselect all visible assets' : 'Select all visible assets'}
         checked={allSelected}
-        indeterminate={!allSelected && selectedNames.length > 0}
-        disabled={bulkBusy || isLoading || table.sortedRows.length === 0}
+        indeterminate={!allSelected && pageHasSelection}
+        disabled={bulkBusy || isLoading || table.pageRows.length === 0}
         onchange={toggleAll}
       />
     {:else}
@@ -396,7 +415,7 @@
     {#if visible.has('shortName')}
       <td>
         {#if a.isContainer}
-          <button class="name-link" onclick={() => navigate(a.name)}>{a.shortName}</button>
+          <TableButton variant="link" onclick={() => navigate(a.name)}>{a.shortName}</TableButton>
         {:else}
           <span class="name-text">{a.shortName}</span>
         {/if}
@@ -414,48 +433,64 @@
         </span>
         <span class="action-btns">
           {#if a.type === 'FOLDER'}
-            <button
+            <TableButton
               class="action-btn"
+              variant="ghost"
+              size="compact"
               title="New folder"
+              aria-label="New folder"
               disabled={bulkBusy || isBusy(a.name)}
               onclick={() => assetAction('createFolder', a.name)}
             >
               <i class="codicon codicon-new-folder"></i>
-            </button>
+            </TableButton>
           {:else}
-            <button
+            <TableButton
               class="action-btn"
+              variant="ghost"
+              size="compact"
               title="Preview"
+              aria-label="Preview"
               disabled={bulkBusy || isBusy(a.name)}
               onclick={() => preview(a.name)}
             >
               <i class="codicon codicon-open-preview"></i>
-            </button>
+            </TableButton>
           {/if}
-          <button
+          <TableButton
             class="action-btn"
+            variant="ghost"
+            size="compact"
             title="Copy asset"
+            aria-label="Copy asset"
             disabled={bulkBusy || isBusy(a.name)}
             onclick={() => assetAction('copy', a.name)}
           >
             <i class="codicon codicon-copy"></i>
-          </button>
-          <button
+          </TableButton>
+          <TableButton
             class="action-btn"
+            variant="ghost"
+            size="compact"
             title="Move asset"
+            aria-label="Move asset"
             disabled={bulkBusy || isBusy(a.name)}
             onclick={() => assetAction('move', a.name)}
           >
             <i class="codicon codicon-clippy"></i>
-          </button>
-          <button
-            class="action-btn danger"
+          </TableButton>
+          <TableButton
+            class="action-btn"
+            variant="ghost"
+            size="compact"
+            danger
             title="Delete asset"
+            aria-label="Delete asset"
             disabled={bulkBusy || isBusy(a.name)}
             onclick={() => assetAction('delete', a.name)}
           >
             <i class="codicon codicon-trash"></i>
-          </button>
+          </TableButton>
         </span>
       </td>
     {/if}
@@ -519,22 +554,7 @@
       flex-shrink: 0;
     }
 
-    /* ==================================================================
-       TOOLBAR
-       ================================================================== */
-    .topbar {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: var(--vscee-space-md);
-      margin-bottom: var(--vscee-space-sm);
-      flex-shrink: 0;
-    }
     .topbar-left {
-      display: flex;
-      align-items: center;
-      gap: var(--vscee-space-md);
-      min-width: 0;
       flex-wrap: wrap;
     }
 
@@ -549,128 +569,14 @@
       flex-wrap: wrap;
       min-width: 0;
 
-      button {
-        background: none;
-        border: none;
-        color: var(--vscee-color-link);
-        cursor: pointer;
-        padding: var(--vscee-space-xxs) var(--vscee-space-xs);
-        font-size: var(--vscee-font-md);
-
-        &:hover {
-          text-decoration: underline;
-        }
-      }
       .sep {
         opacity: 0.5;
       }
     }
 
     /* ==================================================================
-       TABLE CONTAINER
-       ================================================================== */
-    .table-wrap {
-      flex: 1 1 0;
-      overflow-y: auto;
-      min-height: 120px;
-      border: var(--vscee-border-sm) solid var(--vscee-color-panel-border);
-      border-radius: var(--vscee-radius-md);
-
-      &.loading {
-        opacity: 0.45;
-        pointer-events: none;
-        transition: opacity 0.15s;
-      }
-    }
-
-    /* ==================================================================
-       BOTTOM BAR
-       ================================================================== */
-    .bottom-bar {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding-top: var(--vscee-space-xs);
-      flex-shrink: 0;
-    }
-
-    /* ==================================================================
-       PAGINATION
-       ================================================================== */
-    .pagination {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding-top: var(--vscee-space-md);
-      gap: var(--vscee-space-md);
-      flex-wrap: wrap;
-      flex-shrink: 0;
-    }
-    .pager {
-      display: flex;
-      align-items: center;
-      gap: var(--vscee-space-xxs);
-    }
-    .nav-btn {
-      background: transparent;
-      border-color: transparent;
-      font-weight: 500;
-
-      &:not(:disabled):hover {
-        background: var(--vscee-color-list-hover);
-        border-color: var(--vscee-color-input-border);
-      }
-    }
-    .page-btn {
-      min-width: 28px;
-      height: 28px;
-      padding: 0 var(--vscee-space-xs);
-      border-radius: 50%;
-      background: transparent;
-      border: var(--vscee-border-sm) solid transparent;
-      font-size: var(--vscee-font-xs);
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-
-      &:hover {
-        background: var(--vscee-color-list-hover);
-        border-color: var(--vscee-color-input-border);
-      }
-      &.active {
-        background: var(--vscee-color-button-background);
-        color: var(--vscee-color-button-foreground);
-        border-color: transparent;
-        font-weight: 600;
-      }
-    }
-    .page-ellipsis {
-      padding: 0 var(--vscee-space-xs);
-      opacity: 0.5;
-      font-size: var(--vscee-font-sm);
-      user-select: none;
-    }
-
-    /* ==================================================================
-       INLINE SPINNER
-       ================================================================== */
-    .spinner-inline {
-      width: 9px;
-      height: 9px;
-      border: var(--vscee-border-md) solid currentColor;
-      border-top-color: transparent;
-      border-radius: 50%;
-      display: inline-block;
-      animation: spin 0.8s linear infinite;
-      opacity: 0.6;
-      vertical-align: middle;
-      margin-left: var(--vscee-space-sm);
-    }
-
-    /* ==================================================================
        BUTTONS
        ================================================================== */
-    button,
     select {
       background: var(--vscee-color-button-secondary-background);
       color: var(--vscee-color-button-secondary-foreground);
@@ -680,34 +586,8 @@
       cursor: pointer;
       font-size: var(--vscee-font-sm);
     }
-    button {
-      &:hover {
-        background: var(--vscee-color-button-secondary-hover);
-      }
-      &:disabled {
-        opacity: 0.4;
-        cursor: default;
-      }
-    }
-    .btn-primary {
-      display: inline-flex;
-      align-items: center;
-      gap: var(--vscee-space-xs);
-      background: var(--vscee-color-button-background);
-      color: var(--vscee-color-button-foreground);
-      border-color: transparent;
-
-      &:hover {
-        background: var(--vscee-color-button-hover);
-      }
-      &.loading {
-        opacity: 0.75;
-        cursor: default;
-
-        .refresh-icon {
-          animation: spin 0.8s linear infinite;
-        }
-      }
+    .btn-primary.loading .refresh-icon {
+      animation: spin 0.8s linear infinite;
     }
 
     /* ==================================================================
@@ -716,29 +596,6 @@
     .new-menu {
       position: relative;
 
-      .trigger {
-        display: inline-flex;
-        align-items: center;
-        gap: var(--vscee-space-sm);
-        padding: var(--vscee-space-xs) var(--vscee-space-md);
-        background: var(--vscee-color-button-secondary-background);
-        color: var(--vscee-color-button-secondary-foreground);
-        border: var(--vscee-border-sm) solid var(--vscee-color-input-border);
-        border-radius: var(--vscee-radius-md);
-        cursor: pointer;
-        font-size: var(--vscee-font-sm);
-        line-height: 1;
-        white-space: nowrap;
-
-        &:hover {
-          background: var(--vscee-color-button-secondary-hover);
-        }
-        &.open {
-          background: var(--vscee-color-button-background);
-          color: var(--vscee-color-button-foreground);
-          border-color: transparent;
-        }
-      }
       .chevron {
         opacity: 0.7;
         transition: transform 0.15s;
@@ -761,62 +618,10 @@
       border: var(--vscee-border-sm) solid var(--vscee-color-dropdown-border);
       border-radius: var(--vscee-radius-md);
       box-shadow: var(--vscee-shadow-lg);
-
-      button {
-        display: flex;
-        align-items: center;
-        gap: var(--vscee-space-md);
-        padding: var(--vscee-space-xs) var(--vscee-space-sm);
-        background: none;
-        border: none;
-        text-align: left;
-        color: var(--vscee-color-dropdown-foreground);
-
-        &:hover {
-          background: var(--vscee-color-list-hover);
-        }
-      }
     }
-    .page-info {
-      font-size: var(--vscee-font-sm);
-      opacity: 0.7;
-    }
-
     /* ==================================================================
-       TABLE
+       TABLE CELLS
        ================================================================== */
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: var(--vscee-font-sm);
-    }
-    thead {
-      th {
-        position: sticky;
-        top: 0;
-        z-index: 1;
-        text-align: left;
-        padding: var(--vscee-space-sm) var(--vscee-space-md);
-        cursor: pointer;
-        user-select: none;
-        background: var(--vscee-color-editor-background);
-        border-bottom: var(--vscee-border-md) solid var(--vscee-color-panel-border);
-        white-space: nowrap;
-
-        &:hover {
-          background: var(--vscee-color-list-hover);
-        }
-      }
-    }
-    th {
-      .sort-arrow {
-        opacity: 0.5;
-        margin-left: var(--vscee-space-xs);
-      }
-      &.sorted .sort-arrow {
-        opacity: 1;
-      }
-    }
     td {
       padding: var(--vscee-space-sm) var(--vscee-space-md);
       border-bottom: var(--vscee-border-sm) solid var(--vscee-color-panel-border);
@@ -841,16 +646,6 @@
       display: flex;
       align-items: center;
       gap: var(--vscee-space-md);
-
-      button {
-        display: inline-flex;
-        align-items: center;
-        gap: var(--vscee-space-xs);
-        white-space: nowrap;
-      }
-      .codicon {
-        font-size: var(--vscee-font-icon-sm);
-      }
     }
     .selection-count {
       white-space: nowrap;
@@ -859,26 +654,6 @@
     .selection-cell {
       width: 32px;
       text-align: center;
-    }
-    .name-link {
-      background: none;
-      border: none;
-      color: var(--vscee-color-link);
-      cursor: pointer;
-      padding: 0;
-      font-size: inherit;
-      text-align: left;
-
-      &:hover {
-        text-decoration: underline;
-      }
-    }
-    .name-text {
-      padding: 0;
-    }
-    .icon {
-      margin-right: var(--vscee-space-sm);
-      vertical-align: middle;
     }
     .icon-col {
       width: 24px;
@@ -914,9 +689,11 @@
       opacity: 0.4;
     }
     .action-dot {
-      padding: var(--vscee-space-xxs) var(--vscee-space-sm);
       display: inline-flex;
       align-items: center;
+      justify-content: center;
+      width: 30px;
+      height: 22px;
 
       .codicon {
         font-size: var(--vscee-font-icon-sm);
@@ -930,14 +707,10 @@
     tr {
       &:hover {
         background: var(--vscee-color-list-hover);
-        .action-dots {
-          display: none;
-        }
-        .action-btns {
-          display: inline-flex;
-        }
       }
-      &:focus-within {
+      &:hover,
+      &:focus-within,
+      &.busy {
         .action-dots {
           display: none;
         }
@@ -946,48 +719,19 @@
         }
       }
       &.busy {
-        .action-dots {
-          display: none;
-        }
-        .action-btns {
-          display: inline-flex;
-        }
         .action-btn {
           opacity: 0.35;
           pointer-events: none;
-
-          &.spinning {
-            opacity: 1;
-            .codicon {
-              display: none;
-            }
-          }
         }
       }
     }
     .action-btn {
-      background: none;
-      border: none;
-      cursor: pointer;
-      padding: var(--vscee-space-xxs) var(--vscee-space-sm);
-      border-radius: var(--vscee-radius-md);
-      color: var(--vscee-color-foreground);
+      box-sizing: border-box;
+      width: 30px;
+      padding: 0;
       opacity: 0.7;
-      display: inline-flex;
-      align-items: center;
-
-      .codicon {
-        font-size: var(--vscee-font-icon-sm);
-      }
       &:hover {
         opacity: 1;
-        background: var(--vscee-color-list-hover);
-      }
-      &.danger {
-        color: var(--vscee-color-error);
-        &:hover {
-          background: var(--vscee-color-validation-error-background);
-        }
       }
     }
   }

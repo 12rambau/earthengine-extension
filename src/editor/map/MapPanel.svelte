@@ -1,21 +1,19 @@
 <!-- MapPanel: Leaflet-based map with EE tile layers, inspector, scale bar and viz editor -->
 <script>
   import L from 'leaflet';
-  import MapButton from './MapButton.svelte';
-  import MapGeometryControl from './MapGeometryControl.svelte';
-  import MapInspector from './MapInspector.svelte';
-  import MapLayerControl from './MapLayerControl.svelte';
-  import MapScale from './MapScale.svelte';
-  import MapVisualizationEditor from './MapVisualizationEditor.svelte';
+  import MapButton from './components/MapButton.svelte';
+  import MapGeometryControl from './components/MapGeometryControl.svelte';
+  import MapInspector from './components/MapInspector.svelte';
+  import MapLayerControl from './components/MapLayerControl.svelte';
+  import MapMenu from './components/MapMenu.svelte';
+  import MapScale from './components/MapScale.svelte';
+  import MapVisualizationEditor from './components/MapVisualizationEditor.svelte';
   import { vscode } from '../../shared/vscode.ts';
   import { trackViewportChanges } from '../../shared/viewportAnchor.ts';
   import {
     mdiAlertCircleOutline,
-    mdiCrosshairsGps,
-    mdiLayers,
     mdiMap,
     mdiSatelliteVariant,
-    mdiShapeOutline,
   } from '../../shared/icons.ts';
 
   // ----------------------------------------------------------------
@@ -49,6 +47,19 @@
   // ----------------------------------------------------------------
   // HELPERS
   // ----------------------------------------------------------------
+
+  function openMenu(menu) {
+    if (menu !== 'layers') {
+      layersPanelVisible = false;
+    }
+    if (menu !== 'geometries') {
+      geometriesPanelVisible = false;
+      drawMode = null;
+    }
+    if (menu !== 'inspector') {
+      inspectorActive = false;
+    }
+  }
 
   function isDarkTheme() {
     return (
@@ -409,19 +420,6 @@
 
 <!-- MAP -->
 <div id="map"></div>
-<MapInspector
-  {map}
-  bind:active={inspectorActive}
-  cursor={drawMode || activeScaleIndex >= 0 ? 'crosshair' : ''}
-/>
-<MapGeometryControl {map} bind:visible={geometriesPanelVisible} bind:drawMode />
-<MapLayerControl
-  {map}
-  bind:overlays
-  bind:visible={layersPanelVisible}
-  bind:activeScaleIndex
-  {nativeLayerControl}
-/>
 <MapVisualizationEditor {map} bind:overlays />
 
 {#if basemapError}
@@ -451,53 +449,36 @@
 
 <!-- CONTROLS -->
 <div class="map-controls">
-  <MapButton
-    active={layersPanelVisible}
-    title="Manage layers"
-    onclick={() => {
-      layersPanelVisible = !layersPanelVisible;
-      if (layersPanelVisible) {
-        inspectorActive = false;
-        geometriesPanelVisible = false;
-        drawMode = null;
-      }
-    }}
-  >
-    <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="currentColor"
-      ><path d={mdiLayers} /></svg
-    >
-  </MapButton>
-  <MapButton
-    active={geometriesPanelVisible}
-    title="Manage geometries"
-    onclick={() => {
-      geometriesPanelVisible = !geometriesPanelVisible;
-      if (geometriesPanelVisible) {
-        inspectorActive = false;
-        layersPanelVisible = false;
-      } else {
-        drawMode = null;
-      }
-    }}
-  >
-    <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="currentColor"
-      ><path d={mdiShapeOutline} /></svg
-    >
-  </MapButton>
-  <MapButton
-    active={inspectorActive}
-    title="Pixel inspector"
-    onclick={() => {
-      inspectorActive = !inspectorActive;
-      layersPanelVisible = false;
-      geometriesPanelVisible = false;
-      drawMode = null;
-    }}
-  >
-    <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="currentColor"
-      ><path d={mdiCrosshairsGps} /></svg
-    >
-  </MapButton>
+  <MapMenu title="Manage layers" bind:visible={layersPanelVisible} onopen={() => openMenu('layers')}>
+    {#snippet icon()}
+      <i class="codicon codicon-layers" aria-hidden="true"></i>
+    {/snippet}
+    {#snippet panel()}
+      <MapLayerControl {map} bind:overlays bind:visible={layersPanelVisible}
+        bind:activeScaleIndex {nativeLayerControl} />
+    {/snippet}
+  </MapMenu>
+  <MapMenu title="Manage geometries" bind:visible={geometriesPanelVisible}
+    onopen={() => openMenu('geometries')}
+    onclose={() => (drawMode = null)}>
+    {#snippet icon()}
+      <i class="codicon codicon-symbol-color" aria-hidden="true"></i>
+    {/snippet}
+    {#snippet panel()}
+      <MapGeometryControl {map} bind:visible={geometriesPanelVisible} bind:drawMode />
+    {/snippet}
+  </MapMenu>
+  <MapMenu title="Pixel inspector" bind:visible={inspectorActive}
+    onopen={() => openMenu('inspector')}
+    onclose={() => (drawMode = null)}>
+    {#snippet icon()}
+      <i class="codicon codicon-target" aria-hidden="true"></i>
+    {/snippet}
+    {#snippet panel()}
+      <MapInspector {map} bind:active={inspectorActive}
+        cursor={drawMode || activeScaleIndex >= 0 ? 'crosshair' : ''} />
+    {/snippet}
+  </MapMenu>
   <MapButton
     active={activeMode === 'plan'}
     title="Toggle plan view"

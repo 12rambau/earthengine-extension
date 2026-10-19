@@ -1,6 +1,6 @@
 <!-- ColorPicker: swatch button opening a saturation/value square with a hue bar -->
 <script>
-  import { trackViewportChanges } from '../../shared/viewportAnchor.ts';
+  import { trackViewportChanges } from '../../../shared/viewportAnchor.ts';
 
   const POPUP_WIDTH = 208;
   const POPUP_HEIGHT = 190;
@@ -303,11 +303,6 @@
     cursor: pointer;
     border: var(--vscee-border-sm) solid var(--vscee-color-widget-border);
     border-radius: var(--vscee-radius-md);
-
-    &:focus-visible {
-      outline: var(--vscee-border-md) solid var(--vscee-color-focus);
-      outline-offset: 1px;
-    }
   }
 
   /* ==================================================================
@@ -348,11 +343,6 @@
     background:
       linear-gradient(to top, #000, rgb(0 0 0 / 0%)),
       linear-gradient(to right, #fff, rgb(255 255 255 / 0%)), var(--cp-hue);
-
-    &:focus-visible {
-      outline: var(--vscee-border-md) solid var(--vscee-color-focus);
-      outline-offset: 1px;
-    }
   }
   .cp-hue {
     position: relative;
@@ -370,11 +360,12 @@
       #f0f 83%,
       #f00 100%
     );
-
-    &:focus-visible {
-      outline: var(--vscee-border-md) solid var(--vscee-color-focus);
-      outline-offset: 1px;
-    }
+  }
+  .cp-swatch:focus-visible,
+  .cp-area:focus-visible,
+  .cp-hue:focus-visible {
+    outline: var(--vscee-border-md) solid var(--vscee-color-focus);
+    outline-offset: 1px;
   }
   .cp-area-thumb,
   .cp-hue-thumb {

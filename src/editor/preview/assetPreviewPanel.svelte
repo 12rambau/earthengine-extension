@@ -1,7 +1,7 @@
 <!-- AssetPreviewPanel: generic asset properties and sharing preview -->
 <script>
   import { vscode, getInitData } from '../../shared/vscode.ts';
-  import AssetSharingEditor from './AssetSharingEditor.svelte';
+  import AssetSharingEditor from './components/AssetSharingEditor.svelte';
 
   const { title, assetType, updated, size, propertiesTable } = getInitData();
   let activeTab = $state('properties');

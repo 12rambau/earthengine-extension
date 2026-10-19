@@ -1,8 +1,9 @@
 <!-- TasksPanel: sortable/paginated task table with filter toggle and column picker -->
 <script>
   import { vscode, getInitData } from '../../shared/vscode.ts';
-  import DataTable from '../dataTable/DataTable.svelte';
-  import { createDataTable } from '../dataTable/dataTable.svelte.ts';
+  import DataTable from '../components/DataTable.svelte';
+  import TableButton from '../components/TableButton.svelte';
+  import { createDataTable } from '../components/dataTable.svelte.ts';
 
   const saved = getInitData();
 
@@ -122,6 +123,15 @@
   let allPageSelected = $derived(
     table.pageRows.length > 0 && table.pageRows.every((task) => selectedNames.has(task.name)),
   );
+  let selectedCount = $derived(table.pageRows.filter((task) => selectedNames.has(task.name)).length);
+
+  $effect(() => {
+    const visibleNames = new Set(table.pageRows.map((task) => task.name));
+    const remaining = [...selectedNames].filter((name) => visibleNames.has(name));
+    if (remaining.length !== selectedNames.size) {
+      selectedNames = new Set(remaining);
+    }
+  });
 
   // Only these states can still be cancelled server-side; anything else is already terminal.
   function isCancelable(task) {
@@ -194,10 +204,10 @@
     if (isCancelling) {
       return;
     }
-    const names = allTasks
+    const names = table.pageRows
       .filter((task) => selectedNames.has(task.name) && isCancelable(task))
       .map((task) => task.name);
-    const skipped = selectedNames.size - names.length;
+    const skipped = selectedCount - names.length;
     if (!names.length) {
       alert('None of the selected tasks can be cancelled.');
       return;
@@ -257,6 +267,7 @@
 <DataTable
   {table}
   itemLabel="tasks"
+  showToolbarEndSeparator={selectedCount > 0}
   loading={isLoading}
   rowKey={(task) => task.name}
   onpreferenceschange={saveState}
@@ -265,10 +276,12 @@
     {#if column.key === 'selection'}
       <input
         type="checkbox"
-        aria-label="Select all tasks on this page"
+        aria-label={allPageSelected ? 'Deselect all visible tasks' : 'Select all visible tasks'}
+        title={allPageSelected ? 'Deselect all visible tasks' : 'Select all visible tasks'}
         checked={allPageSelected}
-        disabled={table.pageRows.length === 0}
-        onclick={togglePageSelection}
+        indeterminate={!allPageSelected && selectedCount > 0}
+        disabled={isCancelling || isLoading || table.pageRows.length === 0}
+        onchange={togglePageSelection}
       />
     {/if}
   {/snippet}
@@ -296,22 +309,27 @@
     </div>
 
     <!-- Refresh button -->
-    <button
+    <TableButton
+      variant="primary"
       class="btn-primary"
-      class:loading={isRefreshing}
+      loading={isRefreshing}
       disabled={isRefreshing}
       onclick={refresh}
     >
       <i class="codicon codicon-sync refresh-icon" aria-hidden="true"></i>
       {isRefreshing ? 'Refreshing…' : 'Refresh'}
-    </button>
+    </TableButton>
 
-    <!-- Rendered last so showing/hiding it never shifts the other toolbar items -->
-    {#if selectedNames.size > 0}
-      <button class="bulk-cancel" disabled={isCancelling} onclick={cancelSelected}>
-        <i class="codicon codicon-stop-circle" aria-hidden="true"></i>
-        {isCancelling ? 'Cancelling…' : `Cancel selected (${selectedNames.size})`}
-      </button>
+  {/snippet}
+
+  {#snippet toolbarEnd()}
+    {#if selectedCount > 0}
+      <div class="bulk-actions">
+        <span class="selection-count">{selectedCount} {selectedCount === 1 ? 'task' : 'tasks'} selected</span>
+        <TableButton danger disabled={isCancelling} onclick={cancelSelected}>
+          <i class="codicon codicon-stop-circle" aria-hidden="true"></i> Cancel
+        </TableButton>
+      </div>
     {/if}
   {/snippet}
 
@@ -323,7 +341,8 @@
           type="checkbox"
           aria-label={`Select ${t.description}`}
           checked={selectedNames.has(t.name)}
-          onclick={() => toggleSelection(t.name)}
+          disabled={isCancelling || isLoading}
+          onchange={() => toggleSelection(t.name)}
         />
       </td>
     {/if}
@@ -371,25 +390,35 @@
         {#if hasCancel || hasPreview}
           <span class="action-dots">
             <span class="action-dot"><i class="codicon codicon-circle-small-filled"></i></span>
+            {#if hasCancel && hasPreview}
+              <span class="action-dot"><i class="codicon codicon-circle-small-filled"></i></span>
+            {/if}
           </span>
           <span class="action-btns">
             {#if hasCancel}
-              <button
+              <TableButton
                 class="action-btn danger"
+                variant="ghost"
+                size="compact"
+                danger
                 title="Cancel task"
+                aria-label="Cancel task"
                 onclick={() => cancelTask(t.name)}
               >
                 <i class="codicon codicon-stop-circle"></i>
-              </button>
+              </TableButton>
             {/if}
             {#if hasPreview}
-              <button
+              <TableButton
                 class="action-btn"
+                variant="ghost"
+                size="compact"
                 title="Preview asset"
+                aria-label="Preview asset"
                 onclick={() => previewAsset(t.previewAssetName)}
               >
                 <i class="codicon codicon-open-preview"></i>
-              </button>
+              </TableButton>
             {/if}
           </span>
         {/if}
@@ -437,107 +466,14 @@
       flex-shrink: 0;
     }
 
-    /* ==================================================================
-       TOOLBAR
-       ================================================================== */
-    .topbar {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: var(--vscee-space-md);
-      margin-bottom: var(--vscee-space-sm);
-      flex-shrink: 0;
-    }
-    .topbar-left {
+    .bulk-actions {
       display: flex;
       align-items: center;
       gap: var(--vscee-space-md);
     }
-
-    /* ==================================================================
-       TABLE CONTAINER
-       ================================================================== */
-    .table-wrap {
-      flex: 1 1 0;
-      overflow-y: auto;
-      min-height: 120px;
-      border: var(--vscee-border-sm) solid var(--vscee-color-panel-border);
-      border-radius: var(--vscee-radius-md);
-    }
-
-    /* ==================================================================
-       FOOTER
-       ================================================================== */
-    .footer {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding-top: var(--vscee-space-sm);
-      gap: var(--vscee-space-md);
-      flex-shrink: 0;
-      flex-wrap: wrap;
-
-      /* Pagination sits inside the footer — remove its own justify-content */
-      .pagination {
-        padding-top: 0;
-      }
-    }
-
-    /* ==================================================================
-       PAGINATION
-       ================================================================== */
-    .pagination {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding-top: var(--vscee-space-md);
-      gap: var(--vscee-space-md);
-      flex-wrap: wrap;
-      flex-shrink: 0;
-    }
-    .pager {
-      display: flex;
-      align-items: center;
-      gap: var(--vscee-space-xxs);
-    }
-    .nav-btn {
-      background: transparent;
-      border-color: transparent;
-      font-weight: 500;
-
-      &:not(:disabled):hover {
-        background: var(--vscee-color-list-hover);
-        border-color: var(--vscee-color-input-border);
-      }
-    }
-    .page-btn {
-      min-width: 28px;
-      height: 28px;
-      padding: 0 var(--vscee-space-xs);
-      border-radius: 50%;
-      background: transparent;
-      border: var(--vscee-border-sm) solid transparent;
-      font-size: var(--vscee-font-xs);
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-
-      &:hover {
-        background: var(--vscee-color-list-hover);
-        border-color: var(--vscee-color-input-border);
-      }
-      &.active {
-        background: var(--vscee-color-button-background);
-        color: var(--vscee-color-button-foreground);
-        border-color: transparent;
-        font-weight: 600;
-      }
-    }
-    .page-ellipsis {
-      padding: 0 var(--vscee-space-xs);
-      opacity: 0.5;
+    .selection-count {
+      white-space: nowrap;
       font-size: var(--vscee-font-sm);
-      user-select: none;
     }
 
     /* ==================================================================
@@ -580,25 +516,8 @@
     }
 
     /* ==================================================================
-       INLINE SPINNER
-       ================================================================== */
-    .spinner-inline {
-      width: 9px;
-      height: 9px;
-      border: var(--vscee-border-md) solid currentColor;
-      border-top-color: transparent;
-      border-radius: 50%;
-      display: inline-block;
-      animation: spin 0.8s linear infinite;
-      opacity: 0.6;
-      vertical-align: middle;
-      margin-left: var(--vscee-space-sm);
-    }
-
-    /* ==================================================================
        BUTTONS
        ================================================================== */
-    button,
     select {
       background: var(--vscee-color-button-secondary-background);
       color: var(--vscee-color-button-secondary-foreground);
@@ -608,81 +527,9 @@
       cursor: pointer;
       font-size: var(--vscee-font-sm);
     }
-    button {
-      &:hover {
-        background: var(--vscee-color-button-secondary-hover);
-      }
-      &:disabled {
-        opacity: 0.4;
-        cursor: default;
-      }
-    }
-    .btn-primary {
-      display: inline-flex;
-      align-items: center;
-      gap: var(--vscee-space-xs);
-      background: var(--vscee-color-button-background);
-      color: var(--vscee-color-button-foreground);
-      border-color: transparent;
-
-      &:hover {
-        background: var(--vscee-color-button-hover);
-      }
-      &.loading {
-        opacity: 0.75;
-        cursor: default;
-
-        .refresh-icon {
-          animation: spin 0.8s linear infinite;
-        }
-      }
-    }
-    .bulk-cancel {
-      display: inline-flex;
-      align-items: center;
-      gap: var(--vscee-space-xs);
-      color: var(--vscee-color-error);
-    }
-    .page-info {
-      font-size: var(--vscee-font-sm);
-      opacity: 0.7;
-    }
-
     /* ==================================================================
-       TABLE
+       TABLE CELLS
        ================================================================== */
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: var(--vscee-font-sm);
-    }
-    thead {
-      th {
-        position: sticky;
-        top: 0;
-        z-index: 1;
-        text-align: left;
-        padding: var(--vscee-space-sm) var(--vscee-space-md);
-        cursor: pointer;
-        user-select: none;
-        background: var(--vscee-color-editor-background);
-        border-bottom: var(--vscee-border-md) solid var(--vscee-color-panel-border);
-        white-space: nowrap;
-
-        &:hover {
-          background: var(--vscee-color-list-hover);
-        }
-      }
-    }
-    th {
-      .sort-arrow {
-        opacity: 0.5;
-        margin-left: var(--vscee-space-xs);
-      }
-      &.sorted .sort-arrow {
-        opacity: 1;
-      }
-    }
     td {
       padding: var(--vscee-space-sm) var(--vscee-space-md);
       border-bottom: var(--vscee-border-sm) solid var(--vscee-color-panel-border);
@@ -735,17 +582,9 @@
       display: inline-block;
     }
     .btn-primary.loading {
-      opacity: 0.75;
-      cursor: default;
-
       .refresh-icon {
         animation: spin 0.8s linear infinite;
       }
-    }
-    .table-wrap.loading {
-      opacity: 0.45;
-      pointer-events: none;
-      transition: opacity 0.15s;
     }
     .spinner {
       width: 10px;
@@ -770,9 +609,11 @@
       opacity: 0.4;
     }
     .action-dot {
-      padding: var(--vscee-space-xxs) var(--vscee-space-sm);
       display: inline-flex;
       align-items: center;
+      justify-content: center;
+      width: 30px;
+      height: 22px;
     }
     .action-btns {
       display: none;
@@ -782,13 +623,8 @@
     tr {
       &:hover {
         background: var(--vscee-color-list-hover);
-        .action-dots {
-          display: none;
-        }
-        .action-btns {
-          display: inline-flex;
-        }
       }
+      &:hover,
       &:focus-within {
         .action-dots {
           display: none;
@@ -799,25 +635,12 @@
       }
     }
     .action-btn {
-      background: none;
-      border: none;
-      cursor: pointer;
-      padding: var(--vscee-space-xxs) var(--vscee-space-sm);
-      border-radius: var(--vscee-radius-md);
-      color: var(--vscee-color-foreground);
+      box-sizing: border-box;
+      width: 30px;
+      padding: 0;
       opacity: 0.7;
-      display: inline-flex;
-      align-items: center;
-
       &:hover {
         opacity: 1;
-        background: var(--vscee-color-list-hover);
-      }
-      &.danger {
-        color: var(--vscee-color-error);
-        &:hover {
-          background: var(--vscee-color-validation-error-background);
-        }
       }
     }
 
