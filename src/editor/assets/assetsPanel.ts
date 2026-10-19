@@ -21,7 +21,7 @@ import { readRasterBandCount, RASTER_EXTENSIONS } from './rasterToCog.js';
 import { CONVERTIBLE_EXTENSIONS } from './vectorToShapefile.js';
 
 import { designTokens, codiconsCss } from '../../shared/index.js';
-import type { TablePreferences } from '../dataTable/tableTypes.js';
+import type { TablePreferences } from '../components/tableTypes.js';
 import script from './AssetsPanel.svelte';
 
 const CONTAINER_TYPES = new Set(['FOLDER', 'IMAGE_COLLECTION']);

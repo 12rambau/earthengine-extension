@@ -1,6 +1,7 @@
 <!-- NewAssetDialog: modal form to import a local raster or vector file as a new asset -->
 <script>
   import DatePicker from '../DatePicker.svelte';
+  import TableButton from '../components/TableButton.svelte';
 
   let {
     kind,
@@ -117,9 +118,9 @@
     <header>
       <i class="codicon {isImage ? 'codicon-file-media' : 'codicon-table'}"></i>
       <h2>{title}</h2>
-      <button class="close" title="Close" disabled={busy} onclick={oncancel}>
+      <TableButton variant="ghost" size="icon" title="Close" aria-label="Close" disabled={busy} onclick={oncancel}>
         <i class="codicon codicon-close"></i>
-      </button>
+      </TableButton>
     </header>
 
     <div class="body">
@@ -127,7 +128,7 @@
         <span>{fileLabel}</span>
         <div class="file-row">
           <input type="text" readonly placeholder="No file selected" value={filePath} />
-          <button disabled={busy} onclick={() => onpickfile(kind)}>Browse…</button>
+          <TableButton disabled={busy} onclick={() => onpickfile(kind)}>Browse…</TableButton>
         </div>
         {#if !isImage && needsConversion}
           <small>
@@ -204,22 +205,26 @@
       <div class="field">
         <span class="properties-header">
           Properties
-          <button class="add-property" disabled={busy} onclick={addProperty}>
+          <TableButton disabled={busy} onclick={addProperty}>
             <i class="codicon codicon-add"></i> Add
-          </button>
+          </TableButton>
         </span>
         {#each properties as property, index}
           <div class="property-row">
             <input type="text" placeholder="key" bind:value={property.key} disabled={busy} />
             <input type="text" placeholder="value" bind:value={property.value} disabled={busy} />
-            <button
+            <TableButton
               class="remove"
+              variant="ghost"
+              size="icon"
+              danger
               title="Remove"
+              aria-label="Remove property"
               disabled={busy}
               onclick={() => removeProperty(index)}
             >
               <i class="codicon codicon-trash"></i>
-            </button>
+            </TableButton>
           </div>
         {/each}
         {#if properties.length > 0}
@@ -236,10 +241,10 @@
     </div>
 
     <footer>
-      <button disabled={busy} onclick={oncancel}>Cancel</button>
-      <button class="btn-primary" disabled={!canSubmit} onclick={submit}>
+      <TableButton disabled={busy} onclick={oncancel}>Cancel</TableButton>
+      <TableButton variant="primary" disabled={!canSubmit} onclick={submit}>
         {busy ? 'Uploading…' : 'Upload and ingest'}
-      </button>
+      </TableButton>
     </footer>
   </div>
 </div>
@@ -278,11 +283,6 @@
       flex: 1;
       margin: 0;
       font-size: var(--vscee-font-xl);
-    }
-    .close {
-      background: none;
-      border: none;
-      padding: var(--vscee-space-xxs);
     }
   }
   .body {
@@ -361,40 +361,6 @@
   textarea {
     resize: vertical;
   }
-  button {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--vscee-space-xs);
-    background: var(--vscee-color-button-secondary-background);
-    color: var(--vscee-color-button-secondary-foreground);
-    border: var(--vscee-border-sm) solid var(--vscee-color-input-border);
-    border-radius: var(--vscee-radius-md);
-    padding: var(--vscee-space-xs) var(--vscee-space-md);
-    cursor: pointer;
-    font-size: var(--vscee-font-sm);
-    line-height: 1;
-
-    &:hover:not(:disabled) {
-      background: var(--vscee-color-button-secondary-hover);
-    }
-    &:disabled {
-      opacity: 0.4;
-      cursor: default;
-    }
-  }
-  .btn-primary {
-    background: var(--vscee-color-button-background);
-    color: var(--vscee-color-button-foreground);
-    border-color: transparent;
-
-    &:hover:not(:disabled) {
-      background: var(--vscee-color-button-hover);
-    }
-  }
-  footer button {
-    padding: var(--vscee-space-sm) var(--vscee-space-lg);
-  }
-
   /* ==================================================================
      BAND EDITOR
      ================================================================== */
@@ -424,7 +390,7 @@
       flex: 1;
       min-width: 0;
     }
-    .remove {
+    :global(.remove) {
       flex: 0 0 auto;
     }
   }

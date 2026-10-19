@@ -1,8 +1,9 @@
 <!-- TasksPanel: sortable/paginated task table with filter toggle and column picker -->
 <script>
   import { vscode, getInitData } from '../../shared/vscode.ts';
-  import DataTable from '../dataTable/DataTable.svelte';
-  import { createDataTable } from '../dataTable/dataTable.svelte.ts';
+  import DataTable from '../components/DataTable.svelte';
+  import TableButton from '../components/TableButton.svelte';
+  import { createDataTable } from '../components/dataTable.svelte.ts';
 
   const saved = getInitData();
 
@@ -296,22 +297,23 @@
     </div>
 
     <!-- Refresh button -->
-    <button
+    <TableButton
+      variant="primary"
       class="btn-primary"
-      class:loading={isRefreshing}
+      loading={isRefreshing}
       disabled={isRefreshing}
       onclick={refresh}
     >
       <i class="codicon codicon-sync refresh-icon" aria-hidden="true"></i>
       {isRefreshing ? 'Refreshing…' : 'Refresh'}
-    </button>
+    </TableButton>
 
     <!-- Rendered last so showing/hiding it never shifts the other toolbar items -->
     {#if selectedNames.size > 0}
-      <button class="bulk-cancel" disabled={isCancelling} onclick={cancelSelected}>
+      <TableButton class="bulk-cancel" danger disabled={isCancelling} onclick={cancelSelected}>
         <i class="codicon codicon-stop-circle" aria-hidden="true"></i>
         {isCancelling ? 'Cancelling…' : `Cancel selected (${selectedNames.size})`}
-      </button>
+      </TableButton>
     {/if}
   {/snippet}
 
@@ -374,22 +376,29 @@
           </span>
           <span class="action-btns">
             {#if hasCancel}
-              <button
+              <TableButton
                 class="action-btn danger"
+                variant="ghost"
+                size="compact"
+                danger
                 title="Cancel task"
+                aria-label="Cancel task"
                 onclick={() => cancelTask(t.name)}
               >
                 <i class="codicon codicon-stop-circle"></i>
-              </button>
+              </TableButton>
             {/if}
             {#if hasPreview}
-              <button
+              <TableButton
                 class="action-btn"
+                variant="ghost"
+                size="compact"
                 title="Preview asset"
+                aria-label="Preview asset"
                 onclick={() => previewAsset(t.previewAssetName)}
               >
                 <i class="codicon codicon-open-preview"></i>
-              </button>
+              </TableButton>
             {/if}
           </span>
         {/if}
@@ -598,7 +607,6 @@
     /* ==================================================================
        BUTTONS
        ================================================================== */
-    button,
     select {
       background: var(--vscee-color-button-secondary-background);
       color: var(--vscee-color-button-secondary-foreground);
@@ -607,41 +615,6 @@
       border-radius: var(--vscee-radius-md);
       cursor: pointer;
       font-size: var(--vscee-font-sm);
-    }
-    button {
-      &:hover {
-        background: var(--vscee-color-button-secondary-hover);
-      }
-      &:disabled {
-        opacity: 0.4;
-        cursor: default;
-      }
-    }
-    .btn-primary {
-      display: inline-flex;
-      align-items: center;
-      gap: var(--vscee-space-xs);
-      background: var(--vscee-color-button-background);
-      color: var(--vscee-color-button-foreground);
-      border-color: transparent;
-
-      &:hover {
-        background: var(--vscee-color-button-hover);
-      }
-      &.loading {
-        opacity: 0.75;
-        cursor: default;
-
-        .refresh-icon {
-          animation: spin 0.8s linear infinite;
-        }
-      }
-    }
-    .bulk-cancel {
-      display: inline-flex;
-      align-items: center;
-      gap: var(--vscee-space-xs);
-      color: var(--vscee-color-error);
     }
     .page-info {
       font-size: var(--vscee-font-sm);
@@ -735,9 +708,6 @@
       display: inline-block;
     }
     .btn-primary.loading {
-      opacity: 0.75;
-      cursor: default;
-
       .refresh-icon {
         animation: spin 0.8s linear infinite;
       }
@@ -799,25 +769,9 @@
       }
     }
     .action-btn {
-      background: none;
-      border: none;
-      cursor: pointer;
-      padding: var(--vscee-space-xxs) var(--vscee-space-sm);
-      border-radius: var(--vscee-radius-md);
-      color: var(--vscee-color-foreground);
       opacity: 0.7;
-      display: inline-flex;
-      align-items: center;
-
       &:hover {
         opacity: 1;
-        background: var(--vscee-color-list-hover);
-      }
-      &.danger {
-        color: var(--vscee-color-error);
-        &:hover {
-          background: var(--vscee-color-validation-error-background);
-        }
       }
     }
 

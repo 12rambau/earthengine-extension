@@ -1,5 +1,7 @@
 <!-- Pagination: page navigation and page-size selector for shared data tables -->
 <script>
+  import TableButton from './TableButton.svelte';
+
   let { currentPage, totalPages, pageSize, onpagechange, onpagesizechange } = $props();
 
   let openSize = $state(false);
@@ -47,42 +49,41 @@
 />
 
 <div class="pagination">
-  <button
-    class="page-nav"
+  <TableButton
+    variant="page"
     aria-label="Previous page"
     title="Previous page"
     disabled={currentPage === 0}
     onclick={() => onpagechange?.(currentPage - 1)}
-    ><i class="codicon codicon-triangle-left"></i></button
+    ><i class="codicon codicon-triangle-left"></i></TableButton
   >
   <span class="page-nums">
     {#each pages() as item}
       {#if item.type === 'ellipsis'}
         <span class="page-ellipsis">...</span>
       {:else}
-        <button
-          class="page-btn"
-          class:active={item.value === currentPage}
+        <TableButton
+          variant="page"
+          active={item.value === currentPage}
           onclick={() => onpagechange?.(item.value)}
         >
           {item.value + 1}
-        </button>
+        </TableButton>
       {/if}
     {/each}
   </span>
-  <button
-    class="page-nav"
+  <TableButton
+    variant="page"
     aria-label="Next page"
     title="Next page"
     disabled={currentPage >= totalPages - 1}
     onclick={() => onpagechange?.(currentPage + 1)}
-    ><i class="codicon codicon-triangle-right"></i></button
+    ><i class="codicon codicon-triangle-right"></i></TableButton
   >
 
   <div class="size-wrap" bind:this={sizeWrap}>
-    <button
-      class="size-trigger"
-      class:open={openSize}
+    <TableButton
+      active={openSize}
       onclick={(event) => {
         event.stopPropagation();
         openSize = !openSize;
@@ -90,17 +91,17 @@
     >
       {pageSize} / page
       <i class="codicon codicon-chevron-down size-chevron" class:open={openSize}></i>
-    </button>
+    </TableButton>
     {#if openSize}
       <div class="size-menu">
         {#each PAGE_SIZES as size}
-          <button
-            class="size-item"
-            class:active={size === pageSize}
+          <TableButton
+            variant="menu"
+            active={size === pageSize}
             onclick={() => setPageSize(size)}
           >
             {size}
-          </button>
+          </TableButton>
         {/each}
       </div>
     {/if}
@@ -123,71 +124,11 @@
     margin-left: var(--vscee-space-sm);
   }
 
-  button {
-    border: var(--vscee-border-sm) solid transparent;
-    cursor: pointer;
-    font-family: var(--vscee-font-family);
-
-    &:disabled {
-      opacity: 0.4;
-      cursor: default;
-    }
-  }
-
-  .page-nav,
-  .page-btn {
-    min-width: 28px;
-    height: 28px;
-    padding: 0 var(--vscee-space-xs);
-    color: var(--vscee-color-foreground);
-    background: transparent;
-    border-radius: var(--vscee-radius-md);
-
-    &:not(:disabled):hover {
-      background: var(--vscee-color-list-hover);
-      border-color: var(--vscee-color-input-border);
-    }
-  }
-
-  .page-btn {
-    font-size: var(--vscee-font-xs);
-
-    &.active {
-      background: var(--vscee-color-button-background);
-      color: var(--vscee-color-button-foreground);
-      border-color: transparent;
-      font-weight: 600;
-    }
-  }
-
   .page-ellipsis {
     padding: 0 var(--vscee-space-xs);
     opacity: 0.5;
     font-size: var(--vscee-font-sm);
     user-select: none;
-  }
-
-  .size-trigger {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--vscee-space-sm);
-    padding: var(--vscee-space-xs) var(--vscee-space-md);
-    background: var(--vscee-color-button-secondary-background);
-    color: var(--vscee-color-button-secondary-foreground);
-    border: var(--vscee-border-sm) solid var(--vscee-color-input-border);
-    border-radius: var(--vscee-radius-md);
-    font-size: var(--vscee-font-sm);
-    line-height: 1;
-    white-space: nowrap;
-
-    &:hover {
-      background: var(--vscee-color-button-secondary-hover);
-    }
-    &.open {
-      background: var(--vscee-color-button-background);
-      color: var(--vscee-color-button-foreground);
-      border-color: transparent;
-    }
   }
 
   .size-chevron {
@@ -212,23 +153,4 @@
     box-shadow: 0 2px 8px var(--vscee-color-widget-shadow);
   }
 
-  .size-item {
-    display: block;
-    width: 100%;
-    padding: var(--vscee-space-sm) var(--vscee-space-lg);
-    border-radius: var(--vscee-radius-md);
-    background: transparent;
-    color: var(--vscee-color-foreground);
-    font-size: var(--vscee-font-sm);
-    text-align: left;
-    white-space: nowrap;
-
-    &:hover {
-      background: var(--vscee-color-list-hover);
-    }
-    &.active {
-      background: var(--vscee-color-button-background);
-      color: var(--vscee-color-button-foreground);
-    }
-  }
 </style>

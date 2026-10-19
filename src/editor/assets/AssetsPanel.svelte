@@ -2,8 +2,9 @@
 <script>
   import { vscode, getInitData } from '../../shared/vscode.ts';
   import { mdiImage, mdiImageMultiple, mdiTableMultiple } from '../../shared/icons.ts';
-  import DataTable from '../dataTable/DataTable.svelte';
-  import { createDataTable } from '../dataTable/dataTable.svelte.ts';
+  import DataTable from '../components/DataTable.svelte';
+  import TableButton from '../components/TableButton.svelte';
+  import { createDataTable } from '../components/dataTable.svelte.ts';
   import NewAssetDialog from './NewAssetDialog.svelte';
 
   const saved = getInitData();
@@ -266,9 +267,9 @@
 >
   {#snippet toolbar()}
     <div class="new-menu" bind:this={newMenuWrap}>
-      <button
+      <TableButton
         class="trigger"
-        class:open={newMenuOpen}
+        active={newMenuOpen}
         title="Create a new asset"
         onclick={(e) => {
           e.stopPropagation();
@@ -278,19 +279,19 @@
         <i class="codicon codicon-add"></i>
         New
         <i class="codicon codicon-chevron-down chevron" class:open={newMenuOpen}></i>
-      </button>
+      </TableButton>
       {#if newMenuOpen}
         <div class="new-menu-items">
-          <button onclick={newFolder}>
+          <TableButton variant="menu" onclick={newFolder}>
             <i class="codicon codicon-folder"></i> New folder
-          </button>
-          <button onclick={() => openNewAsset('image')}>
+          </TableButton>
+          <TableButton variant="menu" onclick={() => openNewAsset('image')}>
             <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="var(--vscee-color-image)"
               ><path d={mdiImage} /></svg
             >
             New image
-          </button>
-          <button onclick={() => openNewAsset('table')}>
+          </TableButton>
+          <TableButton variant="menu" onclick={() => openNewAsset('table')}>
             <svg
               viewBox="0 0 24 24"
               width="16"
@@ -299,19 +300,21 @@
               fill="var(--vscee-color-table)"><path d={mdiTableMultiple} /></svg
             >
             New feature collection
-          </button>
+          </TableButton>
         </div>
       {/if}
     </div>
-    <button class="btn-primary" class:loading={isLoading} disabled={isLoading} onclick={refresh}>
+    <TableButton variant="primary" class="btn-primary" loading={isLoading} disabled={isLoading} onclick={refresh}>
       <i class="codicon codicon-sync refresh-icon" aria-hidden="true"></i>
       <span>{isLoading ? 'Refreshing…' : 'Refresh'}</span>
-    </button>
-    <button title="Go to parent" disabled={currentParent === rootPath} onclick={goUp}>↑</button>
+    </TableButton>
+    <TableButton title="Go to parent" aria-label="Go to parent" disabled={currentParent === rootPath} onclick={goUp}>
+      <i class="codicon codicon-arrow-up"></i>
+    </TableButton>
     <div class="breadcrumb">
       {#each breadcrumbParts as part, i}
         {#if i > 0}<span class="sep"> / </span>{/if}
-        <button onclick={() => navigate(part.path)}>{part.label}</button>
+        <TableButton variant="link" onclick={() => navigate(part.path)}>{part.label}</TableButton>
       {/each}
     </div>
   {/snippet}
@@ -320,15 +323,15 @@
     {#if selectedNames.length}
       <div class="bulk-actions">
         <span class="selection-count">{selectedNames.length} selected</span>
-        <button disabled={bulkBusy || isLoading} onclick={() => bulkAction('copy')}>
+        <TableButton disabled={bulkBusy || isLoading} onclick={() => bulkAction('copy')}>
           <i class="codicon codicon-copy"></i> Copy
-        </button>
-        <button disabled={bulkBusy || isLoading} onclick={() => bulkAction('move')}>
+        </TableButton>
+        <TableButton disabled={bulkBusy || isLoading} onclick={() => bulkAction('move')}>
           <i class="codicon codicon-clippy"></i> Move
-        </button>
-        <button disabled={bulkBusy || isLoading} onclick={() => bulkAction('delete')}>
+        </TableButton>
+        <TableButton disabled={bulkBusy || isLoading} onclick={() => bulkAction('delete')}>
           <i class="codicon codicon-trash"></i> Delete
-        </button>
+        </TableButton>
       </div>
     {/if}
   {/snippet}
@@ -396,7 +399,7 @@
     {#if visible.has('shortName')}
       <td>
         {#if a.isContainer}
-          <button class="name-link" onclick={() => navigate(a.name)}>{a.shortName}</button>
+          <TableButton variant="link" onclick={() => navigate(a.name)}>{a.shortName}</TableButton>
         {:else}
           <span class="name-text">{a.shortName}</span>
         {/if}
@@ -414,48 +417,64 @@
         </span>
         <span class="action-btns">
           {#if a.type === 'FOLDER'}
-            <button
+            <TableButton
               class="action-btn"
+              variant="ghost"
+              size="compact"
               title="New folder"
+              aria-label="New folder"
               disabled={bulkBusy || isBusy(a.name)}
               onclick={() => assetAction('createFolder', a.name)}
             >
               <i class="codicon codicon-new-folder"></i>
-            </button>
+            </TableButton>
           {:else}
-            <button
+            <TableButton
               class="action-btn"
+              variant="ghost"
+              size="compact"
               title="Preview"
+              aria-label="Preview"
               disabled={bulkBusy || isBusy(a.name)}
               onclick={() => preview(a.name)}
             >
               <i class="codicon codicon-open-preview"></i>
-            </button>
+            </TableButton>
           {/if}
-          <button
+          <TableButton
             class="action-btn"
+            variant="ghost"
+            size="compact"
             title="Copy asset"
+            aria-label="Copy asset"
             disabled={bulkBusy || isBusy(a.name)}
             onclick={() => assetAction('copy', a.name)}
           >
             <i class="codicon codicon-copy"></i>
-          </button>
-          <button
+          </TableButton>
+          <TableButton
             class="action-btn"
+            variant="ghost"
+            size="compact"
             title="Move asset"
+            aria-label="Move asset"
             disabled={bulkBusy || isBusy(a.name)}
             onclick={() => assetAction('move', a.name)}
           >
             <i class="codicon codicon-clippy"></i>
-          </button>
-          <button
-            class="action-btn danger"
+          </TableButton>
+          <TableButton
+            class="action-btn"
+            variant="ghost"
+            size="compact"
+            danger
             title="Delete asset"
+            aria-label="Delete asset"
             disabled={bulkBusy || isBusy(a.name)}
             onclick={() => assetAction('delete', a.name)}
           >
             <i class="codicon codicon-trash"></i>
-          </button>
+          </TableButton>
         </span>
       </td>
     {/if}
@@ -549,18 +568,6 @@
       flex-wrap: wrap;
       min-width: 0;
 
-      button {
-        background: none;
-        border: none;
-        color: var(--vscee-color-link);
-        cursor: pointer;
-        padding: var(--vscee-space-xxs) var(--vscee-space-xs);
-        font-size: var(--vscee-font-md);
-
-        &:hover {
-          text-decoration: underline;
-        }
-      }
       .sep {
         opacity: 0.5;
       }
@@ -670,7 +677,6 @@
     /* ==================================================================
        BUTTONS
        ================================================================== */
-    button,
     select {
       background: var(--vscee-color-button-secondary-background);
       color: var(--vscee-color-button-secondary-foreground);
@@ -680,34 +686,8 @@
       cursor: pointer;
       font-size: var(--vscee-font-sm);
     }
-    button {
-      &:hover {
-        background: var(--vscee-color-button-secondary-hover);
-      }
-      &:disabled {
-        opacity: 0.4;
-        cursor: default;
-      }
-    }
-    .btn-primary {
-      display: inline-flex;
-      align-items: center;
-      gap: var(--vscee-space-xs);
-      background: var(--vscee-color-button-background);
-      color: var(--vscee-color-button-foreground);
-      border-color: transparent;
-
-      &:hover {
-        background: var(--vscee-color-button-hover);
-      }
-      &.loading {
-        opacity: 0.75;
-        cursor: default;
-
-        .refresh-icon {
-          animation: spin 0.8s linear infinite;
-        }
-      }
+    .btn-primary.loading .refresh-icon {
+      animation: spin 0.8s linear infinite;
     }
 
     /* ==================================================================
@@ -716,29 +696,6 @@
     .new-menu {
       position: relative;
 
-      .trigger {
-        display: inline-flex;
-        align-items: center;
-        gap: var(--vscee-space-sm);
-        padding: var(--vscee-space-xs) var(--vscee-space-md);
-        background: var(--vscee-color-button-secondary-background);
-        color: var(--vscee-color-button-secondary-foreground);
-        border: var(--vscee-border-sm) solid var(--vscee-color-input-border);
-        border-radius: var(--vscee-radius-md);
-        cursor: pointer;
-        font-size: var(--vscee-font-sm);
-        line-height: 1;
-        white-space: nowrap;
-
-        &:hover {
-          background: var(--vscee-color-button-secondary-hover);
-        }
-        &.open {
-          background: var(--vscee-color-button-background);
-          color: var(--vscee-color-button-foreground);
-          border-color: transparent;
-        }
-      }
       .chevron {
         opacity: 0.7;
         transition: transform 0.15s;
@@ -761,21 +718,6 @@
       border: var(--vscee-border-sm) solid var(--vscee-color-dropdown-border);
       border-radius: var(--vscee-radius-md);
       box-shadow: var(--vscee-shadow-lg);
-
-      button {
-        display: flex;
-        align-items: center;
-        gap: var(--vscee-space-md);
-        padding: var(--vscee-space-xs) var(--vscee-space-sm);
-        background: none;
-        border: none;
-        text-align: left;
-        color: var(--vscee-color-dropdown-foreground);
-
-        &:hover {
-          background: var(--vscee-color-list-hover);
-        }
-      }
     }
     .page-info {
       font-size: var(--vscee-font-sm);
@@ -841,16 +783,6 @@
       display: flex;
       align-items: center;
       gap: var(--vscee-space-md);
-
-      button {
-        display: inline-flex;
-        align-items: center;
-        gap: var(--vscee-space-xs);
-        white-space: nowrap;
-      }
-      .codicon {
-        font-size: var(--vscee-font-icon-sm);
-      }
     }
     .selection-count {
       white-space: nowrap;
@@ -859,19 +791,6 @@
     .selection-cell {
       width: 32px;
       text-align: center;
-    }
-    .name-link {
-      background: none;
-      border: none;
-      color: var(--vscee-color-link);
-      cursor: pointer;
-      padding: 0;
-      font-size: inherit;
-      text-align: left;
-
-      &:hover {
-        text-decoration: underline;
-      }
     }
     .name-text {
       padding: 0;
@@ -966,28 +885,9 @@
       }
     }
     .action-btn {
-      background: none;
-      border: none;
-      cursor: pointer;
-      padding: var(--vscee-space-xxs) var(--vscee-space-sm);
-      border-radius: var(--vscee-radius-md);
-      color: var(--vscee-color-foreground);
       opacity: 0.7;
-      display: inline-flex;
-      align-items: center;
-
-      .codicon {
-        font-size: var(--vscee-font-icon-sm);
-      }
       &:hover {
         opacity: 1;
-        background: var(--vscee-color-list-hover);
-      }
-      &.danger {
-        color: var(--vscee-color-error);
-        &:hover {
-          background: var(--vscee-color-validation-error-background);
-        }
       }
     }
   }
