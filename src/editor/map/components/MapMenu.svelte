@@ -14,7 +14,7 @@
   }
 </script>
 
-<MapButton active={visible} {title} onclick={toggle}>
+<MapButton active={visible} aria-expanded={visible} {title} onclick={toggle}>
   {@render icon()}
 </MapButton>
 {@render panel()}

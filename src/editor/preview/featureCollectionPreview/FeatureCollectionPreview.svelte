@@ -67,26 +67,26 @@
     <!-- TABS -->
     <PreviewTabs {tabs} {activeTab} onselect={(tab) => (activeTab = tab)} />
 
-    <section class="tab-panel description-panel" class:active={activeTab === 'description'}>
+    <div class="tab-panel description-panel" class:active={activeTab === 'description'} id="panel-description" role="tabpanel" aria-labelledby="tab-description" tabindex="0">
       <AssetMetadataEditor bind:metadata bind:editing bind:name bind:startTime bind:endTime bind:properties bind:sharing bind:saving />
-    </section>
+    </div>
 
-    <section class="tab-panel" class:active={activeTab === 'features'}>
+    <div class="tab-panel" class:active={activeTab === 'features'} id="panel-features" role="tabpanel" aria-labelledby="tab-features" tabindex="0">
       <PreviewTable>{@html data.featuresTableHtml}</PreviewTable>
-    </section>
+    </div>
 
-    <section class="tab-panel" class:active={activeTab === 'columns'}>
+    <div class="tab-panel" class:active={activeTab === 'columns'} id="panel-columns" role="tabpanel" aria-labelledby="tab-columns" tabindex="0">
       <PreviewTable>{@html data.columnsTableHtml}</PreviewTable>
-    </section>
+    </div>
 
-    <section class="tab-panel properties-panel" class:active={activeTab === 'properties'}>
+    <div class="tab-panel properties-panel" class:active={activeTab === 'properties'} id="panel-properties" role="tabpanel" aria-labelledby="tab-properties" tabindex="0">
       <AssetPropertiesEditor {metadata} bind:rows={properties} {editing} {saving} />
-    </section>
+    </div>
 
     <!-- TAB: sharing -->
-    <section class="tab-panel" class:active={activeTab === 'sharing'}>
+    <div class="tab-panel" class:active={activeTab === 'sharing'} id="panel-sharing" role="tabpanel" aria-labelledby="tab-sharing" tabindex="0">
       <AssetSharingEditor {editing} {saving} bind:sharing />
-    </section>
+    </div>
 </PreviewFrame>
 
 <style>
