@@ -1705,7 +1705,8 @@
       flex: 1;
     }
     .viz-type-select,
-    .viz-preset-select {
+    .viz-preset-select,
+    .viz-band-select {
       background: var(--vscee-color-dropdown-background);
       color: var(--vscee-color-dropdown-foreground);
       border: var(--vscee-border-sm) solid var(--vscee-color-dropdown-border);
@@ -1842,21 +1843,20 @@
     .viz-band-select {
       flex: 1;
       min-width: 0;
-      background: var(--vscee-color-dropdown-background);
-      color: var(--vscee-color-dropdown-foreground);
-      border: var(--vscee-border-sm) solid var(--vscee-color-dropdown-border);
-      border-radius: var(--vscee-radius-md);
-      font-size: var(--vscee-font-compact-sm);
-      padding: var(--vscee-space-xxs) var(--vscee-space-xs);
     }
-    .viz-input {
-      width: 60px;
+    .viz-input,
+    .viz-legend-value,
+    .viz-legend-name,
+    .viz-legend-hex {
       background: var(--vscee-color-input-background);
       color: var(--vscee-color-input-foreground);
       border: var(--vscee-border-sm) solid var(--vscee-color-input-border);
       border-radius: var(--vscee-radius-md);
       font-size: var(--vscee-font-compact-sm);
       padding: var(--vscee-space-xxs) var(--vscee-space-xs);
+    }
+    .viz-input {
+      width: 60px;
     }
     .viz-stretch-status {
       display: inline-flex;
@@ -1974,12 +1974,6 @@
     }
     .viz-legend-value {
       width: 50px;
-      background: var(--vscee-color-input-background);
-      color: var(--vscee-color-input-foreground);
-      border: var(--vscee-border-sm) solid var(--vscee-color-input-border);
-      border-radius: var(--vscee-radius-md);
-      font-size: var(--vscee-font-compact-sm);
-      padding: var(--vscee-space-xxs) var(--vscee-space-xs);
 
       &.viz-legend-value-wide {
         width: 90px;
@@ -1988,12 +1982,6 @@
     }
     .viz-legend-name {
       flex: 1;
-      background: var(--vscee-color-input-background);
-      color: var(--vscee-color-input-foreground);
-      border: var(--vscee-border-sm) solid var(--vscee-color-input-border);
-      border-radius: var(--vscee-radius-md);
-      font-size: var(--vscee-font-compact-sm);
-      padding: var(--vscee-space-xxs) var(--vscee-space-xs);
     }
     .viz-legend-index {
       width: 50px;
@@ -2008,12 +1996,6 @@
       min-width: 0;
       box-sizing: content-box;
       font-family: var(--vscee-editor-font-family);
-      font-size: var(--vscee-font-compact-sm);
-      background: var(--vscee-color-input-background);
-      color: var(--vscee-color-input-foreground);
-      border: var(--vscee-border-sm) solid var(--vscee-color-input-border);
-      border-radius: var(--vscee-radius-md);
-      padding: var(--vscee-space-xxs) var(--vscee-space-xs);
 
       &.viz-legend-hex-cont {
         flex: 1;

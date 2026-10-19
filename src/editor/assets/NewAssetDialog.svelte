@@ -331,7 +331,8 @@
     font-family: var(--vscee-editor-font-family);
     word-break: break-all;
   }
-  .file-row {
+  .file-row,
+  .property-row {
     display: flex;
     gap: var(--vscee-space-md);
 
@@ -383,13 +384,6 @@
     opacity: 0.85;
   }
   .property-row {
-    display: flex;
-    gap: var(--vscee-space-md);
-
-    input {
-      flex: 1;
-      min-width: 0;
-    }
     :global(.remove) {
       flex: 0 0 auto;
     }

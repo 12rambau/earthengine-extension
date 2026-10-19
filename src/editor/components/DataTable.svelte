@@ -214,9 +214,15 @@
     z-index: 1;
     padding: var(--vscee-space-sm) var(--vscee-space-md);
     text-align: left;
+    cursor: pointer;
+    user-select: none;
     background: var(--vscee-color-editor-background);
     border-bottom: var(--vscee-border-md) solid var(--vscee-color-panel-border);
     white-space: nowrap;
+
+    &:hover {
+      background: var(--vscee-color-list-hover);
+    }
   }
 
   .header-content,
@@ -254,6 +260,7 @@
   .page-info {
     color: var(--vscee-color-muted);
     font-size: var(--vscee-font-sm);
+    opacity: 0.7;
   }
 
   .spinner-inline {

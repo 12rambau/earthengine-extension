@@ -334,9 +334,6 @@
       gap: var(--vscee-space-sm);
       min-width: 0;
     }
-    .layer-row:last-child {
-      border-bottom: none;
-    }
     .layer-vis-btn {
       width: 22px;
       height: 22px;

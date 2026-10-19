@@ -447,109 +447,6 @@
     }
 
     /* ==================================================================
-       TOOLBAR
-       ================================================================== */
-    .topbar {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: var(--vscee-space-md);
-      margin-bottom: var(--vscee-space-sm);
-      flex-shrink: 0;
-    }
-    .topbar-left {
-      display: flex;
-      align-items: center;
-      gap: var(--vscee-space-md);
-    }
-
-    /* ==================================================================
-       TABLE CONTAINER
-       ================================================================== */
-    .table-wrap {
-      flex: 1 1 0;
-      overflow-y: auto;
-      min-height: 120px;
-      border: var(--vscee-border-sm) solid var(--vscee-color-panel-border);
-      border-radius: var(--vscee-radius-md);
-    }
-
-    /* ==================================================================
-       FOOTER
-       ================================================================== */
-    .footer {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding-top: var(--vscee-space-sm);
-      gap: var(--vscee-space-md);
-      flex-shrink: 0;
-      flex-wrap: wrap;
-
-      /* Pagination sits inside the footer — remove its own justify-content */
-      .pagination {
-        padding-top: 0;
-      }
-    }
-
-    /* ==================================================================
-       PAGINATION
-       ================================================================== */
-    .pagination {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding-top: var(--vscee-space-md);
-      gap: var(--vscee-space-md);
-      flex-wrap: wrap;
-      flex-shrink: 0;
-    }
-    .pager {
-      display: flex;
-      align-items: center;
-      gap: var(--vscee-space-xxs);
-    }
-    .nav-btn {
-      background: transparent;
-      border-color: transparent;
-      font-weight: 500;
-
-      &:not(:disabled):hover {
-        background: var(--vscee-color-list-hover);
-        border-color: var(--vscee-color-input-border);
-      }
-    }
-    .page-btn {
-      min-width: 28px;
-      height: 28px;
-      padding: 0 var(--vscee-space-xs);
-      border-radius: 50%;
-      background: transparent;
-      border: var(--vscee-border-sm) solid transparent;
-      font-size: var(--vscee-font-xs);
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-
-      &:hover {
-        background: var(--vscee-color-list-hover);
-        border-color: var(--vscee-color-input-border);
-      }
-      &.active {
-        background: var(--vscee-color-button-background);
-        color: var(--vscee-color-button-foreground);
-        border-color: transparent;
-        font-weight: 600;
-      }
-    }
-    .page-ellipsis {
-      padding: 0 var(--vscee-space-xs);
-      opacity: 0.5;
-      font-size: var(--vscee-font-sm);
-      user-select: none;
-    }
-
-    /* ==================================================================
        FILTER TOGGLE
        ================================================================== */
     .toggle-switch {
@@ -589,22 +486,6 @@
     }
 
     /* ==================================================================
-       INLINE SPINNER
-       ================================================================== */
-    .spinner-inline {
-      width: 9px;
-      height: 9px;
-      border: var(--vscee-border-md) solid currentColor;
-      border-top-color: transparent;
-      border-radius: 50%;
-      display: inline-block;
-      animation: spin 0.8s linear infinite;
-      opacity: 0.6;
-      vertical-align: middle;
-      margin-left: var(--vscee-space-sm);
-    }
-
-    /* ==================================================================
        BUTTONS
        ================================================================== */
     select {
@@ -616,46 +497,9 @@
       cursor: pointer;
       font-size: var(--vscee-font-sm);
     }
-    .page-info {
-      font-size: var(--vscee-font-sm);
-      opacity: 0.7;
-    }
-
     /* ==================================================================
-       TABLE
+       TABLE CELLS
        ================================================================== */
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: var(--vscee-font-sm);
-    }
-    thead {
-      th {
-        position: sticky;
-        top: 0;
-        z-index: 1;
-        text-align: left;
-        padding: var(--vscee-space-sm) var(--vscee-space-md);
-        cursor: pointer;
-        user-select: none;
-        background: var(--vscee-color-editor-background);
-        border-bottom: var(--vscee-border-md) solid var(--vscee-color-panel-border);
-        white-space: nowrap;
-
-        &:hover {
-          background: var(--vscee-color-list-hover);
-        }
-      }
-    }
-    th {
-      .sort-arrow {
-        opacity: 0.5;
-        margin-left: var(--vscee-space-xs);
-      }
-      &.sorted .sort-arrow {
-        opacity: 1;
-      }
-    }
     td {
       padding: var(--vscee-space-sm) var(--vscee-space-md);
       border-bottom: var(--vscee-border-sm) solid var(--vscee-color-panel-border);
@@ -712,11 +556,6 @@
         animation: spin 0.8s linear infinite;
       }
     }
-    .table-wrap.loading {
-      opacity: 0.45;
-      pointer-events: none;
-      transition: opacity 0.15s;
-    }
     .spinner {
       width: 10px;
       height: 10px;
@@ -752,13 +591,8 @@
     tr {
       &:hover {
         background: var(--vscee-color-list-hover);
-        .action-dots {
-          display: none;
-        }
-        .action-btns {
-          display: inline-flex;
-        }
       }
+      &:hover,
       &:focus-within {
         .action-dots {
           display: none;

@@ -205,7 +205,8 @@
       overflow-y: auto;
       padding: var(--vscee-space-sm) var(--vscee-space-md);
     }
-    .inspector-hint {
+    .inspector-hint,
+    .inspector-loading {
       font-size: var(--vscee-font-compact-sm);
       color: var(--vscee-color-muted);
       text-align: center;
@@ -229,12 +230,6 @@
       &:hover {
         color: var(--vscee-color-foreground);
       }
-    }
-    .inspector-loading {
-      font-size: var(--vscee-font-compact-sm);
-      color: var(--vscee-color-muted);
-      text-align: center;
-      padding: var(--vscee-space-xs) 0;
     }
     .inspector-layer {
       margin-bottom: var(--vscee-space-md);

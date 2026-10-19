@@ -603,14 +603,7 @@
       height: 22px;
     }
     tr {
-      &:hover {
-        .action-dots {
-          display: none;
-        }
-        .action-btns {
-          display: inline-flex;
-        }
-      }
+      &:hover,
       &:focus-within {
         .action-dots {
           display: none;
