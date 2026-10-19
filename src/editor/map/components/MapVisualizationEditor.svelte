@@ -3,9 +3,9 @@
   import ColorPicker from './ColorPicker.svelte';
   import MapButton from './MapButton.svelte';
   import MapSlider from './MapSlider.svelte';
-  import { vscode } from '../../shared/vscode.ts';
-  import { trackViewportChanges } from '../../shared/viewportAnchor.ts';
-  import { intervalStops } from '../../shared/sepalViz.ts';
+  import { vscode } from '../../../shared/vscode.ts';
+  import { trackViewportChanges } from '../../../shared/viewportAnchor.ts';
+  import { intervalStops } from '../../../shared/sepalViz.ts';
   import {
     mdiCheck,
     mdiChevronDown,
@@ -13,7 +13,7 @@
     mdiContentCopy,
     mdiLoading,
     mdiTrashCan,
-  } from '../../shared/icons.ts';
+  } from '../../../shared/icons.ts';
   import {
     interpolateViridis,
     interpolateMagma,

@@ -1,7 +1,7 @@
 <!-- MapLayerControl: layer list, visibility, opacity and visualization actions -->
 <script>
   import MapSlider from './MapSlider.svelte';
-  import { vscode } from '../../shared/vscode.ts';
+  import { vscode } from '../../../shared/vscode.ts';
   import {
     mdiClose,
     mdiEye,
@@ -9,7 +9,7 @@
     mdiRuler,
     mdiTrashCan,
     mdiTune,
-  } from '../../shared/icons.ts';
+  } from '../../../shared/icons.ts';
 
   let {
     map,

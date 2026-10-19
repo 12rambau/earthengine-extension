@@ -1,12 +1,12 @@
 <!-- MapPanel: Leaflet-based map with EE tile layers, inspector, scale bar and viz editor -->
 <script>
   import L from 'leaflet';
-  import MapButton from './MapButton.svelte';
-  import MapGeometryControl from './MapGeometryControl.svelte';
-  import MapInspector from './MapInspector.svelte';
-  import MapLayerControl from './MapLayerControl.svelte';
-  import MapScale from './MapScale.svelte';
-  import MapVisualizationEditor from './MapVisualizationEditor.svelte';
+  import MapButton from './components/MapButton.svelte';
+  import MapGeometryControl from './components/MapGeometryControl.svelte';
+  import MapInspector from './components/MapInspector.svelte';
+  import MapLayerControl from './components/MapLayerControl.svelte';
+  import MapScale from './components/MapScale.svelte';
+  import MapVisualizationEditor from './components/MapVisualizationEditor.svelte';
   import { vscode } from '../../shared/vscode.ts';
   import { trackViewportChanges } from '../../shared/viewportAnchor.ts';
   import {

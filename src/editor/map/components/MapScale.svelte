@@ -1,6 +1,6 @@
 <!-- MapScale: visualization scale bar and pixel-value tracking -->
 <script>
-  import { intervalStops } from '../../shared/sepalViz.ts';
+  import { intervalStops } from '../../../shared/sepalViz.ts';
 
   let { map, overlays = [], activeScaleIndex = -1 } = $props();
 

@@ -1,8 +1,8 @@
 <!-- MapInspector: map click inspection, marker and pixel values panel -->
 <script>
   import L from 'leaflet';
-  import { vscode } from '../../shared/vscode.ts';
-  import { mdiClose, mdiLoading, mdiMapMarker } from '../../shared/icons.ts';
+  import { vscode } from '../../../shared/vscode.ts';
+  import { mdiClose, mdiLoading, mdiMapMarker } from '../../../shared/icons.ts';
 
   let { map, active = $bindable(false), cursor = '' } = $props();
 
