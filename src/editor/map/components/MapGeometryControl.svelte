@@ -402,7 +402,7 @@
        GEOMETRY MANAGER
        ================================================================== */
     .geometry-panel {
-      position: absolute;
+      position: fixed;
       top: 10px;
       left: 48px;
       z-index: 1000;
