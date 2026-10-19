@@ -132,6 +132,7 @@
   let vizLayerIndex = $state(-1);
   let vizSourceType = $state('image');
   let vizProperty = $state('');
+  let propertyRangeRequestId = 0;
   let vizVectorColor = $state('#000000');
   let vizVectorStroke = $state(true);
   let vizVectorFill = $state(false);
@@ -282,6 +283,9 @@
   // ----------------------------------------------------------------
 
   function applyVisParams(vp) {
+    if (vizSourceType === 'featureCollection') {
+      invalidatePropertyRange();
+    }
     vizVectorNotice = '';
     const bands = vizSourceType === 'featureCollection' ? [vp.property].filter(Boolean) : vp.bands || [];
     const isCat = Array.isArray(vp.values) && vp.values.length > 0;
@@ -729,8 +733,16 @@
 
   /** A hand-edited bound no longer matches the selected stretch preset. */
   function markRangeCustom() {
+    if (vizSourceType === 'featureCollection') {
+      invalidatePropertyRange();
+    }
     vizStretch = 'custom';
     vizStretchError = '';
+  }
+
+  function invalidatePropertyRange() {
+    propertyRangeRequestId += 1;
+    vizComputing = false;
   }
 
   function clampOpacityPercent(value) {
@@ -954,6 +966,7 @@
 
   function detectPropertyRange() {
     if (!vizProperty) {
+      invalidatePropertyRange();
       vizStretchError = 'Select a property first.';
       vizStretch = 'custom';
       return;
@@ -963,6 +976,7 @@
     vizComputing = true;
     vscode.postMessage({ type: 'computePropertyRange', data: {
       layerIndex: vizLayerIndex,
+      requestId: ++propertyRangeRequestId,
       property: vizProperty,
       bounds: [bounds.getSouth(), bounds.getWest(), bounds.getNorth(), bounds.getEast()],
     } });
@@ -1077,7 +1091,9 @@
           vizCatNotice = msg.data.error || 'Class detection failed.';
         }
       }
-    } else if (msg.type === 'vizPropertyRange' && msg.data.layerIndex === vizLayerIndex) {
+    } else if (msg.type === 'vizPropertyRange' &&
+      msg.data.layerIndex === vizLayerIndex &&
+      msg.data.requestId === propertyRangeRequestId) {
       vizComputing = false;
       if (msg.data.range) {
         if (vizType === 'continuous') {
@@ -1118,7 +1134,11 @@
         if (vizSourceType === 'featureCollection') {
           vizStretch = e.target.value;
           vizStretchError = '';
-          if (vizStretch === 'visible') detectPropertyRange();
+          if (vizStretch === 'visible') {
+            detectPropertyRange();
+          } else {
+            invalidatePropertyRange();
+          }
         } else {
           applyStretch(e.target.value);
         }
@@ -1198,6 +1218,9 @@
           class="viz-type-select"
           bind:value={vizType}
           onchange={() => {
+            if (vizSourceType === 'featureCollection') {
+              invalidatePropertyRange();
+            }
             if (vizType === 'intervals' && vizIntRows.length === 0) {
               generateIntRows();
             }

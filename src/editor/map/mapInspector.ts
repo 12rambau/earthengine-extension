@@ -55,7 +55,7 @@ export class MapInspector {
       try {
         if (layer.sourceType === 'featureCollection') {
           const collection = eeAny.FeatureCollection(eeAny.Deserializer.fromJSON(layer.serialized));
-          const nearby = collection.filterBounds(point.buffer(scale / 2));
+          const nearby = collection.filterBounds(point.buffer(scale * 4));
           const exists = await computeValue<boolean>(nearby.size().gt(0));
           const values = exists
             ? await computeValue<Record<string, unknown>>(nearby.first().toDictionary())

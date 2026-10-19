@@ -264,6 +264,7 @@ export class MapPanel extends EditorPanel {
       } else if (msg.type === 'computePropertyRange') {
         const d = msg.data as {
           layerIndex: number;
+          requestId: number;
           property: string;
           bounds: [number, number, number, number];
         };
@@ -273,12 +274,16 @@ export class MapPanel extends EditorPanel {
             d.property,
             d.bounds,
           );
-          this.post({ type: 'vizPropertyRange', data: { layerIndex: d.layerIndex, range } });
+          this.post({
+            type: 'vizPropertyRange',
+            data: { layerIndex: d.layerIndex, requestId: d.requestId, range },
+          });
         } catch (err) {
           this.post({
             type: 'vizPropertyRange',
             data: {
               layerIndex: d.layerIndex,
+              requestId: d.requestId,
               error: err instanceof Error ? err.message : String(err),
             },
           });

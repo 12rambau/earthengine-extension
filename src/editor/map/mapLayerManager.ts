@@ -52,7 +52,7 @@ function styleFeatureCollection(source: any, visParams: Record<string, unknown>,
     ...(style['lineType'] ? { lineType: style['lineType'] } : {}),
   };
   if (!property && !palette && (!vizType || vizType === 'uniform')) {
-    return collection.style({ ...style, ...base });
+    return collection.style(base);
   }
   if (
     typeof property !== 'string' ||
@@ -200,6 +200,40 @@ export class MapLayerManager {
     return run;
   }
 
+  private async resolveVectorVisParams(
+    source: any,
+    visParams: Record<string, unknown>,
+    assetName?: string,
+  ): Promise<Record<string, unknown>> {
+    if (!('default' in visParams)) {
+      return visParams;
+    }
+    const props = assetName
+      ? ((await getAsset(assetName, (await getEeContext()).token)).properties ?? {})
+      : await computeValue<Record<string, unknown>>(source.toDictionary());
+    const presets = parseSepalVisualizations(props).filter((preset) =>
+      ['uniform', 'continuous', 'categorical', 'intervals'].includes(preset.type),
+    );
+    const preset = selectSepalViz(presets, visParams['default'] as string | number);
+    if (!preset) {
+      throw new Error('No FeatureCollection visualization presets found.');
+    }
+    return {
+      vizType: preset.type,
+      ...(preset.type === 'uniform'
+        ? { color: preset.color, fillColor: preset.fillColor, width: preset.width }
+        : {
+            property: preset.bands[0],
+            palette: preset.palette,
+            min: preset.min?.[0],
+            max: preset.max?.[0],
+            values: preset.values,
+            breaks: preset.breaks,
+          }),
+      labels: preset.labels,
+    };
+  }
+
   /** Resolves the tile URL for one `addLayer` payload and posts the result. */
   private async resolveAndPost(
     payload: AddLayerPayload,
@@ -211,7 +245,12 @@ export class MapLayerManager {
     const image = ee.Deserializer.fromJSON(payload.serialized);
 
     if (payload.sourceType === 'featureCollection') {
-      const url = await getMapIdUrl(styleFeatureCollection(image, payload.visParams, ee), {});
+      const visParams = await this.resolveVectorVisParams(
+        image,
+        payload.visParams,
+        payload.assetName,
+      );
+      const url = await getMapIdUrl(styleFeatureCollection(image, visParams, ee), {});
       const layerIndex = existingLayer?.index ?? this.layerCount++;
       this._layers.set(
         layerIndex,
@@ -220,7 +259,7 @@ export class MapLayerManager {
           payload.serialized,
           payload.name,
           url,
-          payload.visParams,
+          visParams,
           payload.shown,
           payload.opacity,
           payload.assetName,
@@ -235,7 +274,7 @@ export class MapLayerManager {
           shown: payload.shown,
           opacity: payload.opacity,
           layerIndex,
-          visParams: payload.visParams,
+          visParams,
         },
       });
       return;
@@ -714,10 +753,18 @@ export class MapLayerManager {
       const visParams = { ...config };
       delete visParams['opacity'];
       delete visParams['layerIndex'];
-      const url = await getMapIdUrl(styleFeatureCollection(image, visParams, ee), {});
+      const resolvedVisParams = await this.resolveVectorVisParams(
+        image,
+        visParams,
+        layer.assetName,
+      );
+      const url = await getMapIdUrl(styleFeatureCollection(image, resolvedVisParams, ee), {});
       layer.url = url;
-      layer.visParams = visParams;
-      postMessage({ type: 'replaceTileLayer', data: { layerIndex, url, visParams } });
+      layer.visParams = resolvedVisParams;
+      postMessage({
+        type: 'replaceTileLayer',
+        data: { layerIndex, url, visParams: resolvedVisParams },
+      });
       return;
     }
 
