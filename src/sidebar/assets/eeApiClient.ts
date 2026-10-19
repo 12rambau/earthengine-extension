@@ -277,7 +277,11 @@ export function assetMetadataPatch(
   },
 ) {
   const previous = asset.properties ?? {};
-  const desired: Record<string, unknown> = { ...changes.properties };
+  const desired: Record<string, unknown> = Object.fromEntries(
+    Object.entries(changes.properties).filter(
+      ([key, value]) => key.trim() && (typeof value !== 'string' || value.trim()),
+    ),
+  );
   if (changes.description) {
     desired['description'] = changes.description;
   }

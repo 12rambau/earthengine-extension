@@ -18,7 +18,7 @@ describe('asset preview metadata', () => {
           startTime: '2024-01-02T00:00:00.000Z',
           endTime: null,
           description: '',
-          properties: { keep: 1, renamed: 'value' },
+          properties: { keep: 1, renamed: 'value', incomplete: '' },
         },
       ),
       {
