@@ -4,7 +4,7 @@
   import AssetMetadataEditor from '../AssetMetadataEditor.svelte';
   import AssetPropertiesEditor from '../AssetPropertiesEditor.svelte';
   import AssetSharingEditor from '../AssetSharingEditor.svelte';
-  import DatePicker from '../../DatePicker.svelte';
+  import DatePicker from '../../components/DatePicker.svelte';
 
   const data = getInitData();
 

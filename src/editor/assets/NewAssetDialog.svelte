@@ -1,6 +1,6 @@
 <!-- NewAssetDialog: modal form to import a local raster or vector file as a new asset -->
 <script>
-  import DatePicker from '../DatePicker.svelte';
+  import DatePicker from '../components/DatePicker.svelte';
   import TableButton from '../components/TableButton.svelte';
 
   let {
