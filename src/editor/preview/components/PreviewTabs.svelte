@@ -3,7 +3,7 @@
   let { tabs, activeTab, onselect } = $props();
 
   function handleKeydown(event) {
-    if (event.target.getAttribute('role') !== 'tab') return;
+    if (event.target.getAttribute('role') !== 'tab') {return;}
 
     const index = tabs.findIndex((tab) => `tab-${tab.id}` === event.target.id);
     let nextIndex;
