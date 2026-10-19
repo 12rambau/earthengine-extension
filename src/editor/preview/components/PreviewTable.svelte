@@ -31,6 +31,9 @@
       padding: var(--vscee-space-sm) var(--vscee-space-lg);
       border-bottom: var(--vscee-border-sm) solid var(--vscee-color-panel-border);
     }
+    :global(tbody tr:hover) {
+      background: var(--vscee-color-list-hover);
+    }
     &.key-column :global(td:first-child) {
       font-weight: 500;
       width: 30%;
