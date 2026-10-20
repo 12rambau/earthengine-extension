@@ -1,7 +1,7 @@
 <!-- AssetSharingEditor: view and edit asset IAM reader and writer grants -->
 <script>
   import PreviewTable from './PreviewTable.svelte';
-  import ToggleSwitch from '../../../shared/ToggleSwitch.svelte';
+  import ToggleSwitch from '../../components/ToggleSwitch.svelte';
   import { vscode } from '../../../shared/vscode.ts';
 
   let { editing, saving, sharing = $bindable(null) } = $props();

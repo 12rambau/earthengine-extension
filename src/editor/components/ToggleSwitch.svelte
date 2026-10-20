@@ -44,7 +44,6 @@
 
       &:checked + .track {
         background: var(--vscee-color-button-background);
-        border-color: var(--vscee-color-button-background);
 
         .knob {
           background: var(--vscee-color-button-foreground);
@@ -70,9 +69,8 @@
       width: 100%;
       height: 100%;
       padding: 0 2px;
-      border: var(--vscee-border-sm) solid var(--vscee-color-widget-border);
       border-radius: 999px;
-      background: var(--vscee-color-input-background);
+      background: var(--vscee-color-button-secondary-background);
       transition: background 0.15s;
     }
     .knob {

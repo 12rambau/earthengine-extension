@@ -3,7 +3,7 @@
   import ColorPicker from './ColorPicker.svelte';
   import MapButton from './MapButton.svelte';
   import MapSlider from './MapSlider.svelte';
-  import ToggleSwitch from '../../../shared/ToggleSwitch.svelte';
+  import ToggleSwitch from '../../components/ToggleSwitch.svelte';
   import { vscode } from '../../../shared/vscode.ts';
   import { trackViewportChanges } from '../../../shared/viewportAnchor.ts';
   import { intervalStops } from '../../../shared/sepalViz.ts';
