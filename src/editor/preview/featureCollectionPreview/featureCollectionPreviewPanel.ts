@@ -6,8 +6,8 @@
  * - Left sidebar: thumbnail, Table ID, dates, file size, feature count, last modified.
  * - Right content: 4 tabs — DESCRIPTION, FEATURES, COLUMNS, PROPERTIES.
  *
- * The thumbnail is generated from the FeatureCollection footprint rendered
- * with dark outlines. Features tab shows the first 20 rows with all columns.
+ * The thumbnail uses the first vector visualization preset when available.
+ * Features tab shows the first 20 rows with all columns.
  * Columns tab lists column names and inferred types from the first feature.
  */
 
@@ -18,6 +18,8 @@ import { filesize } from 'filesize';
 import dayjs from 'dayjs';
 import { computeValue, ensureEe, getThumbUrlRest } from '../../../shared/eeSession.js';
 import { getExtensionUri } from '../../../shared/extensionContext.js';
+import { parseSepalVisualizations, selectSepalViz, vectorVisParams } from '../../../shared/sepalViz.js';
+import { styleFeatureCollection } from '../../map/mapLayerManager.js';
 
 import script from './FeatureCollectionPreview.svelte';
 import { loadPreviewSharing, previewMetadata, savePreviewMetadata } from '../previewMetadata.js';
@@ -99,31 +101,45 @@ async function sendThumbnail(asset: EEAsset, panel: vscode.WebviewPanel): Promis
   }
 }
 
-/** Paints features with red fill and red border on an empty image, using the buffered bounds as region. */
+/** Renders the first vector preset (or the existing red style) over the collection's full extent. */
 async function getTableThumbnailUrl(asset: EEAsset): Promise<string> {
   const ee = await ensureEe();
   const fc = ee.FeatureCollection(asset.name);
+  const coordinates = await computeValue<number[][][]>(
+    fc.geometry().bounds(1).coordinates(),
+  ).catch(() => undefined);
+  const grid = buildSquareGrid(coordinates?.length ? { coordinates } : asset.geometry);
+  const params = { format: 'PNG', grid };
+  const presets = parseSepalVisualizations(asset.properties ?? {}).filter((preset) =>
+    ['uniform', 'continuous', 'categorical', 'intervals'].includes(preset.type),
+  );
+  const preset = selectSepalViz(presets, 0);
+  if (preset) {
+    try {
+      return await getThumbUrlRest(styleFeatureCollection(fc, vectorVisParams(preset), ee), params);
+    } catch (err) {
+      console.warn('FeatureCollection thumbnail preset failed:', err);
+    }
+  }
   const painted = ee.Image(0).paint(fc, 1).paint(fc, 2, 1);
   const visualized = painted.visualize({
     palette: ['FFFFFF', 'FFCCCC', 'FF0000'],
     min: 0,
     max: 2,
   });
-  return getThumbUrlRest(visualized, {
-    format: 'PNG',
-    grid: buildSquareGrid(asset.geometry),
-  });
+  return getThumbUrlRest(visualized, params);
 }
 
-/** Builds a 256×256 square grid from the asset geometry, or a global fallback. */
-function buildSquareGrid(geometry: unknown): Record<string, unknown> {
+/** Builds a padded 256×256 square grid from the collection bounds, or a global fallback. */
+export function buildSquareGrid(geometry: unknown): Record<string, unknown> {
   const bbox = extractBbox(geometry);
   const cx = (bbox[0] + bbox[2]) / 2;
   const cy = (bbox[1] + bbox[3]) / 2;
   const half = Math.max(bbox[2] - bbox[0], bbox[3] - bbox[1]) / 2;
-  const x0 = cx - half;
-  const y0 = cy + half;
-  const span = half * 2;
+  const paddedHalf = half < 89 ? Math.max(half * 1.2, 0.05) : half;
+  const x0 = cx - paddedHalf;
+  const y0 = cy + paddedHalf;
+  const span = paddedHalf * 2;
   return {
     dimensions: { width: 256, height: 256 },
     affineTransform: {
