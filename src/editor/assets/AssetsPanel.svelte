@@ -338,16 +338,23 @@
       {#if newMenuOpen}
         <div class="new-menu-items">
           <TableButton variant="menu" onclick={newFolder}>
-            <i class="codicon codicon-folder"></i> New folder
+            <i class="codicon codicon-folder"></i> Folder
           </TableButton>
           <TableButton variant="menu" onclick={() => openNewAsset('image')}>
-            <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="var(--vscee-color-image)"
+            <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="currentColor"
               ><path d={mdiImage} /></svg
             >
-            New image
+            Image
           </TableButton>
           <TableButton variant="menu" onclick={() => openNewAsset('collection')}>
-            <i class="codicon codicon-layers"></i> New image collection
+            <svg
+              viewBox="0 0 24 24"
+              width="16"
+              height="16"
+              aria-hidden="true"
+              fill="currentColor"><path d={mdiImageMultiple} /></svg
+            >
+            Image collection
           </TableButton>
           <TableButton variant="menu" onclick={() => openNewAsset('table')}>
             <svg
@@ -355,9 +362,9 @@
               width="16"
               height="16"
               aria-hidden="true"
-              fill="var(--vscee-color-table)"><path d={mdiTableMultiple} /></svg
+              fill="currentColor"><path d={mdiTableMultiple} /></svg
             >
-            New feature collection
+            Feature collection
           </TableButton>
         </div>
       {/if}
