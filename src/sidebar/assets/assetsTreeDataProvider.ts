@@ -387,7 +387,10 @@ function iconId(type: string): string {
     case 'IMAGE':
       return 'file-media';
     case 'TABLE':
+    case 'FEATURE_VIEW':
       return 'table';
+    case 'CLASSIFIER':
+      return 'symbol-class';
     default:
       return 'file';
   }

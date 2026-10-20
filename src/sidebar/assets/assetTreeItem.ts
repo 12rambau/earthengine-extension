@@ -17,13 +17,14 @@ export function resolveTypeIcon(type: string): vscode.Uri | vscode.ThemeIcon {
     IMAGE_COLLECTION: 'image-multiple',
     IMAGE: 'image',
     TABLE: 'table-multiple',
+    FEATURE_VIEW: 'table-multiple',
     FOLDER: '',
   };
   const file = svgFile[type];
   if (file) {
     return vscode.Uri.joinPath(getExtensionUri(), 'resources', 'icons', `${file}.svg`);
   }
-  return new vscode.ThemeIcon('folder');
+  return new vscode.ThemeIcon(type === 'CLASSIFIER' ? 'symbol-class' : 'folder');
 }
 
 /** ThemeIcon fallback kept for callers that need a ThemeIcon specifically. */
@@ -32,6 +33,8 @@ export const TYPE_ICONS: Record<string, vscode.ThemeIcon> = {
   IMAGE_COLLECTION: new vscode.ThemeIcon('layers', new vscode.ThemeColor('charts.blue')),
   IMAGE: new vscode.ThemeIcon('image', new vscode.ThemeColor('charts.orange')),
   TABLE: new vscode.ThemeIcon('table', new vscode.ThemeColor('charts.green')),
+  FEATURE_VIEW: new vscode.ThemeIcon('table', new vscode.ThemeColor('charts.green')),
+  CLASSIFIER: new vscode.ThemeIcon('symbol-class'),
 };
 
 // ==================================================================

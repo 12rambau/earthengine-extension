@@ -33,7 +33,7 @@
       key: 'type',
       label: 'Type',
       sortable: true,
-      filter: { kind: 'enum', options: ['FOLDER', 'IMAGE', 'IMAGE_COLLECTION', 'TABLE'] },
+      filter: { kind: 'enum', options: ['FOLDER', 'IMAGE', 'IMAGE_COLLECTION', 'TABLE', 'FEATURE_VIEW', 'CLASSIFIER'] },
       accessor: (a) => a.type,
     },
     {
@@ -409,6 +409,10 @@
             aria-hidden="true"
             fill="var(--vscee-color-table)"><path d={mdiTableMultiple} /></svg
           >
+        {:else if a.type === 'FEATURE_VIEW'}
+          <i class="codicon codicon-table"></i>
+        {:else if a.type === 'CLASSIFIER'}
+          <i class="codicon codicon-symbol-class"></i>
         {/if}
       </td>
     {/if}
