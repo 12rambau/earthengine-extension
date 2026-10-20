@@ -5,15 +5,16 @@
  */
 
 import * as vscode from 'vscode';
-import { AssetSharingChanges, EEAsset, getAsset, saveAssetSharing } from '../../sidebar/assets/eeApiClient.js';
+import { AssetSharingChanges, EEAsset, getAsset, listFeatures, saveAssetSharing } from '../../sidebar/assets/eeApiClient.js';
 import { codiconsCss, designTokens, renderPropertiesTable } from '../../shared/index.js';
+import { computeValue, ensureEe } from '../../shared/eeSession.js';
 import { filesize } from 'filesize';
 import dayjs from 'dayjs';
 import { openImagePreview } from './imagePreview/imagePreviewPanel.js';
 import { openImageCollectionPreview } from './imageCollectionPreview/imageCollectionPreviewPanel.js';
 import { openFeatureCollectionPreview } from './featureCollectionPreview/featureCollectionPreviewPanel.js';
 import script from './assetPreviewPanel.svelte';
-import { loadPreviewSharing } from './previewMetadata.js';
+import { classifierDetails, featureViewDetails, loadPreviewSharing } from './previewMetadata.js';
 
 // ==================================================================
 // PUBLIC API
@@ -32,15 +33,61 @@ export async function openAssetPreview(assetName: string, accessToken: string): 
     case 'TABLE':
       await openFeatureCollectionPreview(asset, accessToken);
       break;
+    case 'FEATURE_VIEW':
+      await openFeatureViewPreview(asset, accessToken);
+      break;
+    case 'CLASSIFIER':
+      await openClassifierPreview(asset, accessToken);
+      break;
     default:
       openGenericPreview(asset, accessToken);
   }
 }
 
 // ==================================================================
+// TYPE-SPECIFIC PREVIEWS
+// ==================================================================
+async function openFeatureViewPreview(asset: EEAsset, accessToken: string): Promise<void> {
+  let sample: string;
+  try {
+    const response = await listFeatures(asset.name, accessToken, 5);
+    sample = response.features?.length
+      ? JSON.stringify(response.features.map(({ properties }) => properties ?? {}), null, 2)
+      : 'No features available.';
+  } catch {
+    sample = 'Feature sample unavailable for this FeatureView.';
+  }
+  openGenericPreview(asset, accessToken, 'FeatureView details', featureViewDetails(asset), sample);
+}
+
+async function openClassifierPreview(asset: EEAsset, accessToken: string): Promise<void> {
+  let mode: unknown;
+  let schema: unknown;
+  try {
+    const ee = (await ensureEe()) as any;
+    const classifier = ee.Classifier.load(asset.name);
+    const results = await Promise.allSettled([
+      computeValue(classifier.mode()),
+      computeValue(classifier.schema()),
+    ]);
+    mode = results[0].status === 'fulfilled' ? results[0].value : undefined;
+    schema = results[1].status === 'fulfilled' ? results[1].value : undefined;
+  } catch {
+    // The asset metadata and sharing remain available even if computation fails.
+  }
+  openGenericPreview(asset, accessToken, 'Classifier details', classifierDetails(mode, schema));
+}
+
+// ==================================================================
 // FALLBACK
 // ==================================================================
-function openGenericPreview(asset: EEAsset, accessToken: string): void {
+function openGenericPreview(
+  asset: EEAsset,
+  accessToken: string,
+  detailsTitle?: string,
+  details?: Record<string, string>,
+  sample?: string,
+): void {
   const panel = vscode.window.createWebviewPanel(
     'earthengine.assetPreview',
     asset.id || asset.name.split('/').pop() || 'Asset',
@@ -57,6 +104,9 @@ function openGenericPreview(asset: EEAsset, accessToken: string): void {
       : 'N/A',
     size: asset.sizeBytes ? filesize(asset.sizeBytes) : 'N/A',
     propertiesTable: renderPropertiesTable(asset.properties),
+    detailsTitle,
+    detailsTable: details && renderPropertiesTable(details),
+    sample,
     assetName: asset.name,
   }).replace(/</g, '\\u003c');
 
