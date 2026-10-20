@@ -129,6 +129,24 @@ export function selectSepalViz(vizs: SepalViz[], selector: string | number): Sep
   return vizs.find((v) => v.name === selector) ?? vizs[0];
 }
 
+/** Converts a vector preset to the styling parameters used by FeatureCollection map layers. */
+export function vectorVisParams(preset: SepalViz): Record<string, unknown> {
+  return {
+    vizType: preset.type,
+    ...(preset.type === 'uniform'
+      ? { color: preset.color, fillColor: preset.fillColor, width: preset.width }
+      : {
+          property: preset.bands[0],
+          palette: preset.palette,
+          min: preset.min?.[0],
+          max: preset.max?.[0],
+          values: preset.values,
+          breaks: preset.breaks,
+        }),
+    labels: preset.labels,
+  };
+}
+
 // ==================================================================
 // CONVERSION
 // ==================================================================

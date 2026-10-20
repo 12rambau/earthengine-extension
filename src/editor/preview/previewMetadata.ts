@@ -56,6 +56,34 @@ export function previewMetadata(asset: EEAsset) {
   };
 }
 
+/** Formats the view's feature count, attributes, and ingestion options from REST metadata. */
+export function featureViewDetails(asset: EEAsset): Record<string, string> {
+  const options = asset.featureViewAssetLocation?.assetOptions;
+  const count = Number(asset.featureCount);
+  return {
+    'Number of Features':
+      asset.featureCount !== undefined && Number.isFinite(count) ? count.toLocaleString() : 'N/A',
+    ...(options?.featureViewAttributes?.length
+      ? {
+          Attributes: options.featureViewAttributes
+            .map(({ name, type }) => `${name} (${type})`)
+            .join(', '),
+        }
+      : {}),
+    ...(options?.ingestionTimeParameters
+      ? { 'Ingestion options': JSON.stringify(options.ingestionTimeParameters) }
+      : {}),
+  };
+}
+
+/** Formats computed classifier information for the asset preview. */
+export function classifierDetails(mode: unknown, schema: unknown): Record<string, string> {
+  return {
+    Mode: mode == null ? 'Unavailable' : String(mode),
+    'Input schema': schema == null ? 'Unavailable' : JSON.stringify(schema),
+  };
+}
+
 /** Applies edits and reports the persisted state back to a preview WebView. */
 export async function savePreviewMetadata(
   msg: {

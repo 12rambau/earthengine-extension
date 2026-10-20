@@ -29,6 +29,16 @@ declare module 'gdal3.js/node.js' {
     layers?: Gdal3Layer[];
   }
 
+  interface Gdal3RasterInfo {
+    files?: string[];
+    metadata?: Record<string, Record<string, string>>;
+    bands?: {
+      band: number;
+      description?: string;
+      metadata?: Record<string, Record<string, string>>;
+    }[];
+  }
+
   /** A file produced in the virtual `/output` tree and its real on-disk twin. */
   interface Gdal3FilePath {
     local: string;
@@ -43,6 +53,7 @@ declare module 'gdal3.js/node.js' {
     }>;
     close(dataset: Gdal3Dataset): Promise<void>;
     getInfo(dataset: Gdal3Dataset): Promise<Gdal3DatasetInfo>;
+    gdalinfo(dataset: Gdal3Dataset, options?: string[]): Promise<Gdal3RasterInfo>;
     gdal_translate(
       dataset: Gdal3Dataset,
       options?: string[],

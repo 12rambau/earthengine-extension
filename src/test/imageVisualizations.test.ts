@@ -6,6 +6,7 @@ import {
   parseCategoryValue,
   parseSepalVisualizations,
   selectImageVisualizations,
+  vectorVisParams,
 } from '../shared/sepalViz.js';
 
 describe('image collection visualization fallback', () => {
@@ -62,6 +63,26 @@ describe('feature collection visualization presets', () => {
         width: 2,
       },
     ]);
+  });
+
+  it('maps property-based presets to the vector renderer parameters', () => {
+    const [preset] = parseSepalVisualizations({
+      visualization_0_type: 'categorical',
+      visualization_0_bands: 'landcover',
+      visualization_0_palette: '00FF00,0000FF',
+      visualization_0_values: '1,2',
+      visualization_0_labels: 'Land,Water',
+    });
+    assert.deepEqual(vectorVisParams(preset), {
+      vizType: 'categorical',
+      property: 'landcover',
+      palette: ['00FF00', '0000FF'],
+      min: undefined,
+      max: undefined,
+      values: [1, 2],
+      breaks: undefined,
+      labels: ['Land', 'Water'],
+    });
   });
 });
 

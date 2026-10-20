@@ -3,8 +3,8 @@
   import { vscode, getInitData } from '../../shared/vscode.ts';
   import AssetSharingEditor from './components/AssetSharingEditor.svelte';
 
-  const { title, assetType, updated, size, propertiesTable } = getInitData();
-  let activeTab = $state('properties');
+  const { title, assetType, updated, size, propertiesTable, detailsTitle, detailsTable, sample } = getInitData();
+  let activeTab = $state(detailsTitle ? 'details' : 'properties');
   let editing = $state(false);
   let saving = $state(false);
   let sharing = $state(null);
@@ -42,7 +42,14 @@
   <div class="meta-item"><strong>Last Updated</strong>{updated}</div>
   <div class="meta-item"><strong>Size</strong>{size}</div>
 </div>
-<nav class="tabs"><button class:active={activeTab === 'properties'} onclick={() => (activeTab = 'properties')}>PROPERTIES</button><button class:active={activeTab === 'sharing'} onclick={() => (activeTab = 'sharing')}>SHARING</button></nav>
+<nav class="tabs">
+  {#if detailsTitle}<button class:active={activeTab === 'details'} onclick={() => (activeTab = 'details')}>DETAILS</button>{/if}
+  {#if sample !== undefined}<button class:active={activeTab === 'features'} onclick={() => (activeTab = 'features')}>FEATURES</button>{/if}
+  <button class:active={activeTab === 'properties'} onclick={() => (activeTab = 'properties')}>PROPERTIES</button>
+  <button class:active={activeTab === 'sharing'} onclick={() => (activeTab = 'sharing')}>SHARING</button>
+</nav>
+{#if detailsTitle}<div hidden={activeTab !== 'details'}><h2>{detailsTitle}</h2>{@html detailsTable}</div>{/if}
+{#if sample !== undefined}<div hidden={activeTab !== 'features'}><h2>Sample feature properties</h2><pre><code>{sample}</code></pre></div>{/if}
 <div hidden={activeTab !== 'properties'}>{@html propertiesTable}</div>
 <div hidden={activeTab !== 'sharing'}><AssetSharingEditor {editing} {saving} bind:sharing /></div>
 {#if error}<p role="alert">{error}</p>{/if}

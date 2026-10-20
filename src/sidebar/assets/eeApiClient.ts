@@ -8,6 +8,7 @@
  */
 
 import { randomUUID } from 'crypto';
+import * as path from 'path';
 import { getRequest, httpRequest } from '../../shared/httpClient.js';
 
 // ==================================================================
@@ -30,6 +31,12 @@ export interface EEAsset {
   endTime?: string;
   sizeBytes?: string;
   featureCount?: string;
+  featureViewAssetLocation?: {
+    assetOptions?: {
+      featureViewAttributes?: { name: string; type: string }[];
+      ingestionTimeParameters?: Record<string, unknown>;
+    };
+  };
   properties?: Record<string, unknown>;
   bands?: EEBand[];
   geometry?: unknown;
@@ -77,7 +84,10 @@ export interface AssetSharingChanges {
 // API FUNCTIONS
 // ==================================================================
 /** Reads the IAM policy for any Earth Engine asset. */
-export async function getAssetIamPolicy(name: string, accessToken: string): Promise<AssetIamPolicy> {
+export async function getAssetIamPolicy(
+  name: string,
+  accessToken: string,
+): Promise<AssetIamPolicy> {
   const response = await httpRequest(
     `${EE_API_BASE}/${name}:getIamPolicy`,
     'POST',
@@ -131,7 +141,10 @@ export function applyAssetSharing(
     members: [...(binding.members ?? [])],
   }));
   for (const binding of bindings) {
-    if (!binding.condition && (binding.role === 'roles/viewer' || binding.role === 'roles/editor')) {
+    if (
+      !binding.condition &&
+      (binding.role === 'roles/viewer' || binding.role === 'roles/editor')
+    ) {
       binding.members = binding.members.filter(
         (member) => !member.startsWith('user:') && member !== 'allUsers',
       );
@@ -356,16 +369,24 @@ async function deleteLeaf(
 // ==================================================================
 const CONTAINER_TYPES = new Set(['FOLDER', 'IMAGE_COLLECTION']);
 
+interface ImageCollectionMetadata {
+  description: string;
+  startTime?: string;
+  endTime?: string;
+  properties?: { key: string; value: string }[];
+}
+
 /** POSTs a create-asset request to the EE REST API. */
 async function postCreateAsset(
   projectRoot: string,
   assetId: string,
   type: 'FOLDER' | 'IMAGE_COLLECTION',
   accessToken: string,
+  metadata: ImageCollectionMetadata = { description: '' },
 ): Promise<EEAsset> {
   const params = new URLSearchParams({ assetId });
   const url = `${EE_API_BASE}/${projectRoot}/assets?${params.toString()}`;
-  const body = JSON.stringify({ type });
+  const body = JSON.stringify({ type, ...collectionMetadata(metadata) });
   const response = await httpRequest(url, 'POST', accessToken, body);
   return JSON.parse(response) as EEAsset;
 }
@@ -567,6 +588,64 @@ export async function createFolder(
   }
 
   return postCreateAsset(projectRoot, assetId, 'FOLDER', accessToken);
+}
+
+/** Creates an empty image collection, optionally setting its description. */
+export async function createImageCollection(
+  fullPath: string,
+  metadata: ImageCollectionMetadata,
+  accessToken: string,
+): Promise<EEAsset> {
+  const match = /^projects\/[A-Za-z0-9_-]+\/assets\/([A-Za-z0-9_-]+(?:\/[A-Za-z0-9_-]+)*)$/.exec(
+    fullPath,
+  );
+  if (!match) {
+    throw new Error('Invalid image collection asset ID.');
+  }
+  return postCreateAsset(
+    fullPath.split('/').slice(0, 2).join('/'),
+    match[1],
+    'IMAGE_COLLECTION',
+    accessToken,
+    metadata,
+  );
+}
+
+/** Maps collection fields to Earth Engine's asset metadata representation. */
+export function collectionMetadata(
+  metadata: ImageCollectionMetadata,
+): Pick<EEAsset, 'properties' | 'startTime' | 'endTime'> {
+  const properties: Record<string, string | number> = {};
+  if (metadata.description.trim()) {
+    properties.description = metadata.description.trim();
+  }
+  for (const { key, value } of metadata.properties ?? []) {
+    const name = key.trim();
+    if (!name) {
+      continue;
+    }
+    const numeric = Number(value);
+    properties[name] = value.trim() !== '' && Number.isFinite(numeric) ? numeric : value;
+  }
+  return {
+    ...(Object.keys(properties).length > 0 ? { properties } : {}),
+    ...(metadata.startTime ? { startTime: metadata.startTime } : {}),
+    ...(metadata.endTime ? { endTime: metadata.endTime } : {}),
+  };
+}
+
+/** Generates distinct, valid child asset IDs for a collection of local raster files. */
+export function collectionImageNames(files: readonly string[]): string[] {
+  const used = new Set<string>();
+  return files.map((file) => {
+    const base = path.basename(file, path.extname(file)).replace(/[^A-Za-z0-9_-]/g, '_') || 'image';
+    let name = base;
+    for (let index = 2; used.has(name); index++) {
+      name = `${base}_${index}`;
+    }
+    used.add(name);
+    return name;
+  });
 }
 
 /**

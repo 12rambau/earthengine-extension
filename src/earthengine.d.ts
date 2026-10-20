@@ -36,6 +36,7 @@ declare module '@google/earthengine' {
   interface EeFeatureCollection extends EeComputedObject {
     select(...properties: unknown[]): EeFeatureCollection;
     size(): EeComputedObject;
+    geometry(): { bounds(maxError?: number): { coordinates(): EeComputedObject } };
   }
 
   interface EeImage extends EeComputedObject {
