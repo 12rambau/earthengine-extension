@@ -60,10 +60,11 @@ def addLayer(ee_object, vis_params=None, name=None, shown=True, opacity=1.0):
                 (len(breaks) == len(palette) + 1). For categorical images,
                 use one band and a list of distinct numeric values with one
                 palette color per value; optional labels name the classes.
-                For vectors, use color,
-                fillColor, width, pointSize, or a single property with a palette
-                (vizType: continuous with min/max, intervals with breaks, or
-                categorical with values).
+                For vectors, use color, fillColor, width, pointSize, or a
+                single property with a palette (vizType: continuous with
+                min/max or intervals with breaks). A property with values
+                and hex palette colors uses categorical styling directly;
+                vizType: categorical is also supported.
                 Use default to select a stored SEPAL
                 visualization preset by name or index.
         name: Layer name. Auto-generated if not provided.
@@ -84,6 +85,8 @@ def addLayer(ee_object, vis_params=None, name=None, shown=True, opacity=1.0):
         Map.addLayer(image, {"default": "Natural Color"}, "Preset")
         Map.addLayer(features, {"color": "FF0000", "width": 2},
                  "Outlines", opacity=0.7)
+        Map.addLayer(features, {"property": "class", "values": [0, 1],
+                 "palette": ["#2b83ba", "#d7191c"]}, "Classes")
     """
     vis_params = dict(vis_params or {})
 

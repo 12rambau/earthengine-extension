@@ -50,6 +50,19 @@ needed.
         "labels": ["Other", "Crop", "Water"],
     }, "Crop Classification")
 
+For a FeatureCollection, specify a ``property`` instead of ``bands``. Class
+values may be numeric or strings, and features with unlisted values are not
+drawn. Vector palettes require six-digit hex RGB colors:
+
+.. code-block:: python
+
+    Map.addLayer(features, {
+        "property": "classification",
+        "values": [0, 1, 2],
+        "palette": ["#2b83ba", "#abdda4", "#d7191c"],
+        "labels": ["Other", "Crop", "Water"],
+    }, "Crop Classes")
+
 Requirements
 ------------
 

@@ -45,7 +45,7 @@ Map.centerObject(image, zoom=10)
 
 ### `Map.addLayer(ee_object, vis_params=None, name=None, shown=True, opacity=1.0)`
 
-Add a layer to the map. `ee_object` accepts an `ee.Image`, `ee.ImageCollection` (mosaicked automatically), `ee.FeatureCollection`, `ee.Feature`, or `ee.Geometry`. Vectors are sent as collections; the extension styles them when it creates the tile layer. Use `color`, `fillColor`, `width`, and `pointSize` for a uniform style. For a palette, choose one `property` and set `vizType` to `continuous` (`min`, `max`, `palette`), `intervals` (`breaks`, `palette`), or `categorical` (`values`, `palette`). The map's visualization editor offers the same palette controls as images, with a property selector instead of bands.
+Add a layer to the map. `ee_object` accepts an `ee.Image`, `ee.ImageCollection` (mosaicked automatically), `ee.FeatureCollection`, `ee.Feature`, or `ee.Geometry`. Vectors are sent as collections; the extension styles them when it creates the tile layer. Use `color`, `fillColor`, `width`, and `pointSize` for a uniform style. For a palette, choose one `property` and set `vizType` to `continuous` (`min`, `max`, `palette`) or `intervals` (`breaks`, `palette`). For categorical vectors, `values` and `palette` select exact property values without requiring `vizType`; `vizType: "categorical"` remains supported. The map's visualization editor offers the same palette controls as images, with a property selector instead of bands.
 
 ```python
 Map.addLayer(features, {
@@ -75,6 +75,17 @@ Map.addLayer(image, {
 	"palette": ["#2b83ba", "#abdda4", "#d7191c"],
 	"labels": ["Other", "Crop", "Water"],
 }, "Crop Classification")
+```
+
+For a `FeatureCollection`, replace `bands` with the name of a feature `property`. Numeric and string class values are supported; features with other values are not drawn. Vector palette colors must be six-digit hex RGB:
+
+```python
+Map.addLayer(features, {
+	"property": "classification",
+	"values": [0, 1, 2],
+	"palette": ["#2b83ba", "#abdda4", "#d7191c"],
+	"labels": ["Other", "Crop", "Water"],
+}, "Crop Classes")
 ```
 
 Set layer opacity with the separate `opacity` argument to `Map.addLayer`, not inside `vis_params`.

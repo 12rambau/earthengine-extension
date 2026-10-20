@@ -88,9 +88,25 @@ const STRETCH_ERROR_MARGIN = 1000;
 /** Upper bound on the classes `computeClasses` reports, keeping the legend usable. */
 const MAX_AUTO_CLASSES = 30;
 
-function styleFeatureCollection(source: any, visParams: Record<string, unknown>, ee: any): unknown {
+/** Styles a FeatureCollection using uniform or property-based visualization parameters. */
+export function styleFeatureCollection(
+  source: any,
+  visParams: Record<string, unknown>,
+  ee: any,
+): unknown {
   const collection = ee.FeatureCollection(source);
-  const { property, vizType, palette, values, breaks, min, max, strokeWidth, ...style } = visParams;
+  const {
+    property,
+    vizType: requestedType,
+    palette,
+    values,
+    breaks,
+    min,
+    max,
+    strokeWidth,
+    ...style
+  } = visParams;
+  const vizType = requestedType ?? ('values' in visParams ? 'categorical' : undefined);
   const base = {
     color: style['color'] ?? '000000',
     fillColor: style['fillColor'] ?? '00000000',
@@ -137,9 +153,15 @@ function styleFeatureCollection(source: any, visParams: Record<string, unknown>,
     });
   } else if (
     vizType === 'categorical' &&
-    (!Array.isArray(values) || values.length !== palette.length)
+    (!Array.isArray(values) ||
+      values.length !== palette.length ||
+      new Set(values).size !== values.length ||
+      values.some(
+        (value) =>
+          typeof value !== 'string' && (typeof value !== 'number' || !Number.isFinite(value)),
+      ))
   ) {
-    throw new Error('Categorical values and colors must have the same length.');
+    throw new Error('Categorical values must be distinct strings or numbers, with one color each.');
   } else if (
     vizType === 'intervals' &&
     (!Array.isArray(breaks) ||
@@ -157,9 +179,16 @@ function styleFeatureCollection(source: any, visParams: Record<string, unknown>,
   const colorList = ee.List(colors.map((color) => String(color).replace(/^#/, '')));
   const valueList = vizType === 'categorical' ? ee.List(values) : null;
   const intervalBreaks = vizType === 'intervals' ? (breaks as number[]) : [];
-  const styled = collection.map((feature: any) => {
+  const matching =
+    vizType === 'categorical'
+      ? collection.filter(ee.Filter.inList(property, valueList))
+      : collection;
+  const styled = matching.map((feature: any) => {
     const value = feature.get(property);
-    const number = ee.Number(ee.Algorithms.If(ee.Algorithms.IsEqual(value, null), 0, value));
+    const number =
+      vizType === 'categorical'
+        ? null
+        : ee.Number(ee.Algorithms.If(ee.Algorithms.IsEqual(value, null), 0, value));
     let index: any;
     if (vizType === 'continuous') {
       index = number
