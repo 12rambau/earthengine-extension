@@ -165,6 +165,7 @@ describe('explicit FeatureCollection visualizations', () => {
       { classification: '01' },
       { classification: 'forest' },
       { classification: 'water' },
+      { classification: '' },
       { classification: null },
     ];
     let filter: { property: string; values: (number | string)[] } | undefined;
@@ -232,12 +233,12 @@ describe('explicit FeatureCollection visualizations', () => {
     const stringParams = {
       property: 'classification',
       vizType: 'categorical',
-      values: [parseCategoryValue('01', true), 'forest', 'water'],
-      palette: ['#abdda4', '#2b83ba', '#d7191c'],
+      values: [parseCategoryValue('01', true), 'forest', 'water', parseCategoryValue('', true)],
+      palette: ['#abdda4', '#2b83ba', '#d7191c', '#ffff00'],
     };
     assert.equal(styleFeatureCollection(collection, stringParams, ee), 'styled classes');
-    assert.deepEqual(filter, { property: 'classification', values: ['01', 'forest', 'water'] });
-    assert.deepEqual(colors, ['2b83ba', 'd7191c', 'abdda4', '2b83ba', 'd7191c']);
+    assert.deepEqual(filter, { property: 'classification', values: ['01', 'forest', 'water', ''] });
+    assert.deepEqual(colors, ['2b83ba', 'd7191c', 'abdda4', '2b83ba', 'd7191c', 'ffff00']);
   });
 
   it('keeps the original type of string classes through visualization editing', () => {
@@ -246,6 +247,7 @@ describe('explicit FeatureCollection visualizations', () => {
     assert.equal(parseCategoryValue(' 01 '), 1);
     assert.equal(parseCategoryValue('forest'), 'forest');
     assert.equal(parseCategoryValue(' '), '');
+    assert.equal(parseCategoryValue(' ', true), '');
   });
 
   it('rejects invalid categorical values', () => {

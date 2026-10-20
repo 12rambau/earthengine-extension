@@ -468,7 +468,7 @@
       for (const row of vizCatRows) {
         const raw = String(row.value).trim();
         const v = vector ? parseCategoryValue(raw, row.stringClass) : Number(raw);
-        if (vector ? v !== '' : raw !== '' && Number.isFinite(v)) {
+        if (vector ? v !== '' || row.stringClass : raw !== '' && Number.isFinite(v)) {
           values.push(v);
           labels.push(row.label || 'Class ' + values.length);
           palette.push(row.color);
