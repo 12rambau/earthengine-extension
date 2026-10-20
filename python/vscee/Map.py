@@ -55,7 +55,10 @@ def addLayer(ee_object, vis_params=None, name=None, shown=True, opacity=1.0):
                    ee.Feature, or ee.Geometry.
         vis_params: Visualization parameters dict. Image parameters are passed
                 to ee.Image.visualize (bands, min, max, gamma, palette,
-                gain, bias, forceRgbOutput). For intervals, use one band,
+                gain, bias, forceRgbOutput). For HSV, set vizType to "hsv"
+                with three hue/saturation/value bands and per-band min/max;
+                these bands are normalized then converted to RGB for display.
+                For intervals, use one band,
                 increasing breaks, and one palette color per interval
                 (len(breaks) == len(palette) + 1). For categorical images,
                 use one band and a list of distinct numeric values with one
@@ -74,6 +77,8 @@ def addLayer(ee_object, vis_params=None, name=None, shown=True, opacity=1.0):
         Examples:
         Map.addLayer(image, {"bands": ["B4", "B3", "B2"], "min": 0,
                  "max": 3000, "gamma": 1.2}, "RGB")
+        Map.addLayer(image, {"vizType": "hsv", "bands": ["hue", "saturation", "value"],
+                 "min": [0, 0, 0], "max": [1, 1, 1]}, "HSV")
         Map.addLayer(image, {"bands": ["B4"], "min": 0, "max": 3000,
                  "palette": ["000000", "FFFFFF"]}, "Gradient")
         Map.addLayer(image, {"bands": ["B4"], "gain": 0.001,

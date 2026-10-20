@@ -297,6 +297,8 @@
       vizType = 'intervals';
     } else if (isCat) {
       vizType = 'categorical';
+    } else if (vp.vizType === 'hsv') {
+      vizType = 'hsv';
     } else if (vp.palette && bands.length <= 1) {
       vizType = 'continuous';
     } else {
@@ -569,6 +571,9 @@
       ]);
     }
     const entries = [['bands', jsonList(config.bands, true)]];
+    if (config.vizType === 'hsv') {
+      entries.push(['vizType', jsonStr('hsv')]);
+    }
 
     if (config.vizType === 'categorical') {
       if (config.values.length === 0) {

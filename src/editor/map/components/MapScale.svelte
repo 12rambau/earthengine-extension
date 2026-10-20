@@ -58,13 +58,21 @@
     }
     if (bands.length === 3) {
       const channels = ['#ff0000', '#00ff00', '#0000ff'];
+      const hsvGradients = [
+        'linear-gradient(to right, #f00, #ff0, #0f0, #0ff, #00f, #f0f, #f00)',
+        'linear-gradient(to right, #fff, #f00)',
+        'linear-gradient(to right, #000, #fff)',
+      ];
       return {
         type: 'gradient',
         rows: bands.map((band, index) => ({
-          label: band || 'b' + index,
+          label: vp.vizType === 'hsv' ? ['H', 'S', 'V'][index] : band || 'b' + index,
+          band: vp.vizType === 'hsv' ? band : null,
           min: minArr[index] != null ? minArr[index] : minArr[0],
           max: maxArr[index] != null ? maxArr[index] : maxArr[0],
-          gradient: `linear-gradient(to right, #000, ${channels[index]})`,
+          gradient: vp.vizType === 'hsv'
+            ? hsvGradients[index]
+            : `linear-gradient(to right, #000, ${channels[index]})`,
         })),
       };
     }
@@ -129,6 +137,24 @@
       return String(number);
     }
     return number.toPrecision(4);
+  }
+
+  function rgbToHsv(rgba) {
+    const [r, g, b] = [rgba[0], rgba[1], rgba[2]].map((channel) => channel / 255);
+    const max = Math.max(r, g, b);
+    const delta = max - Math.min(r, g, b);
+    let hue = 0;
+    if (delta > 0) {
+      if (max === r) {
+        hue = (g - b) / delta;
+      } else if (max === g) {
+        hue = (b - r) / delta + 2;
+      } else {
+        hue = (r - g) / delta + 4;
+      }
+      hue = ((hue / 6) + 1) % 1;
+    }
+    return [hue, max === 0 ? 0 : delta / max, max];
   }
 
   function sampleOverlayPixel(latlng, index) {
@@ -216,12 +242,14 @@
         parts.push(text);
       }
     } else if (bands.length === 3) {
-      const channelValues = [rgba[0], rgba[1], rgba[2]];
+      const channelValues = vp.vizType === 'hsv'
+        ? rgbToHsv(rgba)
+        : [rgba[0] / 255, rgba[1] / 255, rgba[2] / 255];
       for (let index = 0; index < 3; index++) {
         if (rows[index]) {
           const text = setPointerDOM(
             rows[index],
-            channelValues[index] / 255,
+            channelValues[index],
             minArr[index] ?? minArr[0],
             maxArr[index] ?? maxArr[0],
           );
@@ -338,7 +366,7 @@
     {:else}
       {#each scaleData.rows as row}
         <div class="scale-row">
-          <span class="scale-label" title={row.label}>{row.label}</span>
+          <span class="scale-label" title={row.band ? row.label + ' (' + row.band + ')' : row.label}>{row.label}</span>
           <div
             class="scale-gradient-wrap"
             role="slider"

@@ -145,3 +145,14 @@ The terrain preset displays `hsv_hue`, `hsv_saturation`, and `hsv_value`, each r
   "visualization_4_max": "1,1,1"
 }
 ```
+
+To use these bands without a stored preset, pass `vizType: "hsv"` to `Map.addLayer`. The map normalizes the three bands with their respective min/max values before converting HSV to RGB for display; the visualization editor and scale retain the HSV settings.
+
+```python
+Map.addLayer(image, {
+    "vizType": "hsv",
+    "bands": ["hsv_hue", "hsv_saturation", "hsv_value"],
+    "min": [0, 0, 0],
+    "max": [1, 1, 1]
+}, "Terrain HSV")
+```
