@@ -8,6 +8,7 @@
  */
 
 import { randomUUID } from 'crypto';
+import * as path from 'path';
 import { getRequest, httpRequest } from '../../shared/httpClient.js';
 
 // ==================================================================
@@ -362,10 +363,11 @@ async function postCreateAsset(
   assetId: string,
   type: 'FOLDER' | 'IMAGE_COLLECTION',
   accessToken: string,
+  metadata: { title: string; description: string } = { title: '', description: '' },
 ): Promise<EEAsset> {
   const params = new URLSearchParams({ assetId });
   const url = `${EE_API_BASE}/${projectRoot}/assets?${params.toString()}`;
-  const body = JSON.stringify({ type });
+  const body = JSON.stringify({ type, ...collectionMetadata(metadata.title, metadata.description) });
   const response = await httpRequest(url, 'POST', accessToken, body);
   return JSON.parse(response) as EEAsset;
 }
@@ -567,6 +569,48 @@ export async function createFolder(
   }
 
   return postCreateAsset(projectRoot, assetId, 'FOLDER', accessToken);
+}
+
+/** Creates an empty image collection, optionally setting its title and preview description. */
+export async function createImageCollection(
+  fullPath: string,
+  title: string,
+  description: string,
+  accessToken: string,
+): Promise<EEAsset> {
+  const match = /^projects\/[A-Za-z0-9_-]+\/assets\/([A-Za-z0-9_-]+(?:\/[A-Za-z0-9_-]+)*)$/.exec(fullPath);
+  if (!match) {
+    throw new Error('Invalid image collection asset ID.');
+  }
+  return postCreateAsset(
+    fullPath.split('/').slice(0, 2).join('/'),
+    match[1],
+    'IMAGE_COLLECTION',
+    accessToken,
+    { title, description },
+  );
+}
+
+/** Maps collection form fields to Earth Engine's asset metadata representation. */
+export function collectionMetadata(title: string, description: string): Pick<EEAsset, 'title' | 'properties'> {
+  return {
+    ...(title.trim() ? { title: title.trim() } : {}),
+    ...(description.trim() ? { properties: { description: description.trim() } } : {}),
+  };
+}
+
+/** Generates distinct, valid child asset IDs for a collection of local raster files. */
+export function collectionImageNames(files: readonly string[]): string[] {
+  const used = new Set<string>();
+  return files.map((file) => {
+    const base = path.basename(file, path.extname(file)).replace(/[^A-Za-z0-9_-]/g, '_') || 'image';
+    let name = base;
+    for (let index = 2; used.has(name); index++) {
+      name = `${base}_${index}`;
+    }
+    used.add(name);
+    return name;
+  });
 }
 
 /**

@@ -12,11 +12,12 @@
 
 import * as path from 'path';
 import * as vscode from 'vscode';
-import { listAssets, EEAsset } from '../../sidebar/assets/eeApiClient.js';
+import { getAsset, listAssets, EEAsset } from '../../sidebar/assets/eeApiClient.js';
 import { AuthService } from '../../auth/index.js';
 import { openAssetPreview } from '../preview/assetPreviewPanel.js';
 import { listBuckets } from '../../shared/gcsClient.js';
 import { NewAssetRequest, sweepStagedObjects, uploadNewAsset } from './assetUpload.js';
+import { NewCollectionRequest, uploadImageCollection } from './collectionUpload.js';
 import { readRasterBandCount, RASTER_EXTENSIONS } from './rasterToCog.js';
 import { CONVERTIBLE_EXTENSIONS } from './vectorToShapefile.js';
 
@@ -75,6 +76,8 @@ export async function openAssetsPanel(
   let rootPath = `projects/${profile.project}`;
   let currentParentPath = rootPath;
   let allAssets: EEAsset[] = [];
+  let collectionFiles: string[] = [];
+  let collectionSource: 'zarr' | 'cogs' | undefined;
   // Incremented on every navigation so a superseded stream stops sending
   let generation = 0;
   const savedPrefs = context.globalState.get<AssetPrefs>(PREFS_KEY) ?? {};
@@ -174,6 +177,120 @@ export async function openAssetsPanel(
       suggestedName: path.basename(file, path.extname(file)).replace(/[^\w.-]/g, '_'),
       bandCount,
     });
+  }
+
+  /** Selects a local Zarr directory or multiple COGs, keeping paths on the host. */
+  async function pickCollectionFiles(source: 'zarr' | 'cogs'): Promise<void> {
+    if (source !== 'zarr' && source !== 'cogs') {
+      return;
+    }
+    const uris = await vscode.window.showOpenDialog({
+      canSelectFiles: source === 'cogs',
+      canSelectFolders: source === 'zarr',
+      canSelectMany: source === 'cogs',
+      ...(source === 'cogs' ? { filters: { 'Cloud Optimized GeoTIFF': ['tif', 'tiff'] } } : {}),
+      title: source === 'zarr' ? 'Select a Zarr raster directory' : 'Select COG images',
+    });
+    if (!uris?.length) {
+      return;
+    }
+    const files = uris.map((uri) => uri.fsPath);
+    if (
+      (source === 'zarr' && !/\.zarr$/i.test(files[0])) ||
+      (source === 'cogs' && files.some((file) => !/\.tiff?$/i.test(file)))
+    ) {
+      panel.webview.postMessage({
+        type: 'collectionError',
+        message: 'Select a .zarr directory or .tif/.tiff files.',
+      });
+      return;
+    }
+    collectionFiles = files;
+    collectionSource = source;
+    panel.webview.postMessage({ type: 'collectionFiles', files });
+  }
+
+  /** Creates a collection and submits separate ingestion jobs for its images. */
+  async function runCollection(request: NewCollectionRequest): Promise<void> {
+    try {
+      if (
+        !request ||
+        typeof request.assetId !== 'string' ||
+        request.assetId.slice(0, request.assetId.lastIndexOf('/')) !==
+          (currentParentPath === rootPath ? `${rootPath}/assets` : currentParentPath) ||
+        typeof request.title !== 'string' ||
+        typeof request.description !== 'string' ||
+        typeof request.bucket !== 'string' ||
+        (request.source !== 'empty' &&
+          (request.source !== collectionSource || collectionFiles.length === 0))
+      ) {
+        throw new Error('Invalid collection request. Select sources again.');
+      }
+      const files = request.source === 'empty' ? [] : [...collectionFiles];
+      if (currentParentPath !== rootPath) {
+        const token = await authService.getToken();
+        if (!token || (await getAsset(currentParentPath, token)).type !== 'FOLDER') {
+          throw new Error('Image collections can only be created in a folder.');
+        }
+      }
+      if (request.source === 'zarr') {
+        await readRasterBandCount(files[0]);
+      }
+      const selected: NewCollectionRequest = { ...request, files };
+      if (request.source !== 'empty') {
+        await context.globalState.update(LAST_BUCKET_KEY, request.bucket);
+      }
+      const count = await vscode.window.withProgress(
+        {
+          location: vscode.ProgressLocation.Notification,
+          title: `Creating image collection ${request.assetId.split('/').pop()}`,
+        },
+        (progress) =>
+          uploadImageCollection(
+            selected,
+            authService,
+            context,
+            (message) => {
+              progress.report({ message });
+              if (!disposed) {
+                panel.webview.postMessage({ type: 'uploadProgress', message });
+              }
+            },
+            async (name) => {
+              try {
+                await vscode.commands.executeCommand('earthengine.trackSubmittedImport', {
+                  name,
+                  kind: 'image',
+                });
+              } catch {
+                vscode.window.showWarningMessage(
+                  `Ingestion ${name} was submitted but could not be added to the Tasks list.`,
+                );
+              }
+            },
+          ),
+      );
+      if (!disposed) {
+        panel.webview.postMessage({ type: 'uploadDone' });
+      }
+      vscode.window.showInformationMessage(
+        count
+          ? `Collection created; ${count} image ingestion(s) submitted.`
+          : 'Empty image collection created.',
+      );
+      void sweepStagedObjects(authService, context).catch(() => undefined);
+      if (!disposed) {
+        await loadAndStream(currentParentPath);
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      if (!disposed) {
+        panel.webview.postMessage({ type: 'collectionError', message });
+        if (message.startsWith('Collection created;')) {
+          await loadAndStream(currentParentPath);
+        }
+      }
+    }
   }
 
   /** Stages the files, submits ingestion and reports progress to both UIs. */
@@ -304,6 +421,13 @@ export async function openAssetsPanel(
         await pickSourceFile(msg.kind);
       } else if (msg.type === 'uploadAsset') {
         await runUpload(msg.request as NewAssetRequest);
+      } else if (msg.type === 'pickCollectionFiles') {
+        await pickCollectionFiles(msg.source);
+      } else if (msg.type === 'clearCollectionFiles') {
+        collectionFiles = [];
+        collectionSource = undefined;
+      } else if (msg.type === 'createCollection') {
+        await runCollection(msg.request as NewCollectionRequest);
       }
     } catch (err) {
       const m = err instanceof Error ? err.message : String(err);

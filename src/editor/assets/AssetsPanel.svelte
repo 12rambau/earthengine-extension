@@ -6,6 +6,7 @@
   import TableButton from '../components/TableButton.svelte';
   import { createDataTable } from '../components/dataTable.svelte.ts';
   import NewAssetDialog from './NewAssetDialog.svelte';
+  import CollectionDialog from './CollectionDialog.svelte';
 
   const saved = getInitData();
 
@@ -81,6 +82,7 @@
   let buckets = $state([]);
   let defaultBucket = $state('');
   let pickedFile = $state({ path: '', suggestedName: '', bandCount: 1 });
+  let collectionFiles = $state([]);
   let uploadBusy = $state(false);
   let uploadProgress = $state('');
   let uploadError = $state('');
@@ -137,9 +139,12 @@
     newMenuOpen = false;
     dialogKind = kind;
     pickedFile = { path: '', suggestedName: '', bandCount: 1 };
+    collectionFiles = [];
     uploadError = '';
     uploadProgress = '';
-    vscode.postMessage({ type: 'listBuckets' });
+    if (kind !== 'collection') {
+      vscode.postMessage({ type: 'listBuckets' });
+    }
   }
 
   function closeDialog() {
@@ -162,6 +167,23 @@
       uploadProgress = '';
       uploadError = `Could not send the request: ${err.message}`;
     }
+  }
+
+  function pickCollection(source) {
+    collectionFiles = [];
+    if (source) {
+      vscode.postMessage({ type: 'listBuckets' });
+      vscode.postMessage({ type: 'pickCollectionFiles', source });
+    } else {
+      vscode.postMessage({ type: 'clearCollectionFiles' });
+    }
+  }
+
+  function startCollection(request) {
+    uploadBusy = true;
+    uploadError = '';
+    uploadProgress = 'Preparing…';
+    vscode.postMessage({ type: 'createCollection', request });
   }
 
   function preview(name) {
@@ -248,6 +270,11 @@
       defaultBucket = msg.defaultBucket;
     } else if (msg.type === 'filePicked') {
       pickedFile = { path: msg.path, suggestedName: msg.suggestedName, bandCount: msg.bandCount };
+    } else if (msg.type === 'collectionFiles') {
+      collectionFiles = msg.files;
+    } else if (msg.type === 'collectionError') {
+      uploadBusy = false;
+      uploadError = msg.message;
     } else if (msg.type === 'uploadProgress') {
       uploadProgress = msg.message;
     } else if (msg.type === 'uploadDone') {
@@ -306,6 +333,9 @@
               ><path d={mdiImage} /></svg
             >
             New image
+          </TableButton>
+          <TableButton variant="menu" onclick={() => openNewAsset('collection')}>
+            <i class="codicon codicon-layers"></i> New image collection
           </TableButton>
           <TableButton variant="menu" onclick={() => openNewAsset('table')}>
             <svg
@@ -497,7 +527,20 @@
   {/snippet}
 </DataTable>
 
-{#if dialogKind}
+{#if dialogKind === 'collection'}
+  <CollectionDialog
+    parent={targetFolder}
+    {buckets}
+    {defaultBucket}
+    files={collectionFiles}
+    busy={uploadBusy}
+    progress={uploadProgress}
+    error={uploadError}
+    onpick={pickCollection}
+    onsubmit={startCollection}
+    oncancel={closeDialog}
+  />
+{:else if dialogKind}
   <NewAssetDialog
     kind={dialogKind}
     parent={targetFolder}
