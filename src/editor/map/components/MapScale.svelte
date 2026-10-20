@@ -143,18 +143,21 @@
     const [r, g, b] = [rgba[0], rgba[1], rgba[2]].map((channel) => channel / 255);
     const max = Math.max(r, g, b);
     const delta = max - Math.min(r, g, b);
-    let hue = 0;
-    if (delta > 0) {
-      if (max === r) {
-        hue = (g - b) / delta;
-      } else if (max === g) {
-        hue = (b - r) / delta + 2;
-      } else {
-        hue = (r - g) / delta + 4;
-      }
-      hue = ((hue / 6) + 1) % 1;
+    if (max === 0) {
+      return [null, null, 0];
     }
-    return [hue, max === 0 ? 0 : delta / max, max];
+    if (delta === 0) {
+      return [null, 0, max];
+    }
+    let hue = 0;
+    if (max === r) {
+      hue = (g - b) / delta;
+    } else if (max === g) {
+      hue = (b - r) / delta + 2;
+    } else {
+      hue = (r - g) / delta + 4;
+    }
+    return [((hue / 6) + 1) % 1, delta / max, max];
   }
 
   function sampleOverlayPixel(latlng, index) {
@@ -247,6 +250,13 @@
         : [rgba[0] / 255, rgba[1] / 255, rgba[2] / 255];
       for (let index = 0; index < 3; index++) {
         if (rows[index]) {
+          if (channelValues[index] == null) {
+            rows[index].querySelector('.scale-pointer').style.display = 'none';
+            rows[index].querySelector('.scale-max').textContent =
+              `${fmtVal(minArr[index] ?? minArr[0])}–${fmtVal(maxArr[index] ?? maxArr[0])}`;
+            parts.push(`${bands[index] || ['H', 'S', 'V'][index]}: unavailable`);
+            continue;
+          }
           const text = setPointerDOM(
             rows[index],
             channelValues[index],
