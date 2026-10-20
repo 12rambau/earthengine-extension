@@ -149,10 +149,22 @@ async function getTableThumbnailUrl(
 /** Builds a padded 256×256 square grid from the collection bounds, or a global fallback. */
 export function buildSquareGrid(geometry: unknown): Record<string, unknown> {
   const bbox = extractBbox(geometry);
-  const cx = (bbox[0] + bbox[2]) / 2;
-  const cy = (bbox[1] + bbox[3]) / 2;
-  const half = Math.max(bbox[2] - bbox[0], bbox[3] - bbox[1]) / 2;
-  const paddedHalf = half < 89 ? Math.max(half * 1.2, 0.05) : half;
+  const earthRadius = 6378137;
+  const maxLatitude = 85.0511287798066;
+  const toMercatorY = (latitude: number): number => {
+    const clamped = Math.max(-maxLatitude, Math.min(maxLatitude, latitude));
+    return earthRadius * Math.log(Math.tan(Math.PI / 4 + (clamped * Math.PI) / 360));
+  };
+  const minX = (bbox[0] * Math.PI * earthRadius) / 180;
+  const minY = toMercatorY(bbox[1]);
+  const maxX = (bbox[2] * Math.PI * earthRadius) / 180;
+  const maxY = toMercatorY(bbox[3]);
+  const cx = (minX + maxX) / 2;
+  const cy = (minY + maxY) / 2;
+  const half = Math.max(maxX - minX, maxY - minY) / 2;
+  const maxHalf = Math.PI * earthRadius;
+  const minHalf = (0.05 * Math.PI * earthRadius) / 180;
+  const paddedHalf = half < maxHalf - 1 ? Math.max(half * 1.2, minHalf) : half;
   const x0 = cx - paddedHalf;
   const y0 = cy + paddedHalf;
   const span = paddedHalf * 2;
@@ -166,7 +178,7 @@ export function buildSquareGrid(geometry: unknown): Record<string, unknown> {
       scaleY: -span / 256,
       translateY: y0,
     },
-    crsCode: 'EPSG:4326',
+    crsCode: 'EPSG:3857',
   };
 }
 
