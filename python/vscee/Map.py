@@ -11,8 +11,13 @@ Usage:
 
     ee.Initialize(project="my-project")
 
-    image = ee.Image("COPERNICUS/S2_SR/20200101T100319_20200101T100321_T32TQM")
-    Map.addLayer(image, {"bands": ["B4", "B3", "B2"], "min": 0, "max": 3000}, "RGB")
+    image = ee.Image("COPERNICUS/S2_SR_HARMONIZED/20200101T100319_20200101T100321_T32TQM")
+    Map.addLayer(image, {
+        "bands": ["B4", "B3", "B2"],
+        "min": 0,
+        "max": 3000,
+        "gamma": 1.2,
+    }, "Sentinel-2 RGB")
     Map.centerObject(image, zoom=10)
 """
 
@@ -53,45 +58,85 @@ def addLayer(ee_object, vis_params=None, name=None, shown=True, opacity=1.0):
     Args:
         ee_object: An ee.Image, ee.ImageCollection, ee.FeatureCollection,
                    ee.Feature, or ee.Geometry.
-        vis_params: Visualization parameters dict. Image parameters are passed
-                to ee.Image.visualize (bands, min, max, gamma, palette,
-                gain, bias, forceRgbOutput). For HSV, set vizType to "hsv"
-                with three hue/saturation/value bands and per-band min/max;
-                these bands are normalized then converted to RGB for display.
-                For intervals, use one band,
-                increasing breaks, and one palette color per interval
-                (len(breaks) == len(palette) + 1). For categorical images,
-                use one band and a list of distinct numeric values with one
-                palette color per value; optional labels name the classes.
-                For vectors, use color, fillColor, width, pointSize, or a
-                single property with a palette (vizType: continuous with
-                min/max or intervals with breaks). A property with values
-                and hex palette colors uses categorical styling directly;
-                vizType: categorical is also supported.
-                Use default to select a stored SEPAL
-                visualization preset by name or index.
+        vis_params: Visualization parameters dict.
+            Image:
+                RGB: Provide three bands in red, green, blue order. Scalar
+                    min/max values apply to all three; three-value sequences
+                    set per-band ranges. Optional gamma adjusts midtones.
+                HSV: Set vizType to "hsv" with three
+                    hue/saturation/value bands and per-band min/max. The bands
+                    are normalized to 0–1, then converted to RGB.
+                Continuous: Provide one band, min, max, and a palette of at
+                    least two colors. A palette without values or breaks is
+                    interpreted as continuous.
+                Categorical: Provide one band, distinct numeric values, and
+                    one palette color per value. Optional labels name classes;
+                    pixels with unlisted values are masked.
+                Intervals: Provide one band, strictly increasing breaks, and
+                    one palette color per interval. There must be one more
+                    break than colors; upper bounds are excluded.
+                Other ee.Image.visualize parameters include gain, bias, and
+                    forceRgbOutput.
+            FeatureCollection:
+                Uniform: Use color, fillColor, width, and pointSize.
+                Continuous: Select one numeric property and provide min, max,
+                    and a palette of at least two colors.
+                Categorical: Provide one property, distinct numeric or string
+                    values, and one palette color per value. Optional labels
+                    name classes; other values are not drawn.
+                Intervals: Select one numeric property and provide increasing
+                    breaks and one palette color per interval.
+                Palette colors must be six-digit hex RGB, with or without #.
+            Direct parameters style the layer; use default to select a stored
+            visualization preset by name or index instead. Stored presets are
+            string properties added to an image or collection with set(),
+            using visualization_<number>_<keyword> keys.
         name: Layer name. Auto-generated if not provided.
         shown: Whether the layer is visible.
         opacity: Layer opacity (0 to 1).
 
         Examples:
-        Map.addLayer(image, {"bands": ["B4", "B3", "B2"], "min": 0,
-                 "max": 3000, "gamma": 1.2}, "RGB")
-        Map.addLayer(image, {"vizType": "hsv", "bands": ["hue", "saturation", "value"],
-                 "min": [0, 0, 0], "max": [1, 1, 1]}, "HSV")
-        Map.addLayer(image, {"bands": ["B4"], "min": 0, "max": 3000,
-                 "palette": ["000000", "FFFFFF"]}, "Gradient")
-        Map.addLayer(image, {"bands": ["B4"], "gain": 0.001,
-                 "bias": 0, "forceRgbOutput": True}, "Adjusted")
-        Map.addLayer(image, {"bands": ["B4"], "breaks": [0, 1000, 3000],
-                 "palette": ["#2b83ba", "#d7191c"]}, "Intervals")
-        Map.addLayer(image, {"bands": ["classification"], "values": [0, 1, 2],
-                 "palette": ["#2b83ba", "#abdda4", "#d7191c"]}, "Classes")
-        Map.addLayer(image, {"default": "Natural Color"}, "Preset")
-        Map.addLayer(features, {"color": "FF0000", "width": 2},
-                 "Outlines", opacity=0.7)
-        Map.addLayer(features, {"property": "class", "values": [0, 1],
-                 "palette": ["#2b83ba", "#d7191c"]}, "Classes")
+        Image > RGB:
+            Map.addLayer(image, {
+                "bands": ["B4", "B3", "B2"], "min": 0, "max": 3000,
+                "gamma": 1.2}, "Sentinel-2 RGB")
+        Image > HSV:
+            Map.addLayer(image, {"vizType": "hsv",
+                "bands": ["hsv_hue", "hsv_saturation", "hsv_value"],
+                "min": [0, 0, 0], "max": [1, 1, 1]}, "HSV")
+        Image > Continuous:
+            Map.addLayer(image, {"bands": ["B8"], "min": 0, "max": 3000,
+                "palette": ["#2b83ba", "#abdda4", "#d7191c"]}, "Near Infrared")
+        Image > Categorical:
+            Map.addLayer(image, {"bands": ["classification"],
+                "values": [0, 1, 2],
+                "palette": ["#2b83ba", "#abdda4", "#d7191c"],
+                "labels": ["Other", "Crop", "Water"]}, "Crop Classification")
+        Image > Intervals:
+            Map.addLayer(image, {"bands": ["temperature"],
+                "breaks": [-10, 0, 10, 20],
+                "palette": ["#2b83ba", "#abdda4", "#d7191c"],
+                "labels": ["Below freezing", "Cool", "Warm"]}, "Temperature intervals")
+        FeatureCollection > Uniform:
+            Map.addLayer(features, {"color": "#336699",
+                "fillColor": "#66aadd", "width": 2, "pointSize": 4},
+                "Features")
+        FeatureCollection > Continuous:
+            Map.addLayer(features, {"property": "population",
+                "vizType": "continuous", "min": 0, "max": 1000,
+                "palette": ["#ffffcc", "#800026"]}, "Population")
+        FeatureCollection > Categorical:
+            Map.addLayer(features, {"property": "classification",
+                "vizType": "categorical", "values": [0, 1, 2],
+                "palette": ["#2b83ba", "#abdda4", "#d7191c"],
+                "labels": ["Other", "Crop", "Water"]}, "Crop Classes")
+        FeatureCollection > Intervals:
+            Map.addLayer(features, {"property": "elevation",
+                "vizType": "intervals", "breaks": [0, 500, 1500, 3000],
+                "palette": ["#2b83ba", "#abdda4", "#d7191c"]},
+                "Elevation intervals")
+        Stored image preset:
+            Map.addLayer(image, {"default": "Natural Color"}, "Preset")
     """
     vis_params = dict(vis_params or {})
 

@@ -45,48 +45,154 @@ Map.centerObject(image, zoom=10)
 
 ### `Map.addLayer(ee_object, vis_params=None, name=None, shown=True, opacity=1.0)`
 
-Add a layer to the map. `ee_object` accepts an `ee.Image`, `ee.ImageCollection` (mosaicked automatically), `ee.FeatureCollection`, `ee.Feature`, or `ee.Geometry`. Vectors are sent as collections; the extension styles them when it creates the tile layer. Use `color`, `fillColor`, `width`, and `pointSize` for a uniform style. For a palette, choose one `property` and set `vizType` to `continuous` (`min`, `max`, `palette`) or `intervals` (`breaks`, `palette`). For categorical vectors, `values` and `palette` select exact property values without requiring `vizType`; `vizType: "categorical"` remains supported. The map's visualization editor offers the same palette controls as images, with a property selector instead of bands.
+Add a layer to the map. `ee_object` accepts an `ee.Image`, `ee.ImageCollection` (mosaicked automatically), `ee.FeatureCollection`, `ee.Feature`, or `ee.Geometry`. Images support RGB, HSV, continuous, categorical, and interval rendering. Feature collections support uniform styling and property-based continuous, categorical, and interval rendering. The map's visualization editor exposes the same modes and parameters.
+
+#### Image
+
+##### RGB
+
+To display an image with an RGB color scheme, assign one image band to each display channel in red-green-blue order. Set `min` and `max` to define the input range stretched across each channel's 0–255 display range. A single number applies to all three bands; pass three values to set a separate range for each band. `gamma` is optional and adjusts midtone brightness.
+
+This example displays Sentinel-2 B4, B3, and B2 as red, green, and blue. The image was defined in the [Map module example](#the-map-module):
 
 ```python
-Map.addLayer(features, {
-	"property": "population",
-	"vizType": "continuous",
-	"min": 0, "max": 1000,
-	"palette": ["#ffffcc", "#800026"],
-}, "Population")
+Map.addLayer(image, {
+	"bands": ["B4", "B3", "B2"],
+	"min": 0,
+	"max": 3000,
+	"gamma": 1.2,
+}, "Sentinel-2 RGB")
 ```
 
-For a single-band palette with discrete intervals, pass increasing boundaries in `breaks` (one more boundary than palette colors). Without `breaks`, `palette` remains a continuous gradient:
+See the [Image > RGB preset in the Interactive Map](./editors/interactive-map#rgb).
+
+##### HSV
+
+HSV rendering interprets three bands as hue, saturation, and value. Set `vizType` to `"hsv"`, provide three `bands`, and set the corresponding `min` and `max` ranges. Each band is normalized to 0–1 before the image is converted to RGB for display.
+
+```python
+Map.addLayer(image, {
+	"vizType": "hsv",
+	"bands": ["hue", "saturation", "value"],
+	"min": [0, 0, 0],
+	"max": [1, 1, 1],
+}, "HSV")
+```
+
+See the [Image > HSV preset in the Interactive Map](./editors/interactive-map#hsv).
+
+##### Continuous
+
+Continuous rendering maps values in one band through a color palette. Provide the band, a `min` and `max` stretch range, and at least two palette colors. Do not set `vizType` for image palettes; a palette without `values` or `breaks` is interpreted as continuous.
 
 ```python
 Map.addLayer(image, {
 	"bands": ["B8"],
-	"breaks": [0, 1000, 2000, 3000],
+	"min": 0,
+	"max": 3000,
 	"palette": ["#2b83ba", "#abdda4", "#d7191c"],
 }, "Near Infrared")
 ```
 
-For exact classes rather than intervals, provide one distinct numeric `value` per palette color in `values`. The optional `labels` appear alongside the class values in the map legend. Values not listed are masked:
+See the [Image > Continuous preset in the Interactive Map](./editors/interactive-map#continuous).
+
+##### Categorical
+
+Categorical rendering assigns one color to each exact numeric pixel value in one band. Supply the distinct values and one palette color per value; optional `labels` appear in the map scale. Values not listed are masked.
 
 ```python
 Map.addLayer(image, {
 	"bands": ["classification"],
+	"vizType": "categorical",
 	"values": [0, 1, 2],
 	"palette": ["#2b83ba", "#abdda4", "#d7191c"],
 	"labels": ["Other", "Crop", "Water"],
 }, "Crop Classification")
 ```
 
-For a `FeatureCollection`, replace `bands` with the name of a feature `property`. Numeric and string class values are supported; features with other values are not drawn. Vector palette colors must be six-digit hex RGB:
+See the [Image > Categorical preset in the Interactive Map](./editors/interactive-map#categorical).
+
+##### Intervals
+
+Interval rendering assigns a palette color to each range in one band. `breaks` must be strictly increasing and have exactly one more value than the number of colors. Each interval includes its lower bound and excludes its upper bound; optional `labels` appear in the map scale.
+
+```python
+Map.addLayer(image, {
+	"bands": ["temperature"],
+	"vizType": "intervals",
+	"breaks": [-10, 0, 10, 20],
+	"palette": ["#2b83ba", "#abdda4", "#d7191c"],
+	"labels": ["Below freezing", "Cool", "Warm"],
+}, "Temperature intervals")
+```
+
+See the [Image > Intervals preset in the Interactive Map](./editors/interactive-map#intervals).
+
+#### FeatureCollection
+
+For feature collections, `bands` is replaced by a feature `property`. Uniform styling does not require a property; property-based modes use one selected property. Palette colors must be six-digit hex RGB, with or without a leading `#`.
+
+##### Uniform
+
+Use `color` for outlines, `fillColor` for polygon fills, `width` for line width, and `pointSize` for points. Fill is transparent by default.
+
+```python
+Map.addLayer(features, {
+	"color": "#336699",
+	"fillColor": "#66aadd",
+	"width": 2,
+	"pointSize": 4,
+}, "Features")
+```
+
+See the [FeatureCollection > Uniform preset in the Interactive Map](./editors/interactive-map#uniform).
+
+##### Continuous
+
+Map a numeric property between `min` and `max` through a palette of at least two colors:
+
+```python
+Map.addLayer(features, {
+	"property": "population",
+	"vizType": "continuous",
+	"min": 0,
+	"max": 1000,
+	"palette": ["#ffffcc", "#800026"],
+}, "Population")
+```
+
+See the [FeatureCollection > Continuous preset in the Interactive Map](./editors/interactive-map#continuous-1).
+
+##### Categorical
+
+Map exact numeric or string property values to colors with one distinct `value` and one palette color per class. Optional `labels` name the classes; unlisted values are not drawn.
 
 ```python
 Map.addLayer(features, {
 	"property": "classification",
+	"vizType": "categorical",
 	"values": [0, 1, 2],
 	"palette": ["#2b83ba", "#abdda4", "#d7191c"],
 	"labels": ["Other", "Crop", "Water"],
 }, "Crop Classes")
 ```
+
+See the [FeatureCollection > Categorical preset in the Interactive Map](./editors/interactive-map#categorical-1).
+
+##### Intervals
+
+Map a numeric property to one color per range. `breaks` must be strictly increasing and have exactly one more value than the palette colors; each interval includes its lower bound and excludes its upper bound.
+
+```python
+Map.addLayer(features, {
+	"property": "elevation",
+	"vizType": "intervals",
+	"breaks": [0, 500, 1500, 3000],
+	"palette": ["#2b83ba", "#abdda4", "#d7191c"],
+}, "Elevation intervals")
+```
+
+See the [FeatureCollection > Intervals preset in the Interactive Map](./editors/interactive-map#intervals-1).
 
 Set layer opacity with the separate `opacity` argument to `Map.addLayer`, not inside `vis_params`.
 

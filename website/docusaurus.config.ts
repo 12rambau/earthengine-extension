@@ -73,6 +73,9 @@ const config: Config = {
   ],
 
   themeConfig: {
+    tableOfContents: {
+      maxHeadingLevel: 5,
+    },
     colorMode: {
       defaultMode: 'dark',
       respectPrefersColorScheme: true,
