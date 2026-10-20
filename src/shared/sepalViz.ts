@@ -323,6 +323,13 @@ export function resolveSepalViz(
     case 'hsv': {
       // Normalise each of the 3 bands to [0, 1] (respecting inverted), then
       // convert the stacked H/S/V image to RGB with hsvToRgb().
+      if (
+        viz.bands.length !== 3 ||
+        viz.bands.some((band) => !band) ||
+        [...minArr, ...maxArr].some((value) => !Number.isFinite(value))
+      ) {
+        throw new Error('HSV visualization requires three bands and finite min/max values.');
+      }
       const { finalMin, finalMax } = applyInverted(minArr, maxArr, viz.inverted);
       const imageAny = image as any;
 
@@ -334,17 +341,16 @@ export function resolveSepalViz(
       });
 
       const stacked = ee.Image.cat(bandImages);
-      // Keep original band metadata as displayVisParams so the WebView scale
-      // bar can show the H/S/V ranges.  The rendered tile is RGB so pixel-level
-      // hover tracking is approximate for HSV layers.
-      const displayVisParams: Record<string, unknown> = { bands: viz.bands };
+      // Keep the original channel metadata and mode for editing and scale display.
+      // Pixel samples are converted back from the rendered RGB tiles.
+      const displayVisParams: Record<string, unknown> = { vizType: 'hsv', bands: viz.bands };
       if (finalMin.length > 0) {
         displayVisParams['min'] = finalMin.length === 1 ? finalMin[0] : finalMin;
       }
       if (finalMax.length > 0) {
         displayVisParams['max'] = finalMax.length === 1 ? finalMax[0] : finalMax;
       }
-      return { image: stacked.hsvToRgb(), visParams: {}, displayVisParams };
+      return { image: stacked.hsvToRgb(), visParams: { min: 0, max: 1 }, displayVisParams };
     }
 
     default:

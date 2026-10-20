@@ -65,6 +65,37 @@ export function resolveDiscreteImageVis(
   );
 }
 
+/** Converts explicit HSV bands and ranges to an RGB tile while preserving HSV display metadata. */
+function resolveHsvImageVis(
+  visParams: Record<string, unknown>,
+  image: unknown,
+  ee: any,
+): ReturnType<typeof resolveSepalViz> {
+  const range = (value: unknown, fallback: number): unknown[] =>
+    value == null ? [fallback] : Array.isArray(value) ? value : [value];
+  const min = range(visParams['min'], 0);
+  const max = range(visParams['max'], 1);
+  const bands = visParams['bands'];
+  if (
+    !Array.isArray(bands) ||
+    bands.length !== 3 ||
+    bands.some((band) => typeof band !== 'string' || !band) ||
+    [min, max].some(
+      (values) =>
+        values.length === 0 ||
+        values.length > 3 ||
+        values.some((value) => typeof value !== 'number' || !Number.isFinite(value)),
+    )
+  ) {
+    throw new Error('HSV visualization requires three bands and finite min/max values.');
+  }
+  return resolveSepalViz(
+    { index: -1, name: 'Custom HSV', type: 'hsv', bands, min: min as number[], max: max as number[] },
+    image,
+    ee,
+  );
+}
+
 /** Shape of an `addLayer` payload received from the bridge or asset API. */
 export interface AddLayerPayload {
   serialized: string;
@@ -355,7 +386,12 @@ export class MapLayerManager {
     let resolvedVisParams: Record<string, unknown> = hasDefault ? {} : rawVisParams;
     let displayVisParams: Record<string, unknown> | undefined;
 
-    if ('breaks' in rawVisParams || 'values' in rawVisParams) {
+    if (rawVisParams['vizType'] === 'hsv') {
+      const resolved = resolveHsvImageVis(rawVisParams, image, ee);
+      resolvedImage = resolved.image;
+      resolvedVisParams = resolved.visParams;
+      displayVisParams = resolved.displayVisParams;
+    } else if ('breaks' in rawVisParams || 'values' in rawVisParams) {
       const resolved = resolveDiscreteImageVis(rawVisParams, image, ee);
       resolvedImage = resolved.image;
       resolvedVisParams = resolved.visParams;
@@ -851,15 +887,7 @@ export class MapLayerManager {
           resolvedVisParams.gamma = config.gamma;
         }
       } else if (vizType === 'hsv') {
-        const viz = {
-          index: -1,
-          name: 'Custom HSV',
-          type: 'hsv' as const,
-          bands,
-          min,
-          max,
-        };
-        const resolved = resolveSepalViz(viz, image, ee);
+        const resolved = resolveHsvImageVis(config, image, ee);
         resolvedImage = resolved.image;
         resolvedVisParams = resolved.visParams;
         displayVisParams = resolved.displayVisParams;
