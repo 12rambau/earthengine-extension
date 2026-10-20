@@ -1,16 +1,19 @@
-<!-- CollectionDialog: create an empty image collection or ingest Zarr/COG rasters into one -->
+<!-- CollectionDialog: create an empty collection or ingest local COG, Zarr or VRT images -->
 <script>
+  import DatePicker from '../components/DatePicker.svelte';
   import TableButton from '../components/TableButton.svelte';
 
   let {
     parent,
     buckets = [],
     defaultBucket = '',
-    files = [],
+    selection = null,
+    loadingSource = false,
     busy = false,
     progress = '',
     error = '',
     onpick,
+    onclear,
     onsubmit,
     oncancel,
   } = $props();
@@ -18,22 +21,46 @@
   // ----------------------------------------------------------------
   // STATE
   // ----------------------------------------------------------------
-  let source = $state('empty');
   let assetName = $state('');
-  let title = $state('');
+  let bandNames = $state([]);
+  let pyramidingPolicy = $state('MEAN');
   let description = $state('');
+  let startTime = $state('');
+  let endTime = $state('');
+  let properties = $state([]);
   let bucket = $state('');
   let backdropMouseDown = $state(false);
+  let lastSelection = $state(null);
+
+  const PYRAMIDING = ['MEAN', 'MODE', 'SAMPLE', 'MIN', 'MAX'];
 
   // ----------------------------------------------------------------
   // DERIVED
   // ----------------------------------------------------------------
   let assetId = $derived(`${parent}/${assetName.trim()}`);
+  let source = $derived(selection?.source ?? 'empty');
   let canSubmit = $derived(
-    !busy &&
+    !busy && !loadingSource &&
       /^[A-Za-z0-9_-]+$/.test(assetName.trim()) &&
-      (source === 'empty' || (files.length > 0 && !!bucket.trim())),
+      (source === 'empty' ||
+        (!!bucket.trim() && bandNames.length === selection.bandCount &&
+          bandNames.every((name) => !!name.trim()))),
   );
+
+  $effect(() => {
+    if (selection && selection !== lastSelection) {
+      lastSelection = selection;
+      if (!assetName) {
+        assetName = selection.path.split(/[\\/]/).pop().replace(/\.[^.]+$/, '').replace(/[^A-Za-z0-9_-]/g, '_');
+      }
+      bandNames = Array.from({ length: selection.bandCount }, (_, index) => `b${index + 1}`);
+      properties = selection.properties.map((property) => ({ ...property }));
+    } else if (!selection && lastSelection) {
+      lastSelection = null;
+      bandNames = [];
+      properties = [];
+    }
+  });
 
   $effect(() => {
     if (defaultBucket && !bucket) {
@@ -44,12 +71,26 @@
   // ----------------------------------------------------------------
   // ACTIONS
   // ----------------------------------------------------------------
+  function addProperty() {
+    properties = [...properties, { key: '', value: '' }];
+  }
+
+  function removeProperty(index) {
+    properties = properties.filter((_, propertyIndex) => propertyIndex !== index);
+  }
+
   function submit() {
     if (canSubmit) {
       onsubmit({
         assetId,
-        title,
         description,
+        startTime: startTime ? new Date(startTime).toISOString() : '',
+        endTime: endTime ? new Date(endTime).toISOString() : '',
+        properties: properties
+          .filter((property) => property.key.trim())
+          .map((property) => ({ key: property.key.trim(), value: property.value })),
+        bandNames: bandNames.map((name) => name.trim()),
+        pyramidingPolicy,
         source,
         bucket: source === 'empty' ? '' : bucket,
       });
@@ -83,48 +124,26 @@
       </TableButton>
     </header>
     <div class="collection-body">
+      <div class="collection-field">
+        <span>Images</span>
+        <div class="collection-file-row">
+          <input type="text" readonly value={selection?.path ?? ''} placeholder="No source selected" />
+          <TableButton disabled={busy || loadingSource} onclick={onpick}>Browse…</TableButton>
+          {#if selection}
+            <TableButton variant="ghost" size="icon" title="Clear source" aria-label="Clear source" disabled={busy || loadingSource} onclick={onclear}>
+              <i class="codicon codicon-close"></i>
+            </TableButton>
+          {/if}
+        </div>
+        {#if loadingSource}<small>Reading images…</small>{/if}
+        {#if selection}<small>{selection.count} image(s) from {source === 'cogs' ? 'COG folder' : source.toUpperCase()}</small>{/if}
+      </div>
       <label class="collection-field">
         <span>Asset name</span>
         <input type="text" bind:value={assetName} disabled={busy} placeholder="my_collection" />
         <small>{assetId}</small>
       </label>
-      <label class="collection-field">
-        <span>Title</span>
-        <input type="text" bind:value={title} disabled={busy} />
-      </label>
-      <label class="collection-field">
-        <span>Description</span>
-        <textarea rows="2" bind:value={description} disabled={busy}></textarea>
-      </label>
-      <label class="collection-field">
-        <span>Images</span>
-        <select bind:value={source} disabled={busy} onchange={() => onpick(null)}>
-          <option value="empty">Empty (add images later)</option>
-          <option value="zarr">Local Zarr raster</option>
-          <option value="cogs">Local Cloud Optimized GeoTIFF files</option>
-        </select>
-      </label>
-      {#if source !== 'empty'}
-        <div class="collection-field">
-          <span>{source === 'zarr' ? 'Zarr directory' : 'COG files'}</span>
-          <div class="collection-file-row">
-            <input
-              type="text"
-              readonly
-              value={files.map((file) => file.split(/[\\/]/).pop()).join(', ')}
-              placeholder="No source selected"
-            />
-            <TableButton disabled={busy} onclick={() => onpick(source)}>Browse…</TableButton>
-          </div>
-          {#if source === 'zarr'}
-            <small
-              >GDAL must expose this Zarr store as a georeferenced 2D raster. It is converted to a
-              COG for ingestion.</small
-            >
-          {:else}
-            <small>Each file becomes a separate image and ingestion task.</small>
-          {/if}
-        </div>
+      {#if selection}
         <label class="collection-field">
           <span>Staging bucket</span>
           {#if buckets.length}
@@ -134,9 +153,63 @@
           {:else}
             <input type="text" bind:value={bucket} disabled={busy} placeholder="my-bucket" />
           {/if}
-          <small>COGs are removed from Cloud Storage after ingestion finishes.</small>
+          <small>Staged files are removed from Cloud Storage after ingestion finishes.</small>
+        </label>
+        <div class="collection-field">
+          <span>Band names</span>
+          {#each bandNames as _, index}
+            <input type="text" bind:value={bandNames[index]} disabled={busy} placeholder={`b${index + 1}`} />
+          {/each}
+        </div>
+        <label class="collection-field">
+          <span>Pyramiding</span>
+          <select bind:value={pyramidingPolicy} disabled={busy}>
+            {#each PYRAMIDING as policy}<option value={policy}>{policy}</option>{/each}
+          </select>
         </label>
       {/if}
+      <label class="collection-field">
+        <span>Description</span>
+        <textarea rows="2" bind:value={description} disabled={busy}></textarea>
+      </label>
+      <div class="collection-date-row">
+        <div class="collection-field">
+          <span>Start time</span>
+          <DatePicker mode="datetime" label="Start time" bind:value={startTime} disabled={busy} />
+        </div>
+        <div class="collection-field">
+          <span>End time</span>
+          <DatePicker mode="datetime" label="End time" bind:value={endTime} disabled={busy} />
+        </div>
+      </div>
+      <div class="collection-field">
+        <span class="collection-properties-header">
+          Properties
+          <TableButton disabled={busy} onclick={addProperty}>
+            <i class="codicon codicon-add"></i> Add
+          </TableButton>
+        </span>
+        {#each properties as property, index}
+          <div class="collection-property-row">
+            <input type="text" placeholder="key" bind:value={property.key} disabled={busy} />
+            <input type="text" placeholder="value" bind:value={property.value} disabled={busy} />
+            <TableButton
+              variant="ghost"
+              size="icon"
+              danger
+              title="Remove"
+              aria-label="Remove property"
+              disabled={busy}
+              onclick={() => removeProperty(index)}
+            >
+              <i class="codicon codicon-trash"></i>
+            </TableButton>
+          </div>
+        {/each}
+        {#if properties.length > 0}
+          <small>Numeric values are sent as numbers, everything else as text.</small>
+        {/if}
+      </div>
       {#if error}<p class="collection-error">{error}</p>{/if}
       {#if busy}<p class="collection-progress">{progress || 'Working…'}</p>{/if}
     </div>
@@ -217,6 +290,24 @@
           min-width: 0;
         }
       }
+      .collection-date-row {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: var(--vscee-space-lg);
+      }
+      .collection-properties-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .collection-property-row {
+        display: flex;
+        gap: var(--vscee-space-sm);
+        input {
+          flex: 1;
+          min-width: 0;
+        }
+      }
       input,
       select,
       textarea {
@@ -239,6 +330,11 @@
       }
       .collection-progress {
         color: var(--vscee-color-muted);
+      }
+      @media (max-width: 480px) {
+        .collection-date-row {
+          grid-template-columns: 1fr;
+        }
       }
     }
   }

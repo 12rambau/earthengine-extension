@@ -3,16 +3,21 @@
 import * as vscode from 'vscode';
 import { AuthService } from '../../auth/index.js';
 import { collectionImageNames, createImageCollection } from '../../sidebar/assets/eeApiClient.js';
-import { NewAssetRequest, uploadNewAsset, UploadProgress } from './assetUpload.js';
+import { AssetProperty, NewAssetRequest, uploadNewAsset, UploadProgress } from './assetUpload.js';
+import { CollectionRaster } from './rasterToCog.js';
 
 /** Metadata and sources selected in the Asset Manager. */
 export interface NewCollectionRequest {
   assetId: string;
-  title: string;
   description: string;
+  startTime: string;
+  endTime: string;
+  properties: AssetProperty[];
+  bandNames: string[];
+  pyramidingPolicy: string;
   bucket: string;
-  source: 'empty' | 'zarr' | 'cogs';
-  files: string[];
+  source: 'empty' | 'zarr' | 'cogs' | 'vrt';
+  images: CollectionRaster[];
 }
 
 /**
@@ -32,11 +37,15 @@ export async function uploadImageCollection(
     throw new Error('The destination must belong to the active project.');
   }
   if (
-    !['empty', 'zarr', 'cogs'].includes(request.source) ||
-    (request.source === 'empty' && request.files.length !== 0) ||
-    (request.source === 'zarr' && request.files.length !== 1) ||
-    (request.source === 'cogs' && request.files.length === 0) ||
-    (request.source !== 'empty' && !request.bucket.trim())
+    !['empty', 'zarr', 'cogs', 'vrt'].includes(request.source) ||
+    (request.source === 'empty' && request.images.length !== 0) ||
+    (request.source !== 'empty' &&
+      (!request.images.length ||
+        !request.bucket.trim() ||
+        !request.bandNames.length ||
+        request.bandNames.some((name) => !name.trim()) ||
+        !['MEAN', 'MODE', 'SAMPLE', 'MIN', 'MAX'].includes(request.pyramidingPolicy) ||
+        request.images.some((image) => image.bandCount !== request.bandNames.length)))
   ) {
     throw new Error('Select valid image collection sources and a staging bucket.');
   }
@@ -44,32 +53,42 @@ export async function uploadImageCollection(
   if (!token) {
     throw new Error('Not authenticated.');
   }
-  await createImageCollection(request.assetId, request.title, request.description, token);
+  await createImageCollection(
+    request.assetId,
+    {
+      description: request.description,
+      startTime: request.startTime,
+      endTime: request.endTime,
+      properties: request.properties,
+    },
+    token,
+  );
 
-  const names = collectionImageNames(request.files);
+  const names = collectionImageNames(request.images.map((image) => image.name));
   let submitted = 0;
-  for (let index = 0; index < request.files.length; index++) {
+  for (let index = 0; index < request.images.length; index++) {
     const imageRequest: NewAssetRequest = {
       kind: 'image',
       assetId: `${request.assetId}/${names[index]}`,
-      filePath: request.files[index],
+      filePath: request.images[index].path,
+      bandIndex: request.images[index].bandIndex,
       bucket: request.bucket,
-      bandNames: [],
-      pyramidingPolicy: 'MEAN',
+      bandNames: request.bandNames,
+      pyramidingPolicy: request.pyramidingPolicy,
       description: '',
       startTime: '',
       endTime: '',
       properties: [],
     };
     try {
-      onProgress(`Image ${index + 1}/${request.files.length}: ${names[index]}`);
+      onProgress(`Image ${index + 1}/${request.images.length}: ${names[index]}`);
       const operation = await uploadNewAsset(imageRequest, authService, context, onProgress);
       submitted++;
       await onOperation(operation);
     } catch (error) {
       const reason = error instanceof Error ? error.message : String(error);
       throw new Error(
-        `Collection created; ${submitted} of ${request.files.length} image ingestion(s) submitted. ` +
+        `Collection created; ${submitted} of ${request.images.length} image ingestion(s) submitted. ` +
           `Failed on ${names[index]}: ${reason}`,
       );
     }

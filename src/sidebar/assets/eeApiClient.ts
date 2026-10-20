@@ -78,7 +78,10 @@ export interface AssetSharingChanges {
 // API FUNCTIONS
 // ==================================================================
 /** Reads the IAM policy for any Earth Engine asset. */
-export async function getAssetIamPolicy(name: string, accessToken: string): Promise<AssetIamPolicy> {
+export async function getAssetIamPolicy(
+  name: string,
+  accessToken: string,
+): Promise<AssetIamPolicy> {
   const response = await httpRequest(
     `${EE_API_BASE}/${name}:getIamPolicy`,
     'POST',
@@ -132,7 +135,10 @@ export function applyAssetSharing(
     members: [...(binding.members ?? [])],
   }));
   for (const binding of bindings) {
-    if (!binding.condition && (binding.role === 'roles/viewer' || binding.role === 'roles/editor')) {
+    if (
+      !binding.condition &&
+      (binding.role === 'roles/viewer' || binding.role === 'roles/editor')
+    ) {
       binding.members = binding.members.filter(
         (member) => !member.startsWith('user:') && member !== 'allUsers',
       );
@@ -357,17 +363,24 @@ async function deleteLeaf(
 // ==================================================================
 const CONTAINER_TYPES = new Set(['FOLDER', 'IMAGE_COLLECTION']);
 
+interface ImageCollectionMetadata {
+  description: string;
+  startTime?: string;
+  endTime?: string;
+  properties?: { key: string; value: string }[];
+}
+
 /** POSTs a create-asset request to the EE REST API. */
 async function postCreateAsset(
   projectRoot: string,
   assetId: string,
   type: 'FOLDER' | 'IMAGE_COLLECTION',
   accessToken: string,
-  metadata: { title: string; description: string } = { title: '', description: '' },
+  metadata: ImageCollectionMetadata = { description: '' },
 ): Promise<EEAsset> {
   const params = new URLSearchParams({ assetId });
   const url = `${EE_API_BASE}/${projectRoot}/assets?${params.toString()}`;
-  const body = JSON.stringify({ type, ...collectionMetadata(metadata.title, metadata.description) });
+  const body = JSON.stringify({ type, ...collectionMetadata(metadata) });
   const response = await httpRequest(url, 'POST', accessToken, body);
   return JSON.parse(response) as EEAsset;
 }
@@ -571,14 +584,15 @@ export async function createFolder(
   return postCreateAsset(projectRoot, assetId, 'FOLDER', accessToken);
 }
 
-/** Creates an empty image collection, optionally setting its title and preview description. */
+/** Creates an empty image collection, optionally setting its description. */
 export async function createImageCollection(
   fullPath: string,
-  title: string,
-  description: string,
+  metadata: ImageCollectionMetadata,
   accessToken: string,
 ): Promise<EEAsset> {
-  const match = /^projects\/[A-Za-z0-9_-]+\/assets\/([A-Za-z0-9_-]+(?:\/[A-Za-z0-9_-]+)*)$/.exec(fullPath);
+  const match = /^projects\/[A-Za-z0-9_-]+\/assets\/([A-Za-z0-9_-]+(?:\/[A-Za-z0-9_-]+)*)$/.exec(
+    fullPath,
+  );
   if (!match) {
     throw new Error('Invalid image collection asset ID.');
   }
@@ -587,15 +601,30 @@ export async function createImageCollection(
     match[1],
     'IMAGE_COLLECTION',
     accessToken,
-    { title, description },
+    metadata,
   );
 }
 
-/** Maps collection form fields to Earth Engine's asset metadata representation. */
-export function collectionMetadata(title: string, description: string): Pick<EEAsset, 'title' | 'properties'> {
+/** Maps collection fields to Earth Engine's asset metadata representation. */
+export function collectionMetadata(
+  metadata: ImageCollectionMetadata,
+): Pick<EEAsset, 'properties' | 'startTime' | 'endTime'> {
+  const properties: Record<string, string | number> = {};
+  if (metadata.description.trim()) {
+    properties.description = metadata.description.trim();
+  }
+  for (const { key, value } of metadata.properties ?? []) {
+    const name = key.trim();
+    if (!name) {
+      continue;
+    }
+    const numeric = Number(value);
+    properties[name] = value.trim() !== '' && Number.isFinite(numeric) ? numeric : value;
+  }
   return {
-    ...(title.trim() ? { title: title.trim() } : {}),
-    ...(description.trim() ? { properties: { description: description.trim() } } : {}),
+    ...(Object.keys(properties).length > 0 ? { properties } : {}),
+    ...(metadata.startTime ? { startTime: metadata.startTime } : {}),
+    ...(metadata.endTime ? { endTime: metadata.endTime } : {}),
   };
 }
 

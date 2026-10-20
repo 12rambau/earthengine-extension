@@ -82,7 +82,8 @@
   let buckets = $state([]);
   let defaultBucket = $state('');
   let pickedFile = $state({ path: '', suggestedName: '', bandCount: 1 });
-  let collectionFiles = $state([]);
+  let collectionSelection = $state(null);
+  let collectionPicking = $state(false);
   let uploadBusy = $state(false);
   let uploadProgress = $state('');
   let uploadError = $state('');
@@ -139,7 +140,9 @@
     newMenuOpen = false;
     dialogKind = kind;
     pickedFile = { path: '', suggestedName: '', bandCount: 1 };
-    collectionFiles = [];
+    collectionSelection = null;
+    collectionPicking = false;
+    vscode.postMessage({ type: 'clearCollectionFiles' });
     uploadError = '';
     uploadProgress = '';
     if (kind !== 'collection') {
@@ -150,6 +153,8 @@
   function closeDialog() {
     dialogKind = null;
     uploadBusy = false;
+    collectionPicking = false;
+    vscode.postMessage({ type: 'clearCollectionFiles' });
   }
 
   function pickFile(kind) {
@@ -169,14 +174,16 @@
     }
   }
 
-  function pickCollection(source) {
-    collectionFiles = [];
-    if (source) {
-      vscode.postMessage({ type: 'listBuckets' });
-      vscode.postMessage({ type: 'pickCollectionFiles', source });
-    } else {
-      vscode.postMessage({ type: 'clearCollectionFiles' });
-    }
+  function pickCollection() {
+    collectionPicking = true;
+    uploadError = '';
+    vscode.postMessage({ type: 'pickCollectionFiles' });
+  }
+
+  function clearCollection() {
+    collectionSelection = null;
+    collectionPicking = false;
+    vscode.postMessage({ type: 'clearCollectionFiles' });
   }
 
   function startCollection(request) {
@@ -271,8 +278,13 @@
     } else if (msg.type === 'filePicked') {
       pickedFile = { path: msg.path, suggestedName: msg.suggestedName, bandCount: msg.bandCount };
     } else if (msg.type === 'collectionFiles') {
-      collectionFiles = msg.files;
+      collectionPicking = false;
+      collectionSelection = msg.selection;
+      vscode.postMessage({ type: 'listBuckets' });
+    } else if (msg.type === 'collectionPickCancelled') {
+      collectionPicking = false;
     } else if (msg.type === 'collectionError') {
+      collectionPicking = false;
       uploadBusy = false;
       uploadError = msg.message;
     } else if (msg.type === 'uploadProgress') {
@@ -532,11 +544,13 @@
     parent={targetFolder}
     {buckets}
     {defaultBucket}
-    files={collectionFiles}
+    selection={collectionSelection}
+    loadingSource={collectionPicking}
     busy={uploadBusy}
     progress={uploadProgress}
     error={uploadError}
     onpick={pickCollection}
+    onclear={clearCollection}
     onsubmit={startCollection}
     oncancel={closeDialog}
   />
