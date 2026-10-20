@@ -17,6 +17,54 @@ import {
   vectorVisParams,
 } from '../../shared/sepalViz.js';
 
+/** Converts explicit discrete image visualization parameters into a rendered image and legend. */
+export function resolveDiscreteImageVis(
+  visParams: Record<string, unknown>,
+  image: unknown,
+  ee: any,
+): ReturnType<typeof resolveSepalViz> {
+  if ('values' in visParams && 'breaks' in visParams) {
+    throw new Error('Use either categorical values or interval breaks, not both.');
+  }
+  const categorical = 'values' in visParams;
+  if (categorical) {
+    const values = visParams['values'];
+    const palette = visParams['palette'];
+    const bands = visParams['bands'];
+    if (
+      !Array.isArray(bands) ||
+      bands.length !== 1 ||
+      typeof bands[0] !== 'string' ||
+      !bands[0] ||
+      !Array.isArray(values) ||
+      values.length === 0 ||
+      values.some((value) => typeof value !== 'number' || !Number.isFinite(value)) ||
+      new Set(values).size !== values.length ||
+      !Array.isArray(palette) ||
+      palette.length !== values.length ||
+      palette.some((color) => typeof color !== 'string' || !color.trim())
+    ) {
+      throw new Error(
+        'Categorical visualization requires one band and unique numeric values with one color each.',
+      );
+    }
+  }
+  return resolveSepalViz(
+    {
+      index: -1,
+      name: categorical ? 'Custom Classification' : 'Custom Intervals',
+      type: categorical ? 'categorical' : 'intervals',
+      bands: visParams['bands'] as string[],
+      values: categorical ? (visParams['values'] as number[]) : undefined,
+      breaks: categorical ? undefined : (visParams['breaks'] as number[]),
+      palette: visParams['palette'] as string[],
+      labels: visParams['labels'] as string[] | undefined,
+    },
+    image,
+    ee,
+  );
+}
+
 /** Shape of an `addLayer` payload received from the bridge or asset API. */
 export interface AddLayerPayload {
   serialized: string;
@@ -48,7 +96,18 @@ export function styleFeatureCollection(
   ee: any,
 ): unknown {
   const collection = ee.FeatureCollection(source);
-  const { property, vizType, palette, values, breaks, min, max, strokeWidth, ...style } = visParams;
+  const {
+    property,
+    vizType: requestedType,
+    palette,
+    values,
+    breaks,
+    min,
+    max,
+    strokeWidth,
+    ...style
+  } = visParams;
+  const vizType = requestedType ?? ('values' in visParams ? 'categorical' : undefined);
   const base = {
     color: style['color'] ?? '000000',
     fillColor: style['fillColor'] ?? '00000000',
@@ -95,9 +154,15 @@ export function styleFeatureCollection(
     });
   } else if (
     vizType === 'categorical' &&
-    (!Array.isArray(values) || values.length !== palette.length)
+    (!Array.isArray(values) ||
+      values.length !== palette.length ||
+      new Set(values).size !== values.length ||
+      values.some(
+        (value) =>
+          typeof value !== 'string' && (typeof value !== 'number' || !Number.isFinite(value)),
+      ))
   ) {
-    throw new Error('Categorical values and colors must have the same length.');
+    throw new Error('Categorical values must be distinct strings or numbers, with one color each.');
   } else if (
     vizType === 'intervals' &&
     (!Array.isArray(breaks) ||
@@ -115,9 +180,16 @@ export function styleFeatureCollection(
   const colorList = ee.List(colors.map((color) => String(color).replace(/^#/, '')));
   const valueList = vizType === 'categorical' ? ee.List(values) : null;
   const intervalBreaks = vizType === 'intervals' ? (breaks as number[]) : [];
-  const styled = collection.map((feature: any) => {
+  const matching =
+    vizType === 'categorical'
+      ? collection.filter(ee.Filter.inList(property, valueList))
+      : collection;
+  const styled = matching.map((feature: any) => {
     const value = feature.get(property);
-    const number = ee.Number(ee.Algorithms.If(ee.Algorithms.IsEqual(value, null), 0, value));
+    const number =
+      vizType === 'categorical'
+        ? null
+        : ee.Number(ee.Algorithms.If(ee.Algorithms.IsEqual(value, null), 0, value));
     let index: any;
     if (vizType === 'continuous') {
       index = number
@@ -283,19 +355,8 @@ export class MapLayerManager {
     let resolvedVisParams: Record<string, unknown> = hasDefault ? {} : rawVisParams;
     let displayVisParams: Record<string, unknown> | undefined;
 
-    if ('breaks' in rawVisParams) {
-      const resolved = resolveSepalViz(
-        {
-          index: -1,
-          name: 'Custom Intervals',
-          type: 'intervals',
-          bands: rawVisParams['bands'] as string[],
-          breaks: rawVisParams['breaks'] as number[],
-          palette: rawVisParams['palette'] as string[],
-        },
-        image,
-        ee,
-      );
+    if ('breaks' in rawVisParams || 'values' in rawVisParams) {
+      const resolved = resolveDiscreteImageVis(rawVisParams, image, ee);
       resolvedImage = resolved.image;
       resolvedVisParams = resolved.visParams;
       displayVisParams = resolved.displayVisParams;

@@ -36,6 +36,33 @@ For a single-band palette with discrete intervals, pass ordered boundaries in
         "palette": ["#2b83ba", "#abdda4", "#d7191c"],
     }, "Near Infrared")
 
+For exact classes rather than intervals, use ``values`` with one palette
+color per distinct numeric value. Optional ``labels`` name the classes in the
+map legend. Pixels outside ``values`` are masked; ``min`` and ``max`` are not
+needed.
+
+.. code-block:: python
+
+    Map.addLayer(image, {
+        "bands": ["classification"],
+        "values": [0, 1, 2],
+        "palette": ["#2b83ba", "#abdda4", "#d7191c"],
+        "labels": ["Other", "Crop", "Water"],
+    }, "Crop Classification")
+
+For a FeatureCollection, specify a ``property`` instead of ``bands``. Class
+values may be numeric or strings, and features with unlisted values are not
+drawn. Vector palettes require six-digit hex RGB colors:
+
+.. code-block:: python
+
+    Map.addLayer(features, {
+        "property": "classification",
+        "values": [0, 1, 2],
+        "palette": ["#2b83ba", "#abdda4", "#d7191c"],
+        "labels": ["Other", "Crop", "Water"],
+    }, "Crop Classes")
+
 Requirements
 ------------
 
