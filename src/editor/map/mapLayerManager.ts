@@ -14,6 +14,7 @@ import {
   parseSepalVisualizations,
   resolveSepalViz,
   selectSepalViz,
+  vectorVisParams,
 } from '../../shared/sepalViz.js';
 
 /** Shape of an `addLayer` payload received from the bridge or asset API. */
@@ -40,7 +41,12 @@ const STRETCH_ERROR_MARGIN = 1000;
 /** Upper bound on the classes `computeClasses` reports, keeping the legend usable. */
 const MAX_AUTO_CLASSES = 30;
 
-function styleFeatureCollection(source: any, visParams: Record<string, unknown>, ee: any): unknown {
+/** Styles a collection with the same uniform or property-based parameters used by map layers. */
+export function styleFeatureCollection(
+  source: any,
+  visParams: Record<string, unknown>,
+  ee: any,
+): unknown {
   const collection = ee.FeatureCollection(source);
   const { property, vizType, palette, values, breaks, min, max, strokeWidth, ...style } = visParams;
   const base = {
@@ -218,20 +224,7 @@ export class MapLayerManager {
     if (!preset) {
       throw new Error('No FeatureCollection visualization presets found.');
     }
-    return {
-      vizType: preset.type,
-      ...(preset.type === 'uniform'
-        ? { color: preset.color, fillColor: preset.fillColor, width: preset.width }
-        : {
-            property: preset.bands[0],
-            palette: preset.palette,
-            min: preset.min?.[0],
-            max: preset.max?.[0],
-            values: preset.values,
-            breaks: preset.breaks,
-          }),
-      labels: preset.labels,
-    };
+    return vectorVisParams(preset);
   }
 
   /** Resolves the tile URL for one `addLayer` payload and posts the result. */

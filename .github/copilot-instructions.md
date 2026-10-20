@@ -60,6 +60,8 @@ Root cause is still open (escalated to EE API experts). Until it's resolved: **k
 
 ## Testing changes
 
+Until we explicitly agree to prepare for V1, do not create test files, add test cases, or modify existing tests. We are still designing functionality; validate changes with type checking, builds, and manual checks as appropriate. Start adding or updating automated tests only after that agreement.
+
 ```bash
 npx tsc --noEmit   # type check
 node esbuild.js    # build

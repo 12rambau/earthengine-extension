@@ -6,8 +6,8 @@
  * - Left sidebar: thumbnail, Table ID, dates, file size, feature count, last modified.
  * - Right content: 4 tabs — DESCRIPTION, FEATURES, COLUMNS, PROPERTIES.
  *
- * The thumbnail is generated from the FeatureCollection footprint rendered
- * with dark outlines. Features tab shows the first 20 rows with all columns.
+ * The thumbnail uses the first vector visualization preset when available.
+ * Features tab shows the first 20 rows with all columns.
  * Columns tab lists column names and inferred types from the first feature.
  */
 
@@ -73,6 +73,8 @@ export async function openFeatureCollectionPreview(
       if (msg.type === 'ready') {
         loadPreviewSharing(asset, accessToken, panel);
         sendThumbnail(asset, panel);
+      } else if (msg.type === 'thumbnailFallback') {
+        sendThumbnail(asset, panel, true);
       } else if (msg.type === 'saveMetadata') {
         await savePreviewMetadata(msg, asset, accessToken, panel);
       }
@@ -89,12 +91,16 @@ async function getFeatureCollectionCount(assetName: string): Promise<number> {
 // ==================================================================
 // THUMBNAIL
 // ==================================================================
-async function sendThumbnail(asset: EEAsset, panel: vscode.WebviewPanel): Promise<void> {
+async function sendThumbnail(
+  asset: EEAsset,
+  panel: vscode.WebviewPanel,
+  fallbackOnly = false,
+): Promise<void> {
   try {
-    const thumbUrl = await getFeatureCollectionThumbnailUrl(asset);
-    panel.webview.postMessage({ type: 'thumbnail', url: thumbUrl });
+    const thumbnail = await getFeatureCollectionThumbnailUrl(asset, undefined, fallbackOnly);
+    panel.webview.postMessage({ type: 'thumbnail', ...thumbnail });
   } catch (err) {
-    panel.webview.postMessage({ type: 'thumbnail', url: '' });
+    panel.webview.postMessage({ type: 'thumbnail', url: '', preset: false });
     const msg = err instanceof Error ? err.message : String(err);
     vscode.window.showErrorMessage(`Failed to load thumbnail: ${msg}`);
   }

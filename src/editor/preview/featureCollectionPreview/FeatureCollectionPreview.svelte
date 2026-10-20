@@ -36,6 +36,8 @@
   let thumbnailUrl = $state('');
   let thumbnailLoading = $state(true);
   let thumbnailError = $state('Thumbnail not available.');
+  let thumbnailPreset = $state(false);
+  let fallbackRequested = $state(false);
 
   // ----------------------------------------------------------------
   // MESSAGES
@@ -46,10 +48,23 @@
     const msg = event.data;
     if (msg.type === 'thumbnail') {
       thumbnailUrl = msg.url || '';
+      thumbnailPreset = Boolean(msg.preset);
       thumbnailError = msg.error || 'Thumbnail not available.';
       thumbnailLoading = false;
     }
   });
+
+  // ----------------------------------------------------------------
+  // ACTIONS
+  // ----------------------------------------------------------------
+  function handleThumbnailError() {
+    thumbnailUrl = '';
+    if (thumbnailPreset && !fallbackRequested) {
+      fallbackRequested = true;
+      thumbnailLoading = true;
+      vscode.postMessage({ type: 'thumbnailFallback' });
+    }
+  }
 </script>
 
 <PreviewTitleBar title={metadata.title} bind:editing bind:activeTab bind:name {saving} />
@@ -57,7 +72,12 @@
 <!-- LAYOUT -->
 <PreviewFrame>
   {#snippet sidebar()}
-    <PreviewThumbnail loading={thumbnailLoading} url={thumbnailUrl} error={thumbnailError} onerror={() => (thumbnailUrl = '')} />
+    <PreviewThumbnail
+      loading={thumbnailLoading}
+      url={thumbnailUrl}
+      error={thumbnailError}
+      onerror={handleThumbnailError}
+    />
 
     <PreviewSystemMetadata {metadata} {editing} {saving} bind:startTime bind:endTime
       idLabel="Table ID" fileSize={data.fileSize} countLabel="Number of Features"
