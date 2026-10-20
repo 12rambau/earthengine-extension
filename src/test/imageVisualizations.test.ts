@@ -2,7 +2,11 @@
 
 import { strict as assert } from 'node:assert';
 import { resolveDiscreteImageVis, styleFeatureCollection } from '../editor/map/mapLayerManager.js';
-import { parseSepalVisualizations, selectImageVisualizations } from '../shared/sepalViz.js';
+import {
+  parseCategoryValue,
+  parseSepalVisualizations,
+  selectImageVisualizations,
+} from '../shared/sepalViz.js';
 
 describe('image collection visualization fallback', () => {
   const image = {
@@ -158,6 +162,7 @@ describe('explicit FeatureCollection visualizations', () => {
       { classification: 0 },
       { classification: 2 },
       { classification: 1 },
+      { classification: '01' },
       { classification: 'forest' },
       { classification: 'water' },
       { classification: null },
@@ -227,12 +232,20 @@ describe('explicit FeatureCollection visualizations', () => {
     const stringParams = {
       property: 'classification',
       vizType: 'categorical',
-      values: ['forest', 'water'],
-      palette: ['#2b83ba', '#d7191c'],
+      values: [parseCategoryValue('01', true), 'forest', 'water'],
+      palette: ['#abdda4', '#2b83ba', '#d7191c'],
     };
     assert.equal(styleFeatureCollection(collection, stringParams, ee), 'styled classes');
-    assert.deepEqual(filter, { property: 'classification', values: ['forest', 'water'] });
-    assert.deepEqual(colors, ['2b83ba', 'd7191c', '2b83ba', 'd7191c']);
+    assert.deepEqual(filter, { property: 'classification', values: ['01', 'forest', 'water'] });
+    assert.deepEqual(colors, ['2b83ba', 'd7191c', 'abdda4', '2b83ba', 'd7191c']);
+  });
+
+  it('keeps the original type of string classes through visualization editing', () => {
+    assert.equal(parseCategoryValue(' 01 ', true), '01');
+    assert.equal(parseCategoryValue(' 2 ', true), '2');
+    assert.equal(parseCategoryValue(' 01 '), 1);
+    assert.equal(parseCategoryValue('forest'), 'forest');
+    assert.equal(parseCategoryValue(' '), '');
   });
 
   it('rejects invalid categorical values', () => {

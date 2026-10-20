@@ -141,6 +141,16 @@ export function intervalStops(_breaks: number[], count: number): number[] {
   return Array.from({ length: count + 1 }, (_, index) => index / count);
 }
 
+/** Parses a vector class entered in the editor without changing existing string classes to numbers. */
+export function parseCategoryValue(value: string, stringClass = false): string | number {
+  const text = value.trim();
+  if (stringClass || text === '') {
+    return text;
+  }
+  const number = Number(text);
+  return Number.isFinite(number) ? number : text;
+}
+
 /** Builds the interval SLD used by both map rendering and copied Python code. */
 export function buildIntervalSld(breaks: number[], palette: string[]): string {
   const entries = [

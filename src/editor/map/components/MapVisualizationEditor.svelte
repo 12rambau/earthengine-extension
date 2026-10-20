@@ -5,7 +5,7 @@
   import MapSlider from './MapSlider.svelte';
   import { vscode } from '../../../shared/vscode.ts';
   import { trackViewportChanges } from '../../../shared/viewportAnchor.ts';
-  import { intervalStops } from '../../../shared/sepalViz.ts';
+  import { intervalStops, parseCategoryValue } from '../../../shared/sepalViz.ts';
   import {
     mdiCheck,
     mdiChevronDown,
@@ -370,6 +370,7 @@
       vizCatRows = Array.from({ length: n }, (_, i) => ({
         color: palette[i] ? normalizeHex(palette[i]) : '#4285f4',
         value: values[i] != null ? String(values[i]) : '',
+        stringClass: typeof values[i] === 'string',
         label: labels[i] || '',
       }));
     } else {
@@ -466,7 +467,7 @@
         palette = [];
       for (const row of vizCatRows) {
         const raw = String(row.value).trim();
-        const v = vector ? (raw && Number.isFinite(Number(raw)) ? Number(raw) : raw) : Number(raw);
+        const v = vector ? parseCategoryValue(raw, row.stringClass) : Number(raw);
         if (vector ? v !== '' : raw !== '' && Number.isFinite(v)) {
           values.push(v);
           labels.push(row.label || 'Class ' + values.length);
@@ -992,6 +993,7 @@
     vizCatRows = values.map((value, i) => ({
       color: colors[i],
       value: String(value),
+      stringClass: typeof value === 'string',
       label: 'Class ' + value,
     }));
     vizCatNotice = truncated ? `Showing the ${values.length} most frequent classes.` : '';
