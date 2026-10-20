@@ -77,6 +77,8 @@ Map.addLayer(image, {
 }, "Crop Classification")
 ```
 
+Set layer opacity with the separate `opacity` argument to `Map.addLayer`, not inside `vis_params`.
+
 ### `Map.centerObject(ee_object, zoom=None)`
 
 Centers and, optionally, zooms the map on the bounds of an `ee.Image`, `ee.ImageCollection`, `ee.FeatureCollection`, `ee.Feature`, or `ee.Geometry`. Computing the bounds calls `getInfo()`, so it requires network access to Earth Engine.

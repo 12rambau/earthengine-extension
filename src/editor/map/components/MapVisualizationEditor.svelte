@@ -575,7 +575,6 @@
       entries.push(['values', jsonList(config.values)]);
       entries.push(['palette', jsonList(config.palette, true)]);
       entries.push(['labels', jsonList(config.labels, true)]);
-      entries.push(['opacity', opacity]);
       return jsonDict(entries);
     }
 
