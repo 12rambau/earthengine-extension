@@ -12,12 +12,14 @@
 
 import * as path from 'path';
 import * as vscode from 'vscode';
-import { listAssets, EEAsset } from '../../sidebar/assets/eeApiClient.js';
+import { getAsset, listAssets, EEAsset } from '../../sidebar/assets/eeApiClient.js';
 import { AuthService } from '../../auth/index.js';
 import { openAssetPreview } from '../preview/assetPreviewPanel.js';
 import { listBuckets } from '../../shared/gcsClient.js';
 import { NewAssetRequest, sweepStagedObjects, uploadNewAsset } from './assetUpload.js';
+import { NewCollectionRequest, uploadImageCollection } from './collectionUpload.js';
 import { readRasterBandCount, RASTER_EXTENSIONS } from './rasterToCog.js';
+import { CollectionRaster, inspectCollectionSource } from './rasterToCog.js';
 import { CONVERTIBLE_EXTENSIONS } from './vectorToShapefile.js';
 
 import { designTokens, codiconsCss } from '../../shared/index.js';
@@ -75,6 +77,9 @@ export async function openAssetsPanel(
   let rootPath = `projects/${profile.project}`;
   let currentParentPath = rootPath;
   let allAssets: EEAsset[] = [];
+  let collectionImages: CollectionRaster[] = [];
+  let collectionSource: 'zarr' | 'cogs' | 'vrt' | undefined;
+  let collectionGeneration = 0;
   // Incremented on every navigation so a superseded stream stops sending
   let generation = 0;
   const savedPrefs = context.globalState.get<AssetPrefs>(PREFS_KEY) ?? {};
@@ -174,6 +179,153 @@ export async function openAssetsPanel(
       suggestedName: path.basename(file, path.extname(file)).replace(/[^\w.-]/g, '_'),
       bandCount,
     });
+  }
+
+  /** Inspects a local COG folder, Zarr store or VRT, keeping image paths on the host. */
+  async function pickCollectionFiles(): Promise<void> {
+    const generation = ++collectionGeneration;
+    const uris = await vscode.window.showOpenDialog({
+      canSelectFiles: true,
+      canSelectFolders: true,
+      canSelectMany: false,
+      filters: { 'Raster collection': ['vrt', 'zarr'] },
+      title: 'Select a COG folder, Zarr store or VRT file',
+    });
+    if (!uris?.length) {
+      if (generation === collectionGeneration) {
+        panel.webview.postMessage({ type: 'collectionPickCancelled' });
+      }
+      return;
+    }
+    const file = uris[0].fsPath;
+    try {
+      const stat = await vscode.workspace.fs.stat(uris[0]);
+      const isDirectory = (stat.type & vscode.FileType.Directory) !== 0;
+      const source = isDirectory
+        ? file.toLowerCase().endsWith('.zarr')
+          ? 'zarr'
+          : 'cogs'
+        : /\.vrt$/i.test(file)
+          ? 'vrt'
+          : /\.zarr$/i.test(file)
+            ? 'zarr'
+            : undefined;
+      if (!source) {
+        throw new Error('Select a COG folder, .zarr store or .vrt file.');
+      }
+      const info = await inspectCollectionSource(file, source);
+      if (generation !== collectionGeneration) {
+        return;
+      }
+      collectionImages = info.images;
+      collectionSource = source;
+      panel.webview.postMessage({
+        type: 'collectionFiles',
+        selection: {
+          source,
+          path: file,
+          count: info.images.length,
+          bandCount: info.bandCount,
+          properties: info.properties,
+        },
+      });
+    } catch (error) {
+      if (generation === collectionGeneration) {
+        panel.webview.postMessage({
+          type: 'collectionError',
+          message: error instanceof Error ? error.message : String(error),
+        });
+      }
+    }
+  }
+
+  /** Creates a collection and submits separate ingestion jobs for its images. */
+  async function runCollection(request: NewCollectionRequest): Promise<void> {
+    try {
+      if (
+        !request ||
+        typeof request.assetId !== 'string' ||
+        request.assetId.slice(0, request.assetId.lastIndexOf('/')) !==
+          (currentParentPath === rootPath ? `${rootPath}/assets` : currentParentPath) ||
+        typeof request.description !== 'string' ||
+        typeof request.startTime !== 'string' ||
+        typeof request.endTime !== 'string' ||
+        !Array.isArray(request.properties) ||
+        request.properties.some(
+          (property) =>
+            !property || typeof property.key !== 'string' || typeof property.value !== 'string',
+        ) ||
+        typeof request.bucket !== 'string' ||
+        !Array.isArray(request.bandNames) ||
+        request.bandNames.some((name) => typeof name !== 'string') ||
+        typeof request.pyramidingPolicy !== 'string' ||
+        (request.source === 'empty'
+          ? collectionSource !== undefined
+          : request.source !== collectionSource || collectionImages.length === 0)
+      ) {
+        throw new Error('Invalid collection request. Select sources again.');
+      }
+      if (currentParentPath !== rootPath) {
+        const token = await authService.getToken();
+        if (!token || (await getAsset(currentParentPath, token)).type !== 'FOLDER') {
+          throw new Error('Image collections can only be created in a folder.');
+        }
+      }
+      const selected: NewCollectionRequest = { ...request, images: [...collectionImages] };
+      if (request.source !== 'empty') {
+        await context.globalState.update(LAST_BUCKET_KEY, request.bucket);
+      }
+      const count = await vscode.window.withProgress(
+        {
+          location: vscode.ProgressLocation.Notification,
+          title: `Creating image collection ${request.assetId.split('/').pop()}`,
+        },
+        (progress) =>
+          uploadImageCollection(
+            selected,
+            authService,
+            context,
+            (message) => {
+              progress.report({ message });
+              if (!disposed) {
+                panel.webview.postMessage({ type: 'uploadProgress', message });
+              }
+            },
+            async (name) => {
+              try {
+                await vscode.commands.executeCommand('earthengine.trackSubmittedImport', {
+                  name,
+                  kind: 'image',
+                });
+              } catch {
+                vscode.window.showWarningMessage(
+                  `Ingestion ${name} was submitted but could not be added to the Tasks list.`,
+                );
+              }
+            },
+          ),
+      );
+      if (!disposed) {
+        panel.webview.postMessage({ type: 'uploadDone' });
+      }
+      vscode.window.showInformationMessage(
+        count
+          ? `Collection created; ${count} image ingestion(s) submitted.`
+          : 'Empty image collection created.',
+      );
+      void sweepStagedObjects(authService, context).catch(() => undefined);
+      if (!disposed) {
+        await loadAndStream(currentParentPath);
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      if (!disposed) {
+        panel.webview.postMessage({ type: 'collectionError', message });
+        if (message.startsWith('Collection created;')) {
+          await loadAndStream(currentParentPath);
+        }
+      }
+    }
   }
 
   /** Stages the files, submits ingestion and reports progress to both UIs. */
@@ -304,6 +456,14 @@ export async function openAssetsPanel(
         await pickSourceFile(msg.kind);
       } else if (msg.type === 'uploadAsset') {
         await runUpload(msg.request as NewAssetRequest);
+      } else if (msg.type === 'pickCollectionFiles') {
+        await pickCollectionFiles();
+      } else if (msg.type === 'clearCollectionFiles') {
+        collectionGeneration++;
+        collectionImages = [];
+        collectionSource = undefined;
+      } else if (msg.type === 'createCollection') {
+        await runCollection(msg.request as NewCollectionRequest);
       }
     } catch (err) {
       const m = err instanceof Error ? err.message : String(err);

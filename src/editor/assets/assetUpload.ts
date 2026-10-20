@@ -62,6 +62,7 @@ export interface NewAssetRequest {
   assetId: string;
   /** Absolute path of the main file (`.tif` for images, `.shp` or any OGR vector for tables). */
   filePath: string;
+  bandIndex?: number;
   bucket: string;
   bandNames: string[];
   pyramidingPolicy: string;
@@ -341,7 +342,7 @@ async function resolveSourceFiles(
 
   if (request.kind === 'image') {
     onProgress(`Converting ${path.basename(request.filePath)} to a Cloud Optimized GeoTIFF…`);
-    const converted = await convertRasterToCog(request.filePath);
+    const converted = await convertRasterToCog(request.filePath, request.bandIndex);
     if (request.bandNames.length > converted.bandCount) {
       await discardTemporaryFiles(converted.directory);
       throw new Error(
