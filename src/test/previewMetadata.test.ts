@@ -75,7 +75,7 @@ describe('asset preview metadata', () => {
     assert.match(details['Ingestion options'], /thinningStrategy/);
     const html = renderPropertiesTable(details);
     assert.match(html, /&lt;script&gt;/);
-    assert.doesNotMatch(html, /<script>/);
+    assert.doesNotMatch(html, /<script>/i);
     assert.equal(featureViewDetails({ name, type: 'FEATURE_VIEW' })['Number of Features'], 'N/A');
     assert.equal(
       featureViewDetails({ name, type: 'FEATURE_VIEW', featureCount: 'unknown' })[
