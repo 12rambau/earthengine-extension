@@ -3,6 +3,7 @@
   import ColorPicker from './ColorPicker.svelte';
   import MapButton from './MapButton.svelte';
   import MapSlider from './MapSlider.svelte';
+  import ToggleSwitch from '../../../shared/ToggleSwitch.svelte';
   import { vscode } from '../../../shared/vscode.ts';
   import { trackViewportChanges } from '../../../shared/viewportAnchor.ts';
   import { intervalStops } from '../../../shared/sepalViz.ts';
@@ -1262,15 +1263,15 @@
               <label class="viz-channel-label" for="viz-vector-stroke">Stroke</label>
               <ColorPicker bind:value={vizVectorColor} label="Stroke colour" />
               <input type="text" class="viz-input viz-vector-hex" aria-label="Stroke colour hex" bind:value={vizVectorColor} />
-              <input id="viz-vector-stroke" class="viz-color-switch" type="checkbox" role="switch"
-                aria-label="Enable stroke" bind:checked={vizVectorStroke} />
+              <ToggleSwitch id="viz-vector-stroke" className="viz-color-switch"
+                ariaLabel="Enable stroke" bind:checked={vizVectorStroke} />
             </div>
             <div class="viz-channel-row">
               <label class="viz-channel-label" for="viz-vector-fill">Fill</label>
               <ColorPicker bind:value={vizVectorFillColor} label="Fill colour" />
               <input type="text" class="viz-input viz-vector-hex" aria-label="Fill colour hex" bind:value={vizVectorFillColor} />
-              <input id="viz-vector-fill" class="viz-color-switch" type="checkbox" role="switch"
-                aria-label="Enable fill" bind:checked={vizVectorFill} />
+              <ToggleSwitch id="viz-vector-fill" className="viz-color-switch"
+                ariaLabel="Enable fill" bind:checked={vizVectorFill} />
             </div>
           {/if}
           {#if vizVectorNotice}<p class="viz-stretch-error">{vizVectorNotice}</p>{/if}
@@ -2070,41 +2071,7 @@
       flex: 1;
       min-width: 0;
     }
-    .viz-color-switch {
-      appearance: none;
-      position: relative;
-      flex: none;
-      width: 32px;
-      height: 18px;
-      margin-left: auto;
-      border: var(--vscee-border-sm) solid var(--vscee-color-widget-border);
-      border-radius: 9px;
-      background: var(--vscee-color-input-background);
-      cursor: pointer;
-
-      &::before {
-        content: '';
-        position: absolute;
-        top: 2px;
-        left: 2px;
-        width: 12px;
-        height: 12px;
-        border-radius: 50%;
-        background: var(--vscee-color-foreground);
-      }
-      &:checked {
-        background: var(--vscee-color-button-background);
-
-        &::before {
-          transform: translateX(14px);
-          background: var(--vscee-color-button-foreground);
-        }
-      }
-      &:focus-visible {
-        outline: 2px solid var(--vscee-color-focus);
-        outline-offset: 2px;
-      }
-    }
+    .viz-color-switch { margin-left: auto; }
     .viz-stretch-status {
       display: inline-flex;
       color: var(--vscee-color-muted);

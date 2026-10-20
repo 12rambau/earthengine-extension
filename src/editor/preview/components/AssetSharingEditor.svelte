@@ -1,6 +1,7 @@
 <!-- AssetSharingEditor: view and edit asset IAM reader and writer grants -->
 <script>
   import PreviewTable from './PreviewTable.svelte';
+  import ToggleSwitch from '../../../shared/ToggleSwitch.svelte';
   import { vscode } from '../../../shared/vscode.ts';
 
   let { editing, saving, sharing = $bindable(null) } = $props();
@@ -84,10 +85,12 @@
 {:else}
   <div class="sharing-editor">
     <div class="public-access">
-      <label class="switch">
-        <input type="checkbox" role="switch" aria-label="Everyone can read this asset" bind:checked={publicRead} onchange={update} disabled={!editing || saving} />
-        <span class="track"><span class="knob"></span></span>
-      </label>
+      <ToggleSwitch
+        ariaLabel="Everyone can read this asset"
+        bind:checked={publicRead}
+        onchange={update}
+        disabled={!editing || saving}
+      />
       <span class="public-access-label">
         <strong>Everyone</strong>
         <span class="hint">{publicRead ? 'Anyone can read this asset' : 'Only the principals below have access'}</span>
@@ -165,56 +168,6 @@
 
     .hint { color: var(--vscee-color-muted); }
   }
-  .switch {
-    position: relative;
-    display: inline-flex;
-    flex-shrink: 0;
-
-    input {
-      position: absolute;
-      inset: 0;
-      margin: 0;
-      opacity: 0;
-      cursor: pointer;
-
-      &:checked + .track {
-        background: var(--vscee-color-button-background);
-        border-color: var(--vscee-color-button-background);
-
-        .knob {
-          background: var(--vscee-color-button-foreground);
-          transform: translateX(12px);
-        }
-      }
-      &:focus-visible + .track {
-        outline: var(--vscee-border-sm) solid var(--vscee-color-focus);
-        outline-offset: var(--vscee-space-xxs);
-      }
-      &:disabled {
-        cursor: default;
-        + .track { opacity: 0.6; }
-      }
-    }
-    .track {
-      display: inline-flex;
-      align-items: center;
-      width: 28px;
-      height: 16px;
-      padding: 0 var(--vscee-space-xxs);
-      border: var(--vscee-border-sm) solid var(--vscee-color-input-border);
-      border-radius: 999px;
-      background: var(--vscee-color-button-secondary-background);
-      transition: background 0.15s;
-    }
-    .knob {
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-      background: var(--vscee-color-foreground);
-      transition: transform 0.15s;
-    }
-  }
-
   /* ==================================================================
      GRANTS TABLE
      ================================================================== */
