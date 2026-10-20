@@ -18,7 +18,11 @@ import { filesize } from 'filesize';
 import dayjs from 'dayjs';
 import { computeValue, ensureEe, getThumbUrlRest } from '../../../shared/eeSession.js';
 import { getExtensionUri } from '../../../shared/extensionContext.js';
-import { parseSepalVisualizations, selectSepalViz, vectorVisParams } from '../../../shared/sepalViz.js';
+import {
+  parseSepalVisualizations,
+  selectSepalViz,
+  vectorVisParams,
+} from '../../../shared/sepalViz.js';
 import { styleFeatureCollection } from '../../map/mapLayerManager.js';
 
 import script from './FeatureCollectionPreview.svelte';
@@ -74,6 +78,8 @@ export async function openFeatureCollectionPreview(
       if (msg.type === 'ready') {
         loadPreviewSharing(asset, accessToken, panel);
         sendThumbnail(asset, panel);
+      } else if (msg.type === 'thumbnailFallback') {
+        sendThumbnail(asset, panel, true);
       } else if (msg.type === 'saveMetadata') {
         await savePreviewMetadata(msg, asset, accessToken, panel);
       }
@@ -90,35 +96,45 @@ async function getFeatureCollectionCount(assetName: string): Promise<number> {
 // ==================================================================
 // THUMBNAIL
 // ==================================================================
-async function sendThumbnail(asset: EEAsset, panel: vscode.WebviewPanel): Promise<void> {
+async function sendThumbnail(
+  asset: EEAsset,
+  panel: vscode.WebviewPanel,
+  fallbackOnly = false,
+): Promise<void> {
   try {
-    const thumbUrl = await getTableThumbnailUrl(asset);
-    panel.webview.postMessage({ type: 'thumbnail', url: thumbUrl });
+    const thumbnail = await getTableThumbnailUrl(asset, fallbackOnly);
+    panel.webview.postMessage({ type: 'thumbnail', ...thumbnail });
   } catch (err) {
-    panel.webview.postMessage({ type: 'thumbnail', url: '' });
+    panel.webview.postMessage({ type: 'thumbnail', url: '', preset: false });
     const msg = err instanceof Error ? err.message : String(err);
     vscode.window.showErrorMessage(`Failed to load thumbnail: ${msg}`);
   }
 }
 
 /** Renders the first vector preset (or the existing red style) over the collection's full extent. */
-async function getTableThumbnailUrl(asset: EEAsset): Promise<string> {
+async function getTableThumbnailUrl(
+  asset: EEAsset,
+  fallbackOnly: boolean,
+): Promise<{ url: string; preset: boolean }> {
   const ee = await ensureEe();
   const fc = ee.FeatureCollection(asset.name);
-  const coordinates = await computeValue<number[][][]>(
-    fc.geometry().bounds(1).coordinates(),
-  ).catch(() => undefined);
+  const coordinates = await computeValue<number[][][]>(fc.geometry().bounds(1).coordinates()).catch(
+    () => undefined,
+  );
   const grid = buildSquareGrid(coordinates?.length ? { coordinates } : asset.geometry);
   const params = { format: 'PNG', grid };
   const presets = parseSepalVisualizations(asset.properties ?? {}).filter((preset) =>
     ['uniform', 'continuous', 'categorical', 'intervals'].includes(preset.type),
   );
   const preset = selectSepalViz(presets, 0);
-  if (preset) {
+  if (preset && !fallbackOnly) {
     try {
-      return await getThumbUrlRest(styleFeatureCollection(fc, vectorVisParams(preset), ee), params);
-    } catch (err) {
-      console.warn('FeatureCollection thumbnail preset failed:', err);
+      return {
+        url: await getThumbUrlRest(styleFeatureCollection(fc, vectorVisParams(preset), ee), params),
+        preset: true,
+      };
+    } catch {
+      console.warn('FeatureCollection thumbnail preset failed; using fallback.');
     }
   }
   const painted = ee.Image(0).paint(fc, 1).paint(fc, 2, 1);
@@ -127,7 +143,7 @@ async function getTableThumbnailUrl(asset: EEAsset): Promise<string> {
     min: 0,
     max: 2,
   });
-  return getThumbUrlRest(visualized, params);
+  return { url: await getThumbUrlRest(visualized, params), preset: false };
 }
 
 /** Builds a padded 256×256 square grid from the collection bounds, or a global fallback. */

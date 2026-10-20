@@ -52,7 +52,15 @@ describe('feature collection preview', () => {
 
   it('frames all collection bounds with padding instead of a global or cropped view', () => {
     const grid = buildSquareGrid({
-      coordinates: [[[-5, 42], [8, 42], [8, 51], [-5, 51], [-5, 42]]],
+      coordinates: [
+        [
+          [-5, 42],
+          [8, 42],
+          [8, 51],
+          [-5, 51],
+          [-5, 42],
+        ],
+      ],
     });
     assert.deepEqual(grid, {
       dimensions: { width: 256, height: 256 },
