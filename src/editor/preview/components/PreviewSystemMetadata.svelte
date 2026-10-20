@@ -45,10 +45,12 @@
     <span class="info-label">File Size</span>
     <span class="info-value">{fileSize}</span>
   </div>
-  <div class="info-row">
-    <span class="info-label">{countLabel}</span>
-    <span class="info-value">{count}</span>
-  </div>
+  {#if countLabel}
+    <div class="info-row">
+      <span class="info-label">{countLabel}</span>
+      <span class="info-value">{count}</span>
+    </div>
+  {/if}
   <div class="info-row">
     <span class="info-label">Last modified</span>
     <span class="info-value">{lastModified}</span>

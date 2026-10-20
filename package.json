@@ -832,7 +832,7 @@
         },
         {
           "command": "earthengine.openAssetPreview",
-          "when": "viewItem =~ /^asset-(leaf|container)-(image|image_collection|table)$/",
+          "when": "viewItem =~ /^asset-(leaf|container)-(image|image_collection|table|feature_view|classifier)$/",
           "group": "inline"
         },
         {

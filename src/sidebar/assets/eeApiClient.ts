@@ -30,6 +30,12 @@ export interface EEAsset {
   endTime?: string;
   sizeBytes?: string;
   featureCount?: string;
+  featureViewAssetLocation?: {
+    assetOptions?: {
+      featureViewAttributes?: { name: string; type: string }[];
+      ingestionTimeParameters?: Record<string, unknown>;
+    };
+  };
   properties?: Record<string, unknown>;
   bands?: EEBand[];
   geometry?: unknown;

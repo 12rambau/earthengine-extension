@@ -1,8 +1,9 @@
 /** @module previewMetadata.test */
 
 import { strict as assert } from 'node:assert';
-import { previewMetadata } from '../editor/preview/previewMetadata.js';
+import { classifierDetails, featureViewDetails, previewMetadata } from '../editor/preview/previewMetadata.js';
 import { assetMetadataPatch } from '../sidebar/assets/eeApiClient.js';
+import { renderPropertiesTable } from '../shared/webviewUtils.js';
 
 describe('asset preview metadata', () => {
   const name = 'projects/example/assets/collection';
@@ -55,5 +56,44 @@ describe('asset preview metadata', () => {
     });
     assert.doesNotMatch(metadata.descriptionHtml, /<script|href="javascript:/);
     assert.match(metadata.descriptionHtml, /&lt;script&gt;/);
+  });
+
+  it('shows FeatureView feature count, attribute types and ingestion options safely', () => {
+    const details = featureViewDetails({
+      name,
+      type: 'FEATURE_VIEW',
+      featureCount: '1234',
+      featureViewAssetLocation: {
+        assetOptions: {
+          featureViewAttributes: [{ name: '<script>', type: 'STRING' }],
+          ingestionTimeParameters: { thinningStrategy: 'NONE' },
+        },
+      },
+    });
+    assert.equal(details['Number of Features'], '1,234');
+    assert.equal(details.Attributes, '<script> (STRING)');
+    assert.match(details['Ingestion options'], /thinningStrategy/);
+    const html = renderPropertiesTable(details);
+    assert.match(html, /&lt;script&gt;/);
+    assert.doesNotMatch(html, /<script>/i);
+    assert.equal(featureViewDetails({ name, type: 'FEATURE_VIEW' })['Number of Features'], 'N/A');
+    assert.equal(
+      featureViewDetails({ name, type: 'FEATURE_VIEW', featureCount: 'unknown' })[
+        'Number of Features'
+      ],
+      'N/A',
+    );
+  });
+
+  it('shows classifier mode and input schema, with fallback when evaluation fails', () => {
+    assert.deepEqual(classifierDetails('CLASSIFICATION', ['red', 'green']), {
+      Mode: 'CLASSIFICATION',
+      'Input schema': '["red","green"]',
+    });
+    assert.deepEqual(classifierDetails(undefined, undefined), {
+      Mode: 'Unavailable',
+      'Input schema': 'Unavailable',
+    });
+    assert.equal(classifierDetails('REGRESSION', null)['Input schema'], 'Unavailable');
   });
 });

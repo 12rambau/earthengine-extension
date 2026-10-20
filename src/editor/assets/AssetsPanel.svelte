@@ -1,7 +1,7 @@
 <!-- AssetsPanel: sortable/paginated asset table with breadcrumb, column picker, actions -->
 <script>
   import { vscode, getInitData } from '../../shared/vscode.ts';
-  import { mdiImage, mdiImageMultiple, mdiTableMultiple } from '../../shared/icons.ts';
+  import { mdiCogBox, mdiImage, mdiImageMarker, mdiImageMultiple, mdiTableMultiple } from '../../shared/icons.ts';
   import DataTable from '../components/DataTable.svelte';
   import TableButton from '../components/TableButton.svelte';
   import { createDataTable } from '../components/dataTable.svelte.ts';
@@ -33,7 +33,7 @@
       key: 'type',
       label: 'Type',
       sortable: true,
-      filter: { kind: 'enum', options: ['FOLDER', 'IMAGE', 'IMAGE_COLLECTION', 'TABLE'] },
+      filter: { kind: 'enum', options: ['FOLDER', 'IMAGE', 'IMAGE_COLLECTION', 'TABLE', 'FEATURE_VIEW', 'CLASSIFIER'] },
       accessor: (a) => a.type,
     },
     {
@@ -408,6 +408,22 @@
             height="16"
             aria-hidden="true"
             fill="var(--vscee-color-table)"><path d={mdiTableMultiple} /></svg
+          >
+        {:else if a.type === 'FEATURE_VIEW'}
+          <svg
+            viewBox="0 0 24 24"
+            width="16"
+            height="16"
+            aria-hidden="true"
+            fill="var(--vscee-color-chart-purple)"><path d={mdiImageMarker} /></svg
+          >
+        {:else if a.type === 'CLASSIFIER'}
+          <svg
+            viewBox="0 0 24 24"
+            width="16"
+            height="16"
+            aria-hidden="true"
+            fill="var(--vscode-charts-red)"><path d={mdiCogBox} /></svg
           >
         {/if}
       </td>
