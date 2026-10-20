@@ -281,11 +281,11 @@ export class AssetsTreeDataProvider implements vscode.TreeDataProvider<AssetTree
       for (const [name, asset] of searchIndex) {
         const shortName = name.split('/').pop() || name;
         const relativePath = name.slice(projectRoot.length + 1);
+        const customIcon = asset.type === 'FEATURE_VIEW' || asset.type === 'CLASSIFIER';
         items.push({
-          label:
-            asset.type === 'FEATURE_VIEW' ? shortName : `$(${iconId(asset.type)}) ${shortName}`,
+          label: customIcon ? shortName : `$(${iconId(asset.type)}) ${shortName}`,
           description: relativePath,
-          iconPath: asset.type === 'FEATURE_VIEW' ? resolveTypeIcon(asset.type) : undefined,
+          iconPath: customIcon ? resolveTypeIcon(asset.type) : undefined,
           asset,
         });
       }
@@ -389,7 +389,6 @@ function iconId(type: string): string {
     case 'IMAGE':
       return 'file-media';
     case 'TABLE':
-    case 'CLASSIFIER':
       return 'symbol-class';
     default:
       return 'file';

@@ -12,15 +12,15 @@ import {
   saveAssetSharing,
 } from '../../sidebar/assets/eeApiClient.js';
 import { codiconsCss, designTokens, renderPropertiesTable } from '../../shared/index.js';
-import { computeValue, ensureEe } from '../../shared/eeSession.js';
 import { filesize } from 'filesize';
 import dayjs from 'dayjs';
 import { openImagePreview } from './imagePreview/imagePreviewPanel.js';
 import { openImageCollectionPreview } from './imageCollectionPreview/imageCollectionPreviewPanel.js';
 import { openFeatureCollectionPreview } from './featureCollectionPreview/featureCollectionPreviewPanel.js';
 import { openFeatureViewPreview } from './featureViewPreview/featureViewPreviewPanel.js';
+import { openClassifierPreview } from './classifierPreview/classifierPreviewPanel.js';
 import script from './assetPreviewPanel.svelte';
-import { classifierDetails, loadPreviewSharing } from './previewMetadata.js';
+import { loadPreviewSharing } from './previewMetadata.js';
 
 // ==================================================================
 // PUBLIC API
@@ -53,24 +53,6 @@ export async function openAssetPreview(assetName: string, accessToken: string): 
 // ==================================================================
 // TYPE-SPECIFIC PREVIEWS
 // ==================================================================
-async function openClassifierPreview(asset: EEAsset, accessToken: string): Promise<void> {
-  let mode: unknown;
-  let schema: unknown;
-  try {
-    const ee = (await ensureEe()) as any;
-    const classifier = ee.Classifier.load(asset.name);
-    const results = await Promise.allSettled([
-      computeValue(classifier.mode()),
-      computeValue(classifier.schema()),
-    ]);
-    mode = results[0].status === 'fulfilled' ? results[0].value : undefined;
-    schema = results[1].status === 'fulfilled' ? results[1].value : undefined;
-  } catch {
-    // The asset metadata and sharing remain available even if computation fails.
-  }
-  openGenericPreview(asset, accessToken, 'Classifier details', classifierDetails(mode, schema));
-}
-
 // ==================================================================
 // FALLBACK
 // ==================================================================
@@ -87,7 +69,6 @@ function openGenericPreview(
     vscode.ViewColumn.One,
     { enableScripts: true },
   );
-
   const nonce = getNonce();
   const initJson = JSON.stringify({
     title: asset.id || asset.name,

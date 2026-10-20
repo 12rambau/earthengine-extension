@@ -7,6 +7,7 @@ resources/icons/
 !resources/icons/
 resources/icons/*
 !resources/icons/image-marker.svg
+!resources/icons/cog-box.svg
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

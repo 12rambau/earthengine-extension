@@ -1,7 +1,7 @@
 <!-- AssetsPanel: sortable/paginated asset table with breadcrumb, column picker, actions -->
 <script>
   import { vscode, getInitData } from '../../shared/vscode.ts';
-  import { mdiImage, mdiImageMarker, mdiImageMultiple, mdiTableMultiple } from '../../shared/icons.ts';
+  import { mdiCogBox, mdiImage, mdiImageMarker, mdiImageMultiple, mdiTableMultiple } from '../../shared/icons.ts';
   import DataTable from '../components/DataTable.svelte';
   import TableButton from '../components/TableButton.svelte';
   import { createDataTable } from '../components/dataTable.svelte.ts';
@@ -418,7 +418,13 @@
             fill="var(--vscee-color-chart-purple)"><path d={mdiImageMarker} /></svg
           >
         {:else if a.type === 'CLASSIFIER'}
-          <i class="codicon codicon-symbol-class"></i>
+          <svg
+            viewBox="0 0 24 24"
+            width="16"
+            height="16"
+            aria-hidden="true"
+            fill="var(--vscode-charts-red)"><path d={mdiCogBox} /></svg
+          >
         {/if}
       </td>
     {/if}

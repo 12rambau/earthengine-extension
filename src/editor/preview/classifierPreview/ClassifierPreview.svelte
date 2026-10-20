@@ -1,0 +1,105 @@
+<!-- ClassifierPreview: metadata, properties and sharing tabs for model assets -->
+<script>
+  import { vscode, getInitData } from '../../../shared/vscode.ts';
+  import AssetMetadataEditor from '../components/AssetMetadataEditor.svelte';
+  import AssetPropertiesEditor from '../components/AssetPropertiesEditor.svelte';
+  import AssetSharingEditor from '../components/AssetSharingEditor.svelte';
+  import PreviewFrame from '../components/PreviewFrame.svelte';
+  import PreviewSystemMetadata from '../components/PreviewSystemMetadata.svelte';
+  import PreviewTable from '../components/PreviewTable.svelte';
+  import PreviewTabs from '../components/PreviewTabs.svelte';
+  import PreviewThumbnail from '../components/PreviewThumbnail.svelte';
+  import PreviewTitleBar from '../components/PreviewTitleBar.svelte';
+
+  const data = getInitData();
+  const tabs = [
+    { id: 'description', label: 'DESCRIPTION' },
+    { id: 'details', label: 'DETAILS' },
+    { id: 'properties', label: 'PROPERTIES' },
+    { id: 'sharing', label: 'SHARING' },
+  ];
+
+  // ----------------------------------------------------------------
+  // STATE
+  // ----------------------------------------------------------------
+  let activeTab = $state('description');
+  let metadata = $state(data.metadata);
+  let editing = $state(false);
+  let name = $state('');
+  let startTime = $state('');
+  let endTime = $state('');
+  let properties = $state([]);
+  let sharing = $state(null);
+  let saving = $state(false);
+
+  // ----------------------------------------------------------------
+  // MESSAGES
+  // ----------------------------------------------------------------
+  vscode.postMessage({ type: 'ready' });
+</script>
+
+<PreviewTitleBar title={metadata.title} bind:editing bind:activeTab bind:name {saving} />
+
+<!-- LAYOUT -->
+<PreviewFrame>
+  {#snippet sidebar()}
+    <PreviewThumbnail loading={false} url="" error="" />
+    <PreviewSystemMetadata
+      {metadata}
+      {editing}
+      {saving}
+      bind:startTime
+      bind:endTime
+      idLabel="Model ID"
+      fileSize={data.fileSize}
+      lastModified={data.lastModified}
+    />
+  {/snippet}
+
+  <!-- TABS -->
+  <PreviewTabs {tabs} {activeTab} onselect={(tab) => (activeTab = tab)} />
+
+  <div class="tab-panel description-panel" class:active={activeTab === 'description'} id="panel-description" role="tabpanel" aria-labelledby="tab-description" tabindex="0">
+    <AssetMetadataEditor bind:metadata bind:editing bind:name bind:startTime bind:endTime bind:properties bind:sharing bind:saving />
+  </div>
+
+  <div class="tab-panel" class:active={activeTab === 'details'} id="panel-details" role="tabpanel" aria-labelledby="tab-details" tabindex="0">
+    <PreviewTable keyColumn>{@html data.detailsTable}</PreviewTable>
+  </div>
+
+  <div class="tab-panel properties-panel" class:active={activeTab === 'properties'} id="panel-properties" role="tabpanel" aria-labelledby="tab-properties" tabindex="0">
+    <AssetPropertiesEditor {metadata} bind:rows={properties} {editing} {saving} />
+  </div>
+
+  <div class="tab-panel" class:active={activeTab === 'sharing'} id="panel-sharing" role="tabpanel" aria-labelledby="tab-sharing" tabindex="0">
+    <AssetSharingEditor {editing} {saving} bind:sharing />
+  </div>
+</PreviewFrame>
+
+<style>
+  :global {
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      font-family: var(--vscee-font-family, sans-serif);
+      color: var(--vscee-color-foreground);
+      background: var(--vscee-color-editor-background);
+      line-height: 1.5;
+    }
+    .tab-panel {
+      display: none;
+      padding: var(--vscee-space-xl);
+      overflow: auto;
+      flex: 1;
+      min-height: 0;
+
+      &.description-panel.active { display: flex; flex-direction: column; }
+      &.description-panel > :first-child { flex: 1; min-height: 0; }
+      &.properties-panel { padding-top: 0; }
+      &.active { display: block; }
+    }
+  }
+</style>

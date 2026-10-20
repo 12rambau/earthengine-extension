@@ -7,6 +7,7 @@ export {
   mdiChartTree,
   mdiChevronDown,
   mdiCodeTags,
+  mdiCogBox,
   mdiContentCopy,
   mdiCrosshairsGps,
   mdiEarth,
