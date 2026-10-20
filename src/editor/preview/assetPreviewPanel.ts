@@ -5,7 +5,12 @@
  */
 
 import * as vscode from 'vscode';
-import { AssetSharingChanges, EEAsset, getAsset, listFeatures, saveAssetSharing } from '../../sidebar/assets/eeApiClient.js';
+import {
+  AssetSharingChanges,
+  EEAsset,
+  getAsset,
+  saveAssetSharing,
+} from '../../sidebar/assets/eeApiClient.js';
 import { codiconsCss, designTokens, renderPropertiesTable } from '../../shared/index.js';
 import { computeValue, ensureEe } from '../../shared/eeSession.js';
 import { filesize } from 'filesize';
@@ -13,8 +18,9 @@ import dayjs from 'dayjs';
 import { openImagePreview } from './imagePreview/imagePreviewPanel.js';
 import { openImageCollectionPreview } from './imageCollectionPreview/imageCollectionPreviewPanel.js';
 import { openFeatureCollectionPreview } from './featureCollectionPreview/featureCollectionPreviewPanel.js';
+import { openFeatureViewPreview } from './featureViewPreview/featureViewPreviewPanel.js';
 import script from './assetPreviewPanel.svelte';
-import { classifierDetails, featureViewDetails, loadPreviewSharing } from './previewMetadata.js';
+import { classifierDetails, loadPreviewSharing } from './previewMetadata.js';
 
 // ==================================================================
 // PUBLIC API
@@ -47,19 +53,6 @@ export async function openAssetPreview(assetName: string, accessToken: string): 
 // ==================================================================
 // TYPE-SPECIFIC PREVIEWS
 // ==================================================================
-async function openFeatureViewPreview(asset: EEAsset, accessToken: string): Promise<void> {
-  let sample: string;
-  try {
-    const response = await listFeatures(asset.name, accessToken, 5);
-    sample = response.features?.length
-      ? JSON.stringify(response.features.map(({ properties }) => properties ?? {}), null, 2)
-      : 'No features available.';
-  } catch {
-    sample = 'Feature sample unavailable for this FeatureView.';
-  }
-  openGenericPreview(asset, accessToken, 'FeatureView details', featureViewDetails(asset), sample);
-}
-
 async function openClassifierPreview(asset: EEAsset, accessToken: string): Promise<void> {
   let mode: unknown;
   let schema: unknown;
@@ -126,20 +119,22 @@ function openGenericPreview(
   </body>
 </html>`;
 
-  panel.webview.onDidReceiveMessage(async (msg: { type: string; sharing?: AssetSharingChanges }) => {
-    if (msg.type === 'ready') {
-      loadPreviewSharing(asset, accessToken, panel);
-    } else if (msg.type === 'saveSharing' && msg.sharing) {
-      try {
-        await saveAssetSharing(asset.name, accessToken, msg.sharing);
-        panel.webview.postMessage({ type: 'sharingSaved' });
+  panel.webview.onDidReceiveMessage(
+    async (msg: { type: string; sharing?: AssetSharingChanges }) => {
+      if (msg.type === 'ready') {
         loadPreviewSharing(asset, accessToken, panel);
-      } catch (err) {
-        const message = err instanceof Error ? err.message : String(err);
-        panel.webview.postMessage({ type: 'sharingSaveError', message });
+      } else if (msg.type === 'saveSharing' && msg.sharing) {
+        try {
+          await saveAssetSharing(asset.name, accessToken, msg.sharing);
+          panel.webview.postMessage({ type: 'sharingSaved' });
+          loadPreviewSharing(asset, accessToken, panel);
+        } catch (err) {
+          const message = err instanceof Error ? err.message : String(err);
+          panel.webview.postMessage({ type: 'sharingSaveError', message });
+        }
       }
-    }
-  });
+    },
+  );
 }
 
 function getNonce(): string {

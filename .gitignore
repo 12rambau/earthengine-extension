@@ -4,6 +4,9 @@ node_modules
 .vscode-test/
 *.vsix
 resources/icons/
+!resources/icons/
+resources/icons/*
+!resources/icons/image-marker.svg
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

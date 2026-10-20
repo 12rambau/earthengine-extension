@@ -17,7 +17,7 @@ export function resolveTypeIcon(type: string): vscode.Uri | vscode.ThemeIcon {
     IMAGE_COLLECTION: 'image-multiple',
     IMAGE: 'image',
     TABLE: 'table-multiple',
-    FEATURE_VIEW: 'table-multiple',
+    FEATURE_VIEW: 'image-marker',
     FOLDER: '',
   };
   const file = svgFile[type];
@@ -33,7 +33,7 @@ export const TYPE_ICONS: Record<string, vscode.ThemeIcon> = {
   IMAGE_COLLECTION: new vscode.ThemeIcon('layers', new vscode.ThemeColor('charts.blue')),
   IMAGE: new vscode.ThemeIcon('image', new vscode.ThemeColor('charts.orange')),
   TABLE: new vscode.ThemeIcon('table', new vscode.ThemeColor('charts.green')),
-  FEATURE_VIEW: new vscode.ThemeIcon('table', new vscode.ThemeColor('charts.green')),
+  FEATURE_VIEW: new vscode.ThemeIcon('image', new vscode.ThemeColor('charts.purple')),
   CLASSIFIER: new vscode.ThemeIcon('symbol-class'),
 };
 

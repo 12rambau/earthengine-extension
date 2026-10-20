@@ -13,6 +13,7 @@ export {
   mdiEye,
   mdiEyeOff,
   mdiImage,
+  mdiImageMarker,
   mdiImageMultiple,
   mdiLayers,
   mdiLoading,
