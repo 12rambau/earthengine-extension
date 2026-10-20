@@ -66,6 +66,17 @@ Map.addLayer(image, {
 }, "Near Infrared")
 ```
 
+For exact classes rather than intervals, provide one distinct numeric `value` per palette color in `values`. The optional `labels` appear alongside the class values in the map legend. Values not listed are masked:
+
+```python
+Map.addLayer(image, {
+	"bands": ["classification"],
+	"values": [0, 1, 2],
+	"palette": ["#2b83ba", "#abdda4", "#d7191c"],
+	"labels": ["Other", "Crop", "Water"],
+}, "Crop Classification")
+```
+
 ### `Map.centerObject(ee_object, zoom=None)`
 
 Centers and, optionally, zooms the map on the bounds of an `ee.Image`, `ee.ImageCollection`, `ee.FeatureCollection`, `ee.Feature`, or `ee.Geometry`. Computing the bounds calls `getInfo()`, so it requires network access to Earth Engine.
