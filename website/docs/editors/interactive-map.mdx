@@ -21,7 +21,7 @@ The local Python bridge listens on `localhost:31415` for scripts that add Earth 
 
 The visualization editor controls how a map layer is rendered. To offer reusable settings in its **Preset…** dropdown, add string properties to an existing image or feature collection with `set`. Each preset uses keys of the form `visualization_<number>_<keyword>`; the number distinguishes presets, while the keyword identifies `name`, `type`, `bands`, `min`, `max`, `palette`, `values`, `breaks`, or `labels`. Lists are comma-separated strings. You can store multiple numbered presets on the same asset.
 
-The examples below are property dictionaries: assign one to `preset_properties`, then call `image_with_preset = image.set(preset_properties)` or `features_with_preset = features.set(preset_properties)`. Use the returned object when adding the layer. The [vscee Python library](../vscee#mapaddlayeree_object-vis_paramsnone-namenone-showntrue-opacity10) documents direct `Map.addLayer` calls instead.
+The examples below are property dictionaries: assign one to `preset_properties`, then call `image_with_preset = image.set(preset_properties)` or `features_with_preset = features.set(preset_properties)`. Use the returned object when adding the layer. The [vscee Python library](../vscee#mapaddlayer) documents direct `Map.addLayer` calls instead.
 
 Every mode has an **Opacity** control from 0% to 100% for the map layer; opacity is independent of the preset's color parameters.
 
