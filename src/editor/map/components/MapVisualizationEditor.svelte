@@ -466,8 +466,8 @@
         palette = [];
       for (const row of vizCatRows) {
         const raw = String(row.value).trim();
-        const v = vector ? (raw && Number.isFinite(Number(raw)) ? Number(raw) : raw) : parseInt(row.value);
-        if (vector ? v !== '' : !isNaN(v)) {
+        const v = vector ? (raw && Number.isFinite(Number(raw)) ? Number(raw) : raw) : Number(raw);
+        if (vector ? v !== '' : raw !== '' && Number.isFinite(v)) {
           values.push(v);
           labels.push(row.label || 'Class ' + values.length);
           palette.push(row.color);
@@ -572,9 +572,9 @@
       if (config.values.length === 0) {
         return 'Add at least one class first.';
       }
-      entries.push(['min', String(Math.min(...config.values))]);
-      entries.push(['max', String(Math.max(...config.values))]);
+      entries.push(['values', jsonList(config.values)]);
       entries.push(['palette', jsonList(config.palette, true)]);
+      entries.push(['labels', jsonList(config.labels, true)]);
       entries.push(['opacity', opacity]);
       return jsonDict(entries);
     }
