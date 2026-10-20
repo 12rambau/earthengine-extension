@@ -5,13 +5,20 @@
  */
 
 import * as vscode from 'vscode';
-import { AssetSharingChanges, EEAsset, getAsset, saveAssetSharing } from '../../sidebar/assets/eeApiClient.js';
+import {
+  AssetSharingChanges,
+  EEAsset,
+  getAsset,
+  saveAssetSharing,
+} from '../../sidebar/assets/eeApiClient.js';
 import { codiconsCss, designTokens, renderPropertiesTable } from '../../shared/index.js';
 import { filesize } from 'filesize';
 import dayjs from 'dayjs';
 import { openImagePreview } from './imagePreview/imagePreviewPanel.js';
 import { openImageCollectionPreview } from './imageCollectionPreview/imageCollectionPreviewPanel.js';
 import { openFeatureCollectionPreview } from './featureCollectionPreview/featureCollectionPreviewPanel.js';
+import { openFeatureViewPreview } from './featureViewPreview/featureViewPreviewPanel.js';
+import { openClassifierPreview } from './classifierPreview/classifierPreviewPanel.js';
 import script from './assetPreviewPanel.svelte';
 import { loadPreviewSharing } from './previewMetadata.js';
 
@@ -32,22 +39,36 @@ export async function openAssetPreview(assetName: string, accessToken: string): 
     case 'TABLE':
       await openFeatureCollectionPreview(asset, accessToken);
       break;
+    case 'FEATURE_VIEW':
+      await openFeatureViewPreview(asset, accessToken);
+      break;
+    case 'CLASSIFIER':
+      await openClassifierPreview(asset, accessToken);
+      break;
     default:
       openGenericPreview(asset, accessToken);
   }
 }
 
 // ==================================================================
+// TYPE-SPECIFIC PREVIEWS
+// ==================================================================
+// ==================================================================
 // FALLBACK
 // ==================================================================
-function openGenericPreview(asset: EEAsset, accessToken: string): void {
+function openGenericPreview(
+  asset: EEAsset,
+  accessToken: string,
+  detailsTitle?: string,
+  details?: Record<string, string>,
+  sample?: string,
+): void {
   const panel = vscode.window.createWebviewPanel(
     'earthengine.assetPreview',
     asset.id || asset.name.split('/').pop() || 'Asset',
     vscode.ViewColumn.One,
     { enableScripts: true },
   );
-
   const nonce = getNonce();
   const initJson = JSON.stringify({
     title: asset.id || asset.name,
@@ -57,6 +78,9 @@ function openGenericPreview(asset: EEAsset, accessToken: string): void {
       : 'N/A',
     size: asset.sizeBytes ? filesize(asset.sizeBytes) : 'N/A',
     propertiesTable: renderPropertiesTable(asset.properties),
+    detailsTitle,
+    detailsTable: details && renderPropertiesTable(details),
+    sample,
     assetName: asset.name,
   }).replace(/</g, '\\u003c');
 
@@ -76,20 +100,22 @@ function openGenericPreview(asset: EEAsset, accessToken: string): void {
   </body>
 </html>`;
 
-  panel.webview.onDidReceiveMessage(async (msg: { type: string; sharing?: AssetSharingChanges }) => {
-    if (msg.type === 'ready') {
-      loadPreviewSharing(asset, accessToken, panel);
-    } else if (msg.type === 'saveSharing' && msg.sharing) {
-      try {
-        await saveAssetSharing(asset.name, accessToken, msg.sharing);
-        panel.webview.postMessage({ type: 'sharingSaved' });
+  panel.webview.onDidReceiveMessage(
+    async (msg: { type: string; sharing?: AssetSharingChanges }) => {
+      if (msg.type === 'ready') {
         loadPreviewSharing(asset, accessToken, panel);
-      } catch (err) {
-        const message = err instanceof Error ? err.message : String(err);
-        panel.webview.postMessage({ type: 'sharingSaveError', message });
+      } else if (msg.type === 'saveSharing' && msg.sharing) {
+        try {
+          await saveAssetSharing(asset.name, accessToken, msg.sharing);
+          panel.webview.postMessage({ type: 'sharingSaved' });
+          loadPreviewSharing(asset, accessToken, panel);
+        } catch (err) {
+          const message = err instanceof Error ? err.message : String(err);
+          panel.webview.postMessage({ type: 'sharingSaveError', message });
+        }
       }
-    }
-  });
+    },
+  );
 }
 
 function getNonce(): string {

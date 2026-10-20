@@ -1,11 +1,24 @@
 <!-- PreviewThumbnail: loading, image, and unavailable states for asset thumbnails -->
 <script>
-  let { loading, url, error = 'Thumbnail not available.', onerror } = $props();
+  let {
+    loading,
+    url,
+    tiles = [],
+    tileColumns = 1,
+    error = 'Thumbnail not available.',
+    onerror,
+  } = $props();
 </script>
 
 <div class="thumbnail-container">
   {#if loading}
     <span class="thumb-loading"><span class="spinner"></span> Loading thumbnail...</span>
+  {:else if tiles.length}
+    <div class="thumbnail-grid" style={`--tile-columns: ${tileColumns}`}>
+      {#each tiles as tile}
+        <img src={tile} alt="FeatureView map tile" onerror={onerror} />
+      {/each}
+    </div>
   {:else if url}
     <img src={url} alt="Thumbnail" onerror={onerror} />
   {:else}
@@ -49,6 +62,22 @@
     opacity: 0.5;
     vertical-align: middle;
     margin-right: var(--vscee-space-sm);
+  }
+  .thumbnail-grid {
+    display: grid;
+    grid-template-columns: repeat(var(--tile-columns), minmax(0, 1fr));
+    grid-template-rows: repeat(var(--tile-columns), minmax(0, 1fr));
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+
+    img {
+      width: 100%;
+      height: 100%;
+      max-width: none;
+      max-height: none;
+      object-fit: cover;
+    }
   }
   @keyframes spin {
     to {

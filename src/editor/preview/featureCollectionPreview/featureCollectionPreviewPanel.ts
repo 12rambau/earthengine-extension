@@ -16,17 +16,12 @@ import { AssetSharingChanges, EEAsset, listFeatures } from '../../../sidebar/ass
 import { designTokens, codiconsCss, escapeHtml } from '../../../shared/index.js';
 import { filesize } from 'filesize';
 import dayjs from 'dayjs';
-import { computeValue, ensureEe, getThumbUrlRest } from '../../../shared/eeSession.js';
+import { computeValue, ensureEe } from '../../../shared/eeSession.js';
 import { getExtensionUri } from '../../../shared/extensionContext.js';
-import {
-  parseSepalVisualizations,
-  selectSepalViz,
-  vectorVisParams,
-} from '../../../shared/sepalViz.js';
-import { styleFeatureCollection } from '../../map/mapLayerManager.js';
 
 import script from './FeatureCollectionPreview.svelte';
 import { loadPreviewSharing, previewMetadata, savePreviewMetadata } from '../previewMetadata.js';
+import { getFeatureCollectionThumbnailUrl } from './featureCollectionThumbnail.js';
 
 // ==================================================================
 // CONSTANTS
@@ -102,113 +97,13 @@ async function sendThumbnail(
   fallbackOnly = false,
 ): Promise<void> {
   try {
-    const thumbnail = await getTableThumbnailUrl(asset, fallbackOnly);
+    const thumbnail = await getFeatureCollectionThumbnailUrl(asset, undefined, fallbackOnly);
     panel.webview.postMessage({ type: 'thumbnail', ...thumbnail });
   } catch (err) {
     panel.webview.postMessage({ type: 'thumbnail', url: '', preset: false });
     const msg = err instanceof Error ? err.message : String(err);
     vscode.window.showErrorMessage(`Failed to load thumbnail: ${msg}`);
   }
-}
-
-/** Renders the first vector preset (or the existing red style) over the collection's full extent. */
-async function getTableThumbnailUrl(
-  asset: EEAsset,
-  fallbackOnly: boolean,
-): Promise<{ url: string; preset: boolean }> {
-  const ee = await ensureEe();
-  const fc = ee.FeatureCollection(asset.name);
-  const coordinates = await computeValue<number[][][]>(fc.geometry().bounds(1).coordinates()).catch(
-    () => undefined,
-  );
-  const grid = buildSquareGrid(coordinates?.length ? { coordinates } : asset.geometry);
-  const params = { format: 'PNG', grid };
-  const presets = parseSepalVisualizations(asset.properties ?? {}).filter((preset) =>
-    ['uniform', 'continuous', 'categorical', 'intervals'].includes(preset.type),
-  );
-  const preset = selectSepalViz(presets, 0);
-  if (preset && !fallbackOnly) {
-    try {
-      return {
-        url: await getThumbUrlRest(styleFeatureCollection(fc, vectorVisParams(preset), ee), params),
-        preset: true,
-      };
-    } catch {
-      console.warn('FeatureCollection thumbnail preset failed; using fallback.');
-    }
-  }
-  const painted = ee.Image(0).paint(fc, 1).paint(fc, 2, 1);
-  const visualized = painted.visualize({
-    palette: ['FFFFFF', 'FFCCCC', 'FF0000'],
-    min: 0,
-    max: 2,
-  });
-  return { url: await getThumbUrlRest(visualized, params), preset: false };
-}
-
-/** Builds a padded 256×256 square grid from the collection bounds, or a global fallback. */
-export function buildSquareGrid(geometry: unknown): Record<string, unknown> {
-  const bbox = extractBbox(geometry);
-  const earthRadius = 6378137;
-  const maxLatitude = 85.0511287798066;
-  const toMercatorY = (latitude: number): number => {
-    const clamped = Math.max(-maxLatitude, Math.min(maxLatitude, latitude));
-    return earthRadius * Math.log(Math.tan(Math.PI / 4 + (clamped * Math.PI) / 360));
-  };
-  const minX = (bbox[0] * Math.PI * earthRadius) / 180;
-  const minY = toMercatorY(bbox[1]);
-  const maxX = (bbox[2] * Math.PI * earthRadius) / 180;
-  const maxY = toMercatorY(bbox[3]);
-  const cx = (minX + maxX) / 2;
-  const cy = (minY + maxY) / 2;
-  const half = Math.max(maxX - minX, maxY - minY) / 2;
-  const maxHalf = Math.PI * earthRadius;
-  const minHalf = (0.05 * Math.PI * earthRadius) / 180;
-  const paddedHalf = half < maxHalf - 1 ? Math.max(half * 1.2, minHalf) : half;
-  const x0 = cx - paddedHalf;
-  const y0 = cy + paddedHalf;
-  const span = paddedHalf * 2;
-  return {
-    dimensions: { width: 256, height: 256 },
-    affineTransform: {
-      scaleX: span / 256,
-      shearX: 0,
-      translateX: x0,
-      shearY: 0,
-      scaleY: -span / 256,
-      translateY: y0,
-    },
-    crsCode: 'EPSG:3857',
-  };
-}
-
-/** Extracts [minX, minY, maxX, maxY] from a GeoJSON geometry, or returns a global fallback. */
-function extractBbox(geometry: unknown): [number, number, number, number] {
-  const fallback: [number, number, number, number] = [-89, -89, 89, 89];
-  if (!geometry || typeof geometry !== 'object') {
-    return fallback;
-  }
-  const coords = (geometry as Record<string, unknown>).coordinates;
-  if (!coords) {
-    return fallback;
-  }
-  const bbox: [number, number, number, number] = [Infinity, Infinity, -Infinity, -Infinity];
-  (function walk(c: unknown) {
-    if (Array.isArray(c)) {
-      if (c.length >= 2 && typeof c[0] === 'number' && typeof c[1] === 'number') {
-        if (!Number.isFinite(c[0]) || !Number.isFinite(c[1])) {
-          return;
-        }
-        bbox[0] = Math.min(bbox[0], c[0]);
-        bbox[1] = Math.min(bbox[1], c[1]);
-        bbox[2] = Math.max(bbox[2], c[0]);
-        bbox[3] = Math.max(bbox[3], c[1]);
-      } else {
-        c.forEach(walk);
-      }
-    }
-  })(coords);
-  return Number.isFinite(bbox[0]) ? bbox : fallback;
 }
 
 // ==================================================================

@@ -1,10 +1,8 @@
 /** @module featureCollectionPreview.test */
 
 import { strict as assert } from 'node:assert';
-import {
-  buildSquareGrid,
-  formatFeatureCount,
-} from '../editor/preview/featureCollectionPreview/featureCollectionPreviewPanel.js';
+import { formatFeatureCount } from '../editor/preview/featureCollectionPreview/featureCollectionPreviewPanel.js';
+import { buildSquareGrid } from '../editor/preview/featureCollectionPreview/featureCollectionThumbnail.js';
 import { styleFeatureCollection } from '../editor/map/mapLayerManager.js';
 import { parseSepalVisualizations, selectSepalViz, vectorVisParams } from '../shared/sepalViz.js';
 
@@ -62,22 +60,23 @@ describe('feature collection preview', () => {
         ],
       ],
     });
-    assert.deepEqual(grid, {
-      dimensions: { width: 256, height: 256 },
-      affineTransform: {
-        scaleX: 15.6 / 256,
-        shearX: 0,
-        translateX: -6.3,
-        shearY: 0,
-        scaleY: -15.6 / 256,
-        translateY: 54.3,
-      },
-      crsCode: 'EPSG:4326',
-    });
-    assert.equal(
-      (buildSquareGrid(undefined).affineTransform as { scaleX: number }).scaleX,
-      178 / 256,
-    );
+    const transform = grid.affineTransform as {
+      scaleX: number;
+      scaleY: number;
+      translateX: number;
+      translateY: number;
+    };
+    const longitudeToMeters = (lon: number) => (lon * Math.PI * 6378137) / 180;
+    const latitudeToMeters = (lat: number) =>
+      6378137 * Math.log(Math.tan(Math.PI / 4 + (lat * Math.PI) / 360));
+    assert.equal(grid.crsCode, 'EPSG:3857');
+    assert.deepEqual(grid.dimensions, { width: 256, height: 256 });
+    assert.equal(transform.scaleX, -transform.scaleY);
+    assert.ok(transform.translateX < longitudeToMeters(-5));
+    assert.ok(transform.translateX + 256 * transform.scaleX > longitudeToMeters(8));
+    assert.ok(transform.translateY > latitudeToMeters(51));
+    assert.ok(transform.translateY + 256 * transform.scaleY < latitudeToMeters(42));
+    assert.equal(buildSquareGrid(undefined).crsCode, 'EPSG:3857');
     assert.ok(
       (buildSquareGrid({ coordinates: [2, 48] }).affineTransform as { scaleX: number }).scaleX > 0,
     );
