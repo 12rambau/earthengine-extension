@@ -58,7 +58,7 @@
 </script>
 
 <div
-  class="overlay"
+  class="collection-overlay"
   role="presentation"
   onmousedown={(e) => (backdropMouseDown = e.target === e.currentTarget)}
   onclick={(e) => {
@@ -67,7 +67,7 @@
     }
   }}
 >
-  <div class="dialog" role="dialog" aria-modal="true" aria-label="New image collection">
+  <div class="collection-dialog" role="dialog" aria-modal="true" aria-label="New image collection">
     <header>
       <i class="codicon codicon-layers"></i>
       <h2>New image collection</h2>
@@ -82,21 +82,21 @@
         <i class="codicon codicon-close"></i>
       </TableButton>
     </header>
-    <div class="body">
-      <label class="field">
+    <div class="collection-body">
+      <label class="collection-field">
         <span>Asset name</span>
         <input type="text" bind:value={assetName} disabled={busy} placeholder="my_collection" />
         <small>{assetId}</small>
       </label>
-      <label class="field">
+      <label class="collection-field">
         <span>Title</span>
         <input type="text" bind:value={title} disabled={busy} />
       </label>
-      <label class="field">
+      <label class="collection-field">
         <span>Description</span>
         <textarea rows="2" bind:value={description} disabled={busy}></textarea>
       </label>
-      <label class="field">
+      <label class="collection-field">
         <span>Images</span>
         <select bind:value={source} disabled={busy} onchange={() => onpick(null)}>
           <option value="empty">Empty (add images later)</option>
@@ -105,9 +105,9 @@
         </select>
       </label>
       {#if source !== 'empty'}
-        <div class="field">
+        <div class="collection-field">
           <span>{source === 'zarr' ? 'Zarr directory' : 'COG files'}</span>
-          <div class="file-row">
+          <div class="collection-file-row">
             <input
               type="text"
               readonly
@@ -125,7 +125,7 @@
             <small>Each file becomes a separate image and ingestion task.</small>
           {/if}
         </div>
-        <label class="field">
+        <label class="collection-field">
           <span>Staging bucket</span>
           {#if buckets.length}
             <select bind:value={bucket} disabled={busy}>
@@ -137,8 +137,8 @@
           <small>COGs are removed from Cloud Storage after ingestion finishes.</small>
         </label>
       {/if}
-      {#if error}<p class="error">{error}</p>{/if}
-      {#if busy}<p class="progress">{progress || 'Working…'}</p>{/if}
+      {#if error}<p class="collection-error">{error}</p>{/if}
+      {#if busy}<p class="collection-progress">{progress || 'Working…'}</p>{/if}
     </div>
     <footer>
       <TableButton disabled={busy} onclick={oncancel}>Cancel</TableButton>
@@ -154,7 +154,7 @@
     /* ==================================================================
        COLLECTION DIALOG
        ================================================================== */
-    .overlay {
+    .collection-overlay {
       position: fixed;
       inset: 0;
       z-index: 100;
@@ -163,7 +163,7 @@
       justify-content: center;
       background: var(--vscee-color-widget-shadow);
     }
-    .dialog {
+    .collection-dialog {
       display: flex;
       flex-direction: column;
       width: min(620px, 92vw);
@@ -189,14 +189,14 @@
       footer {
         justify-content: flex-end;
       }
-      .body {
+      .collection-body {
         overflow-y: auto;
         padding: 0 var(--vscee-space-xl) var(--vscee-space-lg);
         display: flex;
         flex-direction: column;
         gap: var(--vscee-space-lg);
       }
-      .field {
+      .collection-field {
         display: flex;
         flex-direction: column;
         gap: var(--vscee-space-xs);
@@ -209,7 +209,7 @@
           word-break: break-all;
         }
       }
-      .file-row {
+      .collection-file-row {
         display: flex;
         gap: var(--vscee-space-md);
         input {
@@ -234,10 +234,10 @@
       textarea {
         resize: vertical;
       }
-      .error {
+      .collection-error {
         color: var(--vscee-color-error);
       }
-      .progress {
+      .collection-progress {
         color: var(--vscee-color-muted);
       }
     }
