@@ -90,7 +90,17 @@ const config: Config = {
         {
           to: '/getting-started',
           position: 'left',
-          label: 'Documentation',
+          label: 'Extension',
+        },
+        {
+          to: '/vscee',
+          position: 'left',
+          label: 'Python',
+        },
+        {
+          to: '/commands',
+          position: 'left',
+          label: 'Commands',
         },
         {
           type: 'html',
