@@ -38,6 +38,7 @@ const sidebars: SidebarsConfig = {
     'vscee',
     'commands',
     'settings',
+    'custom-map-basemaps',
   ],
 };
 
