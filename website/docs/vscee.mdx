@@ -6,13 +6,28 @@ import useBaseUrl from '@docusaurus/useBaseUrl';
 
 # vscee Python library
 
-**vscee** is the Python package that bridges scripts to the extension's [Interactive Map](./editors/interactive-map) editor. It ships from the `python/` folder of this repository and is published to PyPI so it can be installed independently of the extension.
+**vscee** is the Python package that bridges scripts to the extension's
+[Interactive Map](./editors/interactive-map) editor. It ships from the `python/` folder
+of this repository and is published to PyPI so it can be installed independently of the
+extension.
 
-Earth Engine graphs are built and serialised entirely on the Python side with the official `earthengine-api`; `vscee` only forwards the serialised object and display parameters to the extension over a local HTTP bridge. The extension host resolves tile URLs with the EE JS client — the Python side never calls `getMapId` or resolves tiles itself.
+Earth Engine graphs are built and serialised entirely on the Python side with the
+official `earthengine-api`; `vscee` only forwards the serialised object and display
+parameters to the extension over a local HTTP bridge. The extension host resolves tile
+URLs with the EE JS client — the Python side never calls `getMapId` or resolves tiles
+itself.
 
 <div className="screenshot-pair">
-  <img className="screenshot--light" src={useBaseUrl('/img/light/python-map.png')} alt="Interactive Map editor" />
-  <img className="screenshot--dark" src={useBaseUrl('/img/dark/python-map.png')} alt="Interactive Map editor" />
+  <img
+    className="screenshot--light"
+    src={useBaseUrl('/img/light/python-map.png')}
+    alt="Interactive Map editor"
+  />
+  <img
+    className="screenshot--dark"
+    src={useBaseUrl('/img/dark/python-map.png')}
+    alt="Interactive Map editor"
+  />
 </div>
 
 ## Install
@@ -30,14 +45,19 @@ pip install -e python/
 ## Requirements
 
 - Python `>=3.9`
-- The Earth Engine extension installed and active in VS Code, with the [Interactive Map](./editors/interactive-map) editor open
+- The Earth Engine extension installed and active in VS Code, with the
+  [Interactive Map](./editors/interactive-map) editor open
 - A valid `ee.Initialize(project=...)` call before any `Map.*` invocation
 
-Select **New Python Script** from the Profiles view title action, or the `earthengine.newScript` command, to generate a script prefilled with the initialisation boilerplate and `Map` import shown below.
+Select **New Python Script** from the Profiles view title action, or the
+`earthengine.newScript` command, to generate a script prefilled with the initialisation
+boilerplate and `Map` import shown below.
 
 ## The `Map` module
 
-`vscee` exposes a single `Map` module that mirrors the `Map` global of the Earth Engine Code Editor. There is only one map panel in the extension, so `Map` is a module of functions rather than a class you instantiate:
+`vscee` exposes a single `Map` module that mirrors the `Map` global of the Earth Engine
+Code Editor. There is only one map panel in the extension, so `Map` is a module of
+functions rather than a class you instantiate:
 
 ```python
 import ee
@@ -58,15 +78,25 @@ Map.centerObject(image, zoom=10)
 Map.addLayer(ee_object, vis_params=None, name=None, shown=True, opacity=1.0)
 ```
 
-Add a layer to the map. `ee_object` accepts an `ee.Image`, `ee.ImageCollection` (mosaicked automatically), `ee.FeatureCollection`, `ee.Feature`, or `ee.Geometry`. Images support RGB, HSV, continuous, categorical, and interval rendering. Feature collections support uniform styling and property-based continuous, categorical, and interval rendering. The map's visualization editor exposes the same modes and parameters.
+Add a layer to the map. `ee_object` accepts an `ee.Image`, `ee.ImageCollection`
+(mosaicked automatically), `ee.FeatureCollection`, `ee.Feature`, or `ee.Geometry`.
+Images support RGB, HSV, continuous, categorical, and interval rendering. Feature
+collections support uniform styling and property-based continuous, categorical, and
+interval rendering. The map's visualization editor exposes the same modes and
+parameters.
 
 #### Image
 
 ##### RGB
 
-To display an image with an RGB color scheme, assign one image band to each display channel in red-green-blue order. Set `min` and `max` to define the input range stretched across each channel's 0–255 display range. A single number applies to all three bands; pass three values to set a separate range for each band. `gamma` is optional and adjusts midtone brightness.
+To display an image with an RGB color scheme, assign one image band to each display
+channel in red-green-blue order. Set `min` and `max` to define the input range stretched
+across each channel's 0–255 display range. A single number applies to all three bands;
+pass three values to set a separate range for each band. `gamma` is optional and adjusts
+midtone brightness.
 
-This example displays Sentinel-2 B4, B3, and B2 as red, green, and blue. The image was defined in the [Map module example](#the-map-module):
+This example displays Sentinel-2 B4, B3, and B2 as red, green, and blue. The image was
+defined in the [Map module example](#the-map-module):
 
 ```python
 Map.addLayer(image, {
@@ -81,7 +111,9 @@ See the [Image > RGB preset in the Interactive Map](./editors/interactive-map#rg
 
 ##### HSV
 
-HSV rendering interprets three bands as hue, saturation, and value. Set `vizType` to `"hsv"`, provide three `bands`, and set the corresponding `min` and `max` ranges. Each band is normalized to 0–1 before the image is converted to RGB for display.
+HSV rendering interprets three bands as hue, saturation, and value. Set `vizType` to
+`"hsv"`, provide three `bands`, and set the corresponding `min` and `max` ranges. Each
+band is normalized to 0–1 before the image is converted to RGB for display.
 
 ```python
 Map.addLayer(image, {
@@ -96,7 +128,9 @@ See the [Image > HSV preset in the Interactive Map](./editors/interactive-map#hs
 
 ##### Continuous
 
-Continuous rendering maps values in one band through a color palette. Provide the band, a `min` and `max` stretch range, and at least two palette colors. Do not set `vizType` for image palettes; a palette without `values` or `breaks` is interpreted as continuous.
+Continuous rendering maps values in one band through a color palette. Provide the band,
+a `min` and `max` stretch range, and at least two palette colors. Do not set `vizType`
+for image palettes; a palette without `values` or `breaks` is interpreted as continuous.
 
 ```python
 Map.addLayer(image, {
@@ -107,11 +141,14 @@ Map.addLayer(image, {
 }, "Near Infrared")
 ```
 
-See the [Image > Continuous preset in the Interactive Map](./editors/interactive-map#continuous).
+See the
+[Image > Continuous preset in the Interactive Map](./editors/interactive-map#continuous).
 
 ##### Categorical
 
-Categorical rendering assigns one color to each exact numeric pixel value in one band. Supply the distinct values and one palette color per value; optional `labels` appear in the map scale. Values not listed are masked.
+Categorical rendering assigns one color to each exact numeric pixel value in one band.
+Supply the distinct values and one palette color per value; optional `labels` appear in
+the map scale. Values not listed are masked.
 
 ```python
 Map.addLayer(image, {
@@ -123,11 +160,15 @@ Map.addLayer(image, {
 }, "Crop Classification")
 ```
 
-See the [Image > Categorical preset in the Interactive Map](./editors/interactive-map#categorical).
+See the
+[Image > Categorical preset in the Interactive Map](./editors/interactive-map#categorical).
 
 ##### Intervals
 
-Interval rendering assigns a palette color to each range in one band. `breaks` must be strictly increasing and have exactly one more value than the number of colors. Each interval includes its lower bound and excludes its upper bound; optional `labels` appear in the map scale.
+Interval rendering assigns a palette color to each range in one band. `breaks` must be
+strictly increasing and have exactly one more value than the number of colors. Each
+interval includes its lower bound and excludes its upper bound; optional `labels` appear
+in the map scale.
 
 ```python
 Map.addLayer(image, {
@@ -139,15 +180,19 @@ Map.addLayer(image, {
 }, "Temperature intervals")
 ```
 
-See the [Image > Intervals preset in the Interactive Map](./editors/interactive-map#intervals).
+See the
+[Image > Intervals preset in the Interactive Map](./editors/interactive-map#intervals).
 
 #### FeatureCollection
 
-For feature collections, `bands` is replaced by a feature `property`. Uniform styling does not require a property; property-based modes use one selected property. Palette colors must be six-digit hex RGB, with or without a leading `#`.
+For feature collections, `bands` is replaced by a feature `property`. Uniform styling
+does not require a property; property-based modes use one selected property. Palette
+colors must be six-digit hex RGB, with or without a leading `#`.
 
 ##### Uniform
 
-Use `color` for outlines, `fillColor` for polygon fills, `width` for line width, and `pointSize` for points. Fill is transparent by default.
+Use `color` for outlines, `fillColor` for polygon fills, `width` for line width, and
+`pointSize` for points. Fill is transparent by default.
 
 ```python
 Map.addLayer(features, {
@@ -158,7 +203,8 @@ Map.addLayer(features, {
 }, "Features")
 ```
 
-See the [FeatureCollection > Uniform preset in the Interactive Map](./editors/interactive-map#uniform).
+See the
+[FeatureCollection > Uniform preset in the Interactive Map](./editors/interactive-map#uniform).
 
 ##### Continuous
 
@@ -174,11 +220,14 @@ Map.addLayer(features, {
 }, "Population")
 ```
 
-See the [FeatureCollection > Continuous preset in the Interactive Map](./editors/interactive-map#continuous-1).
+See the
+[FeatureCollection > Continuous preset in the Interactive Map](./editors/interactive-map#continuous-1).
 
 ##### Categorical
 
-Map exact numeric or string property values to colors with one distinct `value` and one palette color per class. Optional `labels` name the classes; unlisted values are not drawn.
+Map exact numeric or string property values to colors with one distinct `value` and one
+palette color per class. Optional `labels` name the classes; unlisted values are not
+drawn.
 
 ```python
 Map.addLayer(features, {
@@ -190,11 +239,14 @@ Map.addLayer(features, {
 }, "Crop Classes")
 ```
 
-See the [FeatureCollection > Categorical preset in the Interactive Map](./editors/interactive-map#categorical-1).
+See the
+[FeatureCollection > Categorical preset in the Interactive Map](./editors/interactive-map#categorical-1).
 
 ##### Intervals
 
-Map a numeric property to one color per range. `breaks` must be strictly increasing and have exactly one more value than the palette colors; each interval includes its lower bound and excludes its upper bound.
+Map a numeric property to one color per range. `breaks` must be strictly increasing and
+have exactly one more value than the palette colors; each interval includes its lower
+bound and excludes its upper bound.
 
 ```python
 Map.addLayer(features, {
@@ -205,9 +257,11 @@ Map.addLayer(features, {
 }, "Elevation intervals")
 ```
 
-See the [FeatureCollection > Intervals preset in the Interactive Map](./editors/interactive-map#intervals-1).
+See the
+[FeatureCollection > Intervals preset in the Interactive Map](./editors/interactive-map#intervals-1).
 
-Set layer opacity with the separate `opacity` argument to `Map.addLayer`, not inside `vis_params`.
+Set layer opacity with the separate `opacity` argument to `Map.addLayer`, not inside
+`vis_params`.
 
 ### Map.centerObject
 
@@ -217,7 +271,9 @@ Set layer opacity with the separate `opacity` argument to `Map.addLayer`, not in
 Map.centerObject(ee_object, zoom=None)
 ```
 
-Centers and, optionally, zooms the map on the bounds of an `ee.Image`, `ee.ImageCollection`, `ee.FeatureCollection`, `ee.Feature`, or `ee.Geometry`. Computing the bounds calls `getInfo()`, so it requires network access to Earth Engine.
+Centers and, optionally, zooms the map on the bounds of an `ee.Image`,
+`ee.ImageCollection`, `ee.FeatureCollection`, `ee.Feature`, or `ee.Geometry`. Computing
+the bounds calls `getInfo()`, so it requires network access to Earth Engine.
 
 ### Map.setCenter
 
@@ -241,4 +297,10 @@ Removes every layer currently on the map.
 
 ## How it works
 
-`vscee` never talks to Earth Engine servers on the extension's behalf. Each `Map.*` call sends a JSON POST request to a local HTTP server the extension starts on `127.0.0.1:31415`, exposing one endpoint per function (`addLayer`, `centerObject`, `setCenter`, `clear`). The extension listens for these requests and forwards them to the Leaflet Webview to update the map. If the extension is not running or the map panel has not started the bridge server, calls fail silently and print a warning instead of raising.
+`vscee` never talks to Earth Engine servers on the extension's behalf. Each `Map.*` call
+sends a JSON POST request to a local HTTP server the extension starts on
+`127.0.0.1:31415`, exposing one endpoint per function (`addLayer`, `centerObject`,
+`setCenter`, `clear`). The extension listens for these requests and forwards them to the
+Leaflet Webview to update the map. If the extension is not running or the map panel has
+not started the bridge server, calls fail silently and print a warning instead of
+raising.

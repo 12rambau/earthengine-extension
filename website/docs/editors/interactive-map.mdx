@@ -6,51 +6,98 @@ import useBaseUrl from '@docusaurus/useBaseUrl';
 
 # Interactive Map editor
 
-The **Interactive Map** is a singleton Leaflet Webview editor. Open it from the Profiles view title action or **Open Map View**. It follows the VS Code light or dark theme by default and can switch to satellite or plan basemaps.
+The **Interactive Map** is a singleton Leaflet Webview editor. Open it from the Profiles
+view title action or **Open Map View**. It follows the VS Code light or dark theme by
+default and can switch to satellite or plan basemaps.
 
-Manage layer visibility and opacity, open the visualization editor for RGB, HSV, continuous, categorical, or interval rendering, and expose a scale. The inspector samples visible layers at a clicked point, while the status bar reports coordinates and zoom.
+Manage layer visibility and opacity, open the visualization editor for RGB, HSV,
+continuous, categorical, or interval rendering, and expose a scale. The inspector
+samples visible layers at a clicked point, while the status bar reports coordinates and
+zoom.
 
-The local Python bridge listens on `localhost:31415` for scripts that add Earth Engine tile layers or update the viewport.
+The local Python bridge listens on `localhost:31415` for scripts that add Earth Engine
+tile layers or update the viewport.
 
 <div className="screenshot-pair">
-  <img className="screenshot--light" src={useBaseUrl('/img/light/map.png')} alt="Interactive Map editor in the light theme" />
-  <img className="screenshot--dark" src={useBaseUrl('/img/dark/map.png')} alt="Interactive Map editor in the dark theme" />
+  <img
+    className="screenshot--light"
+    src={useBaseUrl('/img/light/map.png')}
+    alt="Interactive Map editor in the light theme"
+  />
+  <img
+    className="screenshot--dark"
+    src={useBaseUrl('/img/dark/map.png')}
+    alt="Interactive Map editor in the dark theme"
+  />
 </div>
 
 :::note
 
-To add the DMSP-OLS night-lights trend clipped to France, open the Command Palette and search for `Earth Engine: Demo – Night Lights Trend`.
+To add the DMSP-OLS night-lights trend clipped to France, open the Command Palette and
+search for `Earth Engine: Demo – Night Lights Trend`.
 
 :::
 
 ## In-map visualization editing
 
-In the **Layers** panel, select **Edit visualization** on a layer to open its editor. Choose a rendering mode and adjust its parameters: image bands or feature properties, value ranges, palettes, classes or intervals, and opacity. Image layers support RGB, HSV, continuous, categorical, and interval modes; FeatureCollections support uniform, continuous, categorical, and interval styling. Select **Apply** to update the layer on the map.
+In the **Layers** panel, select **Edit visualization** on a layer to open its editor.
+Choose a rendering mode and adjust its parameters: image bands or feature properties,
+value ranges, palettes, classes or intervals, and opacity. Image layers support RGB,
+HSV, continuous, categorical, and interval modes; FeatureCollections support uniform,
+continuous, categorical, and interval styling. Select **Apply** to update the layer on
+the map.
 
 <div className="screenshot-pair">
-  <img className="screenshot--light" src={useBaseUrl('/img/light/in-map-edit.png')} alt="Interactive Map with the Layers panel and visualization controls in the light theme" />
-  <img className="screenshot--dark" src={useBaseUrl('/img/dark/in-map-edit.png')} alt="Interactive Map with the Layers panel and visualization controls in the dark theme" />
+  <img
+    className="screenshot--light"
+    src={useBaseUrl('/img/light/in-map-edit.png')}
+    alt="Interactive Map with the Layers panel and visualization controls in the light theme"
+  />
+  <img
+    className="screenshot--dark"
+    src={useBaseUrl('/img/dark/in-map-edit.png')}
+    alt="Interactive Map with the Layers panel and visualization controls in the dark theme"
+  />
 </div>
 
-Select **Code** in the editor to view the equivalent Python `vis_params` for the current visualization. Use the `code` button to copy the parameters, then pass them to [`Map.addLayer`](../vscee#mapaddlayer) in your `vscee` script.
+Select **Code** in the editor to view the equivalent Python `vis_params` for the current
+visualization. Use the `copy` button to copy the parameters, then pass them to
+[`Map.addLayer`](../vscee#mapaddlayer) in your `vscee` script.
 
 ## Visualization parameters
 
-The visualization editor controls how a map layer is rendered. To offer reusable settings in its **Preset…** dropdown, add string properties to an existing image or feature collection with `set`. Each preset uses keys of the form `visualization_<number>_<keyword>`; the number distinguishes presets, while the keyword identifies `name`, `type`, `bands`, `min`, `max`, `palette`, `values`, `breaks`, or `labels`. Lists are comma-separated strings. You can store multiple numbered presets on the same asset.
+Reusable visualization presets are stored as string properties on an image or
+FeatureCollection using `set`. Each property key follows the structure
+`visualization_<number>_<keyword>`: the number identifies the preset, and the keyword
+identifies one of its settings. An asset can contain multiple numbered presets.
 
-The examples below are property dictionaries: assign one to `preset_properties`, then call `image_with_preset = image.set(preset_properties)` or `features_with_preset = features.set(preset_properties)`. Use the returned object when adding the layer. The [vscee Python library](../vscee#mapaddlayer) documents direct `Map.addLayer` calls instead.
+For a child image in an ImageCollection, presets on the image take precedence. If it has
+none, the editor automatically uses presets from its immediate parent collection.
 
-Every mode has an **Opacity** control from 0% to 100% for the map layer; opacity is independent of the preset's color parameters.
+The sections below describe the parameters for each visualization mode and provide
+example property dictionaries. Apply a dictionary with `image.set(preset_properties)` or
+`features.set(preset_properties)`, then use the returned object when adding the layer.
+For direct Python `vis_params`, see [`Map.addLayer`](../vscee#mapaddlayer).
 
 ### Image
 
 #### RGB
 
-RGB displays three image bands as red, green, and blue, in that order. Select the bands and set the minimum and maximum values for each channel in the visualization editor. A value below its minimum renders as 0 and a value above its maximum renders as 255; values between are stretched into the display range. You can optionally adjust gamma to change the brightness of the midtones.
+RGB displays three image bands as red, green, and blue, in that order. Select the bands
+and set the minimum and maximum values for each channel in the visualization editor. A
+value below its minimum renders as 0 and a value above its maximum renders as 255;
+values between are stretched into the display range. You can optionally adjust gamma to
+change the brightness of the midtones.
 
-The **Range** control can calculate per-band bounds from the pixels currently visible on the map: choose a 1, 2, or 3 sigma stretch, or a 90%, 98%, or 100% percentile stretch. Choose **Custom** to enter bounds manually. The gamma control defaults to 1 and accepts values from 0.1 to 5.
+The **Range** control can calculate per-band bounds from the pixels currently visible on
+the map: choose a 1, 2, or 3 sigma stretch, or a 90%, 98%, or 100% percentile stretch.
+Choose **Custom** to enter bounds manually. The gamma control defaults to 1 and accepts
+values from 0.1 to 5.
 
-To add an RGB preset to an existing image, set image properties like these. The preset assigns the `s2_red`, `s2_green`, and `s2_blue` bands to the red, green, and blue channels and applies a shared 0–3000 range. Once stored on the image, it can be selected from the **Preset…** dropdown:
+To add an RGB preset to an existing image, set image properties like these. The preset
+assigns the `s2_red`, `s2_green`, and `s2_blue` bands to the red, green, and blue
+channels and applies a shared 0–3000 range. Once stored on the image, it can be selected
+from the **Preset…** dropdown:
 
 ```json
 {
@@ -66,11 +113,18 @@ For a direct Python call, see [Image > RGB in vscee](../vscee#rgb).
 
 #### HSV
 
-HSV uses three bands as hue, saturation, and value. In the editor, choose a band for each channel and enter its **Min** and **Max**. The map normalizes each band between those bounds to 0–1, then converts HSV to RGB for display. Hue controls the color, saturation its intensity, and value its brightness; unlike RGB, this mode has no gamma control.
+HSV uses three bands as hue, saturation, and value. In the editor, choose a band for
+each channel and enter its **Min** and **Max**. The map normalizes each band between
+those bounds to 0–1, then converts HSV to RGB for display. Hue controls the color,
+saturation its intensity, and value its brightness; unlike RGB, this mode has no gamma
+control.
 
-The **Range** control can calculate bounds separately for each selected band from the visible pixels using a 1, 2, or 3 sigma stretch or a 90%, 98%, or 100% percentile stretch. Select **Custom** to edit the three ranges manually.
+The **Range** control can calculate bounds separately for each selected band from the
+visible pixels using a 1, 2, or 3 sigma stretch or a 90%, 98%, or 100% percentile
+stretch. Select **Custom** to edit the three ranges manually.
 
-An HSV preset on an existing image stores the three bands and their ranges as string properties:
+An HSV preset on an existing image stores the three bands and their ranges as string
+properties:
 
 ```json
 {
@@ -86,9 +140,16 @@ For a direct Python call, see [Image > HSV in vscee](../vscee#hsv).
 
 #### Continuous
 
-Continuous rendering maps the values in one image band through a color palette. Choose the **Band**, then set **Min** and **Max**: values at the minimum receive the first color and values at the maximum receive the last; intermediate values blend between palette colors. The **Range** control can derive these bounds from the visible pixels using the same sigma and percentile stretches as RGB, or you can enter them with **Custom**.
+Continuous rendering maps the values in one image band through a color palette. Choose
+the **Band**, then set **Min** and **Max**: values at the minimum receive the first
+color and values at the maximum receive the last; intermediate values blend between
+palette colors. The **Range** control can derive these bounds from the visible pixels
+using the same sigma and percentile stretches as RGB, or you can enter them with
+**Custom**.
 
-Under **Palette**, select a color scheme or set the number of colors (2–12). You can add or remove colors and edit each one with the picker or hex field; the ramp preview shows the resulting gradient.
+Under **Palette**, select a color scheme or set the number of colors (2–12). You can add
+or remove colors and edit each one with the picker or hex field; the ramp preview shows
+the resulting gradient.
 
 ```json
 {
@@ -105,7 +166,12 @@ For a direct Python call, see [Image > Continuous in vscee](../vscee#continuous)
 
 #### Categorical
 
-Categorical rendering assigns one palette color to each exact numeric value in one image band. Choose the **Band**, then build the **Classes** legend: each row has a pixel value, a display name, and a color editable with the picker or hex field. Add or remove rows, choose a **Scheme** to fill the colors, or use **Detect** to replace the rows with classes found in the visible area. `values` and `palette` must have the same length; optional `labels` provide display names. Pixels whose values are not listed are masked.
+Categorical rendering assigns one palette color to each exact numeric value in one image
+band. Choose the **Band**, then build the **Classes** legend: each row has a pixel
+value, a display name, and a color editable with the picker or hex field. Add or remove
+rows, choose a **Scheme** to fill the colors, or use **Detect** to replace the rows with
+classes found in the visible area. `values` and `palette` must have the same length;
+optional `labels` provide display names. Pixels whose values are not listed are masked.
 
 ```json
 {
@@ -122,9 +188,16 @@ For a direct Python call, see [Image > Categorical in vscee](../vscee#categorica
 
 #### Intervals
 
-Intervals assign a color to each numeric range in one image band. Choose the **Band** and set the overall **Min** and **Max**, or derive them from the visible pixels with a sigma or percentile **Range** stretch. Under **Intervals**, the **Bins** control creates 2–12 intervals; choose a color scheme, then edit each row's upper bound, color, and optional name. You can also add or remove intervals. Existing presets can contain more bins, as the 23-interval example below does.
+Intervals assign a color to each numeric range in one image band. Choose the **Band**
+and set the overall **Min** and **Max**, or derive them from the visible pixels with a
+sigma or percentile **Range** stretch. Under **Intervals**, the **Bins** control creates
+2–12 intervals; choose a color scheme, then edit each row's upper bound, color, and
+optional name. You can also add or remove intervals. Existing presets can contain more
+bins, as the 23-interval example below does.
 
-The resulting `breaks` must be strictly increasing and contain exactly one more value than `palette`. Each interval includes its lower bound and excludes its upper bound; optional `labels` name the intervals in the scale.
+The resulting `breaks` must be strictly increasing and contain exactly one more value
+than `palette`. Each interval includes its lower bound and excludes its upper bound;
+optional `labels` name the intervals in the scale.
 
 ```json
 {
@@ -140,11 +213,21 @@ For a direct Python call, see [Image > Intervals in vscee](../vscee#intervals).
 
 ### FeatureCollection
 
-Feature collections are rendered either with one uniform style or by mapping a feature property to colors. In stored presets, `bands` names the selected property for property-based modes. Palette colors must be six-digit hex RGB values, with or without a leading `#`. In every vector mode, the editor also exposes **Width** for lines and **Point size** for points; these affect the rendered features independently of the property-to-color mapping.
+Feature collections are rendered either with one uniform style or by mapping a feature
+property to colors. In stored presets, `bands` names the selected property for
+property-based modes. Palette colors must be six-digit hex RGB values, with or without a
+leading `#`. In every vector mode, the editor also exposes **Width** for lines and
+**Point size** for points; these affect the rendered features independently of the
+property-to-color mapping.
 
 #### Uniform
 
-Uniform styling applies the same appearance to every feature, without selecting a property. In the editor, turn **Stroke** and **Fill** on or off independently and choose their colors with the picker or hex fields. Use **Width** for outlines and **Point size** for points; the fill is transparent by default. Stored uniform presets use `color`, `fillColor`, and `width` as shown below, while direct `Map.addLayer` calls can also specify `pointSize`.
+Uniform styling applies the same appearance to every feature, without selecting a
+property. In the editor, turn **Stroke** and **Fill** on or off independently and choose
+their colors with the picker or hex fields. Use **Width** for outlines and **Point
+size** for points; the fill is transparent by default. Stored uniform presets use
+`color`, `fillColor`, and `width` as shown below, while direct `Map.addLayer` calls can
+also specify `pointSize`.
 
 ```json
 {
@@ -160,7 +243,12 @@ For a direct Python call, see [FeatureCollection > Uniform in vscee](../vscee#un
 
 #### Continuous
 
-Continuous styling maps a numeric feature property between **Min** and **Max** through a palette of at least two colors. Choose the **Property** and enter the bounds, or use **Range > Visible min/max** to derive them from features in the current view. Under **Palette**, choose a scheme or set 2–12 colors, then adjust individual colors with the picker or hex fields. Values between the bounds blend between colors; the shared **Width** and **Point size** controls still apply.
+Continuous styling maps a numeric feature property between **Min** and **Max** through a
+palette of at least two colors. Choose the **Property** and enter the bounds, or use
+**Range > Visible min/max** to derive them from features in the current view. Under
+**Palette**, choose a scheme or set 2–12 colors, then adjust individual colors with the
+picker or hex fields. Values between the bounds blend between colors; the shared
+**Width** and **Point size** controls still apply.
 
 ```json
 {
@@ -173,11 +261,16 @@ Continuous styling maps a numeric feature property between **Min** and **Max** t
 }
 ```
 
-For a direct Python call, see [FeatureCollection > Continuous in vscee](../vscee#continuous-1).
+For a direct Python call, see
+[FeatureCollection > Continuous in vscee](../vscee#continuous-1).
 
 #### Categorical
 
-Categorical styling assigns a color to each exact numeric or string value in a feature property. Choose the **Property** and edit each **Classes** row's value, name, and color. Add or remove rows, choose a **Scheme**, or use **Detect** to replace the legend with classes present in the visible area. Each distinct value needs one color; names become optional `labels` in the scale. Features with unlisted values are not drawn.
+Categorical styling assigns a color to each exact numeric or string value in a feature
+property. Choose the **Property** and edit each **Classes** row's value, name, and
+color. Add or remove rows, choose a **Scheme**, or use **Detect** to replace the legend
+with classes present in the visible area. Each distinct value needs one color; names
+become optional `labels` in the scale. Features with unlisted values are not drawn.
 
 ```json
 {
@@ -190,15 +283,21 @@ Categorical styling assigns a color to each exact numeric or string value in a f
 }
 ```
 
-Stored `values` are parsed as numbers. To distinguish string values such as `"01"` from `"1"`, use the editor or pass them directly to `Map.addLayer` instead.
+Stored `values` are parsed as numbers. To distinguish string values such as `"01"` from
+`"1"`, use the editor or pass them directly to `Map.addLayer` instead.
 
-For a direct Python call, see [FeatureCollection > Categorical in vscee](../vscee#categorical-1).
+For a direct Python call, see
+[FeatureCollection > Categorical in vscee](../vscee#categorical-1).
 
 #### Intervals
 
-Interval styling maps a numeric feature property to one color per range. Choose the **Property** and the first and last bounds, or select **Range > Visible min/max** to derive them from features in view. Choose 2–12 **Bins** and a color scheme, then edit each interval's upper bound, color, and optional name, or add and remove intervals.
+Interval styling maps a numeric feature property to one color per range. Choose the
+**Property** and the first and last bounds, or select **Range > Visible min/max** to
+derive them from features in view. Choose 2–12 **Bins** and a color scheme, then edit
+each interval's upper bound, color, and optional name, or add and remove intervals.
 
-The resulting `breaks` must be strictly increasing and contain one more value than `palette`; each interval includes its lower bound and excludes its upper bound.
+The resulting `breaks` must be strictly increasing and contain one more value than
+`palette`; each interval includes its lower bound and excludes its upper bound.
 
 ```json
 {
@@ -210,4 +309,5 @@ The resulting `breaks` must be strictly increasing and contain one more value th
 }
 ```
 
-For a direct Python call, see [FeatureCollection > Intervals in vscee](../vscee#intervals-1).
+For a direct Python call, see
+[FeatureCollection > Intervals in vscee](../vscee#intervals-1).
