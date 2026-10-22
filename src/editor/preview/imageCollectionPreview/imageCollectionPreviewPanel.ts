@@ -12,7 +12,13 @@
  */
 
 import * as vscode from 'vscode';
-import { AssetSharingChanges, EEAsset, EEBand, listAssets, getAsset } from '../../../sidebar/assets/eeApiClient.js';
+import {
+  AssetSharingChanges,
+  EEAsset,
+  EEBand,
+  listAssets,
+  getAsset,
+} from '../../../sidebar/assets/eeApiClient.js';
 import { designTokens, codiconsCss, escapeHtml } from '../../../shared/index.js';
 import { filesize } from 'filesize';
 import dayjs from 'dayjs';

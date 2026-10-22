@@ -83,8 +83,8 @@ export async function ensureLifecycleRule(
     `${GCS_API}/b/${encodeURIComponent(bucket)}?fields=lifecycle`,
     accessToken,
   );
-  const rules = (JSON.parse(response) as { lifecycle?: { rule?: LifecycleRule[] } }).lifecycle
-    ?.rule ?? [];
+  const rules =
+    (JSON.parse(response) as { lifecycle?: { rule?: LifecycleRule[] } }).lifecycle?.rule ?? [];
 
   const covered = rules.some(
     (rule) =>
@@ -216,17 +216,23 @@ export async function uploadFile(
       const { bytesRead } = await handle.read(buffer, 0, CHUNK_SIZE, offset);
       const chunk = buffer.subarray(0, bytesRead);
       const last = offset + bytesRead;
-      const response = await httpRequestRaw(sessionUri, 'PUT', {
-        'Content-Length': bytesRead,
-        'Content-Range': `bytes ${offset}-${last - 1}/${totalBytes}`,
-      }, chunk);
+      const response = await httpRequestRaw(
+        sessionUri,
+        'PUT',
+        {
+          'Content-Length': bytesRead,
+          'Content-Range': `bytes ${offset}-${last - 1}/${totalBytes}`,
+        },
+        chunk,
+      );
 
       if (response.status !== RESUME_INCOMPLETE && response.status >= 400) {
         throw new Error(`Upload of ${path.basename(filePath)} failed: ${response.body}`);
       }
       // On 308, trust the server's committed range rather than assuming the
       // whole chunk landed; resume from 0 if it's missing or malformed.
-      offset = response.status === RESUME_INCOMPLETE ? committedBytes(response.headers.range) : last;
+      offset =
+        response.status === RESUME_INCOMPLETE ? committedBytes(response.headers.range) : last;
       onProgress?.(offset, totalBytes);
     }
   } finally {

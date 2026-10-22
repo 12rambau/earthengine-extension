@@ -1,7 +1,11 @@
 /** @module previewMetadata.test */
 
 import { strict as assert } from 'node:assert';
-import { classifierDetails, featureViewDetails, previewMetadata } from '../editor/preview/previewMetadata.js';
+import {
+  classifierDetails,
+  featureViewDetails,
+  previewMetadata,
+} from '../editor/preview/previewMetadata.js';
 import { assetMetadataPatch } from '../sidebar/assets/eeApiClient.js';
 import { renderPropertiesTable } from '../shared/webviewUtils.js';
 

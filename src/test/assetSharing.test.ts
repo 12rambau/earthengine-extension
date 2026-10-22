@@ -48,14 +48,17 @@ describe('asset sharing', () => {
   });
 
   it('creates a public reader binding on an empty policy', () => {
-    assert.deepEqual(
-      applyAssetSharing({}, { etag: '', publicRead: true, users: [] }),
-      { bindings: [{ role: 'roles/viewer', members: ['allUsers'] }] },
-    );
+    assert.deepEqual(applyAssetSharing({}, { etag: '', publicRead: true, users: [] }), {
+      bindings: [{ role: 'roles/viewer', members: ['allUsers'] }],
+    });
   });
 
   it('retains conditional and non-user grants when revoking all direct access', () => {
-    const conditional = { role: 'roles/viewer', members: ['user:limited@example.com'], condition: { title: 'limited' } };
+    const conditional = {
+      role: 'roles/viewer',
+      members: ['user:limited@example.com'],
+      condition: { title: 'limited' },
+    };
     const updated = applyAssetSharing(
       {
         etag: 'v2',
@@ -75,7 +78,10 @@ describe('asset sharing', () => {
 
   it('carries source grants across a rename without dropping new destination grants or etag', () => {
     const merged = mergeAssetIamPolicies(
-      { etag: 'destination', bindings: [{ role: 'roles/owner', members: ['user:owner@example.com'] }] },
+      {
+        etag: 'destination',
+        bindings: [{ role: 'roles/owner', members: ['user:owner@example.com'] }],
+      },
       {
         etag: 'source',
         version: 3,
