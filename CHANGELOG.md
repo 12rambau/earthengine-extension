@@ -1,5 +1,30 @@
 # Changelog
 
+## [0.13.0](https://github.com/12rambau/earthengine-extension/compare/v0.12.0...v0.13.0) (2026-10-22)
+
+### Features
+
+- add asset metadata, properties, sharing, and preview components ([7bfef77](https://github.com/12rambau/earthengine-extension/commit/7bfef7722a39ab76ed8fed854d0810e37540a139))
+- add PreviewTable component and refactor existing tables for consistency ([f20c0b0](https://github.com/12rambau/earthengine-extension/commit/f20c0b01491fbf5d278d9c056c93fde561dc73f8))
+- enhance feature collection support in map editor ([39d92f3](https://github.com/12rambau/earthengine-extension/commit/39d92f3628ed731e40ea1ad487e541ca44a2ca34))
+- implement image collection creation with enhanced metadata support ([ebf649e](https://github.com/12rambau/earthengine-extension/commit/ebf649e6ca8284f73e6c0dd3ace0bdce6dbac00c))
+- move files where they are effectively used ([dcfd816](https://github.com/12rambau/earthengine-extension/commit/dcfd816945d2f4608710a9ed24c6a3d23c321230))
+- refactor task panel components for improved organization and readability ([1189e58](https://github.com/12rambau/earthengine-extension/commit/1189e5837661b06068dde3a889b9e8691ab38f8e))
+- **ui:** add shared accessible toggle switch ([ca53ed3](https://github.com/12rambau/earthengine-extension/commit/ca53ed355e6b9eedc15a2065d45d52a6e7b076e2))
+- **ui:** migrate ToggleSwitch to components directory and update imports ([45cac90](https://github.com/12rambau/earthengine-extension/commit/45cac906825b65616c53e08481df2af425d120a0))
+- update buildSquareGrid function to use Mercator projection for improved thumbnail generation ([9b6a0ed](https://github.com/12rambau/earthengine-extension/commit/9b6a0ed2cc4d8cdcb4524c3dcc178cf984422b5d))
+
+### Bug Fixes
+
+- add night light demo ([9c3a0b2](https://github.com/12rambau/earthengine-extension/commit/9c3a0b28c4c778122e7d48d9da49633c4eff9643))
+- align vscee and typescript expectation on viz params ([aadcfe6](https://github.com/12rambau/earthengine-extension/commit/aadcfe61f209572f4a1bd7064a2da13a829dfbd6))
+- drop incomplete preview properties on save ([552f51c](https://github.com/12rambau/earthengine-extension/commit/552f51c17ddc556d63932cda9e1cee3e92e50b4f))
+- improve model support in previews ([5a83be7](https://github.com/12rambau/earthengine-extension/commit/5a83be7c7aa231caefb173669ad3bbae51198522))
+- improve range management ([e0bb003](https://github.com/12rambau/earthengine-extension/commit/e0bb003e80e1402f178843f41a50bf09ded70005))
+- remove dummy script content ([c68c8a2](https://github.com/12rambau/earthengine-extension/commit/c68c8a23c710b79a03f66ea8da84aa5e8cce7b7e))
+- set featurePreview viz parameters ([92f1e07](https://github.com/12rambau/earthengine-extension/commit/92f1e0775c6a27c35fcee6b14f7a52627e52a491))
+- type FeatureCollection size evaluation ([37af739](https://github.com/12rambau/earthengine-extension/commit/37af7394d114108b3e0c49958342780b811d7ca1))
+
 ## [0.12.0](https://github.com/12rambau/earthengine-extension/compare/v0.11.1...v0.12.0) (2026-10-14)
 
 ### Features
