@@ -37,8 +37,7 @@ pip install -e python/
 ## Requirements
 
 - Python `>=3.9`
-- The Earth Engine extension installed and active in VS Code, with the
-  [Interactive Map](./editors/interactive-map) editor open
+- The Earth Engine extension installed and active in VS Code
 - A valid `ee.Initialize(project=...)` call before any `Map.*` invocation
 
 Select **New Python Script** from the Profiles view title action, or the
@@ -62,6 +61,15 @@ Map.addLayer(image, {"bands": ["B4", "B3", "B2"], "min": 0, "max": 3000}, "RGB")
 Map.centerObject(image, zoom=10)
 ```
 
+:::warning
+
+`vscee` intentionally supports more visualization parameters than the original Earth
+Engine Code Editor. RGB and continuous parameters can be used as-is in both. HSV and
+interval parameters are supported only by `vscee` and tools that have adopted this
+convention; they are not supported by the original Code Editor.
+
+:::
+
 ### Map.addLayer
 
 #### Prototype
@@ -70,12 +78,15 @@ Map.centerObject(image, zoom=10)
 Map.addLayer(ee_object, vis_params=None, name=None, shown=True, opacity=1.0)
 ```
 
-Add a layer to the map. `ee_object` accepts an `ee.Image`, `ee.ImageCollection`
-(mosaicked automatically), `ee.FeatureCollection`, `ee.Feature`, or `ee.Geometry`.
-Images support RGB, HSV, continuous, categorical, and interval rendering. Feature
-collections support uniform styling and property-based continuous, categorical, and
-interval rendering. The map's visualization editor exposes the same modes and
-parameters.
+Add a layer to the map. `ee_object` accepts one of these two groups:
+
+- **Image:** an `ee.Image` or `ee.ImageCollection` (mosaicked automatically). Supports
+  RGB, HSV, continuous, categorical, and interval rendering.
+- **FeatureCollection:** an `ee.FeatureCollection`, `ee.Feature`, or `ee.Geometry`;
+  features and geometries are converted to a FeatureCollection automatically. Supports
+  uniform styling and property-based continuous, categorical, and interval rendering.
+
+The map's visualization editor exposes the same modes and parameters.
 
 #### Image
 
