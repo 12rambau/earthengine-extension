@@ -33,6 +33,7 @@ const sidebars: SidebarsConfig = {
         'editors/import-tasks',
         'editors/dataset-details',
         'editors/interactive-map',
+        'editors/custom-map-basemaps',
       ],
     },
     'vscee',
