@@ -17,6 +17,23 @@ The local Python bridge listens on `localhost:31415` for scripts that add Earth 
   <img className="screenshot--dark" src={useBaseUrl('/img/dark/map.png')} alt="Interactive Map editor in the dark theme" />
 </div>
 
+:::note
+
+To add the DMSP-OLS night-lights trend clipped to France, open the Command Palette and search for `Earth Engine: Demo – Night Lights Trend`.
+
+:::
+
+## In-map visualization editing
+
+In the **Layers** panel, select **Edit visualization** on a layer to open its editor. Choose a rendering mode and adjust its parameters: image bands or feature properties, value ranges, palettes, classes or intervals, and opacity. Image layers support RGB, HSV, continuous, categorical, and interval modes; FeatureCollections support uniform, continuous, categorical, and interval styling. Select **Apply** to update the layer on the map.
+
+<div className="screenshot-pair">
+  <img className="screenshot--light" src={useBaseUrl('/img/light/in-map-edit.png')} alt="Interactive Map with the Layers panel and visualization controls in the light theme" />
+  <img className="screenshot--dark" src={useBaseUrl('/img/dark/in-map-edit.png')} alt="Interactive Map with the Layers panel and visualization controls in the dark theme" />
+</div>
+
+Select **Code** in the editor to view the equivalent Python `vis_params` for the current visualization. Use the `code` button to copy the parameters, then pass them to [`Map.addLayer`](../vscee#mapaddlayer) in your `vscee` script.
+
 ## Visualization parameters
 
 The visualization editor controls how a map layer is rendered. To offer reusable settings in its **Preset…** dropdown, add string properties to an existing image or feature collection with `set`. Each preset uses keys of the form `visualization_<number>_<keyword>`; the number distinguishes presets, while the keyword identifies `name`, `type`, `bands`, `min`, `max`, `palette`, `values`, `breaks`, or `labels`. Lists are comma-separated strings. You can store multiple numbered presets on the same asset.
