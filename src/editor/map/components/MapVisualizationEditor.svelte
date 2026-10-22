@@ -143,7 +143,7 @@
   let vizVectorNotice = $state('');
   let vizBands = $state([]);
   let vizPresets = $state([]);
-  let vizType = $state('rgb');
+  let renderMode = $state('rgb');
   // RGB fields
   let vizRgbR = $state('');
   let vizRgbG = $state('');
@@ -227,7 +227,7 @@
 
   /** Preview strip shown under a palette name in the palette dropdown. */
   function palettePreview(pal, discrete) {
-    if (vizType === 'intervals' && vizIntRows.length > 0) {
+    if (renderMode === 'intervals' && vizIntRows.length > 0) {
       return intervalBlocks(
         schemeColors(pal.name, vizIntRows.length),
         [Number(vizIntStart), ...vizIntRows.map((row) => Number(row.upper))],
@@ -292,17 +292,17 @@
     const isCat = Array.isArray(vp.values) && vp.values.length > 0;
 
     if (vizSourceType === 'featureCollection' && !vp.property) {
-      vizType = 'uniform';
-    } else if (vp.vizType === 'intervals' || (Array.isArray(vp.breaks) && vp.breaks.length > 1)) {
-      vizType = 'intervals';
+      renderMode = 'uniform';
+    } else if (vp.type === 'intervals' || (Array.isArray(vp.breaks) && vp.breaks.length > 1)) {
+      renderMode = 'intervals';
     } else if (isCat) {
-      vizType = 'categorical';
-    } else if (vp.vizType === 'hsv') {
-      vizType = 'hsv';
+      renderMode = 'categorical';
+    } else if (vp.type === 'hsv') {
+      renderMode = 'hsv';
     } else if (vp.palette && bands.length <= 1) {
-      vizType = 'continuous';
+      renderMode = 'continuous';
     } else {
-      vizType = vizSourceType === 'featureCollection' ? 'uniform' : 'rgb';
+      renderMode = vizSourceType === 'featureCollection' ? 'uniform' : 'rgb';
     }
 
     vizProperty = vp.property || '';
@@ -387,7 +387,7 @@
     const breaks = vp.breaks || [];
     vizIntStart = breaks.length > 0 ? String(breaks[0]) : vizContMin;
     vizIntMax = breaks.length > 1 ? String(breaks[breaks.length - 1]) : vizContMax;
-    vizIntRows = (vp.vizType === 'intervals' && Array.isArray(vp.palette) ? vp.palette : []).map(
+    vizIntRows = (vp.type === 'intervals' && Array.isArray(vp.palette) ? vp.palette : []).map(
       (color, index) => ({
         color: normalizeHex(color),
         upper: breaks[index + 1] != null ? String(breaks[index + 1]) : '',
@@ -411,7 +411,7 @@
       ...(vizVectorFill ? { fillColor: vizVectorFillColor } : {}),
     };
     if (vector && (
-      (vizType === 'uniform' && (
+      (renderMode === 'uniform' && (
         (vizVectorStroke && !parseHex(vizVectorColor)) ||
         (vizVectorFill && !parseHex(vizVectorFillColor))
       )) ||
@@ -420,14 +420,14 @@
     )) {
       return null;
     }
-    if (vector && vizType === 'uniform') {
-      return { vizType: 'uniform', ...vectorStyle };
+    if (vector && renderMode === 'uniform') {
+      return { type: 'uniform', ...vectorStyle };
     }
     if (vector && !vizProperty) {
       return null;
     }
-    if (vizType === 'rgb' || vizType === 'hsv') {
-      const isRgb = vizType === 'rgb';
+    if (renderMode === 'rgb' || renderMode === 'hsv') {
+      const isRgb = renderMode === 'rgb';
       const bands = isRgb ? [vizRgbR, vizRgbG, vizRgbB] : [vizHsvH, vizHsvS, vizHsvV];
       const min = isRgb
         ? [parseFloat(vizRgbRMin), parseFloat(vizRgbGMin), parseFloat(vizRgbBMin)]
@@ -438,7 +438,7 @@
       if (!min.every(Number.isFinite) || !max.every(Number.isFinite)) {
         return null;
       }
-      const config = { vizType, bands, min, max };
+      const config = { type: renderMode, bands, min, max };
       if (isRgb) {
         const gamma = parseFloat(vizRgbGamma);
         if (gamma && gamma !== 1) {
@@ -447,7 +447,7 @@
       }
       return config;
     }
-    if (vizType === 'continuous') {
+    if (renderMode === 'continuous') {
       const min = parseFloat(vizContMin);
       const max = parseFloat(vizContMax);
       if (!Number.isFinite(min) || !Number.isFinite(max)) {
@@ -457,14 +457,14 @@
         return null;
       }
       return {
-        vizType: 'continuous',
+        type: 'continuous',
         ...(vector ? { property: vizProperty, ...vectorSize } : { bands: [vizContBand] }),
         min: vector ? min : [min],
         max: vector ? max : [max],
         palette: [...vizContColors],
       };
     }
-    if (vizType === 'categorical') {
+    if (renderMode === 'categorical') {
       const values = [],
         labels = [],
         palette = [];
@@ -473,18 +473,18 @@
         const v = vector ? parseCategoryValue(raw, row.stringClass) : Number(raw);
         if (vector ? v !== '' || row.stringClass : raw !== '' && Number.isFinite(v)) {
           values.push(v);
-          labels.push(row.label || 'Class ' + values.length);
+          labels.push(row.label || String(v));
           palette.push(row.color);
         }
       }
       if (vector && values.length === 0) {
         return null;
       }
-      return { vizType: 'categorical',
+      return { type: 'categorical',
         ...(vector ? { property: vizProperty, ...vectorSize } : { bands: [vizCatBand] }),
         values, labels, palette };
     }
-    if (vizType === 'intervals') {
+    if (renderMode === 'intervals') {
       const breaks = [Number(vizIntStart), ...vizIntRows.map((row) => Number(row.upper))];
       if (
         !(vector ? vizProperty : vizIntBand) ||
@@ -498,11 +498,11 @@
         return null;
       }
       return {
-        vizType: 'intervals',
+        type: 'intervals',
         ...(vector ? { property: vizProperty, ...vectorSize } : { bands: [vizIntBand] }),
         breaks,
         palette: vizIntRows.map((row) => row.color),
-        labels: vizIntRows.map((row) => row.label),
+        labels: vizIntRows.map((row) => row.label || String(Number(row.upper))),
       };
     }
     return null;
@@ -511,7 +511,7 @@
   function vizApply() {
     const config = collectVisParams();
     if (!config) {
-      if (vizSourceType === 'featureCollection' || vizType === 'intervals') {
+      if (vizSourceType === 'featureCollection' || renderMode === 'intervals') {
         const notice = vizSourceType === 'featureCollection'
           ? 'Check the colours and sizes, then select a property and complete its palette if needed.'
           : 'Select a band and enter increasing interval boundaries.';
@@ -559,23 +559,28 @@
     if (!config) {
       return 'Complete the visualization parameters first.';
     }
-    const opacity = String(clampOpacityPercent(vizOpacity) / 100);
     if (vizSourceType === 'featureCollection') {
-      return JSON.stringify(config, null, 2);
+      return jsonDict(
+        Object.entries(config)
+          .filter(([, value]) => value !== undefined)
+          .map(([key, value]) => [key, JSON.stringify(value)]),
+      );
     }
-    if (config.vizType === 'intervals') {
+    if (config.type === 'intervals') {
       return jsonDict([
         ['bands', jsonList(config.bands, true)],
+        ['type', jsonStr(config.type)],
         ['breaks', jsonList(config.breaks)],
         ['palette', jsonList(config.palette, true)],
+        ['labels', jsonList(config.labels, true)],
       ]);
     }
-    const entries = [['bands', jsonList(config.bands, true)]];
-    if (config.vizType === 'hsv') {
-      entries.push(['vizType', jsonStr('hsv')]);
-    }
+    const entries = [
+      ['bands', jsonList(config.bands, true)],
+      ['type', jsonStr(config.type)],
+    ];
 
-    if (config.vizType === 'categorical') {
+    if (config.type === 'categorical') {
       if (config.values.length === 0) {
         return 'Add at least one class first.';
       }
@@ -594,7 +599,6 @@
     if (config.palette) {
       entries.push(['palette', jsonList(config.palette, true)]);
     }
-    entries.push(['opacity', opacity]);
     return jsonDict(entries);
   }
 
@@ -645,12 +649,12 @@
 
   /** Bands whose range the active viz type exposes, deduplicated. */ function stretchBands() {
     let bands = [];
-    if (vizType === 'rgb') {
+    if (renderMode === 'rgb') {
       bands = [vizRgbR, vizRgbG, vizRgbB];
-    } else if (vizType === 'hsv') {
+    } else if (renderMode === 'hsv') {
       bands = [vizHsvH, vizHsvS, vizHsvV];
-    } else if (vizType === 'continuous' || vizType === 'intervals') {
-      bands = [vizType === 'continuous' ? vizContBand : vizIntBand];
+    } else if (renderMode === 'continuous' || renderMode === 'intervals') {
+      bands = [renderMode === 'continuous' ? vizContBand : vizIntBand];
     }
     return [...new Set(bands.filter(Boolean))];
   }
@@ -689,7 +693,7 @@
 
   function applyStretchResult(ranges) {
     const pick = (band) => (band && ranges[band]) || null;
-    if (vizType === 'rgb') {
+    if (renderMode === 'rgb') {
       const r = pick(vizRgbR),
         g = pick(vizRgbG),
         b = pick(vizRgbB);
@@ -705,7 +709,7 @@
         vizRgbBMin = fmtVal(b.min);
         vizRgbBMax = fmtVal(b.max);
       }
-    } else if (vizType === 'hsv') {
+    } else if (renderMode === 'hsv') {
       const h = pick(vizHsvH),
         s = pick(vizHsvS),
         v = pick(vizHsvV);
@@ -721,13 +725,13 @@
         vizHsvVMin = fmtVal(v.min);
         vizHsvVMax = fmtVal(v.max);
       }
-    } else if (vizType === 'continuous') {
+    } else if (renderMode === 'continuous') {
       const c = pick(vizContBand);
       if (c) {
         vizContMin = fmtVal(c.min);
         vizContMax = fmtVal(c.max);
       }
-    } else if (vizType === 'intervals') {
+    } else if (renderMode === 'intervals') {
       const range = pick(vizIntBand);
       if (range) {
         vizIntStart = fmtVal(range.min);
@@ -786,7 +790,7 @@
     }
     if (vizSourceType === 'featureCollection') {
       applyVisParams({
-        vizType: p.type,
+        type: p.type,
         property: p.type === 'uniform' ? '' : p.bands?.[0],
         color: p.color,
         fillColor: p.fillColor,
@@ -829,7 +833,7 @@
       categorical: 'categorical',
       intervals: 'intervals',
     };
-    vp.vizType = typeMap[p.type] || 'rgb';
+    vp.type = typeMap[p.type] || 'rgb';
     applyVisParams(vp);
   }
 
@@ -1103,10 +1107,10 @@
       msg.data.requestId === propertyRangeRequestId) {
       vizComputing = false;
       if (msg.data.range) {
-        if (vizType === 'continuous') {
+        if (renderMode === 'continuous') {
           vizContMin = fmtVal(msg.data.range.min);
           vizContMax = fmtVal(msg.data.range.max);
-        } else if (vizType === 'intervals') {
+        } else if (renderMode === 'intervals') {
           vizIntStart = fmtVal(msg.data.range.min);
           vizIntMax = fmtVal(msg.data.range.max);
           generateIntRows();
@@ -1223,12 +1227,12 @@
         {/if}
         <select
           class="viz-type-select"
-          bind:value={vizType}
+          bind:value={renderMode}
           onchange={() => {
             if (vizSourceType === 'featureCollection') {
               invalidatePropertyRange();
             }
-            if (vizType === 'intervals' && vizIntRows.length === 0) {
+            if (renderMode === 'intervals' && vizIntRows.length === 0) {
               generateIntRows();
             }
           }}
@@ -1256,7 +1260,7 @@
       <!-- Body -->
       <div class="viz-editor-body">
         {#if vizSourceType === 'featureCollection'}
-          {#if vizType === 'categorical'}
+          {#if renderMode === 'categorical'}
             <div class="viz-channel-row">
               <span class="viz-channel-label">Property</span>
               <select class="viz-band-select" bind:value={vizProperty} onchange={markRangeCustom}>
@@ -1264,7 +1268,7 @@
                 {#each vizBands as property}<option value={property}>{property}</option>{/each}
               </select>
             </div>
-          {:else if vizType === 'uniform'}
+          {:else if renderMode === 'uniform'}
             <div class="viz-channel-row">
               <label class="viz-channel-label" for="viz-vector-stroke">Stroke</label>
               <ColorPicker bind:value={vizVectorColor} label="Stroke colour" />
@@ -1283,7 +1287,7 @@
           {#if vizVectorNotice}<p class="viz-stretch-error">{vizVectorNotice}</p>{/if}
         {/if}
         <!-- RGB -->
-        {#if vizType === 'rgb'}
+        {#if renderMode === 'rgb'}
           <div class="viz-channel-row">
             <span class="viz-channel-label">Red</span>
             <select class="viz-band-select" bind:value={vizRgbR}>
@@ -1364,7 +1368,7 @@
           </div>
         {/if}
         <!-- HSV -->
-        {#if vizType === 'hsv'}
+        {#if renderMode === 'hsv'}
           <div class="viz-channel-row">
             <span class="viz-channel-label">Hue</span>
             <select class="viz-band-select" bind:value={vizHsvH}>
@@ -1425,7 +1429,7 @@
           {@render stretchRow()}
         {/if}
         <!-- Continuous -->
-        {#if vizType === 'continuous'}
+        {#if renderMode === 'continuous'}
           <div class="viz-channel-row">
             {#if vizSourceType === 'image'}
               <span class="viz-channel-label">Band</span>
@@ -1536,7 +1540,7 @@
           >
         {/if}
         <!-- Categorical -->
-        {#if vizType === 'categorical'}
+        {#if renderMode === 'categorical'}
           {#if vizSourceType === 'image'}
             <div class="viz-channel-row">
               <span class="viz-channel-label">Band</span>
@@ -1617,7 +1621,7 @@
                 <input
                   type="text"
                   class="viz-legend-name"
-                  placeholder="Name"
+                  placeholder={row.value || 'Name'}
                   bind:value={row.label}
                 />
                 <button
@@ -1641,7 +1645,7 @@
           >
         {/if}
         <!-- Intervals -->
-        {#if vizType === 'intervals'}
+        {#if renderMode === 'intervals'}
           <div class="viz-channel-row">
             {#if vizSourceType === 'image'}
               <span class="viz-channel-label">Band</span>
@@ -1757,7 +1761,7 @@
                 <input
                   type="text"
                   class="viz-legend-name"
-                  placeholder="Name"
+                  placeholder={row.upper || 'Name'}
                   aria-label="Name for interval {index + 1}"
                   bind:value={row.label}
                 />

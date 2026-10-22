@@ -39,7 +39,7 @@ describe('feature collection preview', () => {
     };
 
     assert.equal(styleFeatureCollection('table', style, ee), image);
-    assert.equal(style['vizType'], 'uniform');
+    assert.equal(style['type'], 'uniform');
     assert.deepEqual(applied, {
       color: '008000',
       fillColor: 'FFFFFF',

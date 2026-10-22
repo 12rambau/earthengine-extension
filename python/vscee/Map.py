@@ -59,11 +59,15 @@ def addLayer(ee_object, vis_params=None, name=None, shown=True, opacity=1.0):
         ee_object: An ee.Image, ee.ImageCollection, ee.FeatureCollection,
                    ee.Feature, or ee.Geometry.
         vis_params: Visualization parameters dict.
+            The optional type selects the rendering mode explicitly. Otherwise
+            breaks select intervals, values select categorical, palette selects
+            continuous, and an image defaults to RGB or a collection to uniform.
+            HSV requires an explicit type because it also uses three bands.
             Image:
                 RGB: Provide three bands in red, green, blue order. Scalar
                     min/max values apply to all three; three-value sequences
                     set per-band ranges. Optional gamma adjusts midtones.
-                HSV: Set vizType to "hsv" with three
+                HSV: Set type to "hsv" with three
                     hue/saturation/value bands and per-band min/max. The bands
                     are normalized to 0–1, then converted to RGB.
                 Continuous: Provide one band, min, max, and a palette of at
@@ -90,7 +94,7 @@ def addLayer(ee_object, vis_params=None, name=None, shown=True, opacity=1.0):
             Direct parameters style the layer; use default to select a stored
             visualization preset by name or index instead. Stored presets are
             string properties added to an image or collection with set(),
-            using visualization_<number>_<keyword> keys.
+            using visualization_<number>_<keyword> keys with a required type.
         name: Layer name. Auto-generated if not provided.
         shown: Whether the layer is visible.
         opacity: Layer opacity (0 to 1).
@@ -101,7 +105,7 @@ def addLayer(ee_object, vis_params=None, name=None, shown=True, opacity=1.0):
                 "bands": ["B4", "B3", "B2"], "min": 0, "max": 3000,
                 "gamma": 1.2}, "Sentinel-2 RGB")
         Image > HSV:
-            Map.addLayer(image, {"vizType": "hsv",
+            Map.addLayer(image, {"type": "hsv",
                 "bands": ["hsv_hue", "hsv_saturation", "hsv_value"],
                 "min": [0, 0, 0], "max": [1, 1, 1]}, "HSV")
         Image > Continuous:
@@ -123,16 +127,16 @@ def addLayer(ee_object, vis_params=None, name=None, shown=True, opacity=1.0):
                 "Features")
         FeatureCollection > Continuous:
             Map.addLayer(features, {"property": "population",
-                "vizType": "continuous", "min": 0, "max": 1000,
+                "type": "continuous", "min": 0, "max": 1000,
                 "palette": ["#ffffcc", "#800026"]}, "Population")
         FeatureCollection > Categorical:
             Map.addLayer(features, {"property": "classification",
-                "vizType": "categorical", "values": [0, 1, 2],
+                "type": "categorical", "values": [0, 1, 2],
                 "palette": ["#2b83ba", "#abdda4", "#d7191c"],
                 "labels": ["Other", "Crop", "Water"]}, "Crop Classes")
         FeatureCollection > Intervals:
             Map.addLayer(features, {"property": "elevation",
-                "vizType": "intervals", "breaks": [0, 500, 1500, 3000],
+                "type": "intervals", "breaks": [0, 500, 1500, 3000],
                 "palette": ["#2b83ba", "#abdda4", "#d7191c"]},
                 "Elevation intervals")
         Stored image preset:
@@ -154,6 +158,42 @@ def addLayer(ee_object, vis_params=None, name=None, shown=True, opacity=1.0):
     if not isinstance(ee_object, (ee.Image, ee.FeatureCollection)):
         print(f"[Map] Unsupported object type: {type(ee_object)}")
         return
+
+    if "default" in vis_params:
+        if len(vis_params) != 1:
+            raise ValueError(
+                "A preset selector cannot be combined with direct visualization parameters."
+            )
+        render_type = "auto"
+    elif not vis_params:
+        render_type = "auto"
+    else:
+        if "values" in vis_params and "breaks" in vis_params:
+            raise ValueError("Use either categorical values or interval breaks, not both.")
+        if "type" in vis_params:
+            render_type = vis_params["type"]
+        elif "breaks" in vis_params:
+            render_type = "intervals"
+        elif "values" in vis_params:
+            render_type = "categorical"
+        elif "palette" in vis_params:
+            render_type = "continuous"
+        else:
+            render_type = "uniform" if source_type == "featureCollection" else "rgb"
+        allowed_types = (
+            {"uniform", "continuous", "categorical", "intervals"}
+            if source_type == "featureCollection" else
+            {"rgb", "hsv", "continuous", "categorical", "intervals"}
+        )
+        if not isinstance(render_type, str) or render_type not in allowed_types:
+            raise ValueError(f"Unsupported {source_type} visualization type: {render_type!r}.")
+        if ("values" in vis_params and render_type != "categorical") or (
+            "breaks" in vis_params and render_type != "intervals"
+        ) or (
+            "palette" in vis_params and render_type in {"rgb", "hsv", "uniform"}
+        ):
+            raise ValueError("The visualization type conflicts with its parameters.")
+    vis_params["type"] = render_type
 
     _post(
         "addLayer",

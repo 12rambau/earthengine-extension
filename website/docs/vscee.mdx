@@ -86,6 +86,13 @@ Add a layer to the map. `ee_object` accepts one of these two groups:
   features and geometries are converted to a FeatureCollection automatically. Supports
   uniform styling and property-based continuous, categorical, and interval rendering.
 
+The `type` parameter is optional for direct calls: `breaks` select intervals, `values`
+select categorical, and a palette without either selects continuous. Otherwise images
+use RGB and feature collections use uniform styling. Set `type` explicitly for HSV,
+which cannot be distinguished from RGB by its bands. An empty dictionary selects the
+first stored preset for an image when available; `default` selects a stored preset for
+either source. Stored `visualization_<number>_type` properties still require a type.
+
 The map's visualization editor exposes the same modes and parameters.
 
 #### Image
@@ -114,13 +121,13 @@ See the [Image > RGB preset in the Interactive Map](./editors/interactive-map#rg
 
 ##### HSV
 
-HSV rendering interprets three bands as hue, saturation, and value. Set `vizType` to
+HSV rendering interprets three bands as hue, saturation, and value. Set `type` to
 `"hsv"`, provide three `bands`, and set the corresponding `min` and `max` ranges. Each
 band is normalized to 0–1 before the image is converted to RGB for display.
 
 ```python
 Map.addLayer(image, {
-	"vizType": "hsv",
+	"type": "hsv",
 	"bands": ["hue", "saturation", "value"],
 	"min": [0, 0, 0],
 	"max": [1, 1, 1],
@@ -132,8 +139,8 @@ See the [Image > HSV preset in the Interactive Map](./editors/interactive-map#hs
 ##### Continuous
 
 Continuous rendering maps values in one band through a color palette. Provide the band,
-a `min` and `max` stretch range, and at least two palette colors. Do not set `vizType`
-for image palettes; a palette without `values` or `breaks` is interpreted as continuous.
+a `min` and `max` stretch range, and at least two palette colors. A palette without
+`values` or `breaks` is interpreted as continuous, with no `type` required.
 
 ```python
 Map.addLayer(image, {
@@ -156,7 +163,7 @@ the map scale. Values not listed are masked.
 ```python
 Map.addLayer(image, {
 	"bands": ["classification"],
-	"vizType": "categorical",
+	"type": "categorical",
 	"values": [0, 1, 2],
 	"palette": ["#2b83ba", "#abdda4", "#d7191c"],
 	"labels": ["Other", "Crop", "Water"],
@@ -176,7 +183,7 @@ in the map scale.
 ```python
 Map.addLayer(image, {
 	"bands": ["temperature"],
-	"vizType": "intervals",
+	"type": "intervals",
 	"breaks": [-10, 0, 10, 20],
 	"palette": ["#2b83ba", "#abdda4", "#d7191c"],
 	"labels": ["Below freezing", "Cool", "Warm"],
@@ -216,7 +223,7 @@ Map a numeric property between `min` and `max` through a palette of at least two
 ```python
 Map.addLayer(features, {
 	"property": "population",
-	"vizType": "continuous",
+	"type": "continuous",
 	"min": 0,
 	"max": 1000,
 	"palette": ["#ffffcc", "#800026"],
@@ -235,7 +242,7 @@ drawn.
 ```python
 Map.addLayer(features, {
 	"property": "classification",
-	"vizType": "categorical",
+	"type": "categorical",
 	"values": [0, 1, 2],
 	"palette": ["#2b83ba", "#abdda4", "#d7191c"],
 	"labels": ["Other", "Crop", "Water"],
@@ -254,7 +261,7 @@ bound and excludes its upper bound.
 ```python
 Map.addLayer(features, {
 	"property": "elevation",
-	"vizType": "intervals",
+	"type": "intervals",
 	"breaks": [0, 500, 1500, 3000],
 	"palette": ["#2b83ba", "#abdda4", "#d7191c"],
 }, "Elevation intervals")

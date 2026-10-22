@@ -132,7 +132,7 @@ export function selectSepalViz(vizs: SepalViz[], selector: string | number): Sep
 /** Converts a vector preset to the styling parameters used by FeatureCollection map layers. */
 export function vectorVisParams(preset: SepalViz): Record<string, unknown> {
   return {
-    vizType: preset.type,
+    type: preset.type,
     ...(preset.type === 'uniform'
       ? { color: preset.color, fillColor: preset.fillColor, width: preset.width }
       : {
@@ -311,7 +311,7 @@ export function resolveSepalViz(
         image: (image as any).select([viz.bands[0]]).sldStyle(sld),
         visParams: {},
         displayVisParams: {
-          vizType: 'intervals',
+          type: 'intervals',
           bands: viz.bands,
           breaks,
           palette,
@@ -343,7 +343,7 @@ export function resolveSepalViz(
       const stacked = ee.Image.cat(bandImages);
       // Keep the original channel metadata and mode for editing and scale display.
       // Pixel samples are converted back from the rendered RGB tiles.
-      const displayVisParams: Record<string, unknown> = { vizType: 'hsv', bands: viz.bands };
+      const displayVisParams: Record<string, unknown> = { type: 'hsv', bands: viz.bands };
       if (finalMin.length > 0) {
         displayVisParams['min'] = finalMin.length === 1 ? finalMin[0] : finalMin;
       }

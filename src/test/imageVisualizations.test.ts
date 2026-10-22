@@ -74,7 +74,7 @@ describe('feature collection visualization presets', () => {
       visualization_0_labels: 'Land,Water',
     });
     assert.deepEqual(vectorVisParams(preset), {
-      vizType: 'categorical',
+      type: 'categorical',
       property: 'landcover',
       palette: ['00FF00', '0000FF'],
       min: undefined,
@@ -178,7 +178,7 @@ describe('explicit image visualizations', () => {
 });
 
 describe('explicit FeatureCollection visualizations', () => {
-  it('styles listed numeric or string classes without requiring vizType and omits unlisted features', () => {
+  it('styles listed numeric or string classes without requiring type and omits unlisted features', () => {
     const features = [
       { classification: 0 },
       { classification: 2 },
@@ -253,7 +253,7 @@ describe('explicit FeatureCollection visualizations', () => {
 
     const stringParams = {
       property: 'classification',
-      vizType: 'categorical',
+      type: 'categorical',
       values: [parseCategoryValue('01', true), 'forest', 'water', parseCategoryValue('', true)],
       palette: ['#abdda4', '#2b83ba', '#d7191c', '#ffff00'],
     };
@@ -311,7 +311,7 @@ describe('explicit FeatureCollection visualizations', () => {
         collection,
         {
           property: 'population',
-          vizType: 'continuous',
+          type: 'continuous',
           min: 0,
           max: 100,
           palette: ['#2b83ba', '#d7191c'],
@@ -325,7 +325,7 @@ describe('explicit FeatureCollection visualizations', () => {
         collection,
         {
           property: 'population',
-          vizType: 'intervals',
+          type: 'intervals',
           breaks: [0, 50, 100],
           palette: ['#2b83ba', '#d7191c'],
         },

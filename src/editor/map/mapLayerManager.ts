@@ -11,11 +11,64 @@ import { getImageVisualizations } from '../../shared/imageVisualizations.js';
 import { getAsset } from '../../sidebar/assets/eeApiClient.js';
 import { EeLayer } from './eeLayer.js';
 import {
+  type SepalViz,
   parseSepalVisualizations,
   resolveSepalViz,
   selectSepalViz,
   vectorVisParams,
 } from '../../shared/sepalViz.js';
+
+type VisualizationType = SepalViz['type'] | 'auto';
+
+function visualizationType(
+  visParams: Record<string, unknown>,
+  sourceType: 'image' | 'featureCollection',
+): VisualizationType {
+  const hasDefault = 'default' in visParams;
+  const hasValues = visParams['values'] != null;
+  const hasBreaks = visParams['breaks'] != null;
+  const hasPalette = visParams['palette'] != null;
+  const explicit = visParams['type'];
+  const hasDirectParams = Object.entries(visParams).some(
+    ([key, value]) => key !== 'type' && key !== 'default' && value != null,
+  );
+  if (hasDefault && hasDirectParams) {
+    throw new Error('A preset selector cannot be combined with direct visualization parameters.');
+  }
+  if (hasValues && hasBreaks) {
+    throw new Error('Use either categorical values or interval breaks, not both.');
+  }
+  let inferred: VisualizationType;
+  if (hasDefault || Object.keys(visParams).length === 0) {
+    inferred = 'auto';
+  } else if (hasBreaks) {
+    inferred = 'intervals';
+  } else if (hasValues) {
+    inferred = 'categorical';
+  } else if (hasPalette) {
+    inferred = 'continuous';
+  } else {
+    inferred = sourceType === 'image' ? 'rgb' : 'uniform';
+  }
+  const renderType = explicit ?? inferred;
+  const allowed =
+    sourceType === 'image'
+      ? ['rgb', 'hsv', 'continuous', 'categorical', 'intervals', 'auto']
+      : ['uniform', 'continuous', 'categorical', 'intervals', 'auto'];
+  if (typeof renderType !== 'string' || !allowed.includes(renderType)) {
+    throw new Error(`Unsupported ${sourceType} visualization type: ${String(renderType)}.`);
+  }
+  if (
+    (hasDefault && renderType !== 'auto') ||
+    (renderType === 'auto' && hasDirectParams) ||
+    (hasValues && renderType !== 'categorical') ||
+    (hasBreaks && renderType !== 'intervals') ||
+    (hasPalette && ['rgb', 'hsv', 'uniform'].includes(renderType))
+  ) {
+    throw new Error('The visualization type conflicts with its parameters.');
+  }
+  return renderType as VisualizationType;
+}
 
 /** Converts explicit discrete image visualization parameters into a rendered image and legend. */
 export function resolveDiscreteImageVis(
@@ -23,10 +76,10 @@ export function resolveDiscreteImageVis(
   image: unknown,
   ee: any,
 ): ReturnType<typeof resolveSepalViz> {
-  if ('values' in visParams && 'breaks' in visParams) {
+  if (visParams['values'] != null && visParams['breaks'] != null) {
     throw new Error('Use either categorical values or interval breaks, not both.');
   }
-  const categorical = 'values' in visParams;
+  const categorical = visParams['values'] != null;
   if (categorical) {
     const values = visParams['values'];
     const palette = visParams['palette'];
@@ -90,7 +143,14 @@ function resolveHsvImageVis(
     throw new Error('HSV visualization requires three bands and finite min/max values.');
   }
   return resolveSepalViz(
-    { index: -1, name: 'Custom HSV', type: 'hsv', bands, min: min as number[], max: max as number[] },
+    {
+      index: -1,
+      name: 'Custom HSV',
+      type: 'hsv',
+      bands,
+      min: min as number[],
+      max: max as number[],
+    },
     image,
     ee,
   );
@@ -129,7 +189,7 @@ export function styleFeatureCollection(
   const collection = ee.FeatureCollection(source);
   const {
     property,
-    vizType: requestedType,
+    type: requestedType,
     palette,
     values,
     breaks,
@@ -138,7 +198,7 @@ export function styleFeatureCollection(
     strokeWidth,
     ...style
   } = visParams;
-  const vizType = requestedType ?? ('values' in visParams ? 'categorical' : undefined);
+  const renderType = requestedType ?? ('values' in visParams ? 'categorical' : undefined);
   const base = {
     color: style['color'] ?? '000000',
     fillColor: style['fillColor'] ?? '00000000',
@@ -147,12 +207,12 @@ export function styleFeatureCollection(
     ...(style['pointShape'] ? { pointShape: style['pointShape'] } : {}),
     ...(style['lineType'] ? { lineType: style['lineType'] } : {}),
   };
-  if (!property && !palette && (!vizType || vizType === 'uniform')) {
+  if (!property && !palette && (!renderType || renderType === 'uniform')) {
     return collection.style(base);
   }
   if (
     typeof property !== 'string' ||
-    !['continuous', 'categorical', 'intervals'].includes(String(vizType))
+    !['continuous', 'categorical', 'intervals'].includes(String(renderType))
   ) {
     throw new Error('Select one property and a supported vector visualization mode.');
   }
@@ -161,7 +221,7 @@ export function styleFeatureCollection(
   }
 
   let colors = palette;
-  if (vizType === 'continuous') {
+  if (renderType === 'continuous') {
     if (typeof min !== 'number' || typeof max !== 'number' || min >= max || palette.length < 2) {
       throw new Error('A continuous palette requires at least two colors and increasing min/max.');
     }
@@ -184,7 +244,7 @@ export function styleFeatureCollection(
         .join('');
     });
   } else if (
-    vizType === 'categorical' &&
+    renderType === 'categorical' &&
     (!Array.isArray(values) ||
       values.length !== palette.length ||
       new Set(values).size !== values.length ||
@@ -195,7 +255,7 @@ export function styleFeatureCollection(
   ) {
     throw new Error('Categorical values must be distinct strings or numbers, with one color each.');
   } else if (
-    vizType === 'intervals' &&
+    renderType === 'intervals' &&
     (!Array.isArray(breaks) ||
       breaks.length !== palette.length + 1 ||
       breaks.some(
@@ -209,20 +269,20 @@ export function styleFeatureCollection(
     throw new Error('Palette colors must be hex RGB.');
   }
   const colorList = ee.List(colors.map((color) => String(color).replace(/^#/, '')));
-  const valueList = vizType === 'categorical' ? ee.List(values) : null;
-  const intervalBreaks = vizType === 'intervals' ? (breaks as number[]) : [];
+  const valueList = renderType === 'categorical' ? ee.List(values) : null;
+  const intervalBreaks = renderType === 'intervals' ? (breaks as number[]) : [];
   const matching =
-    vizType === 'categorical'
+    renderType === 'categorical'
       ? collection.filter(ee.Filter.inList(property, valueList))
       : collection;
   const styled = matching.map((feature: any) => {
     const value = feature.get(property);
     const number =
-      vizType === 'categorical'
+      renderType === 'categorical'
         ? null
         : ee.Number(ee.Algorithms.If(ee.Algorithms.IsEqual(value, null), 0, value));
     let index: any;
-    if (vizType === 'continuous') {
+    if (renderType === 'continuous') {
       index = number
         .subtract(min)
         .divide(ee.Number(max).subtract(min))
@@ -230,7 +290,7 @@ export function styleFeatureCollection(
         .round()
         .max(0)
         .min(255);
-    } else if (vizType === 'categorical') {
+    } else if (renderType === 'categorical') {
       index = valueList.indexOf(value);
     } else {
       index = ee.Number(-1);
@@ -250,7 +310,7 @@ export function styleFeatureCollection(
       ee.Algorithms.If(
         ee.Algorithms.IsEqual(value, null),
         fallback,
-        vizType === 'continuous'
+        renderType === 'continuous'
           ? color
           : ee.Algorithms.If(ee.Number(index).gte(0), color, fallback),
       ),
@@ -341,12 +401,18 @@ export class MapLayerManager {
     const image = ee.Deserializer.fromJSON(payload.serialized);
 
     if (payload.sourceType === 'featureCollection') {
+      visualizationType(payload.visParams, 'featureCollection');
       const visParams = await this.resolveVectorVisParams(
         image,
         payload.visParams,
         payload.assetName,
       );
-      const url = await getMapIdUrl(styleFeatureCollection(image, visParams, ee), {});
+      const renderType = visualizationType(visParams, 'featureCollection');
+      const normalized = {
+        ...visParams,
+        type: renderType === 'auto' ? 'uniform' : renderType,
+      };
+      const url = await getMapIdUrl(styleFeatureCollection(image, normalized, ee), {});
       const layerIndex = existingLayer?.index ?? this.layerCount++;
       this._layers.set(
         layerIndex,
@@ -355,7 +421,7 @@ export class MapLayerManager {
           payload.serialized,
           payload.name,
           url,
-          visParams,
+          normalized,
           payload.shown,
           payload.opacity,
           payload.assetName,
@@ -370,28 +436,32 @@ export class MapLayerManager {
           shown: payload.shown,
           opacity: payload.opacity,
           layerIndex,
-          visParams,
+          visParams: normalized,
         },
       });
       return;
     }
 
     const rawVisParams = payload.visParams ?? {};
+    const requestedType = visualizationType(rawVisParams, 'image');
     const hasDefault = 'default' in rawVisParams;
     // If explicit vis-params (min/max/bands/etc.) are present, skip SEPAL lookup.
-    const hasExplicitViz = !hasDefault && Object.keys(rawVisParams).length > 0;
+    const hasExplicitViz = requestedType !== 'auto';
 
     let resolvedImage: unknown = image;
     // Strip the non-EE `default` key so it is never forwarded to visualize().
-    let resolvedVisParams: Record<string, unknown> = hasDefault ? {} : rawVisParams;
+    let resolvedVisParams: Record<string, unknown> = { ...rawVisParams };
+    delete resolvedVisParams['type'];
+    delete resolvedVisParams['default'];
     let displayVisParams: Record<string, unknown> | undefined;
+    let resolvedType = requestedType;
 
-    if (rawVisParams['vizType'] === 'hsv') {
+    if (requestedType === 'hsv') {
       const resolved = resolveHsvImageVis(rawVisParams, image, ee);
       resolvedImage = resolved.image;
       resolvedVisParams = resolved.visParams;
       displayVisParams = resolved.displayVisParams;
-    } else if ('breaks' in rawVisParams || 'values' in rawVisParams) {
+    } else if (requestedType === 'categorical' || requestedType === 'intervals') {
       const resolved = resolveDiscreteImageVis(rawVisParams, image, ee);
       resolvedImage = resolved.image;
       resolvedVisParams = resolved.visParams;
@@ -406,6 +476,7 @@ export class MapLayerManager {
           const selector = hasDefault ? (rawVisParams['default'] as string | number) : 0;
           const viz = selectSepalViz(vizs, selector);
           if (viz) {
+            resolvedType = viz.type;
             const resolved = resolveSepalViz(viz, image, ee);
             resolvedImage = resolved.image;
             resolvedVisParams = resolved.visParams;
@@ -438,7 +509,10 @@ export class MapLayerManager {
 
     const url = await getMapIdUrl(resolvedImage, resolvedVisParams);
 
-    const finalVisParams = displayVisParams ?? resolvedVisParams;
+    const finalVisParams = {
+      ...(displayVisParams ?? resolvedVisParams),
+      type: resolvedType === 'auto' ? 'rgb' : resolvedType,
+    };
     // Commit only now: on failure above the previous entry stays usable for replay().
     const layerIndex = existingLayer?.index ?? this.layerCount++;
     this._layers.set(
@@ -848,12 +922,17 @@ export class MapLayerManager {
         visParams,
         layer.assetName,
       );
-      const url = await getMapIdUrl(styleFeatureCollection(image, resolvedVisParams, ee), {});
+      const renderType = visualizationType(resolvedVisParams, 'featureCollection');
+      const normalized = {
+        ...resolvedVisParams,
+        type: renderType === 'auto' ? 'uniform' : renderType,
+      };
+      const url = await getMapIdUrl(styleFeatureCollection(image, normalized, ee), {});
       layer.url = url;
-      layer.visParams = resolvedVisParams;
+      layer.visParams = normalized;
       postMessage({
         type: 'replaceTileLayer',
-        data: { layerIndex, url, visParams: resolvedVisParams },
+        data: { layerIndex, url, visParams: normalized },
       });
       return;
     }
@@ -861,6 +940,7 @@ export class MapLayerManager {
     let resolvedImage: unknown = image;
     let resolvedVisParams: Record<string, unknown> = {};
     let displayVisParams: Record<string, unknown> | undefined;
+    let selectedType: string | undefined;
 
     // Preset selection
     if (config.preset) {
@@ -869,6 +949,7 @@ export class MapLayerManager {
       const vizs = await getImageVisualizations(props, undefined, layer.assetName);
       const viz = selectSepalViz(vizs, preset.name);
       if (viz) {
+        selectedType = viz.type;
         const resolved = resolveSepalViz(viz, image, ee);
         resolvedImage = resolved.image;
         resolvedVisParams = resolved.visParams;
@@ -876,27 +957,27 @@ export class MapLayerManager {
       }
     } else {
       // Custom viz config
-      const vizType = config.vizType as string;
+      const renderType = config.type as string;
       const bands = (config.bands as string[]) || [];
       const min = config.min as number[];
       const max = config.max as number[];
 
-      if (vizType === 'rgb') {
+      if (renderType === 'rgb') {
         resolvedVisParams = { bands, min, max };
         if (config.gamma) {
           resolvedVisParams.gamma = config.gamma;
         }
-      } else if (vizType === 'hsv') {
+      } else if (renderType === 'hsv') {
         const resolved = resolveHsvImageVis(config, image, ee);
         resolvedImage = resolved.image;
         resolvedVisParams = resolved.visParams;
         displayVisParams = resolved.displayVisParams;
-      } else if (vizType === 'continuous') {
+      } else if (renderType === 'continuous') {
         resolvedVisParams = { bands, min: min?.[0], max: max?.[0] };
         if (config.palette) {
           resolvedVisParams.palette = config.palette;
         }
-      } else if (vizType === 'categorical') {
+      } else if (renderType === 'categorical') {
         const viz = {
           index: -1,
           name: 'Custom Classification',
@@ -910,7 +991,7 @@ export class MapLayerManager {
         resolvedImage = resolved.image;
         resolvedVisParams = resolved.visParams;
         displayVisParams = resolved.displayVisParams;
-      } else if (vizType === 'intervals') {
+      } else if (renderType === 'intervals') {
         const viz = {
           index: -1,
           name: 'Custom Intervals',
@@ -928,7 +1009,10 @@ export class MapLayerManager {
     }
 
     const url = await getMapIdUrl(resolvedImage, resolvedVisParams);
-    const finalVisParams = displayVisParams ?? resolvedVisParams;
+    const finalVisParams = {
+      ...(displayVisParams ?? resolvedVisParams),
+      type: selectedType ?? config.type,
+    };
     layer.url = url;
     layer.visParams = finalVisParams;
 

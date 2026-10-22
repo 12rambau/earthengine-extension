@@ -450,13 +450,13 @@ export class MapPanel extends EditorPanel {
           visParams:
             preset.type === 'uniform'
               ? {
-                  vizType: 'uniform',
+                  type: 'uniform',
                   color: preset.color,
                   fillColor: preset.fillColor,
                   width: preset.width,
                 }
               : {
-                  vizType: preset.type,
+                  type: preset.type,
                   property: preset.bands[0],
                   palette: preset.palette,
                   min: preset.min?.[0],
