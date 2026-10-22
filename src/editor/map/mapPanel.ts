@@ -457,7 +457,7 @@ export class MapPanel extends EditorPanel {
                 }
               : {
                   type: preset.type,
-                  property: preset.bands[0],
+                  property: preset.property,
                   palette: preset.palette,
                   min: preset.min?.[0],
                   max: preset.max?.[0],

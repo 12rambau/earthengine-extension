@@ -25,6 +25,8 @@ export interface SepalViz {
   type: 'rgb' | 'hsv' | 'continuous' | 'categorical' | 'intervals' | 'uniform';
   /** Band names or numbers (as strings). */
   bands: string[];
+  /** Feature property used by non-uniform vector visualizations. */
+  property?: string;
   min?: number[];
   max?: number[];
   palette?: string[];
@@ -80,6 +82,7 @@ export function parseSepalVisualizations(props: Record<string, unknown>): SepalV
       name: fields['name'] ?? `Visualization ${idx}`,
       type,
       bands: fields['bands'] ? splitComma(fields['bands']) : [],
+      property: fields['property'],
       min: fields['min'] ? parseFloats(fields['min']) : undefined,
       max: fields['max'] ? parseFloats(fields['max']) : undefined,
       palette: fields['palette'] ? splitComma(fields['palette']) : undefined,
@@ -136,7 +139,7 @@ export function vectorVisParams(preset: SepalViz): Record<string, unknown> {
     ...(preset.type === 'uniform'
       ? { color: preset.color, fillColor: preset.fillColor, width: preset.width }
       : {
-          property: preset.bands[0],
+          property: preset.property,
           palette: preset.palette,
           min: preset.min?.[0],
           max: preset.max?.[0],

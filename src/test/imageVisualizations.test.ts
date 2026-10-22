@@ -50,6 +50,7 @@ describe('feature collection visualization presets', () => {
         name: 'Demo collection',
         type: 'uniform',
         bands: [],
+        property: undefined,
         min: undefined,
         max: undefined,
         palette: undefined,
@@ -68,7 +69,7 @@ describe('feature collection visualization presets', () => {
   it('maps property-based presets to the vector renderer parameters', () => {
     const [preset] = parseSepalVisualizations({
       visualization_0_type: 'categorical',
-      visualization_0_bands: 'landcover',
+      visualization_0_property: 'landcover',
       visualization_0_palette: '00FF00,0000FF',
       visualization_0_values: '1,2',
       visualization_0_labels: 'Land,Water',

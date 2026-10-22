@@ -841,7 +841,8 @@ export class MapLayerManager {
       index: number;
       name: string;
       type: string;
-      bands: string[];
+      bands?: string[];
+      property?: string;
       min?: number[];
       max?: number[];
       palette?: string[];
@@ -877,7 +878,9 @@ export class MapLayerManager {
         index: v.index,
         name: v.name,
         type: v.type,
-        bands: v.bands,
+        ...(layer.sourceType === 'featureCollection'
+          ? { property: v.property }
+          : { bands: v.bands }),
         min: v.min,
         max: v.max,
         palette: v.palette,

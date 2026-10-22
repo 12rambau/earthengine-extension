@@ -791,7 +791,7 @@
     if (vizSourceType === 'featureCollection') {
       applyVisParams({
         type: p.type,
-        property: p.type === 'uniform' ? '' : p.bands?.[0],
+        property: p.type === 'uniform' ? '' : p.property,
         color: p.color,
         fillColor: p.fillColor,
         width: p.width,
