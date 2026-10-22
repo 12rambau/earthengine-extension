@@ -25,6 +25,8 @@ export interface SepalViz {
   type: 'rgb' | 'hsv' | 'continuous' | 'categorical' | 'intervals' | 'uniform';
   /** Band names or numbers (as strings). */
   bands: string[];
+  /** Feature property used by non-uniform vector visualizations. */
+  property?: string;
   min?: number[];
   max?: number[];
   palette?: string[];
@@ -80,6 +82,7 @@ export function parseSepalVisualizations(props: Record<string, unknown>): SepalV
       name: fields['name'] ?? `Visualization ${idx}`,
       type,
       bands: fields['bands'] ? splitComma(fields['bands']) : [],
+      property: fields['property'],
       min: fields['min'] ? parseFloats(fields['min']) : undefined,
       max: fields['max'] ? parseFloats(fields['max']) : undefined,
       palette: fields['palette'] ? splitComma(fields['palette']) : undefined,
@@ -132,11 +135,11 @@ export function selectSepalViz(vizs: SepalViz[], selector: string | number): Sep
 /** Converts a vector preset to the styling parameters used by FeatureCollection map layers. */
 export function vectorVisParams(preset: SepalViz): Record<string, unknown> {
   return {
-    vizType: preset.type,
+    type: preset.type,
     ...(preset.type === 'uniform'
       ? { color: preset.color, fillColor: preset.fillColor, width: preset.width }
       : {
-          property: preset.bands[0],
+          property: preset.property,
           palette: preset.palette,
           min: preset.min?.[0],
           max: preset.max?.[0],
@@ -311,7 +314,7 @@ export function resolveSepalViz(
         image: (image as any).select([viz.bands[0]]).sldStyle(sld),
         visParams: {},
         displayVisParams: {
-          vizType: 'intervals',
+          type: 'intervals',
           bands: viz.bands,
           breaks,
           palette,
@@ -343,7 +346,7 @@ export function resolveSepalViz(
       const stacked = ee.Image.cat(bandImages);
       // Keep the original channel metadata and mode for editing and scale display.
       // Pixel samples are converted back from the rendered RGB tiles.
-      const displayVisParams: Record<string, unknown> = { vizType: 'hsv', bands: viz.bands };
+      const displayVisParams: Record<string, unknown> = { type: 'hsv', bands: viz.bands };
       if (finalMin.length > 0) {
         displayVisParams['min'] = finalMin.length === 1 ? finalMin[0] : finalMin;
       }
