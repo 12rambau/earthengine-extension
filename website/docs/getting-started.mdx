@@ -49,10 +49,12 @@ follow the
 [Earth Engine authentication instructions](https://developers.google.com/earth-engine/guides/auth).
 Use a Cloud project registered for Earth Engine in the `ee.Initialize` call below.
 
-:::warning Make sure the account and Cloud project used by Python match the active Earth
+:::warning
+Make sure the account and Cloud project used by Python match the active Earth
 Engine profile in VS Code. If they differ, authenticate again with the matching account
 and use that profile's project in `ee.Initialize`; otherwise the extension may not be
-able to display your Python results. :::
+able to display your Python results.
+:::
 
 Create a Python file (or a notebook cell) and run this example. It computes the trend in
 nighttime lights and clips the result to France:
@@ -91,6 +93,11 @@ Map.centerObject(france, zoom=5)
 Running the code sends the layer to the Earth Engine map editor, which opens
 automatically. For a standalone script, run it with the selected environment's Python
 interpreter. For a notebook, run the cell with that environment selected as the kernel.
+
+<div className="screenshot-pair">
+  <img className="screenshot--light" src={useBaseUrl('/img/light/python-map.png')} />
+  <img className="screenshot--dark" src={useBaseUrl('/img/dark/python-map.png')} />
+</div>
 
 Once a profile is active, you can also use the **Assets** view to locate an image,
 collection, table, or folder. Open its context menu to preview metadata or manage it.
