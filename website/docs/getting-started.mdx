@@ -26,6 +26,57 @@ Credentials are stored in `~/.config/earthengine/profiles/`, matching the locati
 
 ## First workflow
 
-Once a profile is active, use the **Assets** view to locate an image, collection, table, or folder. Open its context menu to preview metadata or manage it. Use the **Export Tasks** and **Import Tasks** views to follow operations started elsewhere in Earth Engine.
+You can run Earth Engine Python code from either a `.py` file or a notebook. In both cases, use a Python environment with the Earth Engine API and `vscee` installed:
+
+```bash
+python -m venv .venv
+source .venv/bin/activate
+python -m pip install earthengine-api vscee
+```
+
+On Windows, activate the environment with `.venv\Scripts\activate` instead. For a notebook, select this same environment as its kernel; install `ipykernel` in it if it is not already available.
+
+The VS Code profile and the Earth Engine Python API both need valid authentication. In the terminal for the selected Python environment, run `earthengine authenticate` and follow the [Earth Engine authentication instructions](https://developers.google.com/earth-engine/guides/auth). Use a Cloud project registered for Earth Engine in the `ee.Initialize` call below.
+
+:::warning
+Make sure the account and Cloud project used by Python match the active Earth Engine profile in VS Code. If they differ, authenticate again with the matching account and use that profile's project in `ee.Initialize`; otherwise the extension may not be able to display your Python results.
+:::
+
+Create a Python file (or a notebook cell) and run this example. It computes the trend in nighttime lights and clips the result to France:
+
+```python
+import ee
+from vscee import Map
+
+ee.Initialize(project="YOUR_CLOUD_PROJECT")  # Replace with your Earth Engine Cloud project.
+
+france = (
+    ee.FeatureCollection("FAO/GAUL/2015/level0")
+    .filter(ee.Filter.eq("ADM0_NAME", "France"))
+    .geometry()
+)
+
+def create_time_band(image):
+    year = ee.Date(image.get("system:time_start")).get("year").subtract(1991)
+    return ee.Image(year).byte().rename("year").addBands(image)
+
+lights = (
+    ee.ImageCollection("NOAA/DMSP-OLS/NIGHTTIME_LIGHTS")
+    .select("stable_lights")
+    .map(create_time_band)
+)
+
+trend = lights.reduce(ee.Reducer.linearFit()).clip(france)
+Map.addLayer(
+    trend,
+    {"min": 0, "max": [0.18, 20, -0.18], "bands": ["scale", "offset", "scale"]},
+    "Stable lights trend",
+)
+Map.centerObject(france, zoom=5)
+```
+
+Running the code sends the layer to the Earth Engine map editor, which opens automatically. For a standalone script, run it with the selected environment's Python interpreter. For a notebook, run the cell with that environment selected as the kernel.
+
+Once a profile is active, you can also use the **Assets** view to locate an image, collection, table, or folder. Open its context menu to preview metadata or manage it. Use the **Export Tasks** and **Import Tasks** views to follow operations started elsewhere in Earth Engine.
 
 For a complete orientation, read [Extension overview](./overview).
