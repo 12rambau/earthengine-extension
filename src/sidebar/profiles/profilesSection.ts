@@ -86,15 +86,6 @@ export class ProfilesSection extends SidebarSection {
         '# prior to execute this code make sure you are authenticated',
         `ee.Initialize(project="${project}")`,
         '',
-        '# TODO: remove',
-        '# check server connection',
-        'print(ee.Number(1).getInfo())',
-        '',
-        '# Example: add a layer to the VS Code map',
-        '# image = ee.Image("COPERNICUS/S2_SR_HARMONIZED/20200101T100319_20200101T100321_T32TQM")',
-        '# Map.addLayer(image, {"bands": ["B4", "B3", "B2"], "min": 0, "max": 3000}, "RGB")',
-        '# Map.centerObject(image, zoom=10)',
-        '',
       ].join('\n');
       const file = path.join(os.tmpdir(), `vscee-script-${randomUUID()}.py`);
       await fs.promises.writeFile(file, content, { encoding: 'utf8', flag: 'wx', mode: 0o600 });
