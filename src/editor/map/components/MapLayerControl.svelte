@@ -1,5 +1,6 @@
 <!-- MapLayerControl: layer list, visibility, opacity and visualization actions -->
 <script>
+  import { onDestroy } from 'svelte';
   import MapSlider from './MapSlider.svelte';
   import { vscode } from '../../../shared/vscode.ts';
   import {
@@ -19,13 +20,21 @@
     nativeLayerControl,
   } = $props();
 
-  function toggleLayerVisibility(index) {
+  const pendingVisibilityClicks = new Map();
+
+  onDestroy(() => {
+    for (const timer of pendingVisibilityClicks.values()) {
+      clearTimeout(timer);
+    }
+  });
+
+  function setLayerVisibility(index, shown) {
     const entry = overlays[index];
-    if (!entry) {
+    if (!entry || entry.visible === shown) {
       return;
     }
-    entry.visible = !entry.visible;
-    if (entry.visible) {
+    entry.visible = shown;
+    if (shown) {
       entry.tileLayer.addTo(map);
     } else {
       map.removeLayer(entry.tileLayer);
@@ -33,8 +42,43 @@
     overlays = overlays;
     vscode.postMessage({
       type: 'layerVisibility',
-      data: { layerIndex: entry.layerIndex, shown: entry.visible },
+      data: { layerIndex: entry.layerIndex, shown },
     });
+  }
+
+  function toggleLayerVisibility(index) {
+    const entry = overlays[index];
+    if (entry) {
+      setLayerVisibility(index, !entry.visible);
+    }
+  }
+
+  function queueLayerVisibility(layerIndex) {
+    clearTimeout(pendingVisibilityClicks.get(layerIndex));
+    pendingVisibilityClicks.set(
+      layerIndex,
+      setTimeout(() => {
+        pendingVisibilityClicks.delete(layerIndex);
+        toggleLayerVisibility(overlays.findIndex((entry) => entry.layerIndex === layerIndex));
+      }, 300),
+    );
+  }
+
+  function toggleExclusiveVisibility(layerIndex) {
+    for (const timer of pendingVisibilityClicks.values()) {
+      clearTimeout(timer);
+    }
+    pendingVisibilityClicks.clear();
+    const index = overlays.findIndex((entry) => entry.layerIndex === layerIndex);
+    if (index < 0) {
+      return;
+    }
+    const showAll =
+      overlays[index].visible &&
+      !overlays.some((entry) => entry.layerIndex !== layerIndex && entry.visible);
+    for (let i = 0; i < overlays.length; i++) {
+      setLayerVisibility(i, showAll || i === index);
+    }
   }
 
   function setLayerOpacity(index, value) {
@@ -167,8 +211,9 @@
               <button
                 class="map-btn layer-vis-btn"
                 class:active={entry.visible}
-                title="Toggle visibility"
-                onclick={() => toggleLayerVisibility(index)}
+                title="Toggle visibility; double-click to isolate or restore layers"
+                onclick={() => queueLayerVisibility(entry.layerIndex)}
+                ondblclick={() => toggleExclusiveVisibility(entry.layerIndex)}
               >
                 <svg
                   viewBox="0 0 24 24"
