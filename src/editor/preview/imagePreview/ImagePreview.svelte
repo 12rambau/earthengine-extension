@@ -117,6 +117,7 @@
 
     <PreviewSystemMetadata {metadata} {editing} {saving} bind:startTime bind:endTime
       idLabel="Image ID" oncopy={copyAssetId} copyTitle="Copy image ID" copied={assetIdCopied}
+      onviewmap={() => vscode.postMessage({ type: 'viewOnMap' })}
       {parentCollection} onopenparent={openParentCollection}
       fileSize={data.fileSize} countLabel="Number of Bands" count={data.bandCount}
       lastModified={data.lastModified} />

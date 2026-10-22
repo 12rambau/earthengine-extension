@@ -103,6 +103,7 @@
 
     <PreviewSystemMetadata {metadata} {editing} {saving} bind:startTime bind:endTime
       idLabel="ImageCollection ID" oncopy={copyAssetId} copyTitle="Copy image collection ID" copied={assetIdCopied}
+      onviewmap={() => vscode.postMessage({ type: 'viewOnMap' })}
       fileSize={data.fileSize} countLabel="Number of Images" count={data.imageCount}
       lastModified={data.lastModified} />
   {/snippet}
@@ -146,8 +147,15 @@
                       <span class="action-dot"
                         ><i class="codicon codicon-circle-small-filled"></i></span
                       >
+                      <span class="action-dot"
+                        ><i class="codicon codicon-circle-small-filled"></i></span
+                      >
                     </span>
                     <span class="action-btns">
+                      <button class="action-btn" title="View on Map" aria-label="View on Map"
+                        onclick={() => vscode.postMessage({ type: 'viewImageOnMap', name: img.name })}>
+                        <i class="codicon codicon-map"></i>
+                      </button>
                       <button
                         class="action-btn"
                         title="Open preview"

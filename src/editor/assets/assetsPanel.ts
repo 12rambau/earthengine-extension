@@ -44,6 +44,7 @@ const ACTION_COMMANDS: Record<string, string> = {
   delete: 'earthengine.deleteAsset',
   move: 'earthengine.moveAsset',
   copy: 'earthengine.copyAsset',
+  viewOnMap: 'earthengine.viewAssetOnMap',
   createFolder: 'earthengine.createFolder',
 };
 
@@ -389,11 +390,21 @@ export async function openAssetsPanel(
       } else if (msg.type === 'action') {
         const command = ACTION_COMMANDS[msg.action];
         if (command) {
+          if (
+            msg.action === 'viewOnMap' &&
+            !allAssets.some(
+              (asset) =>
+                asset.name === msg.name &&
+                ['IMAGE', 'IMAGE_COLLECTION', 'TABLE'].includes(asset.type),
+            )
+          ) {
+            return;
+          }
           // Fire and forget so the operation survives panel disposal
           void (async () => {
             try {
               const done = await vscode.commands.executeCommand<boolean>(command, msg.name);
-              if (done && !disposed) {
+              if (done && msg.action !== 'viewOnMap' && !disposed) {
                 await loadAndStream(currentParentPath);
               }
             } catch (err) {

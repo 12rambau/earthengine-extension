@@ -543,7 +543,7 @@ export class MapPanel extends EditorPanel {
     if (type === 'IMAGE') {
       eeObject = eeAny.Image(assetId);
     } else if (type === 'IMAGE_COLLECTION') {
-      eeObject = eeAny.ImageCollection(assetId).mosaic();
+      eeObject = eeAny.ImageCollection(assetId).limit(100).mosaic();
     } else if (type === 'TABLE') {
       eeObject = eeAny.FeatureCollection(assetId);
     } else {
@@ -557,7 +557,7 @@ export class MapPanel extends EditorPanel {
         name,
         shown,
         opacity,
-        assetName: type === 'IMAGE' || type === 'TABLE' ? assetName : undefined,
+        assetName,
         sourceType: type === 'TABLE' ? 'featureCollection' : 'image',
       },
       (m) => this.post(m),
@@ -650,6 +650,24 @@ export class MapPanel extends EditorPanel {
 
     context.subscriptions.push(
       vscode.commands.registerCommand('earthengine.openMap', () => this.open()),
+      vscode.commands.registerCommand(
+        'earthengine.viewAssetOnMap',
+        async (arg: string | { asset: { name: string } }) => {
+          const name = typeof arg === 'string' ? arg : arg?.asset?.name;
+          if (typeof name !== 'string' || !name) {
+            return false;
+          }
+          try {
+            await this.addAssetLayer(name, {}, name);
+            return true;
+          } catch (err) {
+            vscode.window.showErrorMessage(
+              `Failed to view asset on map: ${err instanceof Error ? err.message : String(err)}`,
+            );
+            return false;
+          }
+        },
+      ),
       vscode.commands.registerCommand('earthengine.map.setGoogleMapsApiKey', () =>
         this.setApiKey(),
       ),

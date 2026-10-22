@@ -494,9 +494,20 @@
           <span class="action-dot"><i class="codicon codicon-circle-small-filled"></i></span>
           <span class="action-dot"><i class="codicon codicon-circle-small-filled"></i></span>
           <span class="action-dot"><i class="codicon codicon-circle-small-filled"></i></span>
+          {#if a.type === 'IMAGE' || a.type === 'IMAGE_COLLECTION' || a.type === 'TABLE'}
+            <span class="action-dot"><i class="codicon codicon-circle-small-filled"></i></span>
+          {/if}
           <span class="action-dot"><i class="codicon codicon-circle-small-filled"></i></span>
         </span>
         <span class="action-btns">
+          {#if a.type === 'IMAGE' || a.type === 'IMAGE_COLLECTION' || a.type === 'TABLE'}
+            <TableButton class="action-btn" variant="ghost" size="compact"
+              title="View on Map" aria-label="View on Map"
+              disabled={bulkBusy || isBusy(a.name)}
+              onclick={() => assetAction('viewOnMap', a.name)}>
+              <i class="codicon codicon-map"></i>
+            </TableButton>
+          {/if}
           {#if a.type === 'FOLDER'}
             <TableButton
               class="action-btn"

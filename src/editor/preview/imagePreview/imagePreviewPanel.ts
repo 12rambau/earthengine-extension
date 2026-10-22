@@ -76,6 +76,8 @@ export function openImagePreview(asset: EEAsset, accessToken: string): void {
         sendThumbnail(asset, accessToken, panel, bandStatsPromise, true);
       } else if (msg.type === 'copyAssetId') {
         await vscode.env.clipboard.writeText(asset.name);
+      } else if (msg.type === 'viewOnMap') {
+        await vscode.commands.executeCommand('earthengine.viewAssetOnMap', asset.name);
       } else if (msg.type === 'openParentCollection') {
         await openParentCollection(asset, accessToken);
       } else if (msg.type === 'saveMetadata') {

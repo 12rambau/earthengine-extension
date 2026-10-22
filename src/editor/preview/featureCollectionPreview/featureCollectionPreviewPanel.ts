@@ -75,6 +75,10 @@ export async function openFeatureCollectionPreview(
         sendThumbnail(asset, panel);
       } else if (msg.type === 'thumbnailFallback') {
         sendThumbnail(asset, panel, true);
+      } else if (msg.type === 'copyAssetId') {
+        await vscode.env.clipboard.writeText(asset.name);
+      } else if (msg.type === 'viewOnMap') {
+        await vscode.commands.executeCommand('earthengine.viewAssetOnMap', asset.name);
       } else if (msg.type === 'saveMetadata') {
         await savePreviewMetadata(msg, asset, accessToken, panel);
       }

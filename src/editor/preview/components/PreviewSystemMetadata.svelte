@@ -4,7 +4,7 @@
 
   let {
     metadata, editing, saving, startTime = $bindable(), endTime = $bindable(),
-    idLabel, oncopy, copyTitle, copied = false, parentCollection, onopenparent,
+    idLabel, oncopy, copyTitle, copied = false, onviewmap, parentCollection, onopenparent,
     fileSize, countLabel, count, lastModified,
   } = $props();
 </script>
@@ -18,6 +18,11 @@
         <button class="copy-id-btn" title={copyTitle} onclick={oncopy}>
           <i class="codicon" class:codicon-copy={!copied} class:codicon-check={copied}></i>
         </button>
+        {#if onviewmap}
+          <button class="copy-id-btn" title="View on Map" aria-label="View on Map" onclick={onviewmap}>
+            <i class="codicon codicon-map"></i>
+          </button>
+        {/if}
       {:else}
         {metadata.assetId}
       {/if}
