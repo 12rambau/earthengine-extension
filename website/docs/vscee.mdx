@@ -2,11 +2,18 @@
 sidebar_position: 9
 ---
 
+import useBaseUrl from '@docusaurus/useBaseUrl';
+
 # vscee Python library
 
 **vscee** is the Python package that bridges scripts to the extension's [Interactive Map](./editors/interactive-map) editor. It ships from the `python/` folder of this repository and is published to PyPI so it can be installed independently of the extension.
 
 Earth Engine graphs are built and serialised entirely on the Python side with the official `earthengine-api`; `vscee` only forwards the serialised object and display parameters to the extension over a local HTTP bridge. The extension host resolves tile URLs with the EE JS client — the Python side never calls `getMapId` or resolves tiles itself.
+
+<div className="screenshot-pair">
+  <img className="screenshot--light" src={useBaseUrl('/img/light/python-map.png')} alt="Interactive Map editor" />
+  <img className="screenshot--dark" src={useBaseUrl('/img/dark/python-map.png')} alt="Interactive Map editor" />
+</div>
 
 ## Install
 

@@ -475,6 +475,42 @@ export class MapPanel extends EditorPanel {
     await this.setView({ lat: 46.6, lon: 2.4, zoom: 6 });
   }
 
+  /** Adds the DMSP-OLS stable-lights trend demo layer. */
+  private async demoNightLights(): Promise<void> {
+    await this.open();
+
+    const eeAny = (await ensureEe()) as any;
+    const france = eeAny
+      .FeatureCollection('FAO/GAUL/2015/level0')
+      .filter(eeAny.Filter.eq('ADM0_NAME', 'France'));
+    const region = france.geometry();
+    const collection = eeAny
+      .ImageCollection('NOAA/DMSP-OLS/NIGHTTIME_LIGHTS')
+      .select('stable_lights')
+      .map((image: any) => {
+        const year = eeAny.Date(image.get('system:time_start')).get('year').subtract(1991);
+        return eeAny.Image(year).byte().addBands(image);
+      });
+    const trend = collection.reduce(eeAny.Reducer.linearFit()).clip(region);
+    const serialized = eeAny.Serializer.toJSON(trend) as string;
+
+    await this.layerManager.add(
+      {
+        serialized,
+        visParams: {
+          min: 0,
+          max: [0.18, 20, -0.18],
+          bands: ['scale', 'offset', 'scale'],
+        },
+        name: 'stable lights trend',
+        shown: true,
+        opacity: 1.0,
+      },
+      (m) => this.post(m),
+    );
+    await this.setView({ lat: 46.6, lon: 2.4, zoom: 6 });
+  }
+
   // ==================================================================
   // PROGRAMMATIC API
   // ==================================================================
@@ -623,6 +659,9 @@ export class MapPanel extends EditorPanel {
       vscode.commands.registerCommand('earthengine.map.demo', () => this.demo()),
       vscode.commands.registerCommand('earthengine.map.demoCollection', () =>
         this.demoCollection(),
+      ),
+      vscode.commands.registerCommand('earthengine.map.demoNightLights', () =>
+        this.demoNightLights(),
       ),
       this,
     );
