@@ -31,7 +31,7 @@
     const minArr = Array.isArray(vp.min) ? vp.min : [vp.min != null ? vp.min : 0];
     const maxArr = Array.isArray(vp.max) ? vp.max : [vp.max != null ? vp.max : 1];
     const isCategorical = (Array.isArray(vp.values) && vp.values.length > 0) ||
-      (vp.vizType === 'intervals' && Array.isArray(vp.breaks));
+      (vp.type === 'intervals' && Array.isArray(vp.breaks));
 
     if (isCategorical) {
       return {
@@ -66,11 +66,11 @@
       return {
         type: 'gradient',
         rows: bands.map((band, index) => ({
-          label: vp.vizType === 'hsv' ? ['H', 'S', 'V'][index] : band || 'b' + index,
-          band: vp.vizType === 'hsv' ? band : null,
+          label: vp.type === 'hsv' ? ['H', 'S', 'V'][index] : band || 'b' + index,
+          band: vp.type === 'hsv' ? band : null,
           min: minArr[index] != null ? minArr[index] : minArr[0],
           max: maxArr[index] != null ? maxArr[index] : maxArr[0],
-          gradient: vp.vizType === 'hsv'
+          gradient: vp.type === 'hsv'
             ? hsvGradients[index]
             : `linear-gradient(to right, #000, ${channels[index]})`,
         })),
@@ -224,7 +224,7 @@
     const minArr = Array.isArray(vp.min) ? vp.min : [vp.min != null ? vp.min : 0];
     const maxArr = Array.isArray(vp.max) ? vp.max : [vp.max != null ? vp.max : 1];
     const isCategorical = (Array.isArray(vp.values) && vp.values.length > 0) ||
-      (vp.vizType === 'intervals' && Array.isArray(vp.breaks));
+      (vp.type === 'intervals' && Array.isArray(vp.breaks));
     const parts = [];
 
     if (isCategorical && palette) {
@@ -245,7 +245,7 @@
         parts.push(text);
       }
     } else if (bands.length === 3) {
-      const channelValues = vp.vizType === 'hsv'
+      const channelValues = vp.type === 'hsv'
         ? rgbToHsv(rgba)
         : [rgba[0] / 255, rgba[1] / 255, rgba[2] / 255];
       for (let index = 0; index < 3; index++) {

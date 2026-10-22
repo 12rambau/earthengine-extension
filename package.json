@@ -350,6 +350,11 @@
         "icon": "$(beaker)"
       },
       {
+        "command": "earthengine.map.demoNightLights",
+        "title": "Earth Engine: Demo – Night Lights Trend",
+        "icon": "$(beaker)"
+      },
+      {
         "command": "earthengine.openCommunityDatasetPanel",
         "title": "Open Details",
         "icon": "$(open-preview)",
@@ -363,8 +368,8 @@
         "displayName": "Run Earth Engine Command",
         "icon": "$(globe)",
         "canBeReferencedInPrompt": true,
-        "userDescription": "Run Earth Engine extension commands (open the map, create a temporary Python script, open panels, refresh trees).",
-        "modelDescription": "Runs a command of the Earth Engine VS Code extension. Use it to open the map, show the visualization demo, show the demo feature collection, open panels, refresh trees, or create a temporary Python script. Commands: earthengine.openMap, earthengine.map.demo, earthengine.map.demoCollection, earthengine.openAssetsPanel, earthengine.openExportTasksPanel, earthengine.openImportTasksPanel, earthengine.refreshAssets, earthengine.refreshTasks, earthengine.refreshDatasets, earthengine.refreshDocs, earthengine.showAuthStatus, earthengine.newScript (creates and opens a temporary .py file for the active profile and returns its path). For Earth Engine analysis, load the earthengine-python skill and write the analysis in a Python script.",
+        "userDescription": "Run Earth Engine extension commands (open the map, show image, feature collection, and night-lights demos, create a temporary Python script, open panels, and refresh trees).",
+        "modelDescription": "Runs a command of the Earth Engine VS Code extension. Use it to open the map, show the visualization demo, show the demo feature collection, render the night-lights trend, open panels, refresh trees, or create a temporary Python script. Commands: earthengine.openMap, earthengine.map.demo, earthengine.map.demoCollection, earthengine.map.demoNightLights, earthengine.openAssetsPanel, earthengine.openExportTasksPanel, earthengine.openImportTasksPanel, earthengine.refreshAssets, earthengine.refreshTasks, earthengine.refreshDatasets, earthengine.refreshDocs, earthengine.showAuthStatus, earthengine.newScript (creates and opens a temporary .py file for the active profile and returns its path). For Earth Engine analysis, load the earthengine-python skill and write the analysis in a Python script.",
         "tags": [
           "earthengine",
           "map",
@@ -379,6 +384,7 @@
                 "earthengine.openMap",
                 "earthengine.map.demo",
                 "earthengine.map.demoCollection",
+                "earthengine.map.demoNightLights",
                 "earthengine.openAssetsPanel",
                 "earthengine.openExportTasksPanel",
                 "earthengine.openImportTasksPanel",
@@ -899,6 +905,7 @@
     "watch-tests": "tsc -p . -w --outDir out",
     "pretest": "npm run compile-tests && npm run compile && npm run lint",
     "check-types": "tsc --noEmit",
+    "check-mdx-format": "prettier --check \"**/*.mdx\"",
     "lint": "eslint src",
     "test": "vscode-test",
     "release": "release-it",
@@ -907,6 +914,7 @@
   "lint-staged": {
     "*.{ts,svelte}": "eslint --fix",
     "*.{ts,svelte,json,css}": "prettier --write",
+    "*.mdx": "prettier --write",
     "*.py": [
       "ruff check --fix",
       "ruff format"
