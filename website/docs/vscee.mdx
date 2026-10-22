@@ -109,9 +109,9 @@ exposes the same modes and parameters.
 :::danger
 
 - `type` is optional for direct calls, but strongly recommended to make the intended
-    rendering mode explicit.
+  rendering mode explicit.
 - `labels` is optional for both categorical `values`/`palette` and interval
-    `breaks`/`palette`.
+  `breaks`/`palette`.
 - HSV cannot be inferred from its three bands: set `"type": "hsv"` explicitly.
 
 :::
@@ -144,8 +144,14 @@ Map.centerObject(image, zoom=6)
 ```
 
 <div className="screenshot-pair">
-  <img className="screenshot--light" src={useBaseUrl('/img/light/python-image-rgb.png')} />
-  <img className="screenshot--dark" src={useBaseUrl('/img/dark/python-image-rgb.png')} />
+  <img
+    className="screenshot--light"
+    src={useBaseUrl('/img/light/python-image-rgb.png')}
+  />
+  <img
+    className="screenshot--dark"
+    src={useBaseUrl('/img/dark/python-image-rgb.png')}
+  />
 </div>
 
 See [Image > RGB in the Interactive Map](./editors/interactive-map#rgb).
@@ -172,8 +178,14 @@ Map.centerObject(image, zoom=6)
 ```
 
 <div className="screenshot-pair">
-  <img className="screenshot--light" src={useBaseUrl('/img/light/python-image-hsv.png')} />
-  <img className="screenshot--dark" src={useBaseUrl('/img/dark/python-image-hsv.png')} />
+  <img
+    className="screenshot--light"
+    src={useBaseUrl('/img/light/python-image-hsv.png')}
+  />
+  <img
+    className="screenshot--dark"
+    src={useBaseUrl('/img/dark/python-image-hsv.png')}
+  />
 </div>
 
 See [Image > HSV in the Interactive Map](./editors/interactive-map#hsv).
@@ -201,8 +213,14 @@ Map.centerObject(image, zoom=6)
 ```
 
 <div className="screenshot-pair">
-  <img className="screenshot--light" src={useBaseUrl('/img/light/python-image-continuous.png')} />
-  <img className="screenshot--dark" src={useBaseUrl('/img/dark/python-image-continuous.png')} />
+  <img
+    className="screenshot--light"
+    src={useBaseUrl('/img/light/python-image-continuous.png')}
+  />
+  <img
+    className="screenshot--dark"
+    src={useBaseUrl('/img/dark/python-image-continuous.png')}
+  />
 </div>
 
 See [Image > Continuous in the Interactive Map](./editors/interactive-map#continuous).
@@ -248,8 +266,14 @@ Map.centerObject(image, zoom=6)
 ```
 
 <div className="screenshot-pair">
-  <img className="screenshot--light" src={useBaseUrl('/img/light/python-image-categorical.png')} />
-  <img className="screenshot--dark" src={useBaseUrl('/img/dark/python-image-categorical.png')} />
+  <img
+    className="screenshot--light"
+    src={useBaseUrl('/img/light/python-image-categorical.png')}
+  />
+  <img
+    className="screenshot--dark"
+    src={useBaseUrl('/img/dark/python-image-categorical.png')}
+  />
 </div>
 
 See [Image > Categorical in the Interactive Map](./editors/interactive-map#categorical).
@@ -284,8 +308,14 @@ Map.centerObject(image, zoom=6)
 ```
 
 <div className="screenshot-pair">
-  <img className="screenshot--light" src={useBaseUrl('/img/light/python-image-intervals.png')} />
-  <img className="screenshot--dark" src={useBaseUrl('/img/dark/python-image-intervals.png')} />
+  <img
+    className="screenshot--light"
+    src={useBaseUrl('/img/light/python-image-intervals.png')}
+  />
+  <img
+    className="screenshot--dark"
+    src={useBaseUrl('/img/dark/python-image-intervals.png')}
+  />
 </div>
 
 See [Image > Intervals in the Interactive Map](./editors/interactive-map#intervals).
@@ -316,11 +346,18 @@ Map.centerObject(features, zoom=6)
 ```
 
 <div className="screenshot-pair">
-  <img className="screenshot--light" src={useBaseUrl('/img/light/python-fc-uniform.png')} />
-  <img className="screenshot--dark" src={useBaseUrl('/img/dark/python-fc-uniform.png')} />
+  <img
+    className="screenshot--light"
+    src={useBaseUrl('/img/light/python-fc-uniform.png')}
+  />
+  <img
+    className="screenshot--dark"
+    src={useBaseUrl('/img/dark/python-fc-uniform.png')}
+  />
 </div>
 
-See [FeatureCollection > Uniform in the Interactive Map](./editors/interactive-map#uniform).
+See
+[FeatureCollection > Uniform in the Interactive Map](./editors/interactive-map#uniform).
 
 ##### Continuous
 
@@ -343,11 +380,18 @@ Map.centerObject(features, zoom=6)
 ```
 
 <div className="screenshot-pair">
-  <img className="screenshot--light" src={useBaseUrl('/img/light/python-fc-continuous.png')} />
-  <img className="screenshot--dark" src={useBaseUrl('/img/dark/python-fc-continuous.png')} />
+  <img
+    className="screenshot--light"
+    src={useBaseUrl('/img/light/python-fc-continuous.png')}
+  />
+  <img
+    className="screenshot--dark"
+    src={useBaseUrl('/img/dark/python-fc-continuous.png')}
+  />
 </div>
 
-See [FeatureCollection > Continuous in the Interactive Map](./editors/interactive-map#continuous-1).
+See
+[FeatureCollection > Continuous in the Interactive Map](./editors/interactive-map#continuous-1).
 
 ##### Categorical
 
@@ -393,11 +437,18 @@ Map.setCenter(2.4, 46.6, 6)
 ```
 
 <div className="screenshot-pair">
-  <img className="screenshot--light" src={useBaseUrl('/img/light/python-fc-categorical.png')} />
-  <img className="screenshot--dark" src={useBaseUrl('/img/dark/python-fc-categorical.png')} />
+  <img
+    className="screenshot--light"
+    src={useBaseUrl('/img/light/python-fc-categorical.png')}
+  />
+  <img
+    className="screenshot--dark"
+    src={useBaseUrl('/img/dark/python-fc-categorical.png')}
+  />
 </div>
 
-See [FeatureCollection > Categorical in the Interactive Map](./editors/interactive-map#categorical-1).
+See
+[FeatureCollection > Categorical in the Interactive Map](./editors/interactive-map#categorical-1).
 
 ##### Intervals
 
@@ -429,11 +480,18 @@ Map.setCenter(2.4, 46.6, 6)
 ```
 
 <div className="screenshot-pair">
-  <img className="screenshot--light" src={useBaseUrl('/img/light/python-fc-intervals.png')} />
-  <img className="screenshot--dark" src={useBaseUrl('/img/dark/python-fc-intervals.png')} />
+  <img
+    className="screenshot--light"
+    src={useBaseUrl('/img/light/python-fc-intervals.png')}
+  />
+  <img
+    className="screenshot--dark"
+    src={useBaseUrl('/img/dark/python-fc-intervals.png')}
+  />
 </div>
 
-See [FeatureCollection > Intervals in the Interactive Map](./editors/interactive-map#intervals-1).
+See
+[FeatureCollection > Intervals in the Interactive Map](./editors/interactive-map#intervals-1).
 
 ### Map.centerObject
 

@@ -164,8 +164,14 @@ or remove colors and edit each one with the picker or hex field; the ramp previe
 the resulting gradient.
 
 <div className="screenshot-pair">
-  <img className="screenshot--light" src={useBaseUrl('/img/light/image-continuous.png')} />
-  <img className="screenshot--dark" src={useBaseUrl('/img/dark/image-continuous.png')} />
+  <img
+    className="screenshot--light"
+    src={useBaseUrl('/img/light/image-continuous.png')}
+  />
+  <img
+    className="screenshot--dark"
+    src={useBaseUrl('/img/dark/image-continuous.png')}
+  />
 </div>
 
 ```json
@@ -191,8 +197,14 @@ classes found in the visible area. `values` and `palette` must have the same len
 optional `labels` provide display names. Pixels whose values are not listed are masked.
 
 <div className="screenshot-pair">
-  <img className="screenshot--light" src={useBaseUrl('/img/light/image-categorical.png')} />
-  <img className="screenshot--dark" src={useBaseUrl('/img/dark/image-categorical.png')} />
+  <img
+    className="screenshot--light"
+    src={useBaseUrl('/img/light/image-categorical.png')}
+  />
+  <img
+    className="screenshot--dark"
+    src={useBaseUrl('/img/dark/image-categorical.png')}
+  />
 </div>
 
 ```json
@@ -222,7 +234,10 @@ than `palette`. Each interval includes its lower bound and excludes its upper bo
 optional `labels` name the intervals in the scale.
 
 <div className="screenshot-pair">
-  <img className="screenshot--light" src={useBaseUrl('/img/light/image-intervals.png')} />
+  <img
+    className="screenshot--light"
+    src={useBaseUrl('/img/light/image-intervals.png')}
+  />
   <img className="screenshot--dark" src={useBaseUrl('/img/dark/image-intervals.png')} />
 </div>
 
@@ -241,10 +256,10 @@ For a direct Python call, see [Image > Intervals in vscee](../vscee#intervals).
 ## FeatureCollection
 
 Feature collections are rendered either with one uniform style or by mapping a feature
-property to colors. In stored presets, `property` names the selected feature property for
-property-based modes. Palette colors must be six-digit hex RGB values, with or without a
-leading `#`. In every vector mode, the editor also exposes **Width** for lines and
-**Point size** for points; these affect the rendered features independently of the
+property to colors. In stored presets, `property` names the selected feature property
+for property-based modes. Palette colors must be six-digit hex RGB values, with or
+without a leading `#`. In every vector mode, the editor also exposes **Width** for lines
+and **Point size** for points; these affect the rendered features independently of the
 property-to-color mapping.
 
 ### Uniform
@@ -310,7 +325,10 @@ with classes present in the visible area. Each distinct value needs one color; n
 become optional `labels` in the scale. Features with unlisted values are not drawn.
 
 <div className="screenshot-pair">
-  <img className="screenshot--light" src={useBaseUrl('/img/light/fc-categorical.png')} />
+  <img
+    className="screenshot--light"
+    src={useBaseUrl('/img/light/fc-categorical.png')}
+  />
   <img className="screenshot--dark" src={useBaseUrl('/img/dark/fc-categorical.png')} />
 </div>
 
