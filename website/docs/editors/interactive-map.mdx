@@ -325,8 +325,10 @@ become optional `labels` in the scale. Features with unlisted values are not dra
 }
 ```
 
-Stored `values` are parsed as numbers. To distinguish string values such as `"01"` from
-`"1"`, use the editor or pass them directly to `Map.addLayer` instead.
+Stored `values` are parsed as numbers. Values typed into new **Classes** rows are also
+converted when they look numeric: `"01"` and `"1"` both become `1`, so they cannot
+remain distinct. Use **Detect** to preserve existing string classes, or pass string
+values directly to `Map.addLayer`.
 
 For a direct Python call, see
 [FeatureCollection > Categorical in vscee](../vscee#categorical-1).
