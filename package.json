@@ -341,17 +341,17 @@
       },
       {
         "command": "earthengine.map.demo",
-        "title": "Earth Engine: Demo – Visualization Presets",
+        "title": "Earth Engine: Demo",
         "icon": "$(beaker)"
       },
       {
-        "command": "earthengine.map.demoCollection",
-        "title": "Earth Engine: Demo – Feature Collection",
+        "command": "earthengine.map.demoImage",
+        "title": "Earth Engine: Demo Image",
         "icon": "$(beaker)"
       },
       {
-        "command": "earthengine.map.demoNightLights",
-        "title": "Earth Engine: Demo – Night Lights Trend",
+        "command": "earthengine.map.demoFeatureCollection",
+        "title": "Earth Engine: Demo FeatureCollection",
         "icon": "$(beaker)"
       },
       {
@@ -368,8 +368,8 @@
         "displayName": "Run Earth Engine Command",
         "icon": "$(globe)",
         "canBeReferencedInPrompt": true,
-        "userDescription": "Run Earth Engine extension commands (open the map, show image, feature collection, and night-lights demos, create a temporary Python script, open panels, and refresh trees).",
-        "modelDescription": "Runs a command of the Earth Engine VS Code extension. Use it to open the map, show the visualization demo, show the demo feature collection, render the night-lights trend, open panels, refresh trees, or create a temporary Python script. Commands: earthengine.openMap, earthengine.map.demo, earthengine.map.demoCollection, earthengine.map.demoNightLights, earthengine.openAssetsPanel, earthengine.openExportTasksPanel, earthengine.openImportTasksPanel, earthengine.refreshAssets, earthengine.refreshTasks, earthengine.refreshDatasets, earthengine.refreshDocs, earthengine.showAuthStatus, earthengine.newScript (creates and opens a temporary .py file for the active profile and returns its path). For Earth Engine analysis, load the earthengine-python skill and write the analysis in a Python script.",
+        "userDescription": "Run Earth Engine extension commands (open the map, show the night-lights, image, and feature-collection demos, create a temporary Python script, open panels, and refresh trees).",
+        "modelDescription": "Runs a command of the Earth Engine VS Code extension. Use it to open the map, render the night-lights demo, show all demo image presets, show all demo feature-collection presets, open panels, refresh trees, or create a temporary Python script. Commands: earthengine.openMap, earthengine.map.demo, earthengine.map.demoImage, earthengine.map.demoFeatureCollection, earthengine.openAssetsPanel, earthengine.openExportTasksPanel, earthengine.openImportTasksPanel, earthengine.refreshAssets, earthengine.refreshTasks, earthengine.refreshDatasets, earthengine.refreshDocs, earthengine.showAuthStatus, earthengine.newScript (creates and opens a temporary .py file for the active profile and returns its path). For Earth Engine analysis, load the earthengine-python skill and write the analysis in a Python script.",
         "tags": [
           "earthengine",
           "map",
@@ -383,8 +383,8 @@
               "enum": [
                 "earthengine.openMap",
                 "earthengine.map.demo",
-                "earthengine.map.demoCollection",
-                "earthengine.map.demoNightLights",
+                "earthengine.map.demoImage",
+                "earthengine.map.demoFeatureCollection",
                 "earthengine.openAssetsPanel",
                 "earthengine.openExportTasksPanel",
                 "earthengine.openImportTasksPanel",

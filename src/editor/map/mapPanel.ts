@@ -374,7 +374,7 @@ export class MapPanel extends EditorPanel {
   }
 
   /** Adds one map layer for each visualization preset on the demo image. */
-  private async demo(): Promise<void> {
+  private async demoImage(): Promise<void> {
     await this.open();
 
     const eeAny = (await ensureEe()) as any;
@@ -423,7 +423,7 @@ export class MapPanel extends EditorPanel {
   }
 
   /** Adds one map layer for each supported visualization preset on the demo table. */
-  private async demoCollection(): Promise<void> {
+  private async demoFeatureCollection(): Promise<void> {
     await this.open();
 
     const eeAny = (await ensureEe()) as any;
@@ -476,7 +476,7 @@ export class MapPanel extends EditorPanel {
   }
 
   /** Adds the DMSP-OLS stable-lights trend demo layer. */
-  private async demoNightLights(): Promise<void> {
+  private async demo(): Promise<void> {
     await this.open();
 
     const eeAny = (await ensureEe()) as any;
@@ -657,11 +657,9 @@ export class MapPanel extends EditorPanel {
         this.clearApiKey(),
       ),
       vscode.commands.registerCommand('earthengine.map.demo', () => this.demo()),
-      vscode.commands.registerCommand('earthengine.map.demoCollection', () =>
-        this.demoCollection(),
-      ),
-      vscode.commands.registerCommand('earthengine.map.demoNightLights', () =>
-        this.demoNightLights(),
+      vscode.commands.registerCommand('earthengine.map.demoImage', () => this.demoImage()),
+      vscode.commands.registerCommand('earthengine.map.demoFeatureCollection', () =>
+        this.demoFeatureCollection(),
       ),
       this,
     );
