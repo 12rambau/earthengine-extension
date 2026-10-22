@@ -34,7 +34,8 @@ by the Earth Engine CLI.
 
 ## First workflow
 
-You can run Earth Engine Python code from either a `.py` file or a `.ipynb` notebook. In both cases, use a Python environment with the Earth Engine API and `vscee` installed:
+You can run Earth Engine Python code from either a `.py` file or a `.ipynb` notebook. In
+both cases, use a Python environment with the Earth Engine API and `vscee` installed:
 
 ```bash
 python -m venv .venv
@@ -42,13 +43,19 @@ source .venv/bin/activate
 python -m pip install earthengine-api vscee
 ```
 
-The VS Code profile and the Earth Engine Python API both need valid authentication. In the terminal for the selected Python environment, run `earthengine authenticate` and follow the [Earth Engine authentication instructions](https://developers.google.com/earth-engine/guides/auth). Use a Cloud project registered for Earth Engine in the `ee.Initialize` call below.
+The VS Code profile and the Earth Engine Python API both need valid authentication. In
+the terminal for the selected Python environment, run `earthengine authenticate` and
+follow the
+[Earth Engine authentication instructions](https://developers.google.com/earth-engine/guides/auth).
+Use a Cloud project registered for Earth Engine in the `ee.Initialize` call below.
 
-:::warning
-Make sure the account and Cloud project used by Python match the active Earth Engine profile in VS Code. If they differ, authenticate again with the matching account and use that profile's project in `ee.Initialize`; otherwise the extension may not be able to display your Python results.
-:::
+:::warning Make sure the account and Cloud project used by Python match the active Earth
+Engine profile in VS Code. If they differ, authenticate again with the matching account
+and use that profile's project in `ee.Initialize`; otherwise the extension may not be
+able to display your Python results. :::
 
-Create a Python file (or a notebook cell) and run this example. It computes the trend in nighttime lights and clips the result to France:
+Create a Python file (or a notebook cell) and run this example. It computes the trend in
+nighttime lights and clips the result to France:
 
 ```python
 import ee
@@ -81,8 +88,13 @@ Map.addLayer(
 Map.centerObject(france, zoom=5)
 ```
 
-Running the code sends the layer to the Earth Engine map editor, which opens automatically. For a standalone script, run it with the selected environment's Python interpreter. For a notebook, run the cell with that environment selected as the kernel.
+Running the code sends the layer to the Earth Engine map editor, which opens
+automatically. For a standalone script, run it with the selected environment's Python
+interpreter. For a notebook, run the cell with that environment selected as the kernel.
 
-Once a profile is active, you can also use the **Assets** view to locate an image, collection, table, or folder. Open its context menu to preview metadata or manage it. Use the **Export Tasks** and **Import Tasks** views to follow operations started elsewhere in Earth Engine.
+Once a profile is active, you can also use the **Assets** view to locate an image,
+collection, table, or folder. Open its context menu to preview metadata or manage it.
+Use the **Export Tasks** and **Import Tasks** views to follow operations started
+elsewhere in Earth Engine.
 
 For a complete orientation, read [Extension overview](./overview).

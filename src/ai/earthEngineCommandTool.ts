@@ -13,8 +13,7 @@ export const AI_COMMANDS: Readonly<Record<string, string>> = {
     'Open the map and add one layer for each visualization preset on projects/earthengine-extension/assets/demo-image.',
   'earthengine.map.demoFeatureCollection':
     'Open the map and add one layer for each visualization preset on projects/earthengine-extension/assets/demo-collection.',
-  'earthengine.map.demo':
-    'Open the map and render the NOAA DMSP-OLS stable-lights trend.',
+  'earthengine.map.demo': 'Open the map and render the NOAA DMSP-OLS stable-lights trend.',
   'earthengine.openAssetsPanel': 'Open the asset manager panel.',
   'earthengine.openExportTasksPanel': 'Open the export tasks table.',
   'earthengine.openImportTasksPanel': 'Open the import tasks table.',
