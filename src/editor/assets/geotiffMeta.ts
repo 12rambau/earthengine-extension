@@ -24,8 +24,10 @@ export async function readTiffBandCount(filePath: string): Promise<number> {
       throw new Error('Not a TIFF file.');
     }
     const le = byteOrder === 'II';
-    const readU16 = (buf: Buffer, offset: number) => (le ? buf.readUInt16LE(offset) : buf.readUInt16BE(offset));
-    const readU32 = (buf: Buffer, offset: number) => (le ? buf.readUInt32LE(offset) : buf.readUInt32BE(offset));
+    const readU16 = (buf: Buffer, offset: number) =>
+      le ? buf.readUInt16LE(offset) : buf.readUInt16BE(offset);
+    const readU32 = (buf: Buffer, offset: number) =>
+      le ? buf.readUInt32LE(offset) : buf.readUInt32BE(offset);
 
     if (readU16(header, 2) !== 42) {
       throw new Error('BigTIFF is not supported.');

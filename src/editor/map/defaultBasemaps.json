@@ -26,13 +26,13 @@
   "planLight": {
     "mapType": "roadmap",
     "styles": [
-      { "elementType": "geometry", "stylers": [{ "color": "#ffffff" }]},
-      { "elementType": "labels.text.fill", "stylers": [{ "color": "#616161" }]},
-      { "elementType": "labels.text.stroke", "stylers": [{ "color": "#ffffff" }]},
+      { "elementType": "geometry", "stylers": [{ "color": "#ffffff" }] },
+      { "elementType": "labels.text.fill", "stylers": [{ "color": "#616161" }] },
+      { "elementType": "labels.text.stroke", "stylers": [{ "color": "#ffffff" }] },
       {
         "featureType": "administrative.country",
         "elementType": "labels.text.fill",
-        "stylers": [{ "color": "#616161"}]
+        "stylers": [{ "color": "#616161" }]
       },
       {
         "featureType": "administrative.locality",
@@ -42,7 +42,7 @@
       {
         "featureType": "poi",
         "elementType": "geometry",
-        "stylers": [{ "color": "#eeeeee"}]
+        "stylers": [{ "color": "#eeeeee" }]
       },
       {
         "featureType": "poi",
@@ -72,7 +72,7 @@
       {
         "featureType": "road",
         "elementType": "labels.icon",
-        "stylers": [{ "visibility": "off"}]
+        "stylers": [{ "visibility": "off" }]
       },
       {
         "featureType": "road",
@@ -92,7 +92,7 @@
       {
         "featureType": "transit",
         "elementType": "geometry",
-        "stylers": [{ "color": "#e5e5e5"}]
+        "stylers": [{ "color": "#e5e5e5" }]
       },
       {
         "featureType": "transit",
@@ -102,7 +102,7 @@
       {
         "featureType": "water",
         "elementType": "geometry",
-        "stylers": [{ "color": "#eaeaea"}]
+        "stylers": [{ "color": "#eaeaea" }]
       },
       {
         "featureType": "water",

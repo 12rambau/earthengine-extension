@@ -152,7 +152,10 @@ export async function savePreviewMetadata(
     const sourcePolicy =
       destination !== previousName ? await getAssetIamPolicy(previousName, accessToken) : null;
     if (msg.sharing) {
-      applyAssetSharing(sourcePolicy ?? (await getAssetIamPolicy(previousName, accessToken)), msg.sharing);
+      applyAssetSharing(
+        sourcePolicy ?? (await getAssetIamPolicy(previousName, accessToken)),
+        msg.sharing,
+      );
     }
     const changed =
       startTime !== (asset.startTime ? new Date(asset.startTime).toISOString() : null) ||
