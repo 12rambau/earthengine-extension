@@ -130,6 +130,11 @@ The **Range** control can calculate bounds separately for each selected band fro
 visible pixels using a 1, 2, or 3 sigma stretch or a 90%, 98%, or 100% percentile
 stretch. Select **Custom** to edit the three ranges manually.
 
+<div className="screenshot-pair">
+  <img className="screenshot--light" src={useBaseUrl('/img/light/image-hsv.png')} />
+  <img className="screenshot--dark" src={useBaseUrl('/img/dark/image-hsv.png')} />
+</div>
+
 An HSV preset on an existing image stores the three bands and their ranges as string
 properties:
 
@@ -158,6 +163,11 @@ Under **Palette**, select a color scheme or set the number of colors (2–12). Y
 or remove colors and edit each one with the picker or hex field; the ramp preview shows
 the resulting gradient.
 
+<div className="screenshot-pair">
+  <img className="screenshot--light" src={useBaseUrl('/img/light/image-continuous.png')} />
+  <img className="screenshot--dark" src={useBaseUrl('/img/dark/image-continuous.png')} />
+</div>
+
 ```json
 {
   "visualization_1_name": "VIIRS NDVI - July 2026",
@@ -179,6 +189,11 @@ value, a display name, and a color editable with the picker or hex field. Add or
 rows, choose a **Scheme** to fill the colors, or use **Detect** to replace the rows with
 classes found in the visible area. `values` and `palette` must have the same length;
 optional `labels` provide display names. Pixels whose values are not listed are masked.
+
+<div className="screenshot-pair">
+  <img className="screenshot--light" src={useBaseUrl('/img/light/image-categorical.png')} />
+  <img className="screenshot--dark" src={useBaseUrl('/img/dark/image-categorical.png')} />
+</div>
 
 ```json
 {
@@ -205,6 +220,11 @@ bins, as the 23-interval example below does.
 The resulting `breaks` must be strictly increasing and contain exactly one more value
 than `palette`. Each interval includes its lower bound and excludes its upper bound;
 optional `labels` name the intervals in the scale.
+
+<div className="screenshot-pair">
+  <img className="screenshot--light" src={useBaseUrl('/img/light/image-intervals.png')} />
+  <img className="screenshot--dark" src={useBaseUrl('/img/dark/image-intervals.png')} />
+</div>
 
 ```json
 {
@@ -236,12 +256,17 @@ size** for points; the fill is transparent by default. Stored uniform presets us
 `color`, `fillColor`, and `width` as shown below, while direct `Map.addLayer` calls can
 also specify `pointSize`.
 
+<div className="screenshot-pair">
+  <img className="screenshot--light" src={useBaseUrl('/img/light/fc-uniform.png')} />
+  <img className="screenshot--dark" src={useBaseUrl('/img/dark/fc-uniform.png')} />
+</div>
+
 ```json
 {
   "visualization_0_name": "Boundaries",
   "visualization_0_type": "uniform",
-  "visualization_0_color": "#336699",
-  "visualization_0_fillColor": "#66aadd",
+  "visualization_0_color": "#008000",
+  "visualization_0_fillColor": "#FFFFFF",
   "visualization_0_width": "2"
 }
 ```
@@ -257,14 +282,19 @@ palette of at least two colors. Choose the **Property** and enter the bounds, or
 picker or hex fields. Values between the bounds blend between colors; the shared
 **Width** and **Point size** controls still apply.
 
+<div className="screenshot-pair">
+  <img className="screenshot--light" src={useBaseUrl('/img/light/fc-continuous.png')} />
+  <img className="screenshot--dark" src={useBaseUrl('/img/dark/fc-continuous.png')} />
+</div>
+
 ```json
 {
-  "visualization_1_name": "Population",
+  "visualization_1_name": "July 2026 mean daily precipitation",
   "visualization_1_type": "continuous",
-  "visualization_1_bands": "population",
+  "visualization_1_property": "july_mean_daily_precip_mm",
   "visualization_1_min": "0",
-  "visualization_1_max": "1000",
-  "visualization_1_palette": "#ffffcc,#800026"
+  "visualization_1_max": "3,
+  "visualization_1_palette": "#f7fbff", "#c6dbef", "#6baed6", "#2171b5", "#08306b"
 }
 ```
 
@@ -279,14 +309,19 @@ color. Add or remove rows, choose a **Scheme**, or use **Detect** to replace the
 with classes present in the visible area. Each distinct value needs one color; names
 become optional `labels` in the scale. Features with unlisted values are not drawn.
 
+<div className="screenshot-pair">
+  <img className="screenshot--light" src={useBaseUrl('/img/light/fc-categorical.png')} />
+  <img className="screenshot--dark" src={useBaseUrl('/img/dark/fc-categorical.png')} />
+</div>
+
 ```json
 {
-  "visualization_2_name": "Crop classes",
+  "visualization_2_name": "CORINE majority land cover - 2018",
   "visualization_2_type": "categorical",
-  "visualization_2_bands": "classification",
-  "visualization_2_values": "0,1,2",
-  "visualization_2_palette": "#2b83ba,#abdda4,#d7191c",
-  "visualization_2_labels": "Other,Crop,Water"
+  "visualization_2_property": "corine_majority",
+  "visualization_2_values": "111, 112, 121, 122, 123, 124, 131, 132, 133, 141, 142, 211, 212, 213, 221, 222, 223, 231, 241, 242, 243, 244, 311, 312, 313, 321, 322, 323, 324, 331, 332, 333, 334, 335, 411, 412, 421, 422, 423, 511, 512, 521, 522, 523",
+  "visualization_2_palette": "#e6004d, #ff0000, #cc4df2, #cc0000, #e6cccc, #e6cce6, #a600cc, #a64dcc, #ff4dff, #ffa6ff, #ffe6ff, #ffffa8, #ffff00, #e6e600, #e68000, #f2a64d, #e6a600, #e6e64d, #ffe6a6, #ffe64d, #e6cc4d, #f2cca6, #80ff00, #00a600, #4dff00, #ccf24d, #a6ff80, #a6e64d, #a6f200, #e6e6e6, #cccccc, #ccffcc, #000000, #a6e6cc, #a6a6ff, #4d4dff, #ccccff, #e6e6ff, #a6a6e6, #00ccf2, #80f2e6, #00ffa6, #a6ffe6, #e6f2ff",
+  "visualization_2_labels": "111, 112, 121, 122, 123, 124, 131, 132, 133, 141, 142, 211, 212, 213, 221, 222, 223, 231, 241, 242, 243, 244, 311, 312, 313, 321, 322, 323, 324, 331, 332, 333, 334, 335, 411, 412, 421, 422, 423, 511, 512, 521, 522, 523"
 }
 ```
 
@@ -306,13 +341,18 @@ each interval's upper bound, color, and optional name, or add and remove interva
 The resulting `breaks` must be strictly increasing and contain one more value than
 `palette`; each interval includes its lower bound and excludes its upper bound.
 
+<div className="screenshot-pair">
+  <img className="screenshot--light" src={useBaseUrl('/img/light/fc-intervals.png')} />
+  <img className="screenshot--dark" src={useBaseUrl('/img/dark/fc-intervals.png')} />
+</div>
+
 ```json
 {
-  "visualization_3_name": "Elevation intervals",
+  "visualization_3_name": "July 2026 mean temperature - intervals",
   "visualization_3_type": "intervals",
-  "visualization_3_bands": "elevation",
-  "visualization_3_breaks": "0,500,1500,3000",
-  "visualization_3_palette": "#2b83ba,#abdda4,#d7191c"
+  "visualization_3_property": "july_mean_temp_c",
+  "visualization_3_breaks": "-273.15, -40, -35, -30, -25, -20, -17.5, -15, -10, -5, -2.5, 0, 5, 10, 15, 20, 25, 30, 32.5, 35, 37.5, 40, 45, 100,",
+  "visualization_3_palette": "#BA68C8, #8E24AA, #6A1B9A, #7E57C2, #B39DDB, #ccd0ed, #1A237E, #0D47A1, #1565C0, #03A9F4, #00ffff, #1B5E20, #43A047, #8BC34A, #FFF176, #FFCA28, #FFA000, #FF6F00, #cd2000, #96132d, #fab2f5, #F06292, #E91E63"
 }
 ```
 
