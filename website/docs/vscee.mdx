@@ -148,6 +148,8 @@ Map.centerObject(image, zoom=6)
   <img className="screenshot--dark" src={useBaseUrl('/img/dark/python-image-rgb.png')} />
 </div>
 
+See [Image > RGB in the Interactive Map](./editors/interactive-map#rgb).
+
 ##### HSV
 
 HSV rendering interprets three bands as hue, saturation, and value. Set `type` to
@@ -173,6 +175,8 @@ Map.centerObject(image, zoom=6)
   <img className="screenshot--light" src={useBaseUrl('/img/light/python-image-hsv.png')} />
   <img className="screenshot--dark" src={useBaseUrl('/img/dark/python-image-hsv.png')} />
 </div>
+
+See [Image > HSV in the Interactive Map](./editors/interactive-map#hsv).
 
 ##### Continuous
 
@@ -200,6 +204,8 @@ Map.centerObject(image, zoom=6)
   <img className="screenshot--light" src={useBaseUrl('/img/light/python-image-continuous.png')} />
   <img className="screenshot--dark" src={useBaseUrl('/img/dark/python-image-continuous.png')} />
 </div>
+
+See [Image > Continuous in the Interactive Map](./editors/interactive-map#continuous).
 
 ##### Categorical
 
@@ -246,6 +252,8 @@ Map.centerObject(image, zoom=6)
   <img className="screenshot--dark" src={useBaseUrl('/img/dark/python-image-categorical.png')} />
 </div>
 
+See [Image > Categorical in the Interactive Map](./editors/interactive-map#categorical).
+
 ##### Intervals
 
 Interval rendering assigns a palette color to each range in one band. `breaks` must be
@@ -280,6 +288,8 @@ Map.centerObject(image, zoom=6)
   <img className="screenshot--dark" src={useBaseUrl('/img/dark/python-image-intervals.png')} />
 </div>
 
+See [Image > Intervals in the Interactive Map](./editors/interactive-map#intervals).
+
 #### FeatureCollection
 
 For feature collections, `bands` is replaced by a feature `property`. Uniform styling
@@ -310,6 +320,8 @@ Map.centerObject(features, zoom=6)
   <img className="screenshot--dark" src={useBaseUrl('/img/dark/python-fc-uniform.png')} />
 </div>
 
+See [FeatureCollection > Uniform in the Interactive Map](./editors/interactive-map#uniform).
+
 ##### Continuous
 
 Map a numeric property between `min` and `max` through a palette of at least two colors:
@@ -334,6 +346,8 @@ Map.centerObject(features, zoom=6)
   <img className="screenshot--light" src={useBaseUrl('/img/light/python-fc-continuous.png')} />
   <img className="screenshot--dark" src={useBaseUrl('/img/dark/python-fc-continuous.png')} />
 </div>
+
+See [FeatureCollection > Continuous in the Interactive Map](./editors/interactive-map#continuous-1).
 
 ##### Categorical
 
@@ -383,6 +397,8 @@ Map.setCenter(2.4, 46.6, 6)
   <img className="screenshot--dark" src={useBaseUrl('/img/dark/python-fc-categorical.png')} />
 </div>
 
+See [FeatureCollection > Categorical in the Interactive Map](./editors/interactive-map#categorical-1).
+
 ##### Intervals
 
 Map a numeric property to one color per range. `breaks` must be strictly increasing and
@@ -416,6 +432,8 @@ Map.setCenter(2.4, 46.6, 6)
   <img className="screenshot--light" src={useBaseUrl('/img/light/python-fc-intervals.png')} />
   <img className="screenshot--dark" src={useBaseUrl('/img/dark/python-fc-intervals.png')} />
 </div>
+
+See [FeatureCollection > Intervals in the Interactive Map](./editors/interactive-map#intervals-1).
 
 ### Map.centerObject
 
