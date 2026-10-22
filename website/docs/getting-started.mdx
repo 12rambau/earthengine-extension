@@ -26,15 +26,13 @@ Credentials are stored in `~/.config/earthengine/profiles/`, matching the locati
 
 ## First workflow
 
-You can run Earth Engine Python code from either a `.py` file or a notebook. In both cases, use a Python environment with the Earth Engine API and `vscee` installed:
+You can run Earth Engine Python code from either a `.py` file or a `.ipynb` notebook. In both cases, use a Python environment with the Earth Engine API and `vscee` installed:
 
 ```bash
 python -m venv .venv
 source .venv/bin/activate
 python -m pip install earthengine-api vscee
 ```
-
-On Windows, activate the environment with `.venv\Scripts\activate` instead. For a notebook, select this same environment as its kernel; install `ipykernel` in it if it is not already available.
 
 The VS Code profile and the Earth Engine Python API both need valid authentication. In the terminal for the selected Python environment, run `earthengine authenticate` and follow the [Earth Engine authentication instructions](https://developers.google.com/earth-engine/guides/auth). Use a Cloud project registered for Earth Engine in the `ee.Initialize` call below.
 
