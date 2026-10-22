@@ -374,20 +374,31 @@ export class MapLayerManager {
     visParams: Record<string, unknown>,
     assetName?: string,
   ): Promise<Record<string, unknown>> {
-    if (!('default' in visParams)) {
+    if (Object.keys(visParams).length > 0 && !('default' in visParams)) {
       return visParams;
     }
-    const props = assetName
-      ? ((await getAsset(assetName, (await getEeContext()).token)).properties ?? {})
-      : await computeValue<Record<string, unknown>>(source.toDictionary());
+    let props: Record<string, unknown>;
+    try {
+      props = assetName
+        ? ((await getAsset(assetName, (await getEeContext()).token)).properties ?? {})
+        : await computeValue<Record<string, unknown>>(source.toDictionary());
+    } catch (err) {
+      if ('default' in visParams) {
+        throw err;
+      }
+      return visParams;
+    }
     const presets = parseSepalVisualizations(props).filter((preset) =>
       ['uniform', 'continuous', 'categorical', 'intervals'].includes(preset.type),
     );
-    const preset = selectSepalViz(presets, visParams['default'] as string | number);
-    if (!preset) {
+    const preset = selectSepalViz(
+      presets,
+      'default' in visParams ? (visParams['default'] as string | number) : 0,
+    );
+    if (!preset && 'default' in visParams) {
       throw new Error('No FeatureCollection visualization presets found.');
     }
-    return vectorVisParams(preset);
+    return preset ? vectorVisParams(preset) : visParams;
   }
 
   /** Resolves the tile URL for one `addLayer` payload and posts the result. */
@@ -470,8 +481,16 @@ export class MapLayerManager {
       // Either {default: <selector>} or {} — try to resolve a SEPAL viz preset
       // from the image's stored properties.
       try {
-        const props = await computeValue<Record<string, unknown>>((image as any).toDictionary());
-        const vizs = await getImageVisualizations(props, undefined, payload.assetName);
+        const asset = payload.assetName
+          ? await getAsset(payload.assetName, (await getEeContext()).token)
+          : undefined;
+        const props = asset
+          ? asset.properties ?? {}
+          : await computeValue<Record<string, unknown>>((image as any).toDictionary());
+        const vizs =
+          asset?.type === 'IMAGE_COLLECTION'
+            ? parseSepalVisualizations(props)
+            : await getImageVisualizations(props, image, payload.assetName);
         if (vizs.length > 0) {
           const selector = hasDefault ? (rawVisParams['default'] as string | number) : 0;
           const viz = selectSepalViz(vizs, selector);
@@ -499,11 +518,15 @@ export class MapLayerManager {
           // caller's existing error-reporting path can surface it to the user.
           throw err;
         }
-        // No explicit default — silently fall through to EE's default rendering.
+        // No explicit default — try the first band when preset lookup fails.
         console.log(
           '[MapLayerManager] SEPAL viz resolution failed (non-fatal):',
           err instanceof Error ? err.message : String(err),
         );
+      }
+      if (resolvedType === 'auto') {
+        const firstBand = await computeValue<string>((image as any).bandNames().get(0));
+        resolvedVisParams = { bands: [firstBand] };
       }
     }
 

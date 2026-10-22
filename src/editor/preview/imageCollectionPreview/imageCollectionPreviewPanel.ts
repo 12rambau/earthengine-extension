@@ -98,6 +98,14 @@ export async function openImageCollectionPreview(
         sendThumbnail(asset, bands, childImages, panel, true);
       } else if (msg.type === 'copyAssetId') {
         await vscode.env.clipboard.writeText(asset.name);
+      } else if (msg.type === 'viewOnMap') {
+        await vscode.commands.executeCommand('earthengine.viewAssetOnMap', asset.name);
+      } else if (
+        msg.type === 'viewImageOnMap' &&
+        msg.name &&
+        childImages.some((image) => image.name === msg.name && image.type === 'IMAGE')
+      ) {
+        await vscode.commands.executeCommand('earthengine.viewAssetOnMap', msg.name);
       } else if (msg.type === 'saveMetadata') {
         const previousName = asset.name;
         await savePreviewMetadata(msg, asset, accessToken, panel);

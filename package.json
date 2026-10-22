@@ -225,6 +225,11 @@
         "icon": "$(open-preview)"
       },
       {
+        "command": "earthengine.viewAssetOnMap",
+        "title": "View on Map",
+        "icon": "$(map)"
+      },
+      {
         "command": "earthengine.copyAssetId",
         "title": "Copy Asset ID",
         "icon": "$(copy)"
@@ -839,6 +844,11 @@
         {
           "command": "earthengine.openAssetPreview",
           "when": "viewItem =~ /^asset-(leaf|container)-(image|image_collection|table|feature_view|classifier)$/",
+          "group": "inline"
+        },
+        {
+          "command": "earthengine.viewAssetOnMap",
+          "when": "viewItem =~ /^asset-(leaf|container)-(image|image_collection|table)$/",
           "group": "inline"
         },
         {

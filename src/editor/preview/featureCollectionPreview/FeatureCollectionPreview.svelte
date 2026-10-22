@@ -38,6 +38,8 @@
   let thumbnailError = $state('Thumbnail not available.');
   let thumbnailPreset = $state(false);
   let fallbackRequested = $state(false);
+  let assetIdCopied = $state(false);
+  let copyResetTimer;
 
   // ----------------------------------------------------------------
   // MESSAGES
@@ -65,6 +67,13 @@
       vscode.postMessage({ type: 'thumbnailFallback' });
     }
   }
+
+  function copyAssetId() {
+    vscode.postMessage({ type: 'copyAssetId' });
+    assetIdCopied = true;
+    clearTimeout(copyResetTimer);
+    copyResetTimer = setTimeout(() => (assetIdCopied = false), 5000);
+  }
 </script>
 
 <PreviewTitleBar title={metadata.title} bind:editing bind:activeTab bind:name {saving} />
@@ -80,7 +89,9 @@
     />
 
     <PreviewSystemMetadata {metadata} {editing} {saving} bind:startTime bind:endTime
-      idLabel="Table ID" fileSize={data.fileSize} countLabel="Number of Features"
+      idLabel="Table ID" oncopy={copyAssetId} copyTitle="Copy table ID" copied={assetIdCopied}
+      onviewmap={() => vscode.postMessage({ type: 'viewOnMap' })}
+      fileSize={data.fileSize} countLabel="Number of Features"
       count={data.featureCount} lastModified={data.lastModified} />
   {/snippet}
 
