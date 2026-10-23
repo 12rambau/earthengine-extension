@@ -15,14 +15,16 @@
     <span class="info-value asset-id" class:copyable-id={oncopy} title={metadata.assetId}>
       {#if oncopy}
         <span class="copyable-id-value">{metadata.assetId}</span>
-        <button class="copy-id-btn" title={copyTitle} onclick={oncopy}>
-          <i class="codicon" class:codicon-copy={!copied} class:codicon-check={copied}></i>
-        </button>
-        {#if onviewmap}
-          <button class="copy-id-btn" title="View on Map" aria-label="View on Map" onclick={onviewmap}>
-            <i class="codicon codicon-map"></i>
+        <span class="id-actions">
+          <button class="copy-id-btn" title={copyTitle} onclick={oncopy}>
+            <i class="codicon" class:codicon-copy={!copied} class:codicon-check={copied}></i>
           </button>
-        {/if}
+          {#if onviewmap}
+            <button class="copy-id-btn" title="View on Map" aria-label="View on Map" onclick={onviewmap}>
+              <i class="codicon codicon-map"></i>
+            </button>
+          {/if}
+        </span>
       {:else}
         {metadata.assetId}
       {/if}
@@ -33,9 +35,11 @@
       <span class="info-label">Parent collection</span>
       <span class="info-value asset-id parent-collection">
         <span class="parent-collection-name" title={parentCollection.name}>{parentCollection.name}</span>
-        <button class="parent-preview-btn" title="Open parent collection preview" onclick={onopenparent}>
-          <i class="codicon codicon-open-preview"></i>
-        </button>
+        <span class="id-actions">
+          <button class="parent-preview-btn" title="Open parent collection preview" onclick={onopenparent}>
+            <i class="codicon codicon-open-preview"></i>
+          </button>
+        </span>
       </span>
     </div>
   {/if}
@@ -88,12 +92,15 @@
     width: 100%;
   }
   .asset-id {
+    position: relative;
+    --id-background: linear-gradient(var(--vscee-color-code-background), var(--vscee-color-code-background)), var(--vscee-color-editor-background);
     font-family: var(--vscee-editor-font-family, monospace);
     font-size: var(--vscee-font-xxs);
     word-break: break-all;
-    background: var(--vscee-color-code-background);
+    background: var(--id-background);
     padding: var(--vscee-space-xs) var(--vscee-space-sm);
     border-radius: var(--vscee-radius-md);
+    opacity: 1;
   }
   .copyable-id,
   .parent-collection {
@@ -105,36 +112,54 @@
   .parent-collection-name {
     flex: 1 1 auto;
     min-width: 0;
+    word-break: break-all;
   }
-  .copyable-id-value { word-break: break-all; }
-  .parent-collection-name {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+  .id-actions {
+    position: absolute;
+    inset: 0 0 0 auto;
+    display: flex;
+    align-items: center;
+    gap: var(--vscee-space-xxs);
+    padding: 0 var(--vscee-space-sm);
+    background: var(--id-background);
+    border-radius: var(--vscee-radius-md);
+    opacity: 0;
+    pointer-events: none;
+
+    &::before {
+      content: '';
+      position: absolute;
+      inset: 0 100% 0 auto;
+      width: var(--vscee-space-lg);
+      background: var(--id-background);
+      backdrop-filter: blur(3px);
+      mask-image: linear-gradient(to right, transparent, black);
+      pointer-events: none;
+    }
   }
   .copy-id-btn,
   .parent-preview-btn {
     display: inline-flex;
     align-items: center;
-    flex: 0 0 auto;
-    margin-left: var(--vscee-space-xs);
     padding: var(--vscee-space-xxs) var(--vscee-space-sm);
     border: none;
     border-radius: var(--vscee-radius-md);
     background: none;
     color: var(--vscee-color-foreground);
     cursor: pointer;
-    opacity: 0;
 
     &:hover {
       background: var(--vscee-color-list-hover);
-      opacity: 1;
     }
   }
-  .copyable-id:hover .copy-id-btn,
-  .copyable-id:focus-within .copy-id-btn,
-  .parent-collection-row:hover .parent-preview-btn,
-  .parent-collection-row:focus-within .parent-preview-btn {
-    opacity: 0.7;
+  .copy-id-btn {
+    padding-inline: var(--vscee-space-xs);
+  }
+  .copyable-id:hover .id-actions,
+  .copyable-id:focus-within .id-actions,
+  .parent-collection:hover .id-actions,
+  .parent-collection:focus-within .id-actions {
+    opacity: 1;
+    pointer-events: auto;
   }
 </style>
