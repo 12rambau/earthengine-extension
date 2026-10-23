@@ -198,5 +198,9 @@ def test_post_invalid_json(monkeypatch):
         Map.urllib.request, "urlopen", Mock(return_value=io.BytesIO(b"not json"))
     )
 
-    with pytest.raises(json.JSONDecodeError):
+    with pytest.raises(
+        RuntimeError, match="Map server returned a malformed response"
+    ) as caught:
         Map._post("clear", {})
+
+    assert isinstance(caught.value.__cause__, json.JSONDecodeError)
