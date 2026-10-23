@@ -52,11 +52,16 @@ def _post(endpoint: str, data: dict) -> dict:
     )
     try:
         with urllib.request.urlopen(req, timeout=10) as resp:
-            return json.load(resp)
+            payload = json.load(resp)
+        if not isinstance(payload, dict):
+            raise RuntimeError("Map server returned a malformed response")
+        return payload
     except urllib.error.HTTPError as exc:
         raise RuntimeError(f"Map server returned HTTP {exc.code}") from exc
-    except (urllib.error.URLError, TimeoutError) as exc:
+    except OSError as exc:
         raise ConnectionError("Could not reach the VS Code map server") from exc
+    except ValueError as exc:
+        raise RuntimeError("Map server returned a malformed response") from exc
 
 
 def addLayer(ee_object, vis_params=None, name=None, shown=True, opacity=1.0):
