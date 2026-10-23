@@ -40,6 +40,20 @@ Requirements
 - The Earth Engine VS Code extension installed and active
 - A valid ``ee.Initialize(project=...)`` call before any ``Map.*`` invocation
 
+Testing
+-------
+
+From the repository root:
+
+.. code-block:: bash
+
+    python -m pip install -e './python[dev]'
+    python -m pytest python/tests --cov=python/vscee --cov-report=xml:coverage.xml
+
+CI uploads the Python coverage report to Codecov under the ``python`` flag.
+The bridge tests mock Earth Engine and the map server, so no credentials or
+running extension are needed.
+
 .. _Earth Engine VS Code extension: https://github.com/12rambau/earthengine-extension
 
 .. |Documentation| image:: https://img.shields.io/badge/docs-online-339933?style=flat-square&logo=github&logoColor=white

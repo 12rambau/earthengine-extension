@@ -13,6 +13,8 @@ resources/icons/*
 __pycache__/
 *.py[cod]
 *$py.class
+.coverage
+coverage.xml
 
 # Distribution / packaging
 build/
