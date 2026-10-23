@@ -22,16 +22,27 @@ Usage:
 """
 
 import json
+import urllib.error
 import urllib.request
 
 import ee
+
+__all__ = ["addLayer", "centerObject", "clear", "setCenter"]
 
 _PORT = 31415
 _BASE_URL = f"http://127.0.0.1:{_PORT}"
 
 
-def _post(endpoint: str, data: dict):
-    """Send a POST request to the VS Code extension map server."""
+def _post(endpoint: str, data: dict) -> dict:
+    """Send a POST request to the VS Code extension map server.
+
+    Args:
+        endpoint: The API endpoint to send the request to.
+        data: The payload to send in the POST request.
+
+    Returns:
+        The JSON-decoded response from the server.
+    """
     body = json.dumps(data).encode("utf-8")
     req = urllib.request.Request(
         f"{_BASE_URL}/{endpoint}",
@@ -41,11 +52,11 @@ def _post(endpoint: str, data: dict):
     )
     try:
         with urllib.request.urlopen(req, timeout=10) as resp:
-            return json.loads(resp.read().decode("utf-8"))
-    except Exception as e:
-        print(f"[Map] Could not connect to VS Code map server: {e}")
-        print("[Map] Make sure the Earth Engine extension is active in VS Code.")
-        return None
+            return json.load(resp)
+    except urllib.error.HTTPError as exc:
+        raise RuntimeError(f"Map server returned HTTP {exc.code}") from exc
+    except (urllib.error.URLError, TimeoutError) as exc:
+        raise ConnectionError("Could not reach the VS Code map server") from exc
 
 
 def addLayer(ee_object, vis_params=None, name=None, shown=True, opacity=1.0):
@@ -145,54 +156,59 @@ def addLayer(ee_object, vis_params=None, name=None, shown=True, opacity=1.0):
     vis_params = dict(vis_params or {})
 
     # Normalize geometry and feature inputs without making API calls.
-
     if isinstance(ee_object, ee.ImageCollection):
         ee_object = ee_object.mosaic()
-
-    if isinstance(ee_object, ee.Geometry):
+    elif isinstance(ee_object, ee.Geometry):
         ee_object = ee.FeatureCollection([ee.Feature(ee_object)])
     elif isinstance(ee_object, ee.Feature):
         ee_object = ee.FeatureCollection([ee_object])
 
-    source_type = "featureCollection" if isinstance(ee_object, ee.FeatureCollection) else "image"
-    if not isinstance(ee_object, (ee.Image, ee.FeatureCollection)):
-        print(f"[Map] Unsupported object type: {type(ee_object)}")
-        return
+    # define the source type based on the normalized object
+    if isinstance(ee_object, ee.Image):
+        source_type = "image"
+    elif isinstance(ee_object, ee.FeatureCollection):
+        source_type = "featureCollection"
+    else:
+        raise ValueError(f"[MAP] Unsupported ee_object type: {type(ee_object)}")
 
-    if "default" in vis_params:
-        if len(vis_params) != 1:
-            raise ValueError(
-                "A preset selector cannot be combined with direct visualization parameters."
-            )
+    # detect the type of viz params
+    if len(vis_params) == 0:
         render_type = "auto"
-    elif not vis_params:
+    elif "default" in vis_params:
         render_type = "auto"
+    elif "type" in vis_params:
+        render_type = vis_params["type"]
     else:
         if "values" in vis_params and "breaks" in vis_params:
             raise ValueError("Use either categorical values or interval breaks, not both.")
-        if "type" in vis_params:
-            render_type = vis_params["type"]
-        elif "breaks" in vis_params:
-            render_type = "intervals"
         elif "values" in vis_params:
             render_type = "categorical"
+        elif "breaks" in vis_params:
+            render_type = "intervals"
         elif "palette" in vis_params:
             render_type = "continuous"
         else:
-            render_type = "uniform" if source_type == "featureCollection" else "rgb"
-        allowed_types = (
-            {"uniform", "continuous", "categorical", "intervals"}
-            if source_type == "featureCollection" else
-            {"rgb", "hsv", "continuous", "categorical", "intervals"}
-        )
-        if not isinstance(render_type, str) or render_type not in allowed_types:
+            render_type = "rgb" if source_type == "image" else "uniform"
+
+    # check that the render type is compatible with the source type
+    if source_type == "image":
+        allowed_types = {"auto", "rgb", "hsv", "continuous", "categorical", "intervals"}
+        if render_type not in allowed_types:
             raise ValueError(f"Unsupported {source_type} visualization type: {render_type!r}.")
-        if ("values" in vis_params and render_type != "categorical") or (
-            "breaks" in vis_params and render_type != "intervals"
-        ) or (
-            "palette" in vis_params and render_type in {"rgb", "hsv", "uniform"}
-        ):
-            raise ValueError("The visualization type conflicts with its parameters.")
+    elif source_type == "featureCollection":
+        allowed_types = {"auto", "uniform", "continuous", "categorical", "intervals"}
+        if render_type not in allowed_types:
+            raise ValueError(f"Unsupported {source_type} visualization type: {render_type!r}.")
+
+    # check that the render type is compatible with the parameters
+    if (
+        ("values" in vis_params and render_type != "categorical")
+        or ("breaks" in vis_params and render_type != "intervals")
+        or ("palette" in vis_params and render_type in {"rgb", "hsv", "uniform"})
+        or (render_type == "auto" and len(vis_params) > 1)
+    ):
+        raise ValueError("The visualization type conflicts with its parameters.")
+
     vis_params["type"] = render_type
 
     _post(
@@ -208,7 +224,7 @@ def addLayer(ee_object, vis_params=None, name=None, shown=True, opacity=1.0):
     )
 
 
-def centerObject(ee_object, zoom=None):
+def centerObject(ee_object, zoom: None|int=None):
     """Center the map on an Earth Engine object.
 
     Args:
@@ -216,34 +232,24 @@ def centerObject(ee_object, zoom=None):
                    ee.Feature, or ee.Geometry.
         zoom: Optional zoom level (1-24). Auto-computed if not provided.
     """
-    try:
-        if isinstance(ee_object, ee.Geometry):
-            geom = ee_object
-        elif isinstance(
-            ee_object,
-            (ee.Image, ee.ImageCollection, ee.FeatureCollection, ee.Feature),
-        ):
-            geom = ee_object.geometry()
-        else:
-            print(f"[Map] Unsupported object type: {type(ee_object)}")
-            return
 
-        bounds = geom.bounds().getInfo()
-        coords = bounds["coordinates"][0]
-        west = min(c[0] for c in coords)
-        south = min(c[1] for c in coords)
-        east = max(c[0] for c in coords)
-        north = max(c[1] for c in coords)
+    # extract geometry from the Earth Engine object
+    geom = ee_object if isinstance(ee_object, ee.Geometry) else ee_object.geometry()
 
-        _post(
-            "centerObject",
-            {
-                "bounds": [south, west, north, east],
-                "zoom": zoom,
-            },
-        )
-    except Exception as e:
-        print(f"[Map] Error centering: {e}")
+    bounds = geom.bounds().getInfo()
+    coords = bounds["coordinates"][0]
+    west = min(c[0] for c in coords)
+    south = min(c[1] for c in coords)
+    east = max(c[0] for c in coords)
+    north = max(c[1] for c in coords)
+
+    _post(
+        "centerObject",
+        {
+            "bounds": [south, west, north, east],
+            "zoom": zoom,
+        },
+    )
 
 
 def setCenter(lon, lat, zoom=None):
@@ -260,6 +266,3 @@ def setCenter(lon, lat, zoom=None):
 def clear():
     """Remove all layers from the map."""
     _post("clear", {})
-
-
-__all__ = ["addLayer", "centerObject", "clear", "setCenter"]
