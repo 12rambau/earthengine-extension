@@ -36,7 +36,7 @@ Usage
 Requirements
 ------------
 
-- Python ``>=3.9``
+- Python ``>=3.10``
 - The Earth Engine VS Code extension installed and active
 - A valid ``ee.Initialize(project=...)`` call before any ``Map.*`` invocation
 
