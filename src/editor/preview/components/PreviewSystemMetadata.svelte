@@ -119,7 +119,7 @@
     inset: 0 0 0 auto;
     display: flex;
     align-items: center;
-    gap: var(--vscee-space-xs);
+    gap: var(--vscee-space-xxs);
     padding: 0 var(--vscee-space-sm);
     background: var(--id-background);
     border-radius: var(--vscee-radius-md);
@@ -151,6 +151,9 @@
     &:hover {
       background: var(--vscee-color-list-hover);
     }
+  }
+  .copy-id-btn {
+    padding-inline: var(--vscee-space-xs);
   }
   .copyable-id:hover .id-actions,
   .copyable-id:focus-within .id-actions,
