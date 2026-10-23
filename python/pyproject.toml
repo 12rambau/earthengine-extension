@@ -7,7 +7,7 @@ name = "vscee"
 version = "0.13.1"
 description = "Python bridge to the interactive map panel of the Earth Engine VS Code extension."
 readme = "README.rst"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 license = "Apache-2.0"
 keywords = ["earthengine", "vscode", "map", "bridge", "leaflet"]
 classifiers = [
@@ -16,6 +16,7 @@ classifiers = [
     "Intended Audience :: Science/Research",
     "License :: OSI Approved :: Apache Software License",
     "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
@@ -28,6 +29,9 @@ dependencies = ["earthengine-api"]
 dev = [
     "ruff",
     "mypy",
+    "pytest",
+    "pytest-cov",
+    "pytest-regressions",
 ]
 
 [[project.authors]]
@@ -68,3 +72,7 @@ ignore_missing_imports = true
 install_types = true
 non_interactive = true
 warn_redundant_casts = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]

@@ -1,0 +1,13 @@
+name: Example
+opacity: 0.4
+serialized: '{"type":"Image","id":"TEST/IMAGE"}'
+shown: false
+sourceType: image
+visParams:
+  bands:
+  - R
+  - G
+  - B
+  max: 100
+  min: 0
+  type: rgb

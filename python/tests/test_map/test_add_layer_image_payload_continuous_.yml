@@ -1,0 +1,12 @@
+name: Example
+opacity: 0.4
+serialized: '{"type":"Image","id":"TEST/IMAGE"}'
+shown: false
+sourceType: image
+visParams:
+  bands:
+  - B8
+  palette:
+  - '#000000'
+  - '#ffffff'
+  type: continuous

@@ -1,3 +1,5 @@
+# Development-container Python tools; not dependencies of the vscee package.
+# Package dependencies are declared in python/pyproject.toml.
 earthengine-api
 geetools
 ipygee

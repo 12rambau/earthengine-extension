@@ -1,0 +1,8 @@
+name: Example
+opacity: 0.4
+serialized: '{"type":"Image","id":"TEST/IMAGE"}'
+shown: false
+sourceType: image
+visParams:
+  default: Natural Color
+  type: auto

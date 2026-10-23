@@ -1,0 +1,14 @@
+name: Features
+opacity: 1.0
+serialized: '{"type":"FeatureCollection","id":"TEST/FEATURES"}'
+shown: true
+sourceType: featureCollection
+visParams:
+  palette:
+  - '#000000'
+  - '#ffffff'
+  property: class
+  type: categorical
+  values:
+  - a
+  - b

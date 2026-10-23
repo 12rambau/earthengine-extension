@@ -1,0 +1,15 @@
+name: Example
+opacity: 0.4
+serialized: '{"type":"Image","id":"TEST/IMAGE"}'
+shown: false
+sourceType: image
+visParams:
+  bands:
+  - class
+  palette:
+  - '#000000'
+  - '#ffffff'
+  type: categorical
+  values:
+  - 0
+  - 1
