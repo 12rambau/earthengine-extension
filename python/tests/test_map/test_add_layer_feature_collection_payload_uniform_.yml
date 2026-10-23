@@ -1,0 +1,9 @@
+name: Features
+opacity: 1.0
+serialized: '{"type":"FeatureCollection","id":"TEST/FEATURES"}'
+shown: true
+sourceType: featureCollection
+visParams:
+  color: '#336699'
+  type: uniform
+  width: 2

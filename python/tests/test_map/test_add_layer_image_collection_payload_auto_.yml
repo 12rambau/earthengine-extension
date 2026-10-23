@@ -1,0 +1,7 @@
+name: Layer
+opacity: 1.0
+serialized: '{"type":"Image","id":"TEST/MOSAIC"}'
+shown: true
+sourceType: image
+visParams:
+  type: auto

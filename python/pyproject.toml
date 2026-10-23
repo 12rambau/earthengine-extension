@@ -28,6 +28,8 @@ dependencies = ["earthengine-api"]
 dev = [
     "ruff",
     "mypy",
+    "pytest",
+    "pytest-regressions",
 ]
 
 [[project.authors]]
@@ -68,3 +70,7 @@ ignore_missing_imports = true
 install_types = true
 non_interactive = true
 warn_redundant_casts = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]

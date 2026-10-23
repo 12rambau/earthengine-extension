@@ -1,0 +1,11 @@
+name: Example
+opacity: 0.4
+serialized: '{"type":"Image","id":"TEST/IMAGE"}'
+shown: false
+sourceType: image
+visParams:
+  bands:
+  - H
+  - S
+  - V
+  type: hsv

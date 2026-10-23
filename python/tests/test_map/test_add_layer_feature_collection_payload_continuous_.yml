@@ -1,0 +1,13 @@
+name: Features
+opacity: 1.0
+serialized: '{"type":"FeatureCollection","id":"TEST/FEATURES"}'
+shown: true
+sourceType: featureCollection
+visParams:
+  max: 10
+  min: 0
+  palette:
+  - '#000000'
+  - '#ffffff'
+  property: value
+  type: continuous

@@ -1,0 +1,12 @@
+centerObject:
+  bounds:
+  - 1
+  - 2
+  - 7
+  - 5
+  zoom: 8
+clear: {}
+setCenter:
+  lat: 4
+  lon: 3.5
+  zoom: 10

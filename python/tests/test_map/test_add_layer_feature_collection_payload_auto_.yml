@@ -1,0 +1,7 @@
+name: Features
+opacity: 1.0
+serialized: '{"type":"FeatureCollection","id":"TEST/FEATURES"}'
+shown: true
+sourceType: featureCollection
+visParams:
+  type: auto
