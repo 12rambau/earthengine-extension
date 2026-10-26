@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.13.2](https://github.com/12rambau/earthengine-extension/compare/v0.13.1...v0.13.2) (2026-10-26)
+
+### Bug Fixes
+
+- improve error manager from python side ([1531156](https://github.com/12rambau/earthengine-extension/commit/15311562f3496cc3b5ae9bb4d871ce0fad484954))
+- tests add test to the python lib ([db4e10c](https://github.com/12rambau/earthengine-extension/commit/db4e10cd9f6b8cef35493463b140483a51010910))
+- update README file format and content ([118080c](https://github.com/12rambau/earthengine-extension/commit/118080c24069fe074b7469b0217e2780b853ebab))
+
 ## [0.13.1](https://github.com/12rambau/earthengine-extension/compare/v0.13.0...v0.13.1) (2026-10-22)
 
 ## [0.13.0](https://github.com/12rambau/earthengine-extension/compare/v0.12.0...v0.13.0) (2026-10-22)
