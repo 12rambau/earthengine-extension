@@ -145,11 +145,12 @@
     border: none;
     border-radius: var(--vscee-radius-md);
     background: none;
-    color: var(--vscee-color-foreground);
+    color: var(--vscode-descriptionForeground);
     cursor: pointer;
 
     &:hover {
-      background: var(--vscee-color-list-hover);
+      background: none;
+      color: var(--vscode-textLink-foreground);
     }
   }
   .copy-id-btn {
