@@ -8,10 +8,8 @@
   import { trackViewportChanges } from '../../../shared/viewportAnchor.ts';
   import { intervalStops, parseCategoryValue } from '../../../shared/sepalViz.ts';
   import {
-    mdiCheck,
     mdiChevronDown,
     mdiCodeTags,
-    mdiContentCopy,
     mdiLoading,
     mdiTrashCan,
   } from '../../../shared/icons.ts';
@@ -1859,15 +1857,15 @@
       </div>
       <div class="viz-editor-body">
         <div class="viz-code-wrap">
-          <MapButton
+          <button
+            type="button"
             class="viz-code-copy"
             title={vizCodeCopied ? 'Copied' : 'Copy'}
+            aria-label={vizCodeCopied ? 'Copied' : 'Copy'}
             onclick={copyVizJson}
           >
-            <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" fill="currentColor"
-              ><path d={vizCodeCopied ? mdiCheck : mdiContentCopy} /></svg
-            >
-          </MapButton>
+            <i class="codicon" class:codicon-copy={!vizCodeCopied} class:codicon-check={vizCodeCopied} aria-hidden="true"></i>
+          </button>
           <pre class="viz-code-block">{#each vizJsonTokens as token}<span class="json-{token.kind}"
                 >{token.text}</span
               >{/each}</pre>
@@ -2006,8 +2004,22 @@
         position: absolute;
         top: var(--vscee-space-xs);
         right: var(--vscee-space-xs);
+        display: flex;
+        align-items: center;
+        justify-content: center;
         width: 24px;
         height: 24px;
+        padding: 0;
+        border: none;
+        border-radius: var(--vscee-radius-md);
+        background: none;
+        color: var(--vscode-descriptionForeground);
+        cursor: pointer;
+
+        &:hover {
+          background: none;
+          color: var(--vscode-textLink-foreground);
+        }
       }
     }
     .viz-code-block {
