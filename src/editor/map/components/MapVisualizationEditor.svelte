@@ -141,6 +141,7 @@
   let vizVectorNotice = $state('');
   let vizBands = $state([]);
   let vizPresets = $state([]);
+  let vizSelectedPreset = $state('');
   let renderMode = $state('rgb');
   // RGB fields
   let vizRgbR = $state('');
@@ -525,7 +526,12 @@
     const opacity = clampOpacityPercent(vizOpacity) / 100;
     vscode.postMessage({
       type: 'updateViz',
-      data: { layerIndex: vizLayerIndex, opacity, ...config },
+      data: {
+        layerIndex: vizLayerIndex,
+        opacity,
+        selectedPreset: vizSelectedPreset || null,
+        ...config,
+      },
     });
     vizVisible = false;
   }
@@ -781,11 +787,12 @@
     vizRgbGamma = String(Math.max(0.1, Math.min(5, Math.round(n * 10) / 10)));
   }
 
-  function vizApplyPreset(idx) {
-    const p = vizPresets[idx];
+  function vizApplyPreset(name) {
+    const p = vizPresets.find((preset) => preset.name === name);
     if (!p) {
       return;
     }
+    vizSelectedPreset = p.name;
     if (vizSourceType === 'featureCollection') {
       applyVisParams({
         type: p.type,
@@ -1075,6 +1082,9 @@
       vizSourceType = msg.data.sourceType || 'image';
       vizBands = msg.data.bands || [];
       vizPresets = msg.data.presets || [];
+      vizSelectedPreset = vizPresets.some((preset) => preset.name === msg.data.selectedPreset)
+        ? msg.data.selectedPreset
+        : '';
       applyVisParams(msg.data.currentVisParams || {});
       vizOpacityOriginal = clampOpacityPercent((msg.data.opacity ?? 1) * 100);
       vizOpacity = vizOpacityOriginal;
@@ -1215,11 +1225,12 @@
         {#if vizPresets.length > 0}
           <select
             class="viz-preset-select"
-            onchange={(e) => vizApplyPreset(parseInt(e.target.value))}
+            bind:value={vizSelectedPreset}
+            onchange={() => vizApplyPreset(vizSelectedPreset)}
           >
-            <option value="-1" disabled selected>Preset…</option>
-            {#each vizPresets as p, i}
-              <option value={i}>{p.name} ({p.type})</option>
+            <option value="" disabled>Preset…</option>
+            {#each vizPresets as p}
+              <option value={p.name}>{p.name} ({p.type})</option>
             {/each}
           </select>
         {/if}

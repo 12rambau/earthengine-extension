@@ -373,9 +373,9 @@ export class MapLayerManager {
     source: any,
     visParams: Record<string, unknown>,
     assetName?: string,
-  ): Promise<Record<string, unknown>> {
+  ): Promise<{ visParams: Record<string, unknown>; selectedPreset?: string }> {
     if (Object.keys(visParams).length > 0 && !('default' in visParams)) {
-      return visParams;
+      return { visParams };
     }
     let props: Record<string, unknown>;
     try {
@@ -386,7 +386,7 @@ export class MapLayerManager {
       if ('default' in visParams) {
         throw err;
       }
-      return visParams;
+      return { visParams };
     }
     const presets = parseSepalVisualizations(props).filter((preset) =>
       ['uniform', 'continuous', 'categorical', 'intervals'].includes(preset.type),
@@ -398,7 +398,10 @@ export class MapLayerManager {
     if (!preset && 'default' in visParams) {
       throw new Error('No FeatureCollection visualization presets found.');
     }
-    return preset ? vectorVisParams(preset) : visParams;
+    return {
+      visParams: preset ? vectorVisParams(preset) : visParams,
+      selectedPreset: preset?.name,
+    };
   }
 
   /** Resolves the tile URL for one `addLayer` payload and posts the result. */
@@ -413,7 +416,7 @@ export class MapLayerManager {
 
     if (payload.sourceType === 'featureCollection') {
       visualizationType(payload.visParams, 'featureCollection');
-      const visParams = await this.resolveVectorVisParams(
+      const { visParams, selectedPreset } = await this.resolveVectorVisParams(
         image,
         payload.visParams,
         payload.assetName,
@@ -437,6 +440,7 @@ export class MapLayerManager {
           payload.opacity,
           payload.assetName,
           'featureCollection',
+          selectedPreset,
         ),
       );
       postMessage({
@@ -466,6 +470,7 @@ export class MapLayerManager {
     delete resolvedVisParams['default'];
     let displayVisParams: Record<string, unknown> | undefined;
     let resolvedType = requestedType;
+    let selectedPreset: string | undefined;
 
     if (requestedType === 'hsv') {
       const resolved = resolveHsvImageVis(rawVisParams, image, ee);
@@ -495,6 +500,7 @@ export class MapLayerManager {
           const selector = hasDefault ? (rawVisParams['default'] as string | number) : 0;
           const viz = selectSepalViz(vizs, selector);
           if (viz) {
+            selectedPreset = viz.name;
             resolvedType = viz.type;
             const resolved = resolveSepalViz(viz, image, ee);
             resolvedImage = resolved.image;
@@ -550,6 +556,7 @@ export class MapLayerManager {
         payload.opacity,
         payload.assetName,
         'image',
+        selectedPreset,
       ),
     );
 
@@ -943,7 +950,10 @@ export class MapLayerManager {
       const visParams = { ...config };
       delete visParams['opacity'];
       delete visParams['layerIndex'];
-      const resolvedVisParams = await this.resolveVectorVisParams(
+      const selectedPreset =
+        typeof visParams['selectedPreset'] === 'string' ? visParams['selectedPreset'] : undefined;
+      delete visParams['selectedPreset'];
+      const { visParams: resolvedVisParams } = await this.resolveVectorVisParams(
         image,
         visParams,
         layer.assetName,
@@ -956,6 +966,7 @@ export class MapLayerManager {
       const url = await getMapIdUrl(styleFeatureCollection(image, normalized, ee), {});
       layer.url = url;
       layer.visParams = normalized;
+      layer.selectedPreset = selectedPreset;
       postMessage({
         type: 'replaceTileLayer',
         data: { layerIndex, url, visParams: normalized },
@@ -1041,6 +1052,8 @@ export class MapLayerManager {
     };
     layer.url = url;
     layer.visParams = finalVisParams;
+    layer.selectedPreset =
+      typeof config.selectedPreset === 'string' ? config.selectedPreset : undefined;
 
     postMessage({
       type: 'replaceTileLayer',
