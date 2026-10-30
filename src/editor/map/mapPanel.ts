@@ -200,6 +200,7 @@ export class MapPanel extends EditorPanel {
             presets,
             sourceType: layer?.sourceType ?? 'image',
             currentVisParams: layer?.visParams ?? {},
+            selectedPreset: layer?.selectedPreset ?? '',
             opacity: layer?.opacity ?? 1,
           },
         });

@@ -27,5 +27,7 @@ export class EeLayer {
     public readonly assetName?: string,
     /** Source expression kind, retained independently of the rendered tile image. */
     public readonly sourceType: 'image' | 'featureCollection' = 'image',
+    /** Name of the SEPAL preset currently applied to this layer, if any. */
+    public selectedPreset?: string,
   ) {}
 }
