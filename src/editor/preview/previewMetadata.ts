@@ -56,6 +56,27 @@ export function previewMetadata(asset: EEAsset) {
   };
 }
 
+/** Reads the VS Code clipboard for Monaco paste requests from a preview WebView. */
+export async function handleClipboardReadRequest(
+  msg: { type: string; requestId?: number },
+  panel: vscode.WebviewPanel,
+): Promise<boolean> {
+  if (msg.type !== 'readClipboard') {
+    return false;
+  }
+  if (typeof msg.requestId !== 'number' || !Number.isSafeInteger(msg.requestId)) {
+    return true;
+  }
+  let text: string;
+  try {
+    text = await vscode.env.clipboard.readText();
+  } catch {
+    text = '';
+  }
+  panel.webview.postMessage({ type: 'clipboardText', requestId: msg.requestId, text });
+  return true;
+}
+
 /** Formats the view's feature count, attributes, and ingestion options from REST metadata. */
 export function featureViewDetails(asset: EEAsset): Record<string, string> {
   const options = asset.featureViewAssetLocation?.assetOptions;

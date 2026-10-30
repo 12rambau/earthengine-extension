@@ -18,11 +18,21 @@
   let description = $state('');
   let error = $state('');
   let workerUrl;
+  let clipboardRequestId = 0;
+  const pendingClipboardReads = new Map();
 
   function propertyKind(value) {
     if (typeof value === 'number') { return 'number'; }
     if (typeof value === 'boolean') { return 'boolean'; }
     return typeof value === 'string' ? 'string' : 'json';
+  }
+
+  function readClipboardText() {
+    return new Promise((resolve) => {
+      const requestId = ++clipboardRequestId;
+      pendingClipboardReads.set(requestId, resolve);
+      vscode.postMessage({ type: 'readClipboard', requestId });
+    });
   }
 
   function propertyValue(value) {
@@ -38,6 +48,11 @@
     globalThis.MonacoEnvironment = {
       getWorker: () => new Worker(workerUrl),
     };
+    const clipboard = navigator.clipboard;
+    const originalReadText = clipboard?.readText;
+    if (clipboard) {
+      clipboard.readText = readClipboardText;
+    }
 
     const applyTheme = () => {
       const style = getComputedStyle(document.body);
@@ -84,6 +99,9 @@
         themeObserver.disconnect();
         editor.dispose();
         model?.dispose();
+        if (clipboard) {
+          clipboard.readText = originalReadText;
+        }
         URL.revokeObjectURL(workerUrl);
       },
     };
@@ -103,7 +121,11 @@
   });
 
   window.addEventListener('message', (event) => {
-    if (event.data.type === 'metadataSaved') {
+    if (event.data.type === 'clipboardText') {
+      const resolve = pendingClipboardReads.get(event.data.requestId);
+      pendingClipboardReads.delete(event.data.requestId);
+      resolve?.(typeof event.data.text === 'string' ? event.data.text : '');
+    } else if (event.data.type === 'metadataSaved') {
       metadata = event.data.metadata;
       saving = false;
       editing = false;

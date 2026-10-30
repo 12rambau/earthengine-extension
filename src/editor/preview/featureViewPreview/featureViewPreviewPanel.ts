@@ -14,6 +14,7 @@ import { getFeatureViewThumbnail } from './featureViewThumbnail.js';
 import script from './FeatureViewPreview.svelte';
 import {
   featureViewDetails,
+  handleClipboardReadRequest,
   loadPreviewSharing,
   previewMetadata,
   savePreviewMetadata,
@@ -44,6 +45,9 @@ export async function openFeatureViewPreview(asset: EEAsset, accessToken: string
       description?: string;
       sharing?: AssetSharingChanges | null;
     }) => {
+      if (await handleClipboardReadRequest(msg, panel)) {
+        return;
+      }
       if (msg.type === 'ready') {
         loadPreviewSharing(asset, accessToken, panel);
         sendThumbnail(asset, panel);
