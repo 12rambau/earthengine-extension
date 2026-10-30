@@ -11,6 +11,7 @@ import dayjs from 'dayjs';
 import script from './ClassifierPreview.svelte';
 import {
   classifierDetails,
+  handleClipboardReadRequest,
   loadPreviewSharing,
   previewMetadata,
   savePreviewMetadata,
@@ -41,6 +42,9 @@ export async function openClassifierPreview(asset: EEAsset, accessToken: string)
       description?: string;
       sharing?: AssetSharingChanges | null;
     }) => {
+      if (await handleClipboardReadRequest(msg, panel)) {
+        return;
+      }
       if (msg.type === 'ready') {
         loadPreviewSharing(asset, accessToken, panel);
       } else if (msg.type === 'saveMetadata') {
