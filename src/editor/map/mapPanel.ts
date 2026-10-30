@@ -536,14 +536,20 @@ export class MapPanel extends EditorPanel {
     const assetName = assetId.startsWith('projects/')
       ? assetId
       : `projects/earthengine-legacy/assets/${assetId}`;
-    const { type } = await getAsset(assetName, token);
+    const asset = await getAsset(assetName, token);
+    const { type } = asset;
 
     let eeObject: unknown;
     let layerVisParams = visParams;
     if (type === 'IMAGE') {
       eeObject = eeAny.Image(assetId);
     } else if (type === 'IMAGE_COLLECTION') {
-      eeObject = eeAny.ImageCollection(assetId).limit(100).mosaic();
+      eeObject = eeAny
+        .ImageCollection(assetId)
+        .sort('system:time_start', false)
+        .limit(10)
+        .mosaic()
+        .set(asset.properties ?? {});
     } else if (type === 'TABLE') {
       eeObject = eeAny.FeatureCollection(assetId);
     } else {
