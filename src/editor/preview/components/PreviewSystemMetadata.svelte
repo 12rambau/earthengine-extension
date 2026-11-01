@@ -90,6 +90,7 @@
     flex-direction: column;
     gap: var(--vscee-space-xs);
     width: 100%;
+    opacity: 1;
   }
   .asset-id {
     position: relative;
