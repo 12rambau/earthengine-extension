@@ -58,7 +58,7 @@ jobs:
 
       - name: Upload Python coverage
         if: matrix.python-version == '3.12'
-        uses: codecov/codecov-action@v6
+        uses: codecov/codecov-action@v7
         with:
           files: ./coverage.xml
           disable_search: true
