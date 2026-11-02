@@ -116,7 +116,7 @@
 
     <div class="tab-panel" class:active={activeTab === 'images'} id="panel-images" role="tabpanel" aria-labelledby="tab-images" tabindex="0">
       {#if images.length > 0}
-        <p class="note">Limited to the first {data.imagesPageSize} images.</p>
+        <p class="note">Showing the latest {data.imagesPageSize} images.</p>
         <PreviewTable>
           <table class="images-table">
             <thead>

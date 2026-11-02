@@ -60,15 +60,18 @@ export async function openImageCollectionPreview(
     'image-multiple.svg',
   );
 
-  // Fetch child images for the IMAGES tab (first page)
-  let childImages: EEAsset[] = [];
-  const [resp, imageCount] = await Promise.all([
-    listAssets(asset.name, accessToken, IMAGES_PAGE_SIZE).catch(() => ({ assets: [] })),
+  // Fetch the latest child images for the IMAGES tab
+  let [childImages, imageCount] = await Promise.all([
+    getLatestCollectionImages(asset.name, accessToken).catch(async () => {
+      const response = await listAssets(asset.name, accessToken, IMAGES_PAGE_SIZE).catch(() => ({
+        assets: [],
+      }));
+      return response.assets ?? [];
+    }),
     getCollectionImageCount(asset.name).catch(() => undefined),
   ]);
-  childImages = resp.assets ?? [];
 
-  // Fetch bands from the first child image
+  // Fetch bands from the latest child image
   let bands: EEBand[] = [];
   if (childImages.length > 0) {
     try {
@@ -155,6 +158,27 @@ async function getCollectionImageCount(assetName: string): Promise<number> {
   return computeValue<number>(ee.ImageCollection(assetName).size());
 }
 
+async function getLatestCollectionImages(assetName: string, accessToken: string): Promise<EEAsset[]> {
+  const ee = await ensureEe();
+  const collection = ee.ImageCollection(assetName) as any;
+  const imageNames = await computeValue<string[]>(
+    collection.sort('system:time_start', false).limit(IMAGES_PAGE_SIZE).aggregate_array('system:id'),
+  );
+  const images: EEAsset[] = [];
+  const batchSize = 10;
+
+  for (let index = 0; index < imageNames.length; index += batchSize) {
+    const batch = await Promise.all(
+      imageNames
+        .slice(index, index + batchSize)
+        .map((name) => getAsset(name, accessToken).catch(() => undefined)),
+    );
+    images.push(...batch.filter((image): image is EEAsset => image !== undefined));
+  }
+
+  return images;
+}
+
 // ==================================================================
 // THUMBNAIL
 // ==================================================================
@@ -175,7 +199,7 @@ async function sendThumbnail(
   }
 }
 
-/** Mosaics the first N images of the collection and requests a 256px thumbnail URL. */
+/** Mosaics the latest N images of the collection and requests a 256px thumbnail URL. */
 async function getCollectionThumbnailUrl(
   asset: EEAsset,
   bands: EEBand[],
@@ -187,7 +211,9 @@ async function getCollectionThumbnailUrl(
   const collection =
     mosaicImages.length > 0
       ? ee.ImageCollection(mosaicImages.map((img) => ee.Image(img.name)))
-      : ee.ImageCollection(asset.name).limit(MOSAIC_LIMIT);
+      : (ee.ImageCollection(asset.name) as any)
+          .sort('system:time_start', false)
+          .limit(MOSAIC_LIMIT);
   const mosaic = collection.mosaic();
 
   const globalParams = {
