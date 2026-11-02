@@ -18,11 +18,21 @@
   let description = $state('');
   let error = $state('');
   let workerUrl;
+  let clipboardRequestId = 0;
+  const pendingClipboardReads = new Map();
 
   function propertyKind(value) {
     if (typeof value === 'number') { return 'number'; }
     if (typeof value === 'boolean') { return 'boolean'; }
     return typeof value === 'string' ? 'string' : 'json';
+  }
+
+  function readClipboardText() {
+    return new Promise((resolve) => {
+      const requestId = ++clipboardRequestId;
+      pendingClipboardReads.set(requestId, resolve);
+      vscode.postMessage({ type: 'readClipboard', requestId });
+    });
   }
 
   function propertyValue(value) {
@@ -73,6 +83,32 @@
     });
     const model = editor.getModel();
     const changes = editor.onDidChangeModelContent(() => (description = editor.getValue()));
+    async function pasteFromHost() {
+      const selection = editor.getSelection();
+      if (!selection || editor.getOption(monaco.editor.EditorOption.readOnly)) { return; }
+      const text = await readClipboardText();
+      if (!text || !node.isConnected || editor.getOption(monaco.editor.EditorOption.readOnly)) { return; }
+      editor.pushUndoStop();
+      editor.executeEdits('paste', [{ range: selection, text }]);
+      editor.pushUndoStop();
+    }
+    function onKeydown(event) {
+      if (!editor.hasTextFocus()) { return; }
+      if (((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'v')
+        || (event.shiftKey && event.key === 'Insert')) {
+        event.preventDefault();
+        event.stopPropagation();
+        pasteFromHost();
+      }
+    }
+    function onPaste(event) {
+      if (!editor.hasTextFocus() || event.clipboardData?.getData('text/plain')) { return; }
+      event.preventDefault();
+      event.stopPropagation();
+      pasteFromHost();
+    }
+    node.addEventListener('keydown', onKeydown, true);
+    node.addEventListener('paste', onPaste, true);
 
     return {
       update({ value, disabled }) {
@@ -82,6 +118,8 @@
       destroy() {
         changes.dispose();
         themeObserver.disconnect();
+        node.removeEventListener('keydown', onKeydown, true);
+        node.removeEventListener('paste', onPaste, true);
         editor.dispose();
         model?.dispose();
         URL.revokeObjectURL(workerUrl);
@@ -103,7 +141,11 @@
   });
 
   window.addEventListener('message', (event) => {
-    if (event.data.type === 'metadataSaved') {
+    if (event.data.type === 'clipboardText') {
+      const resolve = pendingClipboardReads.get(event.data.requestId);
+      pendingClipboardReads.delete(event.data.requestId);
+      resolve?.(typeof event.data.text === 'string' ? event.data.text : '');
+    } else if (event.data.type === 'metadataSaved') {
       metadata = event.data.metadata;
       saving = false;
       editing = false;

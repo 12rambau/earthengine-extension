@@ -28,7 +28,12 @@ import { getExtensionUri } from '../../../shared/extensionContext.js';
 import { getPresetThumbnailImage } from '../thumbnailVisualization.js';
 
 import script from './ImagePreview.svelte';
-import { loadPreviewSharing, previewMetadata, savePreviewMetadata } from '../previewMetadata.js';
+import {
+  handleClipboardReadRequest,
+  loadPreviewSharing,
+  previewMetadata,
+  savePreviewMetadata,
+} from '../previewMetadata.js';
 
 // ==================================================================
 // CONSTANTS
@@ -64,6 +69,9 @@ export function openImagePreview(asset: EEAsset, accessToken: string): void {
       properties?: { key: string; value: unknown }[];
       sharing?: AssetSharingChanges | null;
     }) => {
+      if (await handleClipboardReadRequest(msg, panel)) {
+        return;
+      }
       if (msg.type === 'ready') {
         loadPreviewSharing(asset, accessToken, panel);
         // Fire-and-forget: send asynchronous image and parent metadata.

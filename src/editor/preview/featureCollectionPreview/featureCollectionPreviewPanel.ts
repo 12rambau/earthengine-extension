@@ -20,7 +20,12 @@ import { computeValue, ensureEe } from '../../../shared/eeSession.js';
 import { getExtensionUri } from '../../../shared/extensionContext.js';
 
 import script from './FeatureCollectionPreview.svelte';
-import { loadPreviewSharing, previewMetadata, savePreviewMetadata } from '../previewMetadata.js';
+import {
+  handleClipboardReadRequest,
+  loadPreviewSharing,
+  previewMetadata,
+  savePreviewMetadata,
+} from '../previewMetadata.js';
 import { getFeatureCollectionThumbnailUrl } from './featureCollectionThumbnail.js';
 
 // ==================================================================
@@ -70,6 +75,9 @@ export async function openFeatureCollectionPreview(
       description?: string;
       sharing?: AssetSharingChanges | null;
     }) => {
+      if (await handleClipboardReadRequest(msg, panel)) {
+        return;
+      }
       if (msg.type === 'ready') {
         loadPreviewSharing(asset, accessToken, panel);
         sendThumbnail(asset, panel);
