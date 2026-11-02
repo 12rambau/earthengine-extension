@@ -48,11 +48,6 @@
     globalThis.MonacoEnvironment = {
       getWorker: () => new Worker(workerUrl),
     };
-    const clipboard = navigator.clipboard;
-    const originalReadText = clipboard?.readText;
-    if (clipboard) {
-      clipboard.readText = readClipboardText;
-    }
 
     const applyTheme = () => {
       const style = getComputedStyle(document.body);
@@ -88,6 +83,32 @@
     });
     const model = editor.getModel();
     const changes = editor.onDidChangeModelContent(() => (description = editor.getValue()));
+    async function pasteFromHost() {
+      const selection = editor.getSelection();
+      if (!selection || editor.getOption(monaco.editor.EditorOption.readOnly)) { return; }
+      const text = await readClipboardText();
+      if (!text || !node.isConnected || editor.getOption(monaco.editor.EditorOption.readOnly)) { return; }
+      editor.pushUndoStop();
+      editor.executeEdits('paste', [{ range: selection, text }]);
+      editor.pushUndoStop();
+    }
+    function onKeydown(event) {
+      if (!editor.hasTextFocus()) { return; }
+      if (((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'v')
+        || (event.shiftKey && event.key === 'Insert')) {
+        event.preventDefault();
+        event.stopPropagation();
+        pasteFromHost();
+      }
+    }
+    function onPaste(event) {
+      if (!editor.hasTextFocus() || event.clipboardData?.getData('text/plain')) { return; }
+      event.preventDefault();
+      event.stopPropagation();
+      pasteFromHost();
+    }
+    node.addEventListener('keydown', onKeydown, true);
+    node.addEventListener('paste', onPaste, true);
 
     return {
       update({ value, disabled }) {
@@ -97,11 +118,10 @@
       destroy() {
         changes.dispose();
         themeObserver.disconnect();
+        node.removeEventListener('keydown', onKeydown, true);
+        node.removeEventListener('paste', onPaste, true);
         editor.dispose();
         model?.dispose();
-        if (clipboard) {
-          clipboard.readText = originalReadText;
-        }
         URL.revokeObjectURL(workerUrl);
       },
     };
