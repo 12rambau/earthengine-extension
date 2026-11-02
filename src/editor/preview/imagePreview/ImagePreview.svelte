@@ -229,7 +229,6 @@
     .description-text {
       font-size: var(--vscee-font-md);
       white-space: pre-wrap;
-      opacity: 0.85;
 
       ul,
       ol {
