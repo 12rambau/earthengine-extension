@@ -453,13 +453,15 @@ export class MapLayerManager {
       return;
     }
 
+    const source = image as any;
+    const renderImage = typeof source.mosaic === 'function' ? source.mosaic() : ee.Image(source);
     const rawVisParams = payload.visParams ?? {};
     const requestedType = visualizationType(rawVisParams, 'image');
     const hasDefault = 'default' in rawVisParams;
     // If explicit vis-params (min/max/bands/etc.) are present, skip SEPAL lookup.
     const hasExplicitViz = requestedType !== 'auto';
 
-    let resolvedImage: unknown = image;
+    let resolvedImage: unknown = renderImage;
     // Strip the non-EE `default` key so it is never forwarded to visualize().
     let resolvedVisParams: Record<string, unknown> = { ...rawVisParams };
     delete resolvedVisParams['type'];
@@ -468,12 +470,12 @@ export class MapLayerManager {
     let resolvedType = requestedType;
 
     if (requestedType === 'hsv') {
-      const resolved = resolveHsvImageVis(rawVisParams, image, ee);
+      const resolved = resolveHsvImageVis(rawVisParams, renderImage, ee);
       resolvedImage = resolved.image;
       resolvedVisParams = resolved.visParams;
       displayVisParams = resolved.displayVisParams;
     } else if (requestedType === 'categorical' || requestedType === 'intervals') {
-      const resolved = resolveDiscreteImageVis(rawVisParams, image, ee);
+      const resolved = resolveDiscreteImageVis(rawVisParams, renderImage, ee);
       resolvedImage = resolved.image;
       resolvedVisParams = resolved.visParams;
       displayVisParams = resolved.displayVisParams;
@@ -485,7 +487,7 @@ export class MapLayerManager {
           ? await getAsset(payload.assetName, (await getEeContext()).token)
           : undefined;
         const props = asset
-          ? asset.properties ?? {}
+          ? (asset.properties ?? {})
           : await computeValue<Record<string, unknown>>((image as any).toDictionary());
         const vizs =
           asset?.type === 'IMAGE_COLLECTION'
@@ -496,7 +498,7 @@ export class MapLayerManager {
           const viz = selectSepalViz(vizs, selector);
           if (viz) {
             resolvedType = viz.type;
-            const resolved = resolveSepalViz(viz, image, ee);
+            const resolved = resolveSepalViz(viz, renderImage, ee);
             resolvedImage = resolved.image;
             resolvedVisParams = resolved.visParams;
             displayVisParams = resolved.displayVisParams;
@@ -525,7 +527,7 @@ export class MapLayerManager {
         );
       }
       if (resolvedType === 'auto') {
-        const firstBand = await computeValue<string>((image as any).bandNames().get(0));
+        const firstBand = await computeValue<string>(renderImage.bandNames().get(0));
         resolvedVisParams = { bands: [firstBand] };
       }
     }
@@ -641,8 +643,9 @@ export class MapLayerManager {
     }
     try {
       const ee = await ensureEe();
-      const image = ee.Deserializer.fromJSON(layer.serialized);
-      return await computeValue<string[]>((image as any).bandNames());
+      const source = ee.Deserializer.fromJSON(layer.serialized) as any;
+      const image = typeof source.mosaic === 'function' ? source.mosaic() : ee.Image(source);
+      return await computeValue<string[]>(image.bandNames());
     } catch {
       return [];
     }
@@ -742,7 +745,9 @@ export class MapLayerManager {
     const eeAny = ee as any;
     const source = ee.Deserializer.fromJSON(layer.serialized) as any;
     // A collection has no reduceRegion — flatten it to the image actually drawn.
-    const image = (typeof source.mosaic === 'function' ? source.mosaic() : source).select(bands);
+    const image = (typeof source.mosaic === 'function' ? source.mosaic() : ee.Image(source)).select(
+      bands,
+    );
 
     const [south, west, north, east] = bounds;
     // Web Mercator cannot represent the poles; EE rejects out-of-range latitudes.
@@ -963,7 +968,9 @@ export class MapLayerManager {
       return;
     }
 
-    let resolvedImage: unknown = image;
+    const source = image as any;
+    const renderImage = typeof source.mosaic === 'function' ? source.mosaic() : ee.Image(source);
+    let resolvedImage: unknown = renderImage;
     let resolvedVisParams: Record<string, unknown> = {};
     let displayVisParams: Record<string, unknown> | undefined;
     let selectedType: string | undefined;
@@ -976,7 +983,7 @@ export class MapLayerManager {
       const viz = selectSepalViz(vizs, preset.name);
       if (viz) {
         selectedType = viz.type;
-        const resolved = resolveSepalViz(viz, image, ee);
+        const resolved = resolveSepalViz(viz, renderImage, ee);
         resolvedImage = resolved.image;
         resolvedVisParams = resolved.visParams;
         displayVisParams = resolved.displayVisParams;
@@ -994,7 +1001,7 @@ export class MapLayerManager {
           resolvedVisParams.gamma = config.gamma;
         }
       } else if (renderType === 'hsv') {
-        const resolved = resolveHsvImageVis(config, image, ee);
+        const resolved = resolveHsvImageVis(config, renderImage, ee);
         resolvedImage = resolved.image;
         resolvedVisParams = resolved.visParams;
         displayVisParams = resolved.displayVisParams;
@@ -1013,7 +1020,7 @@ export class MapLayerManager {
           labels: config.labels as string[],
           palette: config.palette as string[],
         };
-        const resolved = resolveSepalViz(viz, image, ee);
+        const resolved = resolveSepalViz(viz, renderImage, ee);
         resolvedImage = resolved.image;
         resolvedVisParams = resolved.visParams;
         displayVisParams = resolved.displayVisParams;
@@ -1027,7 +1034,7 @@ export class MapLayerManager {
           labels: config.labels as string[],
           palette: config.palette as string[],
         };
-        const resolved = resolveSepalViz(viz, image, ee);
+        const resolved = resolveSepalViz(viz, renderImage, ee);
         resolvedImage = resolved.image;
         resolvedVisParams = resolved.visParams;
         displayVisParams = resolved.displayVisParams;
