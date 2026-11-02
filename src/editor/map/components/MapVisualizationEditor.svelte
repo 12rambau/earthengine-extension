@@ -785,6 +785,7 @@
       return;
     }
     vizRgbGamma = String(Math.max(0.1, Math.min(5, Math.round(n * 10) / 10)));
+    vizSelectedPreset = '';
   }
 
   function vizApplyPreset(name) {
@@ -842,6 +843,12 @@
     applyVisParams(vp);
   }
 
+  function clearPresetOnEdit(event) {
+    if (!event.target.closest('.viz-preset-select, .viz-opacity-bar')) {
+      vizSelectedPreset = '';
+    }
+  }
+
   /** `<input type="color">` only accepts a 6-digit `#rrggbb` value. */
   function normalizeHex(color) {
     let hex = String(color).trim();
@@ -862,6 +869,7 @@
 
   function selectContPalette(name) {
     vizContPaletteName = name;
+    vizSelectedPreset = '';
     const pal = CONTINUOUS_PALETTES.find((p) => p.name === name);
     if (pal) {
       vizContColors = sample(pal.interpolate, vizContColorCount);
@@ -874,6 +882,7 @@
       Math.min(MAX_PALETTE_COLORS, Math.round(Number(value) || 0)),
     );
     vizContColorCount = n;
+    vizSelectedPreset = '';
     const pal = CONTINUOUS_PALETTES.find((p) => p.name === vizContPaletteName);
     if (pal) {
       vizContColors = sample(pal.interpolate, n);
@@ -887,6 +896,7 @@
   /** Editing a swatch detaches the ramp from its preset. */
   function markPaletteCustom() {
     vizContPaletteName = '';
+    vizSelectedPreset = '';
   }
 
   /** Accepts `rgb`/`rrggbb`, with or without the leading `#`; `null` when unparseable. */
@@ -914,6 +924,7 @@
     }
     vizCatRows[index].color = hex;
     vizCatPaletteName = '';
+    vizSelectedPreset = '';
   }
 
   function removeContColor(index) {
@@ -952,6 +963,7 @@
 
   function selectCatPalette(name) {
     vizCatPaletteName = name;
+    vizSelectedPreset = '';
     const colors = schemeColors(name, vizCatRows.length);
     if (colors.length === 0) {
       return;
@@ -1002,6 +1014,7 @@
       vizCatNotice = 'No classes found in the visible area.';
       return;
     }
+    vizSelectedPreset = '';
     const scheme = vizCatPaletteName || CATEGORICAL_PALETTES[0].name;
     vizCatPaletteName = scheme;
     const colors = schemeColors(scheme, values.length);
@@ -1016,14 +1029,17 @@
 
   function vizAddCatRow() {
     vizCatRows = [...vizCatRows, { color: '#4285f4', value: '', label: '' }];
+    vizSelectedPreset = '';
   }
 
   function vizRemoveCatRow(idx) {
     vizCatRows = vizCatRows.filter((_, i) => i !== idx);
+    vizSelectedPreset = '';
   }
 
   function selectIntPalette(name) {
     vizIntPaletteName = name;
+    vizSelectedPreset = '';
     const colors = schemeColors(name, vizIntRows.length);
     vizIntRows = vizIntRows.map((row, index) => ({ ...row, color: colors[index] }));
   }
@@ -1053,6 +1069,7 @@
   function setIntColorCount(value) {
     vizIntColorCount = Math.max(MIN_PALETTE_COLORS,
       Math.min(MAX_PALETTE_COLORS, Math.round(Number(value) || 0)));
+    vizSelectedPreset = '';
     generateIntRows();
   }
 
@@ -1063,16 +1080,19 @@
     }
     vizIntRows[index].color = hex;
     vizIntPaletteName = '';
+    vizSelectedPreset = '';
   }
 
   function vizAddIntRow() {
     vizIntRows = [...vizIntRows, { color: '#4285f4', upper: '', label: '' }];
     vizIntColorCount = vizIntRows.length;
+    vizSelectedPreset = '';
   }
 
   function vizRemoveIntRow(index) {
     vizIntRows = vizIntRows.filter((_, rowIndex) => rowIndex !== index);
     vizIntColorCount = vizIntRows.length;
+    vizSelectedPreset = '';
   }
 
   window.addEventListener('message', (e) => {
@@ -1218,7 +1238,7 @@
 
 {#if vizVisible}
   <div class="viz-editor-overlay visible">
-    <div class="viz-editor-dialog">
+    <div class="viz-editor-dialog" oninput={clearPresetOnEdit} onchange={clearPresetOnEdit}>
       <!-- Header -->
       <div class="viz-editor-header">
         <span>Visualization</span>
@@ -1280,14 +1300,14 @@
           {:else if renderMode === 'uniform'}
             <div class="viz-channel-row">
               <label class="viz-channel-label" for="viz-vector-stroke">Stroke</label>
-              <ColorPicker bind:value={vizVectorColor} label="Stroke colour" />
+              <ColorPicker bind:value={vizVectorColor} onChange={() => { vizSelectedPreset = ''; }} label="Stroke colour" />
               <input type="text" class="viz-input viz-vector-hex" aria-label="Stroke colour hex" bind:value={vizVectorColor} />
               <ToggleSwitch id="viz-vector-stroke" className="viz-color-switch"
                 ariaLabel="Enable stroke" bind:checked={vizVectorStroke} />
             </div>
             <div class="viz-channel-row">
               <label class="viz-channel-label" for="viz-vector-fill">Fill</label>
-              <ColorPicker bind:value={vizVectorFillColor} label="Fill colour" />
+              <ColorPicker bind:value={vizVectorFillColor} onChange={() => { vizSelectedPreset = ''; }} label="Fill colour" />
               <input type="text" class="viz-input viz-vector-hex" aria-label="Fill colour hex" bind:value={vizVectorFillColor} />
               <ToggleSwitch id="viz-vector-fill" className="viz-color-switch"
                 ariaLabel="Enable fill" bind:checked={vizVectorFill} />
@@ -1600,6 +1620,7 @@
                   bind:value={row.color}
                   onChange={() => {
                     vizCatPaletteName = '';
+                    vizSelectedPreset = '';
                   }}
                   label="Colour for class {i + 1}"
                 />
@@ -1732,6 +1753,7 @@
                   bind:value={row.color}
                   onChange={() => {
                     vizIntPaletteName = '';
+                    vizSelectedPreset = '';
                   }}
                   label="Colour for interval {index + 1}"
                 />
