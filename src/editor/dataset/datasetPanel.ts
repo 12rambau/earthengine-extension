@@ -15,6 +15,11 @@ import { CommunityDatasetEntry } from '../../sidebar/dataset/communityClient.js'
 import { designTokens } from '../../shared/index.js';
 import script from './DatasetPanel.svelte';
 
+/** Catalog reference saved by a dataset WebView for restoration. */
+export type DatasetPanelState =
+  | { kind: 'stac'; href: string }
+  | { kind: 'community'; docs: string };
+
 // ==================================================================
 // PUBLIC API
 // ==================================================================
@@ -23,13 +28,18 @@ export function createDatasetPanel(
   collection: StacCollection,
   extensionUri: vscode.Uri,
   extraTabs?: { id: string; label: string; content: string }[],
+  restoredPanel?: vscode.WebviewPanel,
+  restoreState?: DatasetPanelState,
 ): vscode.WebviewPanel {
-  const panel = vscode.window.createWebviewPanel(
+  const panel = restoredPanel ?? vscode.window.createWebviewPanel(
     'earthengine.datasetDetail',
     collection.title || collection.id,
     vscode.ViewColumn.One,
     { enableScripts: true },
   );
+  if (restoredPanel) {
+    panel.webview.options = { enableScripts: true };
+  }
 
   const iconFile: Record<string, string> = {
     image_collection: 'image-multiple',
@@ -41,7 +51,7 @@ export function createDatasetPanel(
     panel.iconPath = vscode.Uri.joinPath(extensionUri, 'resources', 'icons', `${file}.svg`);
   }
 
-  panel.webview.html = buildHtml(collection, panel.webview, extraTabs);
+  panel.webview.html = buildHtml(collection, panel.webview, extraTabs, restoreState);
 
   // The webview posts the snippet text back so we can write it to the clipboard.
   panel.webview.onDidReceiveMessage((msg) => {
@@ -63,6 +73,7 @@ export function createCommunityDatasetPanel(
   entry: CommunityDatasetEntry,
   markdown: string,
   extensionUri: vscode.Uri,
+  restoredPanel?: vscode.WebviewPanel,
 ): vscode.WebviewPanel {
   const collection: StacCollection = {
     type: 'Collection',
@@ -87,7 +98,10 @@ export function createCommunityDatasetPanel(
     label: 'Properties',
     content: buildCommunityPropertiesHtml(entry),
   };
-  return createDatasetPanel(collection, extensionUri, [propertiesTab]);
+  return createDatasetPanel(collection, extensionUri, [propertiesTab], restoredPanel, {
+    kind: 'community',
+    docs: entry.docs,
+  });
 }
 
 // ==================================================================
@@ -97,6 +111,7 @@ function buildHtml(
   c: StacCollection,
   webview: vscode.Webview,
   extraTabs?: { id: string; label: string; content: string }[],
+  restoreState?: DatasetPanelState,
 ): string {
   const temporal = c.extent?.temporal?.interval?.[0];
   const startDate = temporal?.[0] || 'N/A';
@@ -161,6 +176,7 @@ function buildHtml(
   ].join('; ');
 
   const initData = JSON.stringify({
+    restoreState,
     title: c.title || c.id,
     previewImgHtml,
     startDate,
@@ -171,7 +187,7 @@ function buildHtml(
     tagsHtml,
     snippet,
     tabs,
-  });
+  }).replace(/</g, '\\u003c');
 
   return `<!DOCTYPE html>
 <html lang="en">
