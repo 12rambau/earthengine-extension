@@ -81,9 +81,10 @@ export async function openAssetsPanel(
   panel.iconPath = new vscode.ThemeIcon('folder-library');
 
   let rootPath = `projects/${profile.project}`;
+  const savedParent = typeof restoredState?.parent === 'string' ? restoredState.parent : undefined;
   const initialParent =
-    restoredState?.parent === rootPath || restoredState?.parent?.startsWith(`${rootPath}/assets/`)
-      ? restoredState.parent
+    savedParent === rootPath || savedParent?.startsWith(`${rootPath}/assets/`)
+      ? savedParent
       : rootPath;
   let currentParentPath = initialParent;
   let allAssets: EEAsset[] = [];
