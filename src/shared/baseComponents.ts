@@ -92,13 +92,20 @@ export abstract class EditorPanel implements vscode.Disposable {
       return this.panel;
     }
 
-    this.panel = vscode.window.createWebviewPanel(viewType, title, column, options);
-    this.panel.onDidDispose(() => {
-      this.panel = undefined;
-      this.onDidDispose();
-    });
+    const panel = vscode.window.createWebviewPanel(viewType, title, column, options);
+    this.restorePanel(panel);
+    return panel;
+  }
 
-    return this.panel;
+  /** Attach a VS Code-restored panel to the singleton lifecycle without revealing or replacing it. */
+  protected restorePanel(panel: vscode.WebviewPanel): void {
+    this.panel = panel;
+    panel.onDidDispose(() => {
+      if (this.panel === panel) {
+        this.panel = undefined;
+        this.onDidDispose();
+      }
+    });
   }
 
   /** Override in subclasses to perform cleanup when the panel is closed. */

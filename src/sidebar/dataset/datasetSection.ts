@@ -13,6 +13,7 @@ import { DatasetTreeDataProvider } from './datasetTreeDataProvider.js';
 import { DatasetTreeItem } from './datasetTreeItem.js';
 import { fetchCollection, getDatasetPageUrl } from './stacClient.js';
 import { fetchHtml } from '../../shared/httpClient.js';
+import type { StacCollection } from './stacClient.js';
 import {
   createDatasetPanel,
   createCommunityDatasetPanel,
@@ -31,6 +32,21 @@ export class DatasetSection extends SidebarSection {
   }
 
   register(context: vscode.ExtensionContext): void {
+    this.disposables.push(
+      vscode.window.registerWebviewPanelSerializer('earthengine.datasetDetail', {
+        async deserializeWebviewPanel(panel, state: unknown) {
+          const saved = state as {
+            collection?: StacCollection;
+            extraTabs?: { id: string; label: string; content: string }[];
+          } | null;
+          if (!saved?.collection || typeof saved.collection.id !== 'string') {
+            panel.dispose();
+            return;
+          }
+          createDatasetPanel(saved.collection, context.extensionUri, saved.extraTabs, panel);
+        },
+      }),
+    );
     const treeView = this.createTreeView('earthengine.dataset', this.provider, {
       showCollapseAll: true,
     });

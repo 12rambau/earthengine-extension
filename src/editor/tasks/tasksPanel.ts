@@ -50,6 +50,7 @@ export async function openTasksPanel(
   authService: AuthService,
   filter: TaskFilter,
   context: vscode.ExtensionContext,
+  restoredPanel?: vscode.WebviewPanel,
 ): Promise<void> {
   const token = await authService.getToken();
   if (!token) {
@@ -58,12 +59,15 @@ export async function openTasksPanel(
   }
 
   const profile = authService.currentProfile!;
-  const panel = vscode.window.createWebviewPanel(
+  const panel = restoredPanel ?? vscode.window.createWebviewPanel(
     'earthengine.tasks.panel',
     'Tasks',
     vscode.ViewColumn.One,
     { enableScripts: true, retainContextWhenHidden: true },
   );
+  if (restoredPanel) {
+    panel.webview.options = { enableScripts: true };
+  }
   panel.iconPath = new vscode.ThemeIcon('tasklist');
 
   let allOps: Operation[] = [];
@@ -359,7 +363,7 @@ function getHtml(filter: TaskFilter, savedPrefs: TaskPrefs, webview: vscode.Webv
     export: savedPrefs.tablePreferences?.export ?? legacyPreferences,
     import: savedPrefs.tablePreferences?.import ?? legacyPreferences,
   };
-  const initData = JSON.stringify({ filter, tablePreferences }).replace(/</g, '\u003c');
+  const initData = JSON.stringify({ filter, tablePreferences, restoreState: { filter } }).replace(/</g, '\\u003c');
   return `<!DOCTYPE html>
 <html lang="en">
   <head>

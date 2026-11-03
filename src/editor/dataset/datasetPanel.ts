@@ -23,13 +23,17 @@ export function createDatasetPanel(
   collection: StacCollection,
   extensionUri: vscode.Uri,
   extraTabs?: { id: string; label: string; content: string }[],
+  restoredPanel?: vscode.WebviewPanel,
 ): vscode.WebviewPanel {
-  const panel = vscode.window.createWebviewPanel(
+  const panel = restoredPanel ?? vscode.window.createWebviewPanel(
     'earthengine.datasetDetail',
     collection.title || collection.id,
     vscode.ViewColumn.One,
     { enableScripts: true },
   );
+  if (restoredPanel) {
+    panel.webview.options = { enableScripts: true };
+  }
 
   const iconFile: Record<string, string> = {
     image_collection: 'image-multiple',
@@ -63,6 +67,7 @@ export function createCommunityDatasetPanel(
   entry: CommunityDatasetEntry,
   markdown: string,
   extensionUri: vscode.Uri,
+  restoredPanel?: vscode.WebviewPanel,
 ): vscode.WebviewPanel {
   const collection: StacCollection = {
     type: 'Collection',
@@ -87,7 +92,7 @@ export function createCommunityDatasetPanel(
     label: 'Properties',
     content: buildCommunityPropertiesHtml(entry),
   };
-  return createDatasetPanel(collection, extensionUri, [propertiesTab]);
+  return createDatasetPanel(collection, extensionUri, [propertiesTab], restoredPanel);
 }
 
 // ==================================================================
@@ -161,6 +166,7 @@ function buildHtml(
   ].join('; ');
 
   const initData = JSON.stringify({
+    restoreState: { collection: c, extraTabs },
     title: c.title || c.id,
     previewImgHtml,
     startDate,
@@ -171,7 +177,7 @@ function buildHtml(
     tagsHtml,
     snippet,
     tabs,
-  });
+  }).replace(/</g, '\\u003c');
 
   return `<!DOCTYPE html>
 <html lang="en">

@@ -30,6 +30,17 @@ export class TasksSection extends SidebarSection {
   }
 
   register(context: vscode.ExtensionContext): void {
+    this.disposables.push(
+      vscode.window.registerWebviewPanelSerializer('earthengine.tasks.panel', {
+        deserializeWebviewPanel: (panel, state: unknown) =>
+          openTasksPanel(
+            this.authService,
+            (state as { filter?: string })?.filter === 'import' ? 'import' : 'export',
+            context,
+            panel,
+          ),
+      }),
+    );
     this.createTreeView('earthengine.tasks.export', this.exportProvider);
     this.createTreeView('earthengine.tasks.import', this.importProvider);
 

@@ -55,6 +55,8 @@ const ACTION_COMMANDS: Record<string, string> = {
 export async function openAssetsPanel(
   authService: AuthService,
   context: vscode.ExtensionContext,
+  restoredPanel?: vscode.WebviewPanel,
+  restoredState?: { parent?: string },
 ): Promise<void> {
   const token = await authService.getToken();
   if (!token) {
@@ -63,7 +65,7 @@ export async function openAssetsPanel(
   }
 
   const profile = authService.currentProfile!;
-  const panel = vscode.window.createWebviewPanel(
+  const panel = restoredPanel ?? vscode.window.createWebviewPanel(
     'earthengine.assetsPanel',
     'Asset Manager',
     vscode.ViewColumn.One,
@@ -73,10 +75,17 @@ export async function openAssetsPanel(
       localResourceRoots: [],
     },
   );
+  if (restoredPanel) {
+    panel.webview.options = { enableScripts: true, localResourceRoots: [] };
+  }
   panel.iconPath = new vscode.ThemeIcon('folder-library');
 
   let rootPath = `projects/${profile.project}`;
-  let currentParentPath = rootPath;
+  const initialParent =
+    restoredState?.parent === rootPath || restoredState?.parent?.startsWith(`${rootPath}/assets/`)
+      ? restoredState.parent
+      : rootPath;
+  let currentParentPath = initialParent;
   let allAssets: EEAsset[] = [];
   let collectionImages: CollectionRaster[] = [];
   let collectionSource: 'zarr' | 'cogs' | 'vrt' | undefined;
@@ -504,19 +513,19 @@ export async function openAssetsPanel(
   });
 
   // Initial load
-  panel.webview.html = getHtml(savedPrefs, panel.webview);
+  panel.webview.html = getHtml(savedPrefs, panel.webview, initialParent);
   void sweepStagedObjects(authService, context).catch(() => undefined);
   try {
-    await loadAndStream(rootPath);
+    await loadAndStream(initialParent);
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     vscode.window.showErrorMessage(`Failed to load assets: ${msg}`);
   }
 }
 
-function getHtml(savedPrefs: AssetPrefs, webview: vscode.Webview): string {
+function getHtml(savedPrefs: AssetPrefs, webview: vscode.Webview, parent: string): string {
   const nonce = getNonce();
-  const initData = JSON.stringify(savedPrefs).replace(/</g, '\\u003c');
+  const initData = JSON.stringify({ ...savedPrefs, restoreState: { parent } }).replace(/</g, '\\u003c');
   return `<!DOCTYPE html>
 <html lang="en">
   <head>

@@ -69,20 +69,24 @@ export class MapPanel extends EditorPanel {
   }
 
   /** Creates (or reveals) the map WebView and wires WebView message handling. */
-  async open(): Promise<void> {
+  async open(restoredPanel?: vscode.WebviewPanel): Promise<void> {
     // The bridge server is started in register(); starting again is a no-op.
     await this.bridgeServer.start();
 
     const alreadyOpen = this.panel !== undefined;
-    const panel = this.createPanel(
-      'earthengine.map',
-      'Earth Engine Map',
-      vscode.ViewColumn.Beside,
-      { enableScripts: true, retainContextWhenHidden: true },
-    );
+    if (restoredPanel) {
+      restoredPanel.webview.options = { enableScripts: true };
+      this.restorePanel(restoredPanel);
+    }
+    const panel =
+      restoredPanel ??
+      this.createPanel('earthengine.map', 'Earth Engine Map', vscode.ViewColumn.Beside, {
+        enableScripts: true,
+        retainContextWhenHidden: true,
+      });
     panel.iconPath = new vscode.ThemeIcon('map');
 
-    if (alreadyOpen) {
+    if (alreadyOpen && !restoredPanel) {
       return;
     }
 
@@ -625,6 +629,11 @@ export class MapPanel extends EditorPanel {
 
   /** Registers map commands. */
   register(context: vscode.ExtensionContext): void {
+    this.disposables.push(
+      vscode.window.registerWebviewPanelSerializer('earthengine.map', {
+        deserializeWebviewPanel: (panel) => this.open(panel),
+      }),
+    );
     this.workspaceState = context.workspaceState;
     this.geometries = parseMapGeometries(context.workspaceState.get(GEOMETRIES_KEY));
     // Start the bridge server on activation so Python scripts can connect

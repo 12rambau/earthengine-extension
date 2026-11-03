@@ -19,7 +19,7 @@ import {
   ensureFolder,
   moveAsset,
 } from './eeApiClient.js';
-import { openAssetPreview } from '../../editor/preview/assetPreviewPanel.js';
+import { openAssetPreview, registerPreviewSerializers } from '../../editor/preview/assetPreviewPanel.js';
 import { openAssetsPanel } from '../../editor/assets/assetsPanel.js';
 import {
   purgeStagingPrefix,
@@ -41,6 +41,13 @@ export class AssetsSection extends SidebarSection {
   }
 
   register(context: vscode.ExtensionContext): void {
+    this.disposables.push(
+      vscode.window.registerWebviewPanelSerializer('earthengine.assetsPanel', {
+        deserializeWebviewPanel: (panel, state: unknown) =>
+          openAssetsPanel(this.authService, context, panel, state as { parent?: string }),
+      }),
+      ...registerPreviewSerializers(this.authService),
+    );
     const treeView = this.createTreeView('earthengine.assets', this.provider, {
       showCollapseAll: true,
     });
