@@ -521,16 +521,16 @@ export class MapLayerManager {
           );
         }
       } catch (err) {
-        if (hasDefault) {
-          // An explicit default was requested — propagate the error so the
-          // caller's existing error-reporting path can surface it to the user.
-          throw err;
-        }
-        // No explicit default — try the first band when preset lookup fails.
+        // A broken preset should not prevent the image from being added.
         console.log(
           '[MapLayerManager] SEPAL viz resolution failed (non-fatal):',
           err instanceof Error ? err.message : String(err),
         );
+        selectedPreset = undefined;
+        resolvedType = 'auto';
+        resolvedImage = renderImage;
+        resolvedVisParams = {};
+        displayVisParams = undefined;
       }
       if (resolvedType === 'auto') {
         const firstBand = await computeValue<string>(renderImage.bandNames().get(0));
@@ -538,7 +538,25 @@ export class MapLayerManager {
       }
     }
 
-    const url = await getMapIdUrl(resolvedImage, resolvedVisParams);
+    let url: string;
+    try {
+      url = await getMapIdUrl(resolvedImage, resolvedVisParams);
+    } catch (err) {
+      if (!selectedPreset) {
+        throw err;
+      }
+      console.log(
+        '[MapLayerManager] SEPAL viz tile generation failed (non-fatal):',
+        err instanceof Error ? err.message : String(err),
+      );
+      const firstBand = await computeValue<string>(renderImage.bandNames().get(0));
+      resolvedImage = renderImage;
+      resolvedVisParams = { bands: [firstBand] };
+      displayVisParams = undefined;
+      selectedPreset = undefined;
+      resolvedType = 'rgb';
+      url = await getMapIdUrl(resolvedImage, resolvedVisParams);
+    }
 
     const finalVisParams = {
       ...(displayVisParams ?? resolvedVisParams),
