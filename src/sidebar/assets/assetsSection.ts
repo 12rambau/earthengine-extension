@@ -43,8 +43,16 @@ export class AssetsSection extends SidebarSection {
   register(context: vscode.ExtensionContext): void {
     this.disposables.push(
       vscode.window.registerWebviewPanelSerializer('earthengine.assetsPanel', {
-        deserializeWebviewPanel: (panel, state: unknown) =>
-          openAssetsPanel(this.authService, context, panel, state as { parent?: string }),
+        deserializeWebviewPanel: async (panel, state: unknown) => {
+          try {
+            await openAssetsPanel(this.authService, context, panel, state as { parent?: string });
+          } catch (error) {
+            panel.dispose();
+            vscode.window.showErrorMessage(
+              `Failed to restore Asset Manager: ${error instanceof Error ? error.message : String(error)}`,
+            );
+          }
+        },
       }),
       ...registerPreviewSerializers(this.authService),
     );

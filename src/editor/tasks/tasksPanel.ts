@@ -54,6 +54,7 @@ export async function openTasksPanel(
 ): Promise<void> {
   const token = await authService.getToken();
   if (!token) {
+    restoredPanel?.dispose();
     vscode.window.showErrorMessage('Not authenticated.');
     return;
   }

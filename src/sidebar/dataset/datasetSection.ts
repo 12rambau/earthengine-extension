@@ -13,11 +13,13 @@ import { DatasetTreeDataProvider } from './datasetTreeDataProvider.js';
 import { DatasetTreeItem } from './datasetTreeItem.js';
 import { fetchCollection, getDatasetPageUrl } from './stacClient.js';
 import { fetchHtml } from '../../shared/httpClient.js';
-import type { StacCollection } from './stacClient.js';
+import { fetchCommunityThemes } from './communityClient.js';
+import type { CommunityDatasetEntry } from './communityClient.js';
 import {
   createDatasetPanel,
   createCommunityDatasetPanel,
 } from '../../editor/dataset/datasetPanel.js';
+import type { DatasetPanelState } from '../../editor/dataset/datasetPanel.js';
 
 // ==================================================================
 // DATASETSECTION
@@ -34,16 +36,35 @@ export class DatasetSection extends SidebarSection {
   register(context: vscode.ExtensionContext): void {
     this.disposables.push(
       vscode.window.registerWebviewPanelSerializer('earthengine.datasetDetail', {
-        async deserializeWebviewPanel(panel, state: unknown) {
-          const saved = state as {
-            collection?: StacCollection;
-            extraTabs?: { id: string; label: string; content: string }[];
-          } | null;
-          if (!saved?.collection || typeof saved.collection.id !== 'string') {
+        deserializeWebviewPanel: async (panel, state: unknown) => {
+          const saved = state as DatasetPanelState | null;
+          try {
+            if (saved?.kind === 'stac' && typeof saved.href === 'string') {
+              const url = new URL(saved.href);
+              if (
+                url.origin !== 'https://earthengine-stac.storage.googleapis.com' ||
+                !url.pathname.startsWith('/catalog/')
+              ) {
+                throw new Error('Invalid dataset catalog URL');
+              }
+              const collection = await fetchCollection(url.href);
+              createDatasetPanel(collection, context.extensionUri, undefined, panel, saved);
+            } else if (saved?.kind === 'community' && typeof saved.docs === 'string') {
+              const themes = await fetchCommunityThemes();
+              const entry = [...themes.values()].flat().find((item) => item.docs === saved.docs);
+              if (!entry) {
+                throw new Error('Dataset not found in community catalog');
+              }
+              await this.openCommunityPanel(entry, context.extensionUri, panel);
+            } else {
+              throw new Error('Invalid saved dataset');
+            }
+          } catch (error) {
             panel.dispose();
-            return;
+            vscode.window.showErrorMessage(
+              `Failed to restore dataset details: ${error instanceof Error ? error.message : String(error)}`,
+            );
           }
-          createDatasetPanel(saved.collection, context.extensionUri, saved.extraTabs, panel);
         },
       }),
     );
@@ -78,7 +99,10 @@ export class DatasetSection extends SidebarSection {
         }
         try {
           const collection = await fetchCollection(href);
-          createDatasetPanel(collection, context.extensionUri);
+          createDatasetPanel(collection, context.extensionUri, undefined, undefined, {
+            kind: 'stac',
+            href,
+          });
         } catch {
           vscode.window.showErrorMessage('Failed to load dataset details.');
         }
@@ -96,13 +120,8 @@ export class DatasetSection extends SidebarSection {
       if (item.nodeType !== 'communityDataset' || !item.communityEntry) {
         return;
       }
-      // Derive the markdown slug from the docs URL:
-      // https://gee-community-catalog.org/projects/hrsl/ → hrsl
-      const slug = item.communityEntry.docs.replace(/^.*\/projects\//, '').replace(/\/$/, '');
-      const markdownUrl = `https://raw.githubusercontent.com/samapriya/awesome-gee-community-datasets/master/docs/projects/${slug}.md`;
       try {
-        const markdown = await fetchHtml(markdownUrl);
-        createCommunityDatasetPanel(item.communityEntry, markdown, context.extensionUri);
+        await this.openCommunityPanel(item.communityEntry, context.extensionUri);
       } catch (err) {
         vscode.window.showErrorMessage(
           `Failed to load community dataset: ${err instanceof Error ? err.message : String(err)}`,
@@ -111,5 +130,17 @@ export class DatasetSection extends SidebarSection {
     });
 
     context.subscriptions.push(this);
+  }
+
+  /** Fetch the current community description before opening or restoring its detail panel. */
+  private async openCommunityPanel(
+    entry: CommunityDatasetEntry,
+    extensionUri: vscode.Uri,
+    restoredPanel?: vscode.WebviewPanel,
+  ): Promise<void> {
+    const slug = entry.docs.replace(/^.*\/projects\//, '').replace(/\/$/, '');
+    const markdownUrl = `https://raw.githubusercontent.com/samapriya/awesome-gee-community-datasets/master/docs/projects/${slug}.md`;
+    const markdown = await fetchHtml(markdownUrl);
+    createCommunityDatasetPanel(entry, markdown, extensionUri, restoredPanel);
   }
 }
