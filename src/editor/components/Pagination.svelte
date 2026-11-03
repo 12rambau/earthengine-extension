@@ -7,7 +7,7 @@
   let openSize = $state(false);
   let sizeWrap = $state(null);
 
-  const PAGE_SIZES = [25, 50, 100];
+  const PAGE_SIZES = [25, 50, 100, 200, 500];
 
   function pages() {
     if (totalPages <= 1) {
