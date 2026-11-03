@@ -134,12 +134,30 @@ export async function openTasksPanel(
     } while (pageToken && !reachedHistoryLimit && allOps.length < scanLimit);
   }
 
+  let pendingRefresh: Promise<void> | undefined;
+
   /**
    * Incremental refresh: fetches new tasks in batches of 25 until overlap
    * with existing data, then updates non-terminal tasks individually.
    * Does NOT reload terminal tasks (SUCCEEDED, FAILED, CANCELLED).
    */
-  async function refreshIncremental(): Promise<void> {
+  function refreshIncremental(): Promise<void> {
+    if (!pendingRefresh) {
+      const refresh = refreshIncrementalOnce();
+      pendingRefresh = refresh;
+      void refresh.then(
+        () => {
+          pendingRefresh = undefined;
+        },
+        () => {
+          pendingRefresh = undefined;
+        },
+      );
+    }
+    return pendingRefresh;
+  }
+
+  async function refreshIncrementalOnce(): Promise<void> {
     const generation = ++loadGeneration;
     const t = await authService.getToken();
     if (generation !== loadGeneration) {
@@ -204,20 +222,25 @@ export async function openTasksPanel(
       (op) => !TERMINAL_STATES.has(getTaskState(op)) && !newNames.has(op.name),
     );
 
-    const updatePromises = nonTerminal.map(async (op) => {
-      try {
-        const updated = await getOperation(op.name, t!);
-        if (generation !== loadGeneration) {
-          return;
+    const concurrentRequests = Math.min(8, nonTerminal.length);
+    let nextOperation = 0;
+    const updateOperation = async () => {
+      while (nextOperation < nonTerminal.length && generation === loadGeneration) {
+        const op = nonTerminal[nextOperation++];
+        try {
+          const updated = await getOperation(op.name, t!);
+          if (generation !== loadGeneration) {
+            return;
+          }
+          op.metadata = updated.metadata;
+          op.done = updated.done;
+          op.error = updated.error;
+        } catch {
+          // If individual fetch fails, keep stale data
         }
-        op.metadata = updated.metadata;
-        op.done = updated.done;
-        op.error = updated.error;
-      } catch {
-        // If individual fetch fails, keep stale data
       }
-    });
-    await Promise.all(updatePromises);
+    };
+    await Promise.all(Array.from({ length: concurrentRequests }, updateOperation));
     if (generation !== loadGeneration) {
       return;
     }
@@ -232,7 +255,6 @@ export async function openTasksPanel(
         const t = await authService.getToken();
         if (t) {
           await cancelOperation(msg.name, t);
-          panel.webview.postMessage({ type: 'cancelled', name: msg.name });
         }
       } catch (err) {
         const m = err instanceof Error ? err.message : String(err);
@@ -241,29 +263,83 @@ export async function openTasksPanel(
     } else if (msg.type === 'cancelBulk') {
       try {
         const names = Array.isArray(msg.names) ? [...new Set(msg.names)] : [];
-        const eligible = names.filter(
-          (name): name is string =>
-            typeof name === 'string' &&
-            allOps.some(
-              (op) => op.name === name && ['PENDING', 'RUNNING'].includes(getTaskState(op)),
-            ),
+        const cancelableNames = new Set(
+          allOps
+            .filter((op) => ['PENDING', 'RUNNING'].includes(getTaskState(op)))
+            .map((op) => op.name),
         );
+        const eligible = names.filter(
+          (name): name is string => typeof name === 'string' && cancelableNames.has(name),
+        );
+        if (!eligible.length) {
+          vscode.window.showInformationMessage('None of the selected tasks can be cancelled.');
+          return;
+        }
         const t = await authService.getToken();
         if (!t) {
           throw new Error('Not authenticated.');
         }
-        const results = await Promise.allSettled(eligible.map((name) => cancelOperation(name, t)));
-        results.forEach((result, index) => {
-          if (result.status === 'fulfilled') {
-            panel.webview.postMessage({ type: 'cancelled', name: eligible[index] });
-          }
-        });
-        const failures = results.filter((result) => result.status === 'rejected');
+        const skipped = names.length - eligible.length;
+        const suffix = skipped
+          ? ` (${skipped} already finished or cancelling will be skipped)`
+          : '';
+        const confirm = await vscode.window.showWarningMessage(
+          `Cancel ${eligible.length} selected tasks?${suffix}`,
+          'Cancel',
+        );
+        if (confirm !== 'Cancel') {
+          return;
+        }
+
+        const displayNames = new Map(
+          allOps.map((op) => [
+            op.name,
+            op.metadata?.description || op.name.split('/').pop() || op.name,
+          ]),
+        );
+        let completed = 0;
+        let attempted = 0;
+        const failures: string[] = [];
+        await vscode.window.withProgress(
+          {
+            location: vscode.ProgressLocation.Notification,
+            title: 'Cancelling tasks',
+            cancellable: true,
+          },
+          async (progress, cancellationToken) => {
+            for (const name of eligible) {
+              if (cancellationToken.isCancellationRequested) {
+                break;
+              }
+              const taskLabel = `${name.split('/').pop() || name} (${displayNames.get(name) || name})`;
+              progress.report({
+                message: `Processed ${attempted}/${eligible.length} requests: ${taskLabel}`,
+              });
+              try {
+                await cancelOperation(name, t);
+                completed++;
+              } catch (err) {
+                failures.push(`${name}: ${err instanceof Error ? err.message : String(err)}`);
+              }
+              attempted++;
+              progress.report({
+                message: `Processed ${attempted}/${eligible.length} requests: ${taskLabel}`,
+                increment: 100 / eligible.length,
+              });
+            }
+          },
+        );
         if (failures.length) {
-          panel.webview.postMessage({
-            type: 'error',
-            message: `Failed to cancel ${failures.length} of ${eligible.length} selected tasks.`,
-          });
+          const summary = failures.slice(0, 3).join('; ');
+          vscode.window.showWarningMessage(
+            `${completed} of ${attempted} tasks cancellation requested.${attempted < eligible.length ? ` ${eligible.length - attempted} not sent.` : ''} Failed: ${summary}${failures.length > 3 ? ` (and ${failures.length - 3} more)` : ''}`,
+          );
+        } else if (attempted < eligible.length) {
+          vscode.window.showInformationMessage(
+            `Stopped after ${completed} cancellation requests. ${eligible.length - attempted} tasks not sent.`,
+          );
+        } else {
+          vscode.window.showInformationMessage(`${completed} tasks cancellation requested.`);
         }
       } catch (err) {
         const m = err instanceof Error ? err.message : String(err);
