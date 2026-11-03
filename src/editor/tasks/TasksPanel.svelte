@@ -133,11 +133,6 @@
     }
   });
 
-  // Only these states can still be cancelled server-side; anything else is already terminal.
-  function isCancelable(task) {
-    return task.state === 'RUNNING' || task.state === 'PENDING';
-  }
-
   // ----------------------------------------------------------------
   // ACTIONS
   // ----------------------------------------------------------------
@@ -205,17 +200,8 @@
       return;
     }
     const names = table.pageRows
-      .filter((task) => selectedNames.has(task.name) && isCancelable(task))
+      .filter((task) => selectedNames.has(task.name))
       .map((task) => task.name);
-    const skipped = selectedCount - names.length;
-    if (!names.length) {
-      alert('None of the selected tasks can be cancelled.');
-      return;
-    }
-    const suffix = skipped > 0 ? ` (${skipped} already finished or cancelling will be skipped)` : '';
-    if (!confirm(`Cancel ${names.length} selected tasks?${suffix}`)) {
-      return;
-    }
     isCancelling = true;
     vscode.postMessage({ type: 'cancelBulk', names });
   }
@@ -251,9 +237,6 @@
     } else if (msg.type === 'loading') {
       isLoading = true;
       selectedNames = new Set();
-    } else if (msg.type === 'cancelled') {
-      allTasks = allTasks.map((t) => (t.name === msg.name ? { ...t, state: 'CANCELLING' } : t));
-      syncRows();
     } else if (msg.type === 'bulkCancelDone') {
       isCancelling = false;
     } else if (msg.type === 'error') {

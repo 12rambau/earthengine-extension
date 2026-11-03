@@ -10,7 +10,7 @@
 import dayjs from 'dayjs';
 import duration from 'dayjs/plugin/duration';
 import relativeTime from 'dayjs/plugin/relativeTime';
-import { httpRequest } from '../../shared/httpClient.js';
+import { httpRequest, httpRequestRaw } from '../../shared/httpClient.js';
 
 dayjs.extend(duration);
 dayjs.extend(relativeTime);
@@ -120,7 +120,16 @@ export async function listOperationsPage(
 /** Sends a cancel request for a running operation. */
 export async function cancelOperation(name: string, accessToken: string): Promise<void> {
   const url = `${EE_API_BASE}/${name}:cancel`;
-  await httpRequest(url, 'POST', accessToken);
+  const response = await httpRequestRaw(
+    url,
+    'POST',
+    { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+    undefined,
+    30_000,
+  );
+  if (response.status >= 400) {
+    throw new Error(`HTTP ${response.status}: ${response.body}`);
+  }
 }
 
 /** Fetches the current state of a single operation by its full name. */
