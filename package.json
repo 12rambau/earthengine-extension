@@ -951,7 +951,7 @@
     "prettier": "^3.9.10",
     "prettier-plugin-svelte": "^4.1.1",
     "release-it": "^21.1.0",
-    "svelte": "^5.57.2",
+    "svelte": "^5.57.3",
     "svelte-eslint-parser": "^1.10.0",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.72.1"
