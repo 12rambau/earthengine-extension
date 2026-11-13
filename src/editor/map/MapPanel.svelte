@@ -5,6 +5,7 @@
   import MapGeometryControl from './components/MapGeometryControl.svelte';
   import MapInspector from './components/MapInspector.svelte';
   import MapLayerControl from './components/MapLayerControl.svelte';
+  import MapLayoutDialog from './components/MapLayoutDialog.svelte';
   import MapMenu from './components/MapMenu.svelte';
   import MapScale from './components/MapScale.svelte';
   import MapVisualizationEditor from './components/MapVisualizationEditor.svelte';
@@ -26,6 +27,8 @@
   let map = $state(null);
   let overlays = $state([]);
   let layersPanelVisible = $state(false);
+  let mapLayoutVisible = $state(false);
+  let mapLayout = $state(null);
   let geometriesPanelVisible = $state(false);
   let drawMode = $state(null);
   let inspectorActive = $state(false);
@@ -508,6 +511,34 @@
   </MapButton>
 </div>
 
+<div class="map-layout-controls">
+  <MapButton
+    title="Configure map layout"
+    aria-label="Configure map layout"
+    aria-haspopup="dialog"
+    aria-expanded={mapLayoutVisible}
+    active={mapLayoutVisible}
+    onclick={() => {
+      openMenu('layout');
+      mapLayoutVisible = true;
+    }}
+  >
+    <i class="codicon codicon-layout" aria-hidden="true"></i>
+  </MapButton>
+</div>
+
+{#if mapLayoutVisible}
+  <MapLayoutDialog
+    layers={overlays}
+    initial={mapLayout}
+    onapply={(selection) => {
+      mapLayout = selection;
+      mapLayoutVisible = false;
+    }}
+    oncancel={() => (mapLayoutVisible = false)}
+  />
+{/if}
+
 <!-- STATUS BAR -->
 <div class="status-bar">
   <span>lon, lat: {coords}</span>
@@ -550,6 +581,12 @@
       display: flex;
       flex-direction: column;
       gap: var(--vscee-space-sm);
+    }
+    .map-layout-controls {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      z-index: 1000;
     }
     /* ==================================================================
        BASEMAP ERROR BANNER
