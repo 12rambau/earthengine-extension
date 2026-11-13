@@ -21,14 +21,21 @@ import {
 // PUBLIC API
 // ==================================================================
 /** Opens the metadata, properties, and sharing preview for a classifier asset. */
-export async function openClassifierPreview(asset: EEAsset, accessToken: string): Promise<void> {
+export async function openClassifierPreview(
+  asset: EEAsset,
+  accessToken: string,
+  restoredPanel?: vscode.WebviewPanel,
+): Promise<void> {
   const shortName = asset.name.split('/').pop() || 'Classifier';
-  const panel = vscode.window.createWebviewPanel(
+  const panel = restoredPanel ?? vscode.window.createWebviewPanel(
     'earthengine.classifierPreview',
     shortName,
     vscode.ViewColumn.One,
     { enableScripts: true, retainContextWhenHidden: true },
   );
+  if (restoredPanel) {
+    panel.webview.options = { enableScripts: true };
+  }
   panel.iconPath = resolveTypeIcon(asset.type);
 
   const details = await getClassifierDetails(asset.name);

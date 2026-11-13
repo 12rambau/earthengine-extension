@@ -185,6 +185,7 @@
     }
     preferencesByFilter = { ...preferencesByFilter, [currentFilter]: table.exportPreferences() };
     currentFilter = filter;
+    vscode.setState({ filter });
     selectedNames = new Set();
     table.applyPreferences(preferencesByFilter[currentFilter]);
     syncRows();

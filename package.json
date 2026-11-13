@@ -15,7 +15,18 @@
     "Other"
   ],
   "icon": "resources/icon.png",
-  "activationEvents": [],
+  "activationEvents": [
+    "onWebviewPanel:earthengine.map",
+    "onWebviewPanel:earthengine.assetsPanel",
+    "onWebviewPanel:earthengine.tasks.panel",
+    "onWebviewPanel:earthengine.datasetDetail",
+    "onWebviewPanel:earthengine.imagePreview",
+    "onWebviewPanel:earthengine.imageCollectionPreview",
+    "onWebviewPanel:earthengine.featureCollectionPreview",
+    "onWebviewPanel:earthengine.featureViewPreview",
+    "onWebviewPanel:earthengine.classifierPreview",
+    "onWebviewPanel:earthengine.assetPreview"
+  ],
   "main": "./dist/extension.js",
   "contributes": {
     "icons": {
