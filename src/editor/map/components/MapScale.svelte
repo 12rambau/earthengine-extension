@@ -2,7 +2,7 @@
 <script>
   import { intervalStops } from '../../../shared/sepalViz.ts';
 
-  let { map, overlays = [], activeScaleIndex = -1 } = $props();
+  let { map, paneId = 1, overlays = [], activeScaleIndex = -1 } = $props();
 
   // ----------------------------------------------------------------
   // STATE
@@ -30,7 +30,8 @@
     const palette = vp.palette || null;
     const minArr = Array.isArray(vp.min) ? vp.min : [vp.min != null ? vp.min : 0];
     const maxArr = Array.isArray(vp.max) ? vp.max : [vp.max != null ? vp.max : 1];
-    const isCategorical = (Array.isArray(vp.values) && vp.values.length > 0) ||
+    const isCategorical =
+      (Array.isArray(vp.values) && vp.values.length > 0) ||
       (vp.type === 'intervals' && Array.isArray(vp.breaks));
 
     if (isCategorical) {
@@ -70,9 +71,10 @@
           band: vp.type === 'hsv' ? band : null,
           min: minArr[index] != null ? minArr[index] : minArr[0],
           max: maxArr[index] != null ? maxArr[index] : maxArr[0],
-          gradient: vp.type === 'hsv'
-            ? hsvGradients[index]
-            : `linear-gradient(to right, #000, ${channels[index]})`,
+          gradient:
+            vp.type === 'hsv'
+              ? hsvGradients[index]
+              : `linear-gradient(to right, #000, ${channels[index]})`,
         })),
       };
     }
@@ -157,7 +159,7 @@
     } else {
       hue = (r - g) / delta + 4;
     }
-    return [((hue / 6) + 1) % 1, delta / max, max];
+    return [(hue / 6 + 1) % 1, delta / max, max];
   }
 
   function sampleOverlayPixel(latlng, index) {
@@ -165,7 +167,7 @@
     if (!entry || !entry.visible) {
       return null;
     }
-    const container = entry.tileLayer.getContainer();
+    const container = entry.tileLayers[paneId]?.getContainer();
     if (!container) {
       return null;
     }
@@ -223,7 +225,8 @@
     const palette = vp.palette || null;
     const minArr = Array.isArray(vp.min) ? vp.min : [vp.min != null ? vp.min : 0];
     const maxArr = Array.isArray(vp.max) ? vp.max : [vp.max != null ? vp.max : 1];
-    const isCategorical = (Array.isArray(vp.values) && vp.values.length > 0) ||
+    const isCategorical =
+      (Array.isArray(vp.values) && vp.values.length > 0) ||
       (vp.type === 'intervals' && Array.isArray(vp.breaks));
     const parts = [];
 
@@ -245,9 +248,8 @@
         parts.push(text);
       }
     } else if (bands.length === 3) {
-      const channelValues = vp.type === 'hsv'
-        ? rgbToHsv(rgba)
-        : [rgba[0] / 255, rgba[1] / 255, rgba[2] / 255];
+      const channelValues =
+        vp.type === 'hsv' ? rgbToHsv(rgba) : [rgba[0] / 255, rgba[1] / 255, rgba[2] / 255];
       for (let index = 0; index < 3; index++) {
         if (rows[index]) {
           if (channelValues[index] == null) {
@@ -357,26 +359,38 @@
         <span class="scale-label"></span>
         <div class="scale-gradient-wrap scale-cat-wrap">
           {#each scaleData.palette as color, i}
-            {@const catLabel = scaleData.breaks.length > i + 1
-              ? (scaleData.labels[i] ? scaleData.labels[i] + ' ' : '') +
-                '[' + fmtVal(scaleData.breaks[i]) + ', ' + fmtVal(scaleData.breaks[i + 1]) + ')'
-              : (scaleData.labels[i] || 'Class ' + i) +
-                (scaleData.values[i] != null ? ' (' + scaleData.values[i] + ')' : '')}
+            {@const catLabel =
+              scaleData.breaks.length > i + 1
+                ? (scaleData.labels[i] ? scaleData.labels[i] + ' ' : '') +
+                  '[' +
+                  fmtVal(scaleData.breaks[i]) +
+                  ', ' +
+                  fmtVal(scaleData.breaks[i + 1]) +
+                  ')'
+                : (scaleData.labels[i] || 'Class ' + i) +
+                  (scaleData.values[i] != null ? ' (' + scaleData.values[i] + ')' : '')}
             <div
               class="scale-cat-segment"
-              style="background:{color.startsWith('#') ? color : '#' + color};width:{(scaleData.stops[i + 1] - scaleData.stops[i]) * 100}%"
+              style="background:{color.startsWith('#') ? color : '#' + color};width:{(scaleData
+                .stops[i + 1] -
+                scaleData.stops[i]) *
+                100}%"
               data-index={i}
               data-cat-label={catLabel}
             ></div>
           {/each}
           <div class="scale-pointer scale-cat-pointer"></div>
         </div>
-        <span class="scale-max">{scaleData.palette.length} {scaleData.breaks.length > 0 ? 'intervals' : 'classes'}</span>
+        <span class="scale-max"
+          >{scaleData.palette.length} {scaleData.breaks.length > 0 ? 'intervals' : 'classes'}</span
+        >
       </div>
     {:else}
       {#each scaleData.rows as row}
         <div class="scale-row">
-          <span class="scale-label" title={row.band ? row.label + ' (' + row.band + ')' : row.label}>{row.label}</span>
+          <span class="scale-label" title={row.band ? row.label + ' (' + row.band + ')' : row.label}
+            >{row.label}</span
+          >
           <div
             class="scale-gradient-wrap"
             role="slider"

@@ -9,7 +9,7 @@
     parseMapGeometries,
   } from '../mapGeometry.js';
 
-  let { map, visible = $bindable(false), drawMode = $bindable(null) } = $props();
+  let { map, maps = {}, visible = $bindable(false), drawMode = $bindable(null) } = $props();
 
   // ----------------------------------------------------------------
   // STATE
@@ -210,87 +210,92 @@
       return;
     }
     const layers = [];
-    for (const item of geometries) {
-      if (!item.visible) {
-        continue;
-      }
-      const points = displayPoints(item.type === 'Point' ? [item.coordinates] : item.coordinates);
-      const options = {
-        color: item.color,
-        weight: 3,
-        fillOpacity: 0.2,
-        interactive: !drawMode && visible,
-        bubblingMouseEvents: false,
-      };
-      const shape =
-        item.type === 'Point'
-          ? L.circleMarker(points[0], { ...options, radius: 7 })
-          : item.type === 'Polygon'
-            ? L.polygon(points, options)
-            : L.polyline(points, options);
-      shape.addTo(map);
-      shape.on('click', () => {
-        select(item);
-      });
-      layers.push(shape);
-
-      if (!visible || selectedId !== item.id) {
-        continue;
-      }
-      const vertices = item.type === 'Point' ? [item.coordinates] : item.coordinates;
-      vertices.forEach((_, index) => {
-        const handle = L.marker(points[index], { icon: vertexIcon, draggable: true }).addTo(map);
-        handle.on('dragend', () => {
-          const updated = [...vertices];
-          updated[index] = position(handle.getLatLng());
-          if (item.type === 'Point') {
-            save(
-              geometries.map((geometry) =>
-                geometry.id === item.id ? { ...geometry, coordinates: updated[0] } : geometry,
-              ),
-            );
-          } else {
-            updateVertices(item.id, updated);
-          }
-        });
-        if (item.type !== 'Point' && vertices.length > (item.type === 'Polygon' ? 3 : 2)) {
-          handle.bindTooltip('Drag to move; right-click to remove');
-          handle.on('contextmenu', () => {
-            updateVertices(
-              item.id,
-              vertices.filter((_, i) => i !== index),
-            );
-          });
-        } else {
-          handle.bindTooltip('Drag to move');
+    for (const pane of Object.values(maps)) {
+      for (const item of geometries) {
+        if (!item.visible) {
+          continue;
         }
-        layers.push(handle);
-      });
-      if (item.type !== 'Point') {
-        const edges = item.type === 'Polygon' ? vertices.length : vertices.length - 1;
-        for (let index = 0; index < edges; index++) {
-          const a = points[index];
-          const b = points[(index + 1) % vertices.length];
-          const midpoint = L.marker([(a[0] + b[0]) / 2, (a[1] + b[1]) / 2], {
-            icon: midpointIcon,
-            draggable: true,
-          }).addTo(map);
-          midpoint.bindTooltip('Click or drag to add a vertex');
-          const insert = () => {
-            if (vertices.length >= 10000) {
-              return;
-            }
+        const points = geometryMapPositions(
+          item.type === 'Point' ? [item.coordinates] : item.coordinates,
+          pane.getCenter().lng,
+        );
+        const options = {
+          color: item.color,
+          weight: 3,
+          fillOpacity: 0.2,
+          interactive: pane === map && !drawMode && visible,
+          bubblingMouseEvents: false,
+        };
+        const shape =
+          item.type === 'Point'
+            ? L.circleMarker(points[0], { ...options, radius: 7 })
+            : item.type === 'Polygon'
+              ? L.polygon(points, options)
+              : L.polyline(points, options);
+        shape.addTo(pane);
+        if (pane === map) {
+          shape.on('click', () => select(item));
+        }
+        layers.push({ pane, shape });
+
+        if (pane !== map || !visible || selectedId !== item.id) {
+          continue;
+        }
+        const vertices = item.type === 'Point' ? [item.coordinates] : item.coordinates;
+        vertices.forEach((_, index) => {
+          const handle = L.marker(points[index], { icon: vertexIcon, draggable: true }).addTo(map);
+          handle.on('dragend', () => {
             const updated = [...vertices];
-            updated.splice(index + 1, 0, position(midpoint.getLatLng()));
-            updateVertices(item.id, updated);
-          };
-          midpoint.on('click', insert);
-          midpoint.on('dragend', insert);
-          layers.push(midpoint);
+            updated[index] = position(handle.getLatLng());
+            if (item.type === 'Point') {
+              save(
+                geometries.map((geometry) =>
+                  geometry.id === item.id ? { ...geometry, coordinates: updated[0] } : geometry,
+                ),
+              );
+            } else {
+              updateVertices(item.id, updated);
+            }
+          });
+          if (item.type !== 'Point' && vertices.length > (item.type === 'Polygon' ? 3 : 2)) {
+            handle.bindTooltip('Drag to move; right-click to remove');
+            handle.on('contextmenu', () => {
+              updateVertices(
+                item.id,
+                vertices.filter((_, i) => i !== index),
+              );
+            });
+          } else {
+            handle.bindTooltip('Drag to move');
+          }
+          layers.push({ pane, shape: handle });
+        });
+        if (item.type !== 'Point') {
+          const edges = item.type === 'Polygon' ? vertices.length : vertices.length - 1;
+          for (let index = 0; index < edges; index++) {
+            const a = points[index];
+            const b = points[(index + 1) % vertices.length];
+            const midpoint = L.marker([(a[0] + b[0]) / 2, (a[1] + b[1]) / 2], {
+              icon: midpointIcon,
+              draggable: true,
+            }).addTo(map);
+            midpoint.bindTooltip('Click or drag to add a vertex');
+            const insert = () => {
+              if (vertices.length >= 10000) {
+                return;
+              }
+              const updated = [...vertices];
+              updated.splice(index + 1, 0, position(midpoint.getLatLng()));
+              updateVertices(item.id, updated);
+            };
+            midpoint.on('click', insert);
+            midpoint.on('dragend', insert);
+            layers.push({ pane, shape: midpoint });
+          }
         }
       }
     }
-    return () => layers.forEach((layer) => map.removeLayer(layer));
+    return () => layers.forEach(({ pane, shape }) => pane.removeLayer(shape));
   });
 
   $effect(() => {

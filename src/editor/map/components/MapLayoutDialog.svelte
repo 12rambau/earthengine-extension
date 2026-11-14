@@ -29,7 +29,9 @@
         return true;
       }),
     );
-    panes[0].push(...layers.filter((layer) => !assigned.has(layer.layerIndex)).map((layer) => layer.layerIndex));
+    panes[0].push(
+      ...layers.filter((layer) => !assigned.has(layer.layerIndex)).map((layer) => layer.layerIndex),
+    );
     return { tree, panes };
   }
 
@@ -62,6 +64,7 @@
     }
     return {
       direction: node.direction,
+      ratio: node.ratio,
       first: replaceMap(node.first, target, replacement),
       second: replaceMap(node.second, target, replacement),
     };
@@ -73,6 +76,7 @@
     const before = side === 'top' || side === 'left';
     return replaceMap(node, target, {
       direction: side === 'top' || side === 'bottom' ? 'rows' : 'columns',
+      ratio: 0.5,
       first: before ? newMap : oldMap,
       second: before ? oldMap : newMap,
     });
@@ -82,12 +86,14 @@
     if ('map' in node) {
       return { map: node.map, width, height };
     }
-    const first = node.direction === 'rows'
-      ? largestPane(node.first, width, height / 2)
-      : largestPane(node.first, width / 2, height);
-    const second = node.direction === 'rows'
-      ? largestPane(node.second, width, height / 2)
-      : largestPane(node.second, width / 2, height);
+    const first =
+      node.direction === 'rows'
+        ? largestPane(node.first, width, height * (node.ratio ?? 0.5))
+        : largestPane(node.first, width * (node.ratio ?? 0.5), height);
+    const second =
+      node.direction === 'rows'
+        ? largestPane(node.second, width, height * (1 - (node.ratio ?? 0.5)))
+        : largestPane(node.second, width * (1 - (node.ratio ?? 0.5)), height);
     return first.width * first.height >= second.width * second.height ? first : second;
   }
 
@@ -96,7 +102,12 @@
     const updatedPanes = panes.map((pane) => [...pane]);
     for (let number = placedMaps.length + 1; number <= nextCount; number++) {
       const target = largestPane(updatedTree);
-      updatedTree = insertMap(updatedTree, number, target.map, target.width >= target.height ? 'right' : 'bottom');
+      updatedTree = insertMap(
+        updatedTree,
+        number,
+        target.map,
+        target.width >= target.height ? 'right' : 'bottom',
+      );
     }
     for (let number = placedMaps.length; number > nextCount; number--) {
       updatedTree = removeMap(updatedTree, number);
@@ -111,7 +122,12 @@
   }
 
   function splitMap(mapNumber, target, side) {
-    if (mapNumber === 1 || mapNumber === target || !placedMaps.includes(mapNumber) || !placedMaps.includes(target)) {
+    if (
+      mapNumber === 1 ||
+      mapNumber === target ||
+      !placedMaps.includes(mapNumber) ||
+      !placedMaps.includes(target)
+    ) {
       return;
     }
     tree = insertMap(removeMap(tree, mapNumber), mapNumber, target, side);
@@ -132,7 +148,7 @@
     if (!second) {
       return first;
     }
-    return { direction: node.direction, first, second };
+    return { direction: node.direction, ratio: node.ratio, first, second };
   }
 
   function dropMap(event, target, side) {
@@ -190,8 +206,12 @@
     <!-- MAP COUNT -->
     <div class="map-count" role="group" aria-label="Number of maps">
       {#each MAP_NUMBERS as number}
-        <button class:chosen={placedMaps.length === number} aria-pressed={placedMaps.length === number}
-          title={`${number} ${number === 1 ? 'map' : 'maps'}`} onclick={() => setCount(number)}>{number}</button>
+        <button
+          class:chosen={placedMaps.length === number}
+          aria-pressed={placedMaps.length === number}
+          title={`${number} ${number === 1 ? 'map' : 'maps'}`}
+          onclick={() => setCount(number)}>{number}</button
+        >
       {/each}
     </div>
 
@@ -199,19 +219,25 @@
     <div class="workspace">
       {#snippet renderNode(node)}
         {#if 'map' in node}
-          <section class="pane" aria-label={`Map ${node.map}`}
+          <section
+            class="pane"
+            aria-label={`Map ${node.map}`}
             ondragover={(event) => {
               if (event.dataTransfer.types.includes('text/plain')) {
                 event.preventDefault();
               }
             }}
-            ondrop={(event) => dropLayer(event, node.map)}>
+            ondrop={(event) => dropLayer(event, node.map)}
+          >
             <div class="pane-heading">
               {#if node.map === 1}
                 <span>Map 1</span>
               {:else}
-                <button class="pane-title" class:selected={selectedMap === node.map}
-                  aria-pressed={selectedMap === node.map} draggable="true"
+                <button
+                  class="pane-title"
+                  class:selected={selectedMap === node.map}
+                  aria-pressed={selectedMap === node.map}
+                  draggable="true"
                   title={`Move map ${node.map} to split another map`}
                   ondragstart={(event) => {
                     event.dataTransfer.effectAllowed = 'move';
@@ -222,14 +248,18 @@
                     draggingMap = null;
                     hoveredSplit = null;
                   }}
-                  onclick={() => (selectedMap = selectedMap === node.map ? null : node.map)}>
+                  onclick={() => (selectedMap = selectedMap === node.map ? null : node.map)}
+                >
                   <i class="codicon codicon-gripper" aria-hidden="true"></i>
                   Map {node.map}
                 </button>
               {/if}
               {#if selectedLayer !== null}
-                <button class="place-button" title={`Move selected layer to map ${node.map}`}
-                  onclick={() => moveLayer(selectedLayer, node.map)}>
+                <button
+                  class="place-button"
+                  title={`Move selected layer to map ${node.map}`}
+                  onclick={() => moveLayer(selectedLayer, node.map)}
+                >
                   <i class="codicon codicon-add" aria-hidden="true"></i>
                 </button>
               {/if}
@@ -237,23 +267,33 @@
             {#each panes[node.map - 1] as layerIndex (layerIndex)}
               {@const layer = layers.find((item) => item.layerIndex === layerIndex)}
               {#if layer}
-                <button class="layer" class:selected={selectedLayer === layerIndex}
-                  draggable="true" aria-pressed={selectedLayer === layerIndex}
-                  title={layer.name} ondragstart={(event) => startDrag(event, layerIndex)}
-                  onclick={() => (selectedLayer = layerIndex)}>
+                <button
+                  class="layer"
+                  class:selected={selectedLayer === layerIndex}
+                  draggable="true"
+                  aria-pressed={selectedLayer === layerIndex}
+                  title={layer.name}
+                  ondragstart={(event) => startDrag(event, layerIndex)}
+                  onclick={() => (selectedLayer = layerIndex)}
+                >
                   <i class="codicon codicon-gripper" aria-hidden="true"></i>
                   <span>{layer.name}</span>
                 </button>
               {/if}
             {/each}
             {#if (draggingMap !== null && draggingMap !== node.map) || (selectedMap !== null && selectedMap !== node.map)}
-              <div class="split-preview {hoveredSplit?.map === node.map ? hoveredSplit.side : 'right'}"
-                class:active={hoveredSplit?.map === node.map} aria-hidden="true">
+              <div
+                class="split-preview {hoveredSplit?.map === node.map ? hoveredSplit.side : 'right'}"
+                class:active={hoveredSplit?.map === node.map}
+                aria-hidden="true"
+              >
                 <span>Map {draggingMap ?? selectedMap}</span>
               </div>
               <div class="split-targets">
                 {#each DIRECTIONS as side}
-                  <button class="split-target {side.id}" title={`Split map ${node.map}: ${side.label.toLowerCase()}`}
+                  <button
+                    class="split-target {side.id}"
+                    title={`Split map ${node.map}: ${side.label.toLowerCase()}`}
                     aria-label={`Add map ${selectedMap ?? draggingMap} ${side.label.toLowerCase()} map ${node.map}`}
                     ondragover={(event) => {
                       if (event.dataTransfer.types.includes('application/x-vscee-map')) {
@@ -283,15 +323,20 @@
                       }
                     }}
                     onblur={() => (hoveredSplit = null)}
-                    onclick={() => selectedMap !== null && splitMap(selectedMap, node.map, side.id)}></button>
+                    onclick={() => selectedMap !== null && splitMap(selectedMap, node.map, side.id)}
+                  ></button>
                 {/each}
               </div>
             {/if}
           </section>
         {:else}
           <div class="split" class:rows={node.direction === 'rows'}>
-            <div class="split-child">{@render renderNode(node.first)}</div>
-            <div class="split-child">{@render renderNode(node.second)}</div>
+            <div class="split-child" style:flex-grow={node.ratio ?? 0.5}>
+              {@render renderNode(node.first)}
+            </div>
+            <div class="split-child" style:flex-grow={1 - (node.ratio ?? 0.5)}>
+              {@render renderNode(node.second)}
+            </div>
           </div>
         {/if}
       {/snippet}
@@ -323,16 +368,26 @@
     background: var(--vscode-editor-background);
     opacity: 0.75;
   }
-  .dialog-header, footer {
+  .dialog-header,
+  footer {
     display: flex;
     align-items: center;
     justify-content: space-between;
     padding: 12px 16px;
   }
-  .dialog-header { border-bottom: 1px solid var(--vscode-editorWidget-border); }
-  h2 { font-size: 15px; font-weight: 600; }
-  button { font: inherit; cursor: pointer; }
-  .icon-button, .place-button {
+  .dialog-header {
+    border-bottom: 1px solid var(--vscode-editorWidget-border);
+  }
+  h2 {
+    font-size: 15px;
+    font-weight: 600;
+  }
+  button {
+    font: inherit;
+    cursor: pointer;
+  }
+  .icon-button,
+  .place-button {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -341,10 +396,19 @@
     border: 0;
     background: transparent;
     color: inherit;
-    &:hover { background: var(--vscode-toolbar-hoverBackground); }
+    &:hover {
+      background: var(--vscode-toolbar-hoverBackground);
+    }
   }
-  .dialog-body { padding: 16px; }
-  .map-count { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 16px; }
+  .dialog-body {
+    padding: 16px;
+  }
+  .map-count {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-bottom: 16px;
+  }
   .map-count button {
     min-width: 36px;
     height: 32px;
@@ -358,7 +422,9 @@
       color: var(--vscode-button-foreground);
     }
   }
-  .workspace { min-width: 0; }
+  .workspace {
+    min-width: 0;
+  }
   .preview {
     height: 400px;
     min-width: 0;
@@ -369,10 +435,12 @@
     gap: 4px;
     width: 100%;
     height: 100%;
-    &.rows { flex-direction: column; }
+    &.rows {
+      flex-direction: column;
+    }
   }
   .split-child {
-    flex: 1 1 0;
+    flex-basis: 0;
     min-width: 0;
     min-height: 0;
   }
@@ -384,7 +452,9 @@
     background: var(--vscode-editor-background);
     overflow: auto;
   }
-  .pane { height: 100%; }
+  .pane {
+    height: 100%;
+  }
   .pane-heading {
     display: flex;
     align-items: center;
@@ -401,7 +471,9 @@
     background: transparent;
     color: inherit;
     cursor: grab;
-    &.selected { outline: 1px solid var(--vscode-focusBorder); }
+    &.selected {
+      outline: 1px solid var(--vscode-focusBorder);
+    }
   }
   .split-preview {
     position: absolute;
@@ -416,12 +488,33 @@
     pointer-events: none;
     opacity: 0;
     transform: scale(0.94);
-    transition: opacity 160ms ease-out, transform 160ms ease-out;
-    &.active { opacity: 1; transform: scale(1); }
-    &.left { top: 0; left: 0; }
-    &.right { top: 0; right: 0; }
-    &.top { top: 0; left: 0; width: 100%; height: 50%; }
-    &.bottom { bottom: 0; left: 0; width: 100%; height: 50%; }
+    transition:
+      opacity 160ms ease-out,
+      transform 160ms ease-out;
+    &.active {
+      opacity: 1;
+      transform: scale(1);
+    }
+    &.left {
+      top: 0;
+      left: 0;
+    }
+    &.right {
+      top: 0;
+      right: 0;
+    }
+    &.top {
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 50%;
+    }
+    &.bottom {
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: 50%;
+    }
     span {
       padding: 4px 8px;
       background: var(--vscode-editorWidget-background);
@@ -439,14 +532,26 @@
     pointer-events: auto;
     border: 0;
     background: transparent;
-    &:focus-visible { outline: 1px solid var(--vscode-focusBorder); }
-    &.top { grid-area: 1 / 1 / 2 / 4; }
-    &.right { grid-area: 2 / 3; }
-    &.bottom { grid-area: 3 / 1 / 4 / 4; }
-    &.left { grid-area: 2 / 1; }
+    &:focus-visible {
+      outline: 1px solid var(--vscode-focusBorder);
+    }
+    &.top {
+      grid-area: 1 / 1 / 2 / 4;
+    }
+    &.right {
+      grid-area: 2 / 3;
+    }
+    &.bottom {
+      grid-area: 3 / 1 / 4 / 4;
+    }
+    &.left {
+      grid-area: 2 / 1;
+    }
   }
   @media (prefers-reduced-motion: reduce) {
-    .split-preview { transition: none; }
+    .split-preview {
+      transition: none;
+    }
   }
   .layer {
     display: flex;
@@ -460,11 +565,24 @@
     background: var(--vscode-list-hoverBackground);
     color: var(--vscode-editor-foreground);
     text-align: left;
-    &.selected { outline: 1px solid var(--vscode-focusBorder); }
-    span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    &.selected {
+      outline: 1px solid var(--vscode-focusBorder);
+    }
+    span {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
   }
-  footer { justify-content: flex-end; gap: 8px; border-top: 1px solid var(--vscode-editorWidget-border); }
-  footer button { padding: 5px 12px; border-radius: 4px; }
+  footer {
+    justify-content: flex-end;
+    gap: 8px;
+    border-top: 1px solid var(--vscode-editorWidget-border);
+  }
+  footer button {
+    padding: 5px 12px;
+    border-radius: 4px;
+  }
   .secondary {
     border: 1px solid var(--vscode-button-secondaryBackground);
     background: var(--vscode-button-secondaryBackground);
@@ -476,6 +594,8 @@
     color: var(--vscode-button-foreground);
   }
   @media (max-width: 580px) {
-    .preview { height: 320px; }
+    .preview {
+      height: 320px;
+    }
   }
 </style>

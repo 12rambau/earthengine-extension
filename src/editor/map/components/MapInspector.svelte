@@ -4,11 +4,20 @@
   import { vscode } from '../../../shared/vscode.ts';
   import { mdiClose, mdiLoading, mdiMapMarker } from '../../../shared/icons.ts';
 
-  let { map, active = $bindable(false), cursor = '' } = $props();
+  let {
+    maps = {},
+    panes = [],
+    mapIds = [],
+    active = $bindable(false),
+    cursor = '',
+    onactive,
+  } = $props();
 
   let inspectorMarker = $state(null);
+  let markerPane = null;
   let inspectorContent = $state({ type: 'hint' });
   let pendingInspect = $state(null);
+  let requestId = 0;
   let coordinatesCopied = $state(false);
 
   const inspectorMarkerIcon = L.divIcon({
@@ -19,26 +28,41 @@
   });
 
   function removeMarker() {
-    if (inspectorMarker && map) {
-      map.removeLayer(inspectorMarker);
+    if (inspectorMarker) {
+      inspectorMarker.remove();
       inspectorMarker = null;
+      markerPane = null;
     }
   }
 
-  function handleMapClick(e) {
+  function handleMapClick(e, paneId, pane) {
     if (!active) {
       return;
     }
+    onactive(paneId);
     const { lat, lng } = e.latlng;
-    if (inspectorMarker) {
+    if (inspectorMarker && markerPane === pane) {
       inspectorMarker.setLatLng([lat, lng]);
     } else {
-      inspectorMarker = L.marker([lat, lng], { icon: inspectorMarkerIcon }).addTo(map);
+      removeMarker();
+      inspectorMarker = L.marker([lat, lng], { icon: inspectorMarkerIcon }).addTo(pane);
+      markerPane = pane;
     }
     inspectorContent = { type: 'loading' };
     coordinatesCopied = false;
-    pendingInspect = { lat, lng };
-    vscode.postMessage({ type: 'inspect', data: { lat, lng, zoom: map.getZoom() } });
+    const currentRequest = ++requestId;
+    pendingInspect = { lat, lng, paneId, requestId: currentRequest };
+    vscode.postMessage({
+      type: 'inspect',
+      data: {
+        lat,
+        lng,
+        paneId,
+        requestId: currentRequest,
+        zoom: pane.getZoom(),
+        layerIndices: panes[mapIds.indexOf(paneId)] ?? [],
+      },
+    });
   }
 
   async function copyCoordinates(lng, lat) {
@@ -55,23 +79,24 @@
 
   function closeInspector() {
     active = false;
+    pendingInspect = null;
     removeMarker();
   }
 
   $effect(() => {
-    if (!map) {
-      return;
-    }
-    map.getContainer().style.cursor = active ? 'crosshair' : cursor;
+    const listeners = Object.entries(maps).map(([id, pane]) => {
+      const handleClick = (event) => handleMapClick(event, Number(id), pane);
+      pane.getContainer().style.cursor = active ? 'crosshair' : cursor;
+      pane.on('click', handleClick);
+      return () => {
+        pane.off('click', handleClick);
+        pane.getContainer().style.cursor = '';
+      };
+    });
     if (!active) {
       removeMarker();
     }
-
-    map.on('click', handleMapClick);
-    return () => {
-      map.off('click', handleMapClick);
-      map.getContainer().style.cursor = '';
-    };
+    return () => listeners.forEach((remove) => remove());
   });
 
   window.addEventListener('message', (e) => {
@@ -79,6 +104,8 @@
     if (
       msg.type === 'inspectResult' &&
       pendingInspect &&
+      msg.data.paneId === pendingInspect.paneId &&
+      msg.data.requestId === pendingInspect.requestId &&
       msg.data.lat === pendingInspect.lat &&
       msg.data.lng === pendingInspect.lng
     ) {
@@ -90,7 +117,7 @@
 {#if active}
   <div class="inspector-panel visible">
     <div class="inspector-panel-header">
-      <span>Inspector</span>
+      <span>Inspector{pendingInspect ? ` · Map ${pendingInspect.paneId}` : ''}</span>
       <button class="map-btn layers-close-btn" title="Close" onclick={closeInspector}>
         <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" fill="currentColor"
           ><path d={mdiClose} /></svg

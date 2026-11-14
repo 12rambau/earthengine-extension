@@ -13,11 +13,15 @@
   } from '../../../shared/icons.ts';
 
   let {
-    map,
-    overlays = $bindable([]),
+    overlays = [],
+    panes = [],
+    mapIds = [],
     visible = $bindable(false),
     activeScaleIndex = $bindable(-1),
-    nativeLayerControl,
+    onvisibility,
+    onopacity,
+    onremove,
+    onmove,
   } = $props();
 
   const pendingVisibilityClicks = new Map();
@@ -33,17 +37,7 @@
     if (!entry || entry.visible === shown) {
       return;
     }
-    entry.visible = shown;
-    if (shown) {
-      entry.tileLayer.addTo(map);
-    } else {
-      map.removeLayer(entry.tileLayer);
-    }
-    overlays = overlays;
-    vscode.postMessage({
-      type: 'layerVisibility',
-      data: { layerIndex: entry.layerIndex, shown },
-    });
+    onvisibility(entry.layerIndex, shown);
   }
 
   function toggleLayerVisibility(index) {
@@ -75,9 +69,18 @@
     }
     const showAll =
       overlays[index].visible &&
-      !overlays.some((entry) => entry.layerIndex !== layerIndex && entry.visible);
+      !overlays.some(
+        (entry) =>
+          entry.layerIndex !== layerIndex &&
+          entry.visible &&
+          panes.some((pane) => pane.includes(layerIndex) && pane.includes(entry.layerIndex)),
+      );
     for (let i = 0; i < overlays.length; i++) {
-      setLayerVisibility(i, showAll || i === index);
+      if (
+        panes.some((pane) => pane.includes(layerIndex) && pane.includes(overlays[i].layerIndex))
+      ) {
+        setLayerVisibility(i, showAll || i === index);
+      }
     }
   }
 
@@ -86,13 +89,7 @@
     if (!entry) {
       return;
     }
-    entry.opacity = value / 100;
-    entry.tileLayer.setOpacity(entry.opacity);
-    overlays = overlays;
-    vscode.postMessage({
-      type: 'layerOpacity',
-      data: { layerIndex: entry.layerIndex, opacity: entry.opacity },
-    });
+    onopacity(entry.layerIndex, value / 100);
   }
 
   function removeLayer(index) {
@@ -100,37 +97,11 @@
     if (!entry) {
       return;
     }
-    if (entry.visible) {
-      map.removeLayer(entry.tileLayer);
-    }
-    nativeLayerControl?.removeLayer(entry.tileLayer);
-    overlays = overlays.filter((_, overlayIndex) => overlayIndex !== index);
-    if (activeScaleIndex === index) {
-      activeScaleIndex = -1;
-    } else if (activeScaleIndex > index) {
-      activeScaleIndex--;
-    }
-    vscode.postMessage({ type: 'removeLayer', data: { layerIndex: entry.layerIndex } });
+    onremove(entry.layerIndex);
   }
 
   function moveLayer(index, direction) {
-    const target = index + direction;
-    if (target < 0 || target >= overlays.length) {
-      return;
-    }
-    const moved = overlays[index];
-    const reordered = [...overlays];
-    [reordered[index], reordered[target]] = [reordered[target], reordered[index]];
-    overlays = reordered;
-    if (activeScaleIndex === index) {
-      activeScaleIndex = target;
-    } else if (activeScaleIndex === target) {
-      activeScaleIndex = index;
-    }
-    vscode.postMessage({
-      type: 'moveLayer',
-      data: { layerIndex: moved.layerIndex, direction },
-    });
+    onmove(overlays[index].layerIndex, direction);
   }
 
   function toggleScale(index) {
@@ -162,8 +133,8 @@
           class="map-btn layers-clear-btn"
           title="Delete all layers"
           disabled={overlays.length === 0}
-          onclick={() => vscode.postMessage({ type: 'clearAllLayers' })}
-        >delete all</button>
+          onclick={() => vscode.postMessage({ type: 'clearAllLayers' })}>delete all</button
+        >
         <button class="map-btn layers-close-btn" title="Close" onclick={close}>
           <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" fill="currentColor"
             ><path d={mdiClose} /></svg
@@ -175,112 +146,118 @@
       {#if overlays.length === 0}
         <p class="layers-empty">No layers yet.</p>
       {:else}
-        {#each overlays.slice().reverse() as entry, reverseIndex}
-          {@const index = overlays.length - 1 - reverseIndex}
-          <div class="layer-row">
-            <div class="layer-order-controls">
-              <button
-                class="map-btn layer-vis-btn"
-                title="Move layer up"
-                aria-label={`Move ${entry.name} up`}
-                disabled={index === overlays.length - 1}
-                onclick={() => moveLayer(index, 1)}
-              >
-                <i class="codicon codicon-arrow-up" aria-hidden="true"></i>
-              </button>
-              <button
-                class="map-btn layer-vis-btn"
-                title="Move layer down"
-                aria-label={`Move ${entry.name} down`}
-                disabled={index === 0}
-                onclick={() => moveLayer(index, -1)}
-              >
-                <i class="codicon codicon-arrow-down" aria-hidden="true"></i>
-              </button>
-            </div>
-            <span class="layer-name" title={entry.name}>{entry.name}</span>
-            <div class="layer-controls">
-              <MapSlider
-                class="layer-opacity"
-                min="0"
-                max="100"
-                step="1"
-                value={Math.round(entry.opacity * 100)}
-                oninput={(event) => setLayerOpacity(index, Number(event.target.value))}
-              />
-              <button
-                class="map-btn layer-vis-btn"
-                class:active={entry.visible}
-                title="Toggle visibility; double-click to isolate or restore layers"
-                onclick={() => queueLayerVisibility(entry.layerIndex)}
-                ondblclick={() => toggleExclusiveVisibility(entry.layerIndex)}
-              >
-                <svg
-                  viewBox="0 0 24 24"
-                  width="14"
-                  height="14"
-                  aria-hidden="true"
-                  fill="currentColor"><path d={entry.visible ? mdiEye : mdiEyeOff} /></svg
-                >
-              </button>
-              {#if entry.visParams && (entry.visParams.palette || entry.visParams.bands)}
-                <button
-                  class="map-btn layer-vis-btn"
-                  class:active={activeScaleIndex === index}
-                  title="Toggle scale"
-                  onclick={() => toggleScale(index)}
-                >
-                  <svg
-                    viewBox="0 0 24 24"
-                    width="14"
-                    height="14"
-                    aria-hidden="true"
-                    fill="currentColor"><path d={mdiRuler} /></svg
+        {#each panes as pane, paneIndex}
+          <div class="pane-group">Map {mapIds[paneIndex]}</div>
+          {#each pane.slice().reverse() as layerIndex, reverseIndex}
+            {@const entry = overlays.find((item) => item.layerIndex === layerIndex)}
+            {@const index = overlays.indexOf(entry)}
+            {#if entry}
+              <div class="layer-row">
+                <div class="layer-order-controls">
+                  <button
+                    class="map-btn layer-vis-btn"
+                    title="Move layer up"
+                    aria-label={`Move ${entry.name} up`}
+                    disabled={reverseIndex === 0}
+                    onclick={() => moveLayer(index, 1)}
                   >
-                </button>
-              {:else}
-                <button
-                  class="map-btn layer-vis-btn"
-                  style="visibility:hidden"
-                  title="Toggle scale"
-                >
-                  <svg
-                    viewBox="0 0 24 24"
-                    width="14"
-                    height="14"
-                    aria-hidden="true"
-                    fill="currentColor"><path d={mdiRuler} /></svg
+                    <i class="codicon codicon-arrow-up" aria-hidden="true"></i>
+                  </button>
+                  <button
+                    class="map-btn layer-vis-btn"
+                    title="Move layer down"
+                    aria-label={`Move ${entry.name} down`}
+                    disabled={reverseIndex === pane.length - 1}
+                    onclick={() => moveLayer(index, -1)}
                   >
-                </button>
-              {/if}
-              <button
-                class="map-btn layer-vis-btn"
-                title="Edit visualization"
-                onclick={() => openVizEditor(entry.layerIndex)}
-              >
-                <svg
-                  viewBox="0 0 24 24"
-                  width="14"
-                  height="14"
-                  aria-hidden="true"
-                  fill="currentColor"><path d={mdiTune} /></svg
-                >
-              </button>
-              <button
-                class="map-btn layer-vis-btn"
-                title="Remove layer"
-                onclick={() => removeLayer(index)}
-              >
-                <svg
-                  viewBox="0 0 24 24"
-                  width="14"
-                  height="14"
-                  aria-hidden="true"
-                  fill="currentColor"><path d={mdiTrashCan} /></svg
-                >
-              </button>
-            </div>
-          </div>
+                    <i class="codicon codicon-arrow-down" aria-hidden="true"></i>
+                  </button>
+                </div>
+                <span class="layer-name" title={entry.name}>{entry.name}</span>
+                <div class="layer-controls">
+                  <MapSlider
+                    class="layer-opacity"
+                    min="0"
+                    max="100"
+                    step="1"
+                    value={Math.round(entry.opacity * 100)}
+                    oninput={(event) => setLayerOpacity(index, Number(event.target.value))}
+                  />
+                  <button
+                    class="map-btn layer-vis-btn"
+                    class:active={entry.visible}
+                    title="Toggle visibility; double-click to isolate or restore layers"
+                    onclick={() => queueLayerVisibility(entry.layerIndex)}
+                    ondblclick={() => toggleExclusiveVisibility(entry.layerIndex)}
+                  >
+                    <svg
+                      viewBox="0 0 24 24"
+                      width="14"
+                      height="14"
+                      aria-hidden="true"
+                      fill="currentColor"><path d={entry.visible ? mdiEye : mdiEyeOff} /></svg
+                    >
+                  </button>
+                  {#if entry.visParams && (entry.visParams.palette || entry.visParams.bands)}
+                    <button
+                      class="map-btn layer-vis-btn"
+                      class:active={activeScaleIndex === index}
+                      title="Toggle scale"
+                      onclick={() => toggleScale(index)}
+                    >
+                      <svg
+                        viewBox="0 0 24 24"
+                        width="14"
+                        height="14"
+                        aria-hidden="true"
+                        fill="currentColor"><path d={mdiRuler} /></svg
+                      >
+                    </button>
+                  {:else}
+                    <button
+                      class="map-btn layer-vis-btn"
+                      style="visibility:hidden"
+                      title="Toggle scale"
+                    >
+                      <svg
+                        viewBox="0 0 24 24"
+                        width="14"
+                        height="14"
+                        aria-hidden="true"
+                        fill="currentColor"><path d={mdiRuler} /></svg
+                      >
+                    </button>
+                  {/if}
+                  <button
+                    class="map-btn layer-vis-btn"
+                    title="Edit visualization"
+                    onclick={() => openVizEditor(entry.layerIndex)}
+                  >
+                    <svg
+                      viewBox="0 0 24 24"
+                      width="14"
+                      height="14"
+                      aria-hidden="true"
+                      fill="currentColor"><path d={mdiTune} /></svg
+                    >
+                  </button>
+                  <button
+                    class="map-btn layer-vis-btn"
+                    title="Remove layer"
+                    onclick={() => removeLayer(index)}
+                  >
+                    <svg
+                      viewBox="0 0 24 24"
+                      width="14"
+                      height="14"
+                      aria-hidden="true"
+                      fill="currentColor"><path d={mdiTrashCan} /></svg
+                    >
+                  </button>
+                </div>
+              </div>
+            {/if}
+          {/each}
         {/each}
       {/if}
     </div>
@@ -371,6 +348,13 @@
       font-size: var(--vscee-font-compact-sm);
       color: var(--vscee-color-muted);
       text-align: center;
+    }
+    .pane-group {
+      padding: var(--vscee-space-xs) var(--vscee-space-md);
+      border-top: 1px solid var(--vscee-color-widget-border);
+      font-size: var(--vscee-font-compact-sm);
+      font-weight: 600;
+      color: var(--vscee-color-foreground);
     }
     .layer-row {
       padding: var(--vscee-space-xs) var(--vscee-space-md);
