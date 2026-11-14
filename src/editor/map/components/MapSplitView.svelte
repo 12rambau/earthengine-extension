@@ -2,7 +2,24 @@
 <script>
   let { tree, pane, onratio, onratioend } = $props();
 
+  let dotsVisible = $state(false);
+  let hoveredCornerPath = $state(null);
+  let draggingPaths = $state([]);
   let drag = null;
+
+  $effect(() => {
+    let hideDotsTimer;
+    const showDots = () => {
+      dotsVisible = true;
+      clearTimeout(hideDotsTimer);
+      hideDotsTimer = setTimeout(() => (dotsVisible = false), 3000);
+    };
+    window.addEventListener('pointermove', showDots, true);
+    return () => {
+      window.removeEventListener('pointermove', showDots, true);
+      clearTimeout(hideDotsTimer);
+    };
+  });
 
   function clampRatio(value, size) {
     const minimum = Math.min(0.45, Math.max(0.1, 100 / size));
@@ -18,39 +35,24 @@
       return edgeCorners(node[touching], direction, edge, [...path, touching], start, extent);
     }
     const ratio = node.ratio ?? 0.5;
-    const center = {
-      fraction: start.fraction + extent.fraction * ratio,
-      pixels: start.pixels + extent.pixels * ratio + 3 - 6 * ratio,
-    };
-    const position = `calc(${center.fraction * 100}% ${center.pixels < 0 ? '-' : '+'} ${Math.abs(center.pixels)}px)`;
+    const center = start + extent * ratio;
     return [
-      { path, edge, position },
-      ...edgeCorners(node.first, direction, edge, [...path, 'first'], start, {
-        fraction: extent.fraction * ratio,
-        pixels: (extent.pixels - 6) * ratio,
-      }),
+      { path, edge, position: `${center * 100}%` },
+      ...edgeCorners(node.first, direction, edge, [...path, 'first'], start, extent * ratio),
       ...edgeCorners(
         node.second,
         direction,
         edge,
         [...path, 'second'],
-        {
-          fraction: center.fraction,
-          pixels: center.pixels + 3,
-        },
-        {
-          fraction: extent.fraction * (1 - ratio),
-          pixels: (extent.pixels - 6) * (1 - ratio),
-        },
+        center,
+        extent * (1 - ratio),
       ),
     ];
   }
 
   function cornerTargets(node) {
-    const start = { fraction: 0, pixels: 0 };
-    const extent = { fraction: 1, pixels: 0 };
-    const first = edgeCorners(node.first, node.direction, 'first', ['first'], start, extent);
-    const second = edgeCorners(node.second, node.direction, 'second', ['second'], start, extent);
+    const first = edgeCorners(node.first, node.direction, 'first', ['first'], 0, 1);
+    const second = edgeCorners(node.second, node.direction, 'second', ['second'], 0, 1);
     return [...first, ...second].map((corner) => ({
       ...corner,
       offset: first.length && second.length ? corner.edge : null,
@@ -66,6 +68,7 @@
   function startResize(event, path, direction) {
     const bounds = event.currentTarget.parentElement.getBoundingClientRect();
     drag = { path, direction, bounds };
+    draggingPaths = [path.join('.')];
     event.currentTarget.setPointerCapture(event.pointerId);
     event.preventDefault();
   }
@@ -79,6 +82,7 @@
       return;
     }
     drag = { path, direction, bounds: container.getBoundingClientRect(), targetPath, target };
+    draggingPaths = [path.join('.'), targetPath.join('.')];
     event.currentTarget.setPointerCapture(event.pointerId);
     event.preventDefault();
   }
@@ -107,6 +111,7 @@
       return;
     }
     drag = null;
+    draggingPaths = [];
     onratioend?.();
   }
 
@@ -172,13 +177,15 @@
       data-split-path={path.join('.')}
       class:rows={node.direction === 'rows'}
       style={node.direction === 'rows'
-        ? `grid-template-rows: minmax(0, ${ratio}fr) 6px minmax(0, ${1 - ratio}fr)`
-        : `grid-template-columns: minmax(0, ${ratio}fr) 6px minmax(0, ${1 - ratio}fr)`}
+        ? `grid-template-rows: minmax(0, ${ratio}fr) 0px minmax(0, ${1 - ratio}fr)`
+        : `grid-template-columns: minmax(0, ${ratio}fr) 0px minmax(0, ${1 - ratio}fr)`}
     >
       <div class="child">{@render renderNode(node.first, [...path, 'first'])}</div>
       <div
         class="divider"
-        style:z-index={800 - path.length}
+        class:dragging={draggingPaths.includes(path.join('.'))}
+        class:corner-hover={hoveredCornerPath === path.join('.')}
+        style:z-index={1200 - path.length}
         role="slider"
         tabindex="0"
         aria-label={node.direction === 'rows'
@@ -201,8 +208,9 @@
             class:offset-first={corner.offset === 'first'}
             class:offset-second={corner.offset === 'second'}
             style:--corner-position={corner.position}
-            title="Resize both map dividers"
             aria-label="Resize both map dividers; use arrow keys to adjust either direction"
+            onpointerenter={() => (hoveredCornerPath = [...path, ...corner.path].join('.'))}
+            onpointerleave={() => (hoveredCornerPath = null)}
             onpointerdown={(event) => startCornerResize(event, path, node.direction, corner)}
             onpointermove={(event) => {
               event.stopPropagation();
@@ -225,7 +233,9 @@
   {/if}
 {/snippet}
 
-<div class="split-view">{@render renderNode(tree, [])}</div>
+<div class="split-view" class:dots-visible={dotsVisible}>
+  {@render renderNode(tree, [])}
+</div>
 
 <style>
   .split-view,
@@ -242,11 +252,12 @@
   }
   .divider {
     position: relative;
-    z-index: 800;
+    left: -2px;
+    width: 4px;
     border: 0;
     padding: 0;
-    background: transparent;
-    cursor: col-resize;
+    background: var(--vscee-color-editor-background);
+    cursor: ew-resize;
     touch-action: none;
     &::before {
       content: '';
@@ -254,48 +265,82 @@
       top: 0;
       bottom: 0;
       left: 50%;
-      width: 1px;
+      width: 4px;
       transform: translateX(-50%);
-      background: var(--vscode-editorGroup-border);
+      background: var(--vscode-sash-hoverBorder);
+      opacity: 0;
+      transition: opacity 0s;
     }
     &::after {
       content: '';
       position: absolute;
       top: 50%;
       left: 50%;
-      width: 5px;
-      height: 15px;
+      width: 4px;
+      height: 12px;
       transform: translate(-50%, -50%);
-      background: radial-gradient(
-          circle,
-          var(--vscode-descriptionForeground) 1px,
-          transparent 1.5px
-        )
-        center top / 5px 5px repeat-y var(--vscode-editor-background);
+      color: var(--vscode-modernSash-gripForeground);
+      background: radial-gradient(circle, currentColor 0.65px, transparent 0.9px) center top / 4px
+        4px repeat-y;
+      opacity: 0;
+      transition:
+        opacity 150ms ease,
+        color 0s;
     }
     &:hover,
-    &:focus-visible {
+    &.corner-hover {
       &::before {
-        background: var(--vscode-sash-hoverBorder);
+        opacity: 1;
+        transition-delay: 0.5s;
+      }
+      &::after {
+        color: var(--vscee-color-editor-background);
+        transition-delay: 0s, 0.5s;
+      }
+    }
+    &.dragging,
+    &:focus-within {
+      &::before {
+        opacity: 1;
+        transition-delay: 0s;
+      }
+      &::after {
+        color: var(--vscee-color-editor-background);
+        opacity: 1;
+        transition-delay: 0s;
       }
     }
     &:focus-visible {
       outline: 1px solid var(--vscode-focusBorder);
     }
   }
+  .split-view.dots-visible .divider {
+    &::after {
+      opacity: 1;
+    }
+  }
+  .split-view:not(.dots-visible) .divider:not(:focus-within):not(.dragging) {
+    &::after {
+      opacity: 0;
+    }
+  }
   .rows > .divider {
-    cursor: row-resize;
+    top: -2px;
+    left: 0;
+    width: 100%;
+    height: 4px;
+    cursor: ns-resize;
     &::before {
       top: 50%;
       bottom: auto;
       left: 0;
       width: 100%;
-      height: 1px;
+      height: 4px;
       transform: translateY(-50%);
     }
     &::after {
-      width: 15px;
-      height: 5px;
+      width: 12px;
+      height: 4px;
       background-position: left center;
       background-repeat: repeat-x;
     }
@@ -313,11 +358,7 @@
     background: transparent;
     cursor: move;
     touch-action: none;
-    &:hover,
-    &:focus-visible {
-      background: var(--vscode-editor-background);
-      outline: 1px solid var(--vscode-sash-hoverBorder);
-    }
+    outline: none;
   }
   .corner.offset-first {
     margin-left: -10px;
