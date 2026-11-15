@@ -208,29 +208,32 @@
   </header>
 
   <div class="dialog-body">
-    <div class="map-mode" role="group" aria-label="Map display mode">
-      <button
-        class:chosen={mode === 'grid'}
-        aria-pressed={mode === 'grid'}
-        onclick={() => (mode = 'grid')}>Grid</button
-      >
-      <button
-        class:chosen={mode === 'stack'}
-        aria-pressed={mode === 'stack'}
-        onclick={() => (mode = 'stack')}>Stack</button
-      >
-    </div>
-
-    <!-- MAP COUNT -->
-    <div class="map-count" role="group" aria-label="Number of maps">
-      {#each MAP_NUMBERS as number}
+    <!-- MAP CONTROLS -->
+    <div class="map-options">
+      <div class="map-count" role="group" aria-label="Number of maps">
+        {#each MAP_NUMBERS as number}
+          <button
+            class:chosen={placedMaps.length === number}
+            aria-pressed={placedMaps.length === number}
+            title={`${number} ${number === 1 ? 'map' : 'maps'}`}
+            onclick={() => setCount(number)}>{number}</button
+          >
+        {/each}
+      </div>
+      <div class="map-mode" role="group" aria-label="Map display mode">
         <button
-          class:chosen={placedMaps.length === number}
-          aria-pressed={placedMaps.length === number}
-          title={`${number} ${number === 1 ? 'map' : 'maps'}`}
-          onclick={() => setCount(number)}>{number}</button
+          class:chosen={mode === 'grid'}
+          aria-pressed={mode === 'grid'}
+          onclick={() => (mode = 'grid')}
+          ><i class="codicon codicon-table" aria-hidden="true"></i> Grid</button
         >
-      {/each}
+        <button
+          class:chosen={mode === 'stack'}
+          aria-pressed={mode === 'stack'}
+          onclick={() => (mode = 'stack')}
+          ><i class="codicon codicon-layers" aria-hidden="true"></i> Stack</button
+        >
+      </div>
     </div>
 
     <!-- SPLIT CANVAS -->
@@ -421,14 +424,26 @@
   .dialog-body {
     padding: 16px;
   }
+  .map-options {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
   .map-mode {
     display: inline-flex;
     gap: 2px;
     padding: 2px;
-    margin-bottom: 12px;
+    margin-left: auto;
     border-radius: 4px;
     background: var(--vscode-button-secondaryBackground);
     button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
       min-width: 64px;
       height: 28px;
       border: 0;
@@ -448,7 +463,6 @@
     display: flex;
     flex-wrap: wrap;
     gap: 4px;
-    margin-bottom: 16px;
   }
   .map-count button {
     min-width: 36px;
