@@ -427,7 +427,7 @@
       bottom: 20px;
       left: 0;
       right: 0;
-      z-index: 1000;
+      z-index: 1201;
       display: none;
       background: var(--vscee-color-editor-background);
       padding: var(--vscee-space-xxs) var(--vscee-space-lg);
