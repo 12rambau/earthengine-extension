@@ -756,7 +756,7 @@
   </div>
 {/if}
 
-<MapScale {map} paneId={activePaneId} {overlays} {activeScaleIndex} />
+<MapScale maps={paneMaps} {overlays} {activeScaleIndex} />
 
 <!-- CONTROLS -->
 <div class="map-controls">

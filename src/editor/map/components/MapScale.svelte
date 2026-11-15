@@ -2,7 +2,7 @@
 <script>
   import { intervalStops } from '../../../shared/sepalViz.ts';
 
-  let { map, paneId = 1, overlays = [], activeScaleIndex = -1 } = $props();
+  let { maps = {}, overlays = [], activeScaleIndex = -1 } = $props();
 
   // ----------------------------------------------------------------
   // STATE
@@ -96,23 +96,23 @@
   // ----------------------------------------------------------------
 
   $effect(() => {
-    if (!map) {
-      return;
-    }
-    const handleMouseMove = (event) => {
-      cursorTooltipX = event.originalEvent.clientX;
-      cursorTooltipY = event.originalEvent.clientY;
-      updateScaleFromMap(event.latlng);
-    };
-    const handleMouseOut = () => {
-      cursorTooltipText = '';
-    };
-    map.on('mousemove', handleMouseMove);
-    map.on('mouseout', handleMouseOut);
-    return () => {
-      map.off('mousemove', handleMouseMove);
-      map.off('mouseout', handleMouseOut);
-    };
+    const listeners = Object.entries(maps).map(([id, pane]) => {
+      const handleMouseMove = (event) => {
+        cursorTooltipX = event.originalEvent.clientX;
+        cursorTooltipY = event.originalEvent.clientY;
+        updateScaleFromMap(event.latlng, pane, Number(id));
+      };
+      const handleMouseOut = () => {
+        cursorTooltipText = '';
+      };
+      pane.on('mousemove', handleMouseMove);
+      pane.on('mouseout', handleMouseOut);
+      return () => {
+        pane.off('mousemove', handleMouseMove);
+        pane.off('mouseout', handleMouseOut);
+      };
+    });
+    return () => listeners.forEach((remove) => remove());
   });
 
   // ----------------------------------------------------------------
@@ -162,7 +162,7 @@
     return [(hue / 6 + 1) % 1, delta / max, max];
   }
 
-  function sampleOverlayPixel(latlng, index) {
+  function sampleOverlayPixel(latlng, index, pane, paneId) {
     const entry = overlays[index];
     if (!entry || !entry.visible) {
       return null;
@@ -171,8 +171,8 @@
     if (!container) {
       return null;
     }
-    const point = map.latLngToContainerPoint(latlng);
-    const mapRect = map.getContainer().getBoundingClientRect();
+    const point = pane.latLngToContainerPoint(latlng);
+    const mapRect = pane.getContainer().getBoundingClientRect();
     const tiles = container.querySelectorAll('img');
     for (let tileIndex = 0; tileIndex < tiles.length; tileIndex++) {
       const tile = tiles[tileIndex];
@@ -204,11 +204,11 @@
     return null;
   }
 
-  function updateScaleFromMap(latlng) {
+  function updateScaleFromMap(latlng, pane, paneId) {
     if (activeScaleIndex < 0) {
       return;
     }
-    const rgba = sampleOverlayPixel(latlng, activeScaleIndex);
+    const rgba = sampleOverlayPixel(latlng, activeScaleIndex, pane, paneId);
     if (!rgba || rgba[3] === 0) {
       document.querySelectorAll('.scale-pointer').forEach((pointer) => {
         pointer.style.display = 'none';
