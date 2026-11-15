@@ -669,6 +669,7 @@
   </MapMenu>
   <MapMenu
     title="Manage geometries"
+    beta
     bind:visible={geometriesPanelVisible}
     onopen={() => openMenu('geometries')}
     onclose={() => (drawMode = null)}
@@ -732,7 +733,7 @@
 <div class="map-layout-controls">
   <MapButton
     title="Configure map layout"
-    aria-label="Configure map layout"
+    beta
     aria-haspopup="dialog"
     aria-expanded={mapLayoutVisible}
     active={mapLayoutVisible}
