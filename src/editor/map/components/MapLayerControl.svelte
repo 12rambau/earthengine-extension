@@ -25,6 +25,8 @@
   } = $props();
 
   const pendingVisibilityClicks = new Map();
+  let draggedLayer = $state(null);
+  let dropTarget = $state(null);
 
   onDestroy(() => {
     for (const timer of pendingVisibilityClicks.values()) {
@@ -100,8 +102,53 @@
     onremove(entry.layerIndex);
   }
 
-  function moveLayer(index, direction) {
-    onmove(overlays[index].layerIndex, direction);
+  function startLayerDrag(event, layerIndex) {
+    draggedLayer = layerIndex;
+    event.dataTransfer.effectAllowed = 'move';
+    event.dataTransfer.setData('application/x-vscee-layer', String(layerIndex));
+  }
+
+  function dragOver(event, paneIndex, insertIndex, rowIndex = null) {
+    if (draggedLayer === null) {
+      return;
+    }
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'move';
+    dropTarget = { paneIndex, insertIndex, rowIndex };
+  }
+
+  function rowInsertIndex(event, paneIndex, reverseIndex) {
+    const bounds = event.currentTarget.getBoundingClientRect();
+    const above = event.clientY < bounds.top + bounds.height / 2;
+    return panes[paneIndex].length - reverseIndex - (above ? 0 : 1);
+  }
+
+  function dropLayer(event, paneIndex, insertIndex) {
+    if (draggedLayer === null) {
+      return;
+    }
+    event.preventDefault();
+    event.stopPropagation();
+    onmove(draggedLayer, paneIndex, insertIndex);
+    draggedLayer = null;
+    dropTarget = null;
+  }
+
+  function moveWithKeyboard(event, layerIndex, paneIndex, reverseIndex) {
+    const pane = panes[paneIndex];
+    const position = pane.length - reverseIndex - 1;
+    if (event.key === 'ArrowUp' && reverseIndex > 0) {
+      onmove(layerIndex, paneIndex, position + 2);
+    } else if (event.key === 'ArrowDown' && reverseIndex < pane.length - 1) {
+      onmove(layerIndex, paneIndex, position - 1);
+    } else if (event.key === 'ArrowLeft' && paneIndex > 0) {
+      onmove(layerIndex, paneIndex - 1, panes[paneIndex - 1].length);
+    } else if (event.key === 'ArrowRight' && paneIndex < panes.length - 1) {
+      onmove(layerIndex, paneIndex + 1, panes[paneIndex + 1].length);
+    } else {
+      return;
+    }
+    event.preventDefault();
   }
 
   function toggleScale(index) {
@@ -147,32 +194,55 @@
         <p class="layers-empty">No layers yet.</p>
       {:else}
         {#each panes as pane, paneIndex}
-          <div class="pane-group">Map {mapIds[paneIndex]}</div>
-          {#each pane.slice().reverse() as layerIndex, reverseIndex}
+          <div
+            class="pane-group"
+            role="heading"
+            aria-level="3"
+            class:drop-target={dropTarget?.paneIndex === paneIndex && dropTarget?.rowIndex === null}
+            ondragover={(event) => dragOver(event, paneIndex, pane.length)}
+            ondrop={(event) => dropLayer(event, paneIndex, pane.length)}
+          >
+            Map {mapIds[paneIndex]}
+          </div>
+          {#each pane.slice().reverse() as layerIndex, reverseIndex (layerIndex)}
             {@const entry = overlays.find((item) => item.layerIndex === layerIndex)}
             {@const index = overlays.indexOf(entry)}
             {#if entry}
-              <div class="layer-row">
-                <div class="layer-order-controls">
-                  <button
-                    class="map-btn layer-vis-btn"
-                    title="Move layer up"
-                    aria-label={`Move ${entry.name} up`}
-                    disabled={reverseIndex === 0}
-                    onclick={() => moveLayer(index, 1)}
-                  >
-                    <i class="codicon codicon-arrow-up" aria-hidden="true"></i>
-                  </button>
-                  <button
-                    class="map-btn layer-vis-btn"
-                    title="Move layer down"
-                    aria-label={`Move ${entry.name} down`}
-                    disabled={reverseIndex === pane.length - 1}
-                    onclick={() => moveLayer(index, -1)}
-                  >
-                    <i class="codicon codicon-arrow-down" aria-hidden="true"></i>
-                  </button>
-                </div>
+              <div
+                class="layer-row"
+                role="group"
+                aria-label={entry.name}
+                class:drop-above={dropTarget?.paneIndex === paneIndex &&
+                  dropTarget?.rowIndex === reverseIndex &&
+                  dropTarget?.insertIndex === pane.length - reverseIndex}
+                class:drop-below={dropTarget?.paneIndex === paneIndex &&
+                  dropTarget?.rowIndex === reverseIndex &&
+                  dropTarget?.insertIndex === pane.length - reverseIndex - 1}
+                ondragover={(event) =>
+                  dragOver(
+                    event,
+                    paneIndex,
+                    rowInsertIndex(event, paneIndex, reverseIndex),
+                    reverseIndex,
+                  )}
+                ondrop={(event) =>
+                  dropLayer(event, paneIndex, rowInsertIndex(event, paneIndex, reverseIndex))}
+              >
+                <button
+                  class="map-btn layer-drag-handle"
+                  draggable="true"
+                  title={`Drag ${entry.name} to reorder or move to another map`}
+                  aria-label={`Move ${entry.name}; use arrow keys to reorder or change maps`}
+                  ondragstart={(event) => startLayerDrag(event, entry.layerIndex)}
+                  ondragend={() => {
+                    draggedLayer = null;
+                    dropTarget = null;
+                  }}
+                  onkeydown={(event) =>
+                    moveWithKeyboard(event, entry.layerIndex, paneIndex, reverseIndex)}
+                >
+                  <i class="codicon codicon-gripper" aria-hidden="true"></i>
+                </button>
                 <span class="layer-name" title={entry.name}>{entry.name}</span>
                 <div class="layer-controls">
                   <MapSlider
@@ -355,6 +425,10 @@
       font-size: var(--vscee-font-compact-sm);
       font-weight: 600;
       color: var(--vscee-color-foreground);
+      &.drop-target {
+        background: var(--vscee-color-list-hover);
+        box-shadow: inset 0 -2px var(--vscee-color-focus);
+      }
     }
     .layer-row {
       padding: var(--vscee-space-xs) var(--vscee-space-md);
@@ -362,6 +436,23 @@
       align-items: center;
       gap: var(--vscee-space-sm);
       min-width: 0;
+      &.drop-above {
+        box-shadow: inset 0 2px var(--vscee-color-focus);
+      }
+      &.drop-below {
+        box-shadow: inset 0 -2px var(--vscee-color-focus);
+      }
+    }
+    .layer-drag-handle {
+      width: 22px;
+      height: 22px;
+      flex-shrink: 0;
+      box-shadow: none;
+      opacity: 0.6;
+      cursor: grab;
+      &:active {
+        cursor: grabbing;
+      }
     }
     .layer-vis-btn {
       width: 22px;
@@ -374,15 +465,6 @@
       opacity: 1;
       background: transparent;
       color: var(--vscee-color-foreground);
-    }
-    .layer-order-controls {
-      display: flex;
-      flex-shrink: 0;
-      gap: var(--vscee-space-xs);
-      .layer-vis-btn:disabled {
-        opacity: 0.25;
-        cursor: default;
-      }
     }
     .layer-name {
       flex: 1;

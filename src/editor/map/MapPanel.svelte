@@ -306,21 +306,32 @@
     vscode.postMessage({ type: 'removeLayer', data: { layerIndex } });
   }
 
-  function moveLayer(layerIndex, direction) {
-    const paneIndex = mapLayout.panes.findIndex((pane) => pane.includes(layerIndex));
-    if (paneIndex < 0) {
+  function moveLayer(layerIndex, targetPaneIndex, insertIndex) {
+    const sourcePaneIndex = mapLayout.panes.findIndex((pane) => pane.includes(layerIndex));
+    if (
+      sourcePaneIndex < 0 ||
+      !mapLayout.panes[targetPaneIndex] ||
+      !Number.isInteger(insertIndex)
+    ) {
       return;
     }
-    const pane = [...mapLayout.panes[paneIndex]];
-    const from = pane.indexOf(layerIndex);
-    const to = from + direction;
-    if (to < 0 || to >= pane.length) {
+    const sourcePosition = mapLayout.panes[sourcePaneIndex].indexOf(layerIndex);
+    const targetPosition = Math.max(
+      0,
+      Math.min(insertIndex, mapLayout.panes[targetPaneIndex].length),
+    );
+    const adjustedPosition =
+      sourcePaneIndex === targetPaneIndex && sourcePosition < targetPosition
+        ? targetPosition - 1
+        : targetPosition;
+    if (sourcePaneIndex === targetPaneIndex && sourcePosition === adjustedPosition) {
       return;
     }
-    [pane[from], pane[to]] = [pane[to], pane[from]];
+    const panes = mapLayout.panes.map((items) => items.filter((index) => index !== layerIndex));
+    panes[targetPaneIndex].splice(adjustedPosition, 0, layerIndex);
     mapLayout = {
       ...mapLayout,
-      panes: mapLayout.panes.map((items, index) => (index === paneIndex ? pane : items)),
+      panes,
     };
     refreshLayers();
     saveLayout();
