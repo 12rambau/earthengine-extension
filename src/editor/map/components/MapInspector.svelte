@@ -45,7 +45,10 @@
       inspectorMarker.setLatLng([lat, lng]);
     } else {
       removeMarker();
-      inspectorMarker = L.marker([lat, lng], { icon: inspectorMarkerIcon }).addTo(pane);
+      inspectorMarker = L.marker([lat, lng], {
+        icon: inspectorMarkerIcon,
+        interactive: false,
+      }).addTo(pane);
       markerPane = pane;
     }
     inspectorContent = { type: 'loading' };

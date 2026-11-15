@@ -29,6 +29,7 @@
 
   let paneMaps = $state({});
   let activePaneId = $state(1);
+  let hoveredPaneId = $state(null);
   let map = $derived(paneMaps[activePaneId] ?? paneMaps[1] ?? null);
   let overlays = $state([]);
   let layersPanelVisible = $state(false);
@@ -58,6 +59,14 @@
   let syncingView = false;
   let readySent = false;
   let lastView = $state({ center: [0, 0], zoom: 2 });
+  let pointerLatLng = null;
+  const ghostMarkers = {};
+  const ghostIcon = L.divIcon({
+    className: 'grid-ghost-cursor',
+    html: '<i class="codicon codicon-target" aria-hidden="true"></i>',
+    iconSize: [20, 20],
+    iconAnchor: [10, 10],
+  });
 
   // ----------------------------------------------------------------
   // HELPERS
@@ -145,6 +154,49 @@
   // MAP INIT (called from onMount equivalent)
   // ----------------------------------------------------------------
 
+  function clearGridPointer() {
+    pointerLatLng = null;
+    hoveredPaneId = null;
+    for (const [id, marker] of Object.entries(ghostMarkers)) {
+      marker.remove();
+      delete ghostMarkers[id];
+    }
+  }
+
+  function syncGridPointer() {
+    if (mapLayout.mode !== 'grid' || !pointerLatLng || hoveredPaneId === null) {
+      return;
+    }
+    for (const [id, pane] of Object.entries(paneMaps)) {
+      if (Number(id) === hoveredPaneId) {
+        ghostMarkers[id]?.remove();
+        delete ghostMarkers[id];
+      } else if (ghostMarkers[id]) {
+        ghostMarkers[id].setLatLng(pointerLatLng);
+      } else {
+        ghostMarkers[id] = L.marker(pointerLatLng, {
+          icon: ghostIcon,
+          interactive: false,
+          keyboard: false,
+        }).addTo(pane);
+      }
+    }
+  }
+
+  function hoverMap(id) {
+    activePaneId = id;
+    if (hoveredPaneId !== id) {
+      clearGridPointer();
+      hoveredPaneId = id;
+    }
+  }
+
+  function leaveMap(id) {
+    if (hoveredPaneId === id) {
+      clearGridPointer();
+    }
+  }
+
   function initMap(id, leafletMap) {
     paneMaps = { ...paneMaps, [id]: leafletMap };
     if (id === 1 && !readySent) {
@@ -153,8 +205,11 @@
     }
     setBasemap(resolveBasemapId());
     leafletMap.on('mousemove', (event) => {
-      if (id === activePaneId) {
-        coords = event.latlng.lng.toFixed(4) + ', ' + event.latlng.lat.toFixed(4);
+      coords = event.latlng.lng.toFixed(4) + ', ' + event.latlng.lat.toFixed(4);
+      if (mapLayout.mode === 'grid') {
+        hoverMap(id);
+        pointerLatLng = event.latlng;
+        syncGridPointer();
       }
     });
     leafletMap.on('move zoom', () => {
@@ -186,6 +241,7 @@
     for (const entry of overlays) {
       syncOverlay(entry);
     }
+    syncGridPointer();
   }
 
   function removeMap(id, leafletMap) {
@@ -201,6 +257,9 @@
     }
     clearTimeout(attributionTimer[id]);
     attributionRequests[id] = (attributionRequests[id] ?? 0) + 1;
+    ghostMarkers[id]?.remove();
+    delete ghostMarkers[id];
+    leaveMap(id);
     delete paneBasemaps[id];
     delete googleCopyright[id];
     const remaining = { ...paneMaps };
@@ -611,6 +670,12 @@
   });
 
   $effect(() => {
+    if (mapLayout.mode !== 'grid') {
+      clearGridPointer();
+    }
+  });
+
+  $effect(() => {
     if (!attributionFooter) {
       return;
     }
@@ -660,6 +725,8 @@
         oncreate={initMap}
         onremove={removeMap}
         onactive={(paneId) => (activePaneId = paneId)}
+        onhover={hoverMap}
+        onleave={leaveMap}
       />
     {/snippet}
   </MapSplitView>
@@ -906,6 +973,18 @@
        ================================================================== */
     .map-viewport .leaflet-control-attribution {
       display: none;
+    }
+    .grid-ghost-cursor {
+      display: grid;
+      place-items: center;
+      background: transparent;
+      border: 0;
+      color: var(--vscode-editor-foreground);
+      opacity: 0.7;
+      pointer-events: none;
+      .codicon {
+        font-size: 20px;
+      }
     }
 
     /* ==================================================================

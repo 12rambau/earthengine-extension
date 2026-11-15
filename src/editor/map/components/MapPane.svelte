@@ -2,7 +2,7 @@
 <script>
   import L from 'leaflet';
 
-  let { id, center = [0, 0], zoom = 2, oncreate, onremove, onactive } = $props();
+  let { id, center = [0, 0], zoom = 2, oncreate, onremove, onactive, onhover, onleave } = $props();
 
   function mount(node) {
     const map = L.map(node, { center, zoom, zoomControl: false });
@@ -20,7 +20,13 @@
   }
 </script>
 
-<div class="map-pane" onpointerdown={() => onactive(id)} role="presentation">
+<div
+  class="map-pane"
+  onpointerdown={() => onactive(id)}
+  onpointerenter={() => onhover?.(id)}
+  onpointerleave={() => onleave?.(id)}
+  role="presentation"
+>
   <div class="leaflet-surface" use:mount></div>
 </div>
 
