@@ -40,6 +40,7 @@
   let activeScaleIndex = $state(-1);
   let coords = $state('0.0000, 0.0000');
   let zoomLevel = $state(2);
+  let attributionFooter = $state(null);
 
   let activeMode = $state('theme');
   // Message shown when the Google Maps API key is missing or createSession failed.
@@ -608,6 +609,39 @@
     observer.observe(document.body, { attributes: true, attributeFilter: ['class'] });
     return () => observer.disconnect();
   });
+
+  $effect(() => {
+    if (!attributionFooter) {
+      return;
+    }
+    const controls = Object.values(paneMaps)
+      .map((pane) => pane.attributionControl.getContainer())
+      .filter(Boolean);
+    const update = () => {
+      const seen = new Set();
+      const items = [];
+      for (const control of controls) {
+        const text = control.textContent.trim();
+        if (!text || seen.has(text)) {
+          continue;
+        }
+        seen.add(text);
+        const item = document.createElement('span');
+        item.className = 'attribution-item';
+        for (const child of control.childNodes) {
+          item.appendChild(child.cloneNode(true));
+        }
+        items.push(item);
+      }
+      attributionFooter.replaceChildren(...items);
+    };
+    const observer = new MutationObserver(update);
+    for (const control of controls) {
+      observer.observe(control, { childList: true, characterData: true, subtree: true });
+    }
+    update();
+    return () => observer.disconnect();
+  });
 </script>
 
 <!-- MAP -->
@@ -774,6 +808,8 @@
 <!-- STATUS BAR -->
 <div class="status-bar">
   <span>lon, lat: {coords}</span>
+  <span class="status-attribution" aria-label="Map attribution" bind:this={attributionFooter}
+  ></span>
   <span>Zoom: {zoomLevel}</span>
 </div>
 
@@ -868,13 +904,8 @@
     /* ==================================================================
        LEAFLET ATTRIBUTION
        ================================================================== */
-    .leaflet-control-attribution {
-      background: var(--vscee-color-editor-background) !important;
-      color: var(--vscee-color-foreground) !important;
-      opacity: 0.8;
-    }
-    .leaflet-control-attribution a {
-      color: var(--vscee-color-link) !important;
+    .map-viewport .leaflet-control-attribution {
+      display: none;
     }
 
     /* ==================================================================
@@ -890,8 +921,28 @@
       color: var(--vscee-color-statusbar-foreground);
       padding: var(--vscee-space-xxs) var(--vscee-space-lg);
       font-size: var(--vscee-font-compact-sm);
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr) auto;
+      align-items: center;
+      gap: var(--vscee-space-sm);
+      white-space: nowrap;
+    }
+    .status-attribution {
       display: flex;
-      justify-content: space-between;
+      justify-content: center;
+      gap: var(--vscee-space-sm);
+      min-width: 0;
+      overflow-x: auto;
+      scrollbar-width: none;
+      .attribution-item {
+        flex-shrink: 0;
+        & + .attribution-item::before {
+          content: '| ';
+        }
+      }
+      a {
+        color: var(--vscee-color-link);
+      }
     }
   }
 </style>
