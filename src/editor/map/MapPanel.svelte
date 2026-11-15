@@ -612,7 +612,12 @@
 
 <!-- MAP -->
 <div class="map-viewport">
-  <MapSplitView tree={mapLayout.tree} onratio={changeRatio} onratioend={saveLayout}>
+  <MapSplitView
+    tree={mapLayout.tree}
+    mode={mapLayout.mode}
+    onratio={changeRatio}
+    onratioend={saveLayout}
+  >
     {#snippet pane(id)}
       <MapPane
         {id}

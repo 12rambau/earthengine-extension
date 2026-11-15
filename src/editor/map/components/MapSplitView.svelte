@@ -1,11 +1,33 @@
 <!-- MapSplitView: recursive map panes with independently resizable dividers -->
 <script>
-  let { tree, pane, onratio, onratioend } = $props();
+  let { tree, mode = 'grid', pane, onratio, onratioend } = $props();
 
   let dotsVisible = $state(false);
   let hoveredCornerPath = $state(null);
   let draggingPaths = $state([]);
   let drag = null;
+
+  function leafBounds(node, bounds = { top: 0, left: 0, width: 1, height: 1 }) {
+    if ('map' in node) {
+      return [{ id: node.map, ...bounds }];
+    }
+    const ratio = node.ratio ?? 0.5;
+    const rows = node.direction === 'rows';
+    const first = {
+      ...bounds,
+      width: rows ? bounds.width : bounds.width * ratio,
+      height: rows ? bounds.height * ratio : bounds.height,
+    };
+    const second = {
+      top: rows ? bounds.top + first.height : bounds.top,
+      left: rows ? bounds.left : bounds.left + first.width,
+      width: rows ? bounds.width : bounds.width * (1 - ratio),
+      height: rows ? bounds.height * (1 - ratio) : bounds.height,
+    };
+    return [...leafBounds(node.first, first), ...leafBounds(node.second, second)];
+  }
+
+  let stackPanes = $derived(mode === 'stack' ? leafBounds(tree) : []);
 
   $effect(() => {
     let hideDotsTimer;
@@ -168,7 +190,9 @@
 
 {#snippet renderNode(node, path)}
   {#if 'map' in node}
-    <div class="leaf">{@render pane(node.map)}</div>
+    <div class="leaf">
+      {#if mode === 'grid'}{@render pane(node.map)}{/if}
+    </div>
   {:else}
     {@const ratio = node.ratio ?? 0.5}
     {@const corners = cornerTargets(node)}
@@ -233,12 +257,23 @@
   {/if}
 {/snippet}
 
-<div class="split-view" class:dots-visible={dotsVisible}>
-  {@render renderNode(tree, [])}
+<div class="split-view" class:dots-visible={dotsVisible} class:stack={mode === 'stack'}>
+  {#each stackPanes as region (region.id)}
+    <div
+      class="stack-pane"
+      style:clip-path={`inset(${region.top * 100}% ${Math.max(0, 1 - region.left - region.width) * 100}% ${Math.max(0, 1 - region.top - region.height) * 100}% ${region.left * 100}%)`}
+    >
+      {@render pane(region.id)}
+    </div>
+  {/each}
+  <div class="split-tree" class:stack={mode === 'stack'}>
+    {@render renderNode(tree, [])}
+  </div>
 </div>
 
 <style>
   .split-view,
+  .split-tree,
   .split,
   .leaf,
   .child {
@@ -249,6 +284,22 @@
   }
   .split {
     display: grid;
+  }
+  .split-view.stack {
+    position: relative;
+  }
+  .stack-pane,
+  .split-tree.stack {
+    position: absolute;
+    inset: 0;
+  }
+  .split-tree.stack {
+    z-index: 1;
+    pointer-events: none;
+    .divider,
+    .corner {
+      pointer-events: auto;
+    }
   }
   .divider {
     position: relative;

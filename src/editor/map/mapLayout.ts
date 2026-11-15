@@ -10,6 +10,7 @@ export interface MapLayout {
   tree: MapLayoutNode;
   mapIds: number[];
   panes: number[][];
+  mode: 'grid' | 'stack';
 }
 
 /** Returns the map IDs in display order. */
@@ -73,7 +74,8 @@ export function normalizeMapLayout(
     });
   });
   panes[mapIds.indexOf(1)].push(...layerIndices.filter((index) => !assigned.has(index)));
-  return { tree, mapIds, panes };
+  const mode = input.mode === 'stack' ? 'stack' : 'grid';
+  return { tree, mapIds, panes, mode };
 }
 
 /** Updates only the requested split, preserving the identity of every map pane. */

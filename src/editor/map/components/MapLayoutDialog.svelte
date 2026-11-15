@@ -43,6 +43,7 @@
   let dialog;
   let tree = $state(starting.tree);
   let panes = $state(starting.panes);
+  let mode = $state('grid');
   let selectedLayer = $state(null);
   let selectedMap = $state(null);
   let draggingMap = $state(null);
@@ -53,7 +54,10 @@
   // ----------------------------------------------------------------
   let placedMaps = $derived(mapNumbers(tree));
 
-  onMount(() => dialog.showModal());
+  onMount(() => {
+    mode = initial?.mode === 'stack' ? 'stack' : 'grid';
+    dialog.showModal();
+  });
 
   // ----------------------------------------------------------------
   // ACTIONS
@@ -187,6 +191,7 @@
   function apply() {
     onapply?.({
       count: placedMaps.length,
+      mode,
       tree: $state.snapshot(tree),
       mapIds: [...placedMaps],
       panes: placedMaps.map((number) => [...panes[number - 1]]),
@@ -203,6 +208,19 @@
   </header>
 
   <div class="dialog-body">
+    <div class="map-mode" role="group" aria-label="Map display mode">
+      <button
+        class:chosen={mode === 'grid'}
+        aria-pressed={mode === 'grid'}
+        onclick={() => (mode = 'grid')}>Grid</button
+      >
+      <button
+        class:chosen={mode === 'stack'}
+        aria-pressed={mode === 'stack'}
+        onclick={() => (mode = 'stack')}>Stack</button
+      >
+    </div>
+
     <!-- MAP COUNT -->
     <div class="map-count" role="group" aria-label="Number of maps">
       {#each MAP_NUMBERS as number}
@@ -402,6 +420,29 @@
   }
   .dialog-body {
     padding: 16px;
+  }
+  .map-mode {
+    display: inline-flex;
+    gap: 2px;
+    padding: 2px;
+    margin-bottom: 12px;
+    border-radius: 4px;
+    background: var(--vscode-button-secondaryBackground);
+    button {
+      min-width: 64px;
+      height: 28px;
+      border: 0;
+      border-radius: 2px;
+      background: transparent;
+      color: var(--vscode-button-secondaryForeground);
+      &.chosen {
+        background: var(--vscode-button-background);
+        color: var(--vscode-button-foreground);
+      }
+      &:focus-visible {
+        outline: 1px solid var(--vscode-focusBorder);
+      }
+    }
   }
   .map-count {
     display: flex;
