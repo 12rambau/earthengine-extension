@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.15.0](https://github.com/12rambau/earthengine-extension/compare/v0.14.1...v0.15.0) (2026-11-16)
+
+### Features
+
+- add file generation script and corresponding npm command ([61f4c2e](https://github.com/12rambau/earthengine-extension/commit/61f4c2e9079f36884d12f3bd1e5a16c1866ff266))
+- implement ZIP extraction functionality and add extract-zip dependency ([0cfb863](https://github.com/12rambau/earthengine-extension/commit/0cfb8639498abe637df22699dfba6f578b40bf3d))
+
+### Bug Fixes
+
+- update release workflow to support OIDC for publishing ([4f9c94b](https://github.com/12rambau/earthengine-extension/commit/4f9c94b5f3dd625b4fdd58ed48cd68c7bfc8979b))
+
 ## [0.14.1](https://github.com/12rambau/earthengine-extension/compare/v0.14.0...v0.14.1) (2026-11-16)
 
 ## [0.14.0](https://github.com/12rambau/earthengine-extension/compare/v0.13.2...v0.14.0) (2026-11-16)

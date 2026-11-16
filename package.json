@@ -2,7 +2,7 @@
   "name": "earthengine",
   "displayName": "Earth Engine",
   "description": "Google Earth Engine Code Editor functionalities brought to VS Code",
-  "version": "0.14.1",
+  "version": "0.15.0",
   "publisher": "12rambau",
   "repository": {
     "type": "git",
