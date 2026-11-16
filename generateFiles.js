@@ -1,8 +1,9 @@
 const fs = require('node:fs');
 const path = require('node:path');
-const { execFileSync } = require('node:child_process');
+const { randomUUID } = require('node:crypto');
 const { pipeline } = require('node:stream/promises');
 const { Readable } = require('node:stream');
+const extract = require('extract-zip');
 
 const tempDir = path.join(__dirname, 'temp');
 const sources = [
@@ -23,6 +24,7 @@ const sources = [
   },
 ];
 
+/** Download a source once, publishing only a complete file to the cache. */
 async function download(source) {
   const destination = path.join(tempDir, source.name);
   if (fs.existsSync(destination)) {
@@ -47,14 +49,40 @@ async function download(source) {
   return destination;
 }
 
+/** Extract a ZIP into a fresh directory, replacing old output only on success. */
+async function extractArchive(archive, directory) {
+  const staging = fs.mkdtempSync(`${directory}.staging-`);
+  try {
+    try {
+      await extract(archive, { dir: staging });
+    } catch (error) {
+      fs.rmSync(archive, { force: true });
+      throw error;
+    }
+
+    const backup = `${directory}.backup-${randomUUID()}`;
+    const hadDirectory = fs.existsSync(directory);
+    try {
+      if (hadDirectory) fs.renameSync(directory, backup);
+      fs.renameSync(staging, directory);
+    } catch (error) {
+      if (hadDirectory && fs.existsSync(backup)) fs.renameSync(backup, directory);
+      throw error;
+    }
+    if (hadDirectory) fs.rmSync(backup, { recursive: true, force: true });
+  } finally {
+    fs.rmSync(staging, { recursive: true, force: true });
+  }
+}
+
+/** Download the dataset sources and publish each completed extraction. */
 async function main() {
   fs.mkdirSync(tempDir, { recursive: true });
   for (const source of sources) {
     const archive = await download(source);
     if (source.extractTo) {
       const directory = path.join(tempDir, source.extractTo);
-      fs.mkdirSync(directory, { recursive: true });
-      execFileSync('unzip', ['-nq', archive, '-d', directory], { stdio: 'inherit' });
+      await extractArchive(archive, directory);
       console.log(`Extracted: ${directory}`);
     }
   }

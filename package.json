@@ -944,6 +944,7 @@
     "@vscode/test-electron": "^3.1.0",
     "esbuild": "^0.28.2",
     "esbuild-svelte": "^0.9.5",
+    "extract-zip": "^2.0.1",
     "eslint": "^10.14.0",
     "eslint-plugin-svelte": "^3.23.1",
     "husky": "^9.1.7",
