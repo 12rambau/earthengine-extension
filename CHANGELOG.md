@@ -1,5 +1,7 @@
 # Changelog
 
+## [0.14.1](https://github.com/12rambau/earthengine-extension/compare/v0.14.0...v0.14.1) (2026-11-16)
+
 ## [0.14.0](https://github.com/12rambau/earthengine-extension/compare/v0.13.2...v0.14.0) (2026-11-16)
 
 ### Features
