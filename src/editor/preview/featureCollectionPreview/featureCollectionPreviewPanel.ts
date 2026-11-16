@@ -41,14 +41,18 @@ const FEATURES_PAGE_SIZE = 20;
 export async function openFeatureCollectionPreview(
   asset: EEAsset,
   accessToken: string,
+  restoredPanel?: vscode.WebviewPanel,
 ): Promise<void> {
   const shortName = asset.name.split('/').pop() || 'Table';
-  const panel = vscode.window.createWebviewPanel(
+  const panel = restoredPanel ?? vscode.window.createWebviewPanel(
     'earthengine.featureCollectionPreview',
     shortName,
     vscode.ViewColumn.One,
     { enableScripts: true, retainContextWhenHidden: true },
   );
+  if (restoredPanel) {
+    panel.webview.options = { enableScripts: true };
+  }
   panel.iconPath = vscode.Uri.joinPath(
     getExtensionUri(),
     'resources',

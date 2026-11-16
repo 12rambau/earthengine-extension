@@ -12,6 +12,7 @@
   import MapScale from './components/MapScale.svelte';
   import MapVisualizationEditor from './components/MapVisualizationEditor.svelte';
   import { vscode } from '../../shared/vscode.ts';
+  vscode.setState({});
   import { trackViewportChanges } from '../../shared/viewportAnchor.ts';
   import { normalizeMapLayout, setSplitRatio } from './mapLayout.js';
   import {

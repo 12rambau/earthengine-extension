@@ -30,6 +30,25 @@ export class TasksSection extends SidebarSection {
   }
 
   register(context: vscode.ExtensionContext): void {
+    this.disposables.push(
+      vscode.window.registerWebviewPanelSerializer('earthengine.tasks.panel', {
+        deserializeWebviewPanel: async (panel, state: unknown) => {
+          try {
+            await openTasksPanel(
+              this.authService,
+              (state as { filter?: string } | null)?.filter === 'import' ? 'import' : 'export',
+              context,
+              panel,
+            );
+          } catch (error) {
+            panel.dispose();
+            vscode.window.showErrorMessage(
+              `Failed to restore Tasks: ${error instanceof Error ? error.message : String(error)}`,
+            );
+          }
+        },
+      }),
+    );
     this.createTreeView('earthengine.tasks.export', this.exportProvider);
     this.createTreeView('earthengine.tasks.import', this.importProvider);
 

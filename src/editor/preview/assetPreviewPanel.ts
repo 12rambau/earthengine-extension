@@ -21,33 +21,73 @@ import { openFeatureViewPreview } from './featureViewPreview/featureViewPreviewP
 import { openClassifierPreview } from './classifierPreview/classifierPreviewPanel.js';
 import script from './assetPreviewPanel.svelte';
 import { loadPreviewSharing } from './previewMetadata.js';
+import { AuthService } from '../../auth/index.js';
 
 // ==================================================================
 // PUBLIC API
 // ==================================================================
 /** Fetches the asset then opens the appropriate type-specific preview panel. */
-export async function openAssetPreview(assetName: string, accessToken: string): Promise<void> {
+export async function openAssetPreview(
+  assetName: string,
+  accessToken: string,
+  restoredPanel?: vscode.WebviewPanel,
+): Promise<void> {
   const asset = await getAsset(assetName, accessToken);
 
   switch (asset.type) {
     case 'IMAGE':
-      openImagePreview(asset, accessToken);
+      openImagePreview(asset, accessToken, restoredPanel);
       break;
     case 'IMAGE_COLLECTION':
-      await openImageCollectionPreview(asset, accessToken);
+      await openImageCollectionPreview(asset, accessToken, restoredPanel);
       break;
     case 'TABLE':
-      await openFeatureCollectionPreview(asset, accessToken);
+      await openFeatureCollectionPreview(asset, accessToken, restoredPanel);
       break;
     case 'FEATURE_VIEW':
-      await openFeatureViewPreview(asset, accessToken);
+      await openFeatureViewPreview(asset, accessToken, restoredPanel);
       break;
     case 'CLASSIFIER':
-      await openClassifierPreview(asset, accessToken);
+      await openClassifierPreview(asset, accessToken, restoredPanel);
       break;
     default:
-      openGenericPreview(asset, accessToken);
+      openGenericPreview(asset, accessToken, restoredPanel);
   }
+}
+
+/** Register all asset preview types so each open asset can be restored in its original tab. */
+export function registerPreviewSerializers(authService: AuthService): vscode.Disposable[] {
+  const viewTypes = [
+    'earthengine.imagePreview',
+    'earthengine.imageCollectionPreview',
+    'earthengine.featureCollectionPreview',
+    'earthengine.featureViewPreview',
+    'earthengine.classifierPreview',
+    'earthengine.assetPreview',
+  ];
+  return viewTypes.map((viewType) =>
+    vscode.window.registerWebviewPanelSerializer(viewType, {
+      async deserializeWebviewPanel(panel, state: unknown) {
+        const assetName = (state as { assetName?: unknown } | null)?.assetName;
+        if (typeof assetName !== 'string' || !assetName.startsWith('projects/')) {
+          panel.dispose();
+          return;
+        }
+        try {
+          const token = await authService.getToken();
+          if (!token) {
+            throw new Error('Not authenticated');
+          }
+          await openAssetPreview(assetName, token, panel);
+        } catch (error) {
+          panel.dispose();
+          vscode.window.showErrorMessage(
+            `Failed to restore asset preview: ${error instanceof Error ? error.message : String(error)}`,
+          );
+        }
+      },
+    }),
+  );
 }
 
 // ==================================================================
@@ -59,16 +99,17 @@ export async function openAssetPreview(assetName: string, accessToken: string): 
 function openGenericPreview(
   asset: EEAsset,
   accessToken: string,
-  detailsTitle?: string,
-  details?: Record<string, string>,
-  sample?: string,
+  restoredPanel?: vscode.WebviewPanel,
 ): void {
-  const panel = vscode.window.createWebviewPanel(
+  const panel = restoredPanel ?? vscode.window.createWebviewPanel(
     'earthengine.assetPreview',
     asset.id || asset.name.split('/').pop() || 'Asset',
     vscode.ViewColumn.One,
     { enableScripts: true },
   );
+  if (restoredPanel) {
+    panel.webview.options = { enableScripts: true };
+  }
   const nonce = getNonce();
   const initJson = JSON.stringify({
     title: asset.id || asset.name,
@@ -78,9 +119,6 @@ function openGenericPreview(
       : 'N/A',
     size: asset.sizeBytes ? filesize(asset.sizeBytes) : 'N/A',
     propertiesTable: renderPropertiesTable(asset.properties),
-    detailsTitle,
-    detailsTable: details && renderPropertiesTable(details),
-    sample,
     assetName: asset.name,
   }).replace(/</g, '\\u003c');
 

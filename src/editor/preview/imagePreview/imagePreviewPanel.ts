@@ -45,14 +45,21 @@ const GLOBAL_BBOX = [-180, -89, 180, 89];
 // PUBLIC API
 // ==================================================================
 /** Opens a WebView showing metadata for an IMAGE asset. */
-export function openImagePreview(asset: EEAsset, accessToken: string): void {
+export function openImagePreview(
+  asset: EEAsset,
+  accessToken: string,
+  restoredPanel?: vscode.WebviewPanel,
+): void {
   const shortName = asset.name.split('/').pop() || 'Image';
-  const panel = vscode.window.createWebviewPanel(
+  const panel = restoredPanel ?? vscode.window.createWebviewPanel(
     'earthengine.imagePreview',
     shortName,
     vscode.ViewColumn.One,
     { enableScripts: true, retainContextWhenHidden: true },
   );
+  if (restoredPanel) {
+    panel.webview.options = { enableScripts: true };
+  }
   panel.iconPath = vscode.Uri.joinPath(getExtensionUri(), 'resources', 'icons', 'image.svg');
 
   panel.webview.html = buildImageHtml(asset, panel.webview);

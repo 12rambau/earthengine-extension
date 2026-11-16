@@ -24,14 +24,21 @@ import {
 // PUBLIC API
 // ==================================================================
 /** Opens a WebView showing metadata and ingestion options for a FeatureView. */
-export async function openFeatureViewPreview(asset: EEAsset, accessToken: string): Promise<void> {
+export async function openFeatureViewPreview(
+  asset: EEAsset,
+  accessToken: string,
+  restoredPanel?: vscode.WebviewPanel,
+): Promise<void> {
   const shortName = asset.name.split('/').pop() || 'FeatureView';
-  const panel = vscode.window.createWebviewPanel(
+  const panel = restoredPanel ?? vscode.window.createWebviewPanel(
     'earthengine.featureViewPreview',
     shortName,
     vscode.ViewColumn.One,
     { enableScripts: true, retainContextWhenHidden: true },
   );
+  if (restoredPanel) {
+    panel.webview.options = { enableScripts: true };
+  }
   panel.iconPath = vscode.Uri.joinPath(getExtensionUri(), 'resources', 'icons', 'image-marker.svg');
 
   panel.webview.html = buildHtml(asset);

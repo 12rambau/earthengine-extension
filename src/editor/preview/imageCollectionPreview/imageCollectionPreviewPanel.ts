@@ -50,14 +50,18 @@ const GLOBAL_BBOX = [-180, -89, 180, 89];
 export async function openImageCollectionPreview(
   asset: EEAsset,
   accessToken: string,
+  restoredPanel?: vscode.WebviewPanel,
 ): Promise<void> {
   const shortName = asset.name.split('/').pop() || 'ImageCollection';
-  const panel = vscode.window.createWebviewPanel(
+  const panel = restoredPanel ?? vscode.window.createWebviewPanel(
     'earthengine.imageCollectionPreview',
     shortName,
     vscode.ViewColumn.One,
     { enableScripts: true, retainContextWhenHidden: true },
   );
+  if (restoredPanel) {
+    panel.webview.options = { enableScripts: true };
+  }
   panel.iconPath = vscode.Uri.joinPath(
     getExtensionUri(),
     'resources',
