@@ -1,6 +1,6 @@
 ---
 name: earthengine-python
-description: Google Earth Engine analysis with Python in VS Code. Use for ANY Earth Engine request beyond displaying one existing asset unchanged - filtering image collections by date, region or clouds, cloud masking, composites (median, mosaic), monthly or yearly aggregation, NDVI or other spectral indices and band math, reducers, zonal statistics, time series, change detection, classification, sampling, charts and plots (static or interactive), and exports to Drive, Cloud Storage or assets. Explains how to write and run a Python script (in a temporary file when no save location is requested) with earthengine-api, geetools and ipygee, and display results on the VS Code Earth Engine map with vscee.Map.
+description: Google Earth Engine analysis with Python in VS Code. Use for ANY Earth Engine request beyond displaying one existing asset unchanged - filtering image collections by date, region or clouds, cloud masking, composites (median, mosaic), monthly or yearly aggregation, NDVI or other spectral indices and band math, reducers, zonal statistics, time series, change detection, classification, sampling, charts and plots (static or interactive), and exports to Drive, Cloud Storage or assets. Explains how to write and run a Python script (in a temporary file when no save location is requested), offer foreground or background execution, and display results on the VS Code Earth Engine map with vscee.Map.
 ---
 
 # Earth Engine with Python in VS Code
@@ -8,7 +8,7 @@ description: Google Earth Engine analysis with Python in VS Code. Use for ANY Ea
 ## Contents
 
 - [Decision rule](#decision-rule) - tools vs. Python script
-- [Workflow](#workflow) - header, install, write, run, report
+- [Workflow](#workflow) - header, install, choose execution mode, write, run, report
 - [Libraries](#libraries) - which library for which job
 - [Script template](#script-template)
 - [`vscee.Map` API](#vsceemap-api-mirrors-the-code-editor-map)
@@ -42,39 +42,53 @@ and do not answer with Code Editor JavaScript unless the user asks for it.
    `earthengine authenticate` once in the terminal.
 2. **Prepare Python**: make sure a Python environment is selected, then install the
    libraries in it: `pip install earthengine-api vscee geetools ipygee`.
-3. **Pick the format, then write the code**:
+3. **Choose how to run it, then pick the format and write the code**:
+   - Unless the user has already specified, ask whether they want a script run in the
+     foreground or background. Do not start it until they choose. Use the background
+     option when they want the result on the map without opening an editor or terminal
+     panel; they can still choose the foreground.
    - **Notebook** (`ee_notebooks/<topic>.ipynb`) - the default for exploration, charts
      and any iterative analysis. First cell = header, then one step per cell.
    - **Script** - for one-shot pipelines, exports and anything the user wants to
-     re-run unchanged. If the user specifies a save location, use it. Otherwise
-     call `earthengine_runCommand` with `{"command":"earthengine.newScript"}`.
-     This invokes the New Python Script button's command: it opens a managed
-     temporary `.py` file and returns its path. Edit that file to replace the
-     example code with the requested analysis, keeping its temporary-file notice
-     and the Python setup for the active profile. Follow the template below.
-     Never use an untitled editor or silently create `ee_scripts/` when no save
-     location was requested.
-4. **Always run it yourself** right after writing it - never stop at showing the code or
-   telling the user to run it.
+     re-run unchanged. If the user specifies a save location, use it. Otherwise:
+     - For foreground execution, call `earthengine_runCommand` with
+       `{"command":"earthengine.newScript"}`. This opens a managed temporary `.py`
+       file and returns its path. Replace the example code with the requested analysis,
+       keeping its temporary-file notice and the Python setup for the active profile.
+     - For background execution, create a temporary `.py` file in the system temporary
+       directory without opening it in an editor. Include the temporary-file notice and
+       the Python setup for the active profile.
+       Never use an untitled editor or silently create `ee_scripts/` when no save
+       location was requested. Follow the template below.
+4. **Run it yourself** after writing it - never stop at showing the code or telling the
+   user to run it.
    - Notebook: run the cells in order with the notebook tools; outputs and plots appear
      inline.
-   - Script: use the terminal tool in the foreground (not a background process or
-     subagent) so the output stays visible in the user's terminal:
+   - Foreground script: use the terminal tool in the foreground:
      `<selected python interpreter> <script path>`.
+   - Background script: use the terminal tool's supported background-process feature
+     with `<selected python interpreter> <script path>`. Do not use shell-specific
+     detachment commands such as `&`, `nohup` or `start`. Keep the process handle and
+     its output available; if the tool does not retain output, redirect stdout and stderr
+     to a log file in the system temporary directory. If no background-process feature is
+     available, explain that and ask whether to run it in the foreground instead.
    - Exception: code that starts export tasks (`task.start()`) consumes EECU and writes
      outputs. Run it only after the user explicitly authorizes it; otherwise return the
      code without running it.
 
    Layers sent with `vscee.Map` appear in the Earth Engine map panel, which opens
-   automatically. On failure, read the traceback, fix the code and run it again
-   (missing package → install it in the selected environment; authentication → see
-   step 1). Stop and ask the user after 3 failed attempts on the same error.
+   automatically; do not open other panels for background execution. On failure, read
+   the traceback or background-process output, fix the code and run it again (missing
+   package → install it in the selected environment; authentication → see step 1). Stop
+   and ask the user after 3 failed attempts on the same error.
 
-5. **Report**: summarize the printed output; for exports, give the task description and
-   offer to follow it with `earthengine_listTasks` (runtime, EECU cost) or cancel it with
-   `earthengine_cancelTask`. For a temporary script, explicitly tell the user in the
-   final report that the file is not persisted and must be saved outside the system
-   temporary directory with Save As (Ctrl+Shift+S) for later revision.
+5. **Report**: summarize the printed output, or for a background run report that it was
+   started and provide its process handle and log location when available; offer to check
+   its output or stop it. For exports, give the task description and offer to follow it
+   with `earthengine_listTasks` (runtime, EECU cost) or cancel it with
+   `earthengine_cancelTask`. For a temporary script, explicitly tell the user in the final
+   report that the file is not persisted and must be saved outside the system temporary
+   directory with Save As (Ctrl+Shift+S) for later revision.
 
 ## Libraries
 
