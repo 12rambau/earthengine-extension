@@ -40,6 +40,7 @@ jobs:
     needs: build-vsix
     runs-on: ubuntu-latest
     permissions:
+      id-token: write
       contents: read
 
     steps:
@@ -54,12 +55,10 @@ jobs:
       - name: Publish to Marketplace
         run: |
           if [ "${{ github.event.release.prerelease }}" = "true" ]; then
-            npx @vscode/vsce publish --packagePath *.vsix --pre-release
+            npx @vscode/vsce publish --packagePath *.vsix --pre-release --oidc
           else
-            npx @vscode/vsce publish --packagePath *.vsix
+            npx @vscode/vsce publish --packagePath *.vsix --oidc
           fi
-        env:
-          VSCE_PAT: ${{ secrets.VSCE_PAT }}
 
   publish-openvsx:
     name: Publish to Open VSX
