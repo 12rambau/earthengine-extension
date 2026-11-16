@@ -1,5 +1,32 @@
 # Changelog
 
+## [0.14.0](https://github.com/12rambau/earthengine-extension/compare/v0.13.2...v0.14.0) (2026-11-16)
+
+### Features
+
+- add beta indicator to map controls and buttons ([1db8662](https://github.com/12rambau/earthengine-extension/commit/1db86629478d43834b8eba6dbe30901cb9bb8b8d))
+- add larger table page sizes ([6e8bfa9](https://github.com/12rambau/earthengine-extension/commit/6e8bfa909927732645a7cf3825544e5014e72fcc))
+- **attribution:** add dynamic attribution footer to status bar with improved styling ([9e28ce7](https://github.com/12rambau/earthengine-extension/commit/9e28ce77cbb732fa3bf7d93e83f202fda737d6ed))
+- **layer-control:** implement drag-and-drop reordering for map layers ([71b2cb7](https://github.com/12rambau/earthengine-extension/commit/71b2cb705920af0116957b20066bc3692e55d072))
+- **layout:** add map layout configuration dialog and controls ([084d180](https://github.com/12rambau/earthengine-extension/commit/084d180da7ba7056adfb08b73bb55e2aea8b2450))
+- **map-interaction:** implement grid hover functionality with ghost markers ([483ac50](https://github.com/12rambau/earthengine-extension/commit/483ac503a77030c2ec92fe91db1526355770c604))
+- **map-layout:** add support for grid and stack modes in map layout ([74381d3](https://github.com/12rambau/earthengine-extension/commit/74381d3a347b3db0bcc48da3e35bde9446f380c9))
+- **map-layout:** enhance map controls with improved layout and icons for display modes ([24c9e69](https://github.com/12rambau/earthengine-extension/commit/24c9e69ebe894b7749f136b9690c8c864176a565))
+- **map-scale:** increase z-index for scale tooltip to improve visibility ([f9c7762](https://github.com/12rambau/earthengine-extension/commit/f9c7762f434c7288f556c254c65eda1f6fa98a83))
+- **map-scale:** refactor MapScale to support multiple map panes and update event handling ([6be58df](https://github.com/12rambau/earthengine-extension/commit/6be58dfa60bc8643f5ef98a3269bd5024c89e340))
+- **map-split:** enhance map resizing with visibility indicators and improved styles ([f44bb60](https://github.com/12rambau/earthengine-extension/commit/f44bb600cc2f3915edb1d4273c573c560e46dc16))
+- **map:** add mapId support for layer management and improve error handling ([913b961](https://github.com/12rambau/earthengine-extension/commit/913b9612e57473347bc73aa467684823868736a8))
+- **map:** enhance map interaction and geometry management with improved state handling ([f22aa5f](https://github.com/12rambau/earthengine-extension/commit/f22aa5f453dec9aac312db24083176f0748f9c8e))
+
+### Bug Fixes
+
+- clear selected visualization preset on edit actions ([c80732a](https://github.com/12rambau/earthengine-extension/commit/c80732a32849d3b748a0726f04d8e13438ce849a))
+- enhance paste functionality in markdown editor ([7e12051](https://github.com/12rambau/earthengine-extension/commit/7e1205186f8a1cc9f1267c9574ab6dc299368cf0))
+- make preview datepicker opaque ([e8631c2](https://github.com/12rambau/earthengine-extension/commit/e8631c25e19930ff85a04403d0fad78636cac1de))
+- **map:** fall back for broken image presets ([1fe8024](https://github.com/12rambau/earthengine-extension/commit/1fe80247220ad7a93b6724ed4d2c7015a050110d))
+- start splitting the maps ([9e2e220](https://github.com/12rambau/earthengine-extension/commit/9e2e22088f0d8a26fbcb58d89f0660aed3abd859))
+- update image handling in MapLayerManager to support mosaics ([2abbed5](https://github.com/12rambau/earthengine-extension/commit/2abbed50b0a6ca99787fed4e2fd0e2f2da96ca06))
+
 ## [0.13.2](https://github.com/12rambau/earthengine-extension/compare/v0.13.1...v0.13.2) (2026-10-26)
 
 ### Bug Fixes
