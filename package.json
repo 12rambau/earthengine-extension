@@ -415,7 +415,7 @@
         "icon": "$(layers)",
         "canBeReferencedInPrompt": true,
         "userDescription": "Add any Earth Engine asset (image, image collection, table) to the map.",
-        "modelDescription": "Adds an Earth Engine asset to the interactive map panel (opens the map if needed). Images are displayed directly, image collections are mosaicked (most recent pixel on top), tables (FeatureCollections) are drawn with ee.FeatureCollection.style(). For images and collections, visParams follows ee.Image.visualize(): bands (1 or 3 band names), min, max (numbers or per-band arrays), palette (array of hex colors), gamma. For tables, visParams follows style(): color, width, fillColor, pointSize, pointShape. Pass {\"default\": <name or index>} to use a SEPAL visualization preset stored on the asset; an empty visParams uses the first SEPAL preset if any, else EE defaults. Adding a layer with an existing name replaces that layer. Returns the layer index. Only displays an existing asset unchanged: for any filtering by date/region/clouds, compositing, band math, masking, reduction or export, load the earthengine-python skill and write a Python script instead.",
+        "modelDescription": "Adds an Earth Engine asset to the interactive map panel (opens the map if needed). Images are displayed directly, image collections are mosaicked (most recent pixel on top), tables (FeatureCollections) are drawn with ee.FeatureCollection.style(). For images and collections, visParams follows ee.Image.visualize(): bands (1 or 3 band names), min, max (numbers or per-band arrays), palette (array of hex colors), gamma. For tables, visParams follows style(): color, width, fillColor, pointSize, pointShape. Pass {\"default\": <name or index>} to use a SEPAL visualization preset stored on the asset; an empty visParams uses the first SEPAL preset if any, else EE defaults. Adding a layer with an existing name replaces that layer, keeping its map unless mapId is specified. mapId selects a map in the layout; invalid or unavailable IDs use Map 1. New layers default to Map 1. Returns the layer index. Only displays an existing asset unchanged: for any filtering by date/region/clouds, compositing, band math, masking, reduction or export, load the earthengine-python skill and write a Python script instead.",
         "tags": [
           "earthengine",
           "map"
@@ -444,6 +444,10 @@
             "shown": {
               "type": "boolean",
               "description": "Whether the layer is visible. Defaults to true."
+            },
+            "mapId": {
+              "type": "integer",
+              "description": "Map ID. Invalid or unavailable IDs use Map 1. New layers default to Map 1; replacements keep their map unless specified."
             }
           },
           "required": [

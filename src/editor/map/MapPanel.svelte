@@ -322,6 +322,19 @@
     mapLayoutVisible = false;
   }
 
+  function assignLayerToMap(layerIndex, mapId) {
+    const paneIndex = mapLayout.mapIds.indexOf(mapId);
+    const destinationIndex = paneIndex < 0 ? mapLayout.mapIds.indexOf(1) : paneIndex;
+    mapLayout = {
+      ...mapLayout,
+      panes: mapLayout.panes.map((pane, index) => {
+        const remaining = pane.filter((id) => id !== layerIndex);
+        return index === destinationIndex ? [...remaining, layerIndex] : remaining;
+      }),
+    };
+    saveLayout();
+  }
+
   function setLayerVisibility(layerIndex, shown) {
     const entry = overlays.find((item) => item.layerIndex === layerIndex);
     if (!entry) {
@@ -575,7 +588,9 @@
         layerIndex: d.layerIndex,
       };
       overlays = [...overlays, entry];
-      if (!mapLayout.panes.some((pane) => pane.includes(d.layerIndex))) {
+      if (d.mapId !== undefined) {
+        assignLayerToMap(d.layerIndex, d.mapId);
+      } else if (!mapLayout.panes.some((pane) => pane.includes(d.layerIndex))) {
         mapLayout = {
           ...mapLayout,
           panes: mapLayout.panes.map((pane, index) =>
@@ -617,6 +632,9 @@
         entry.opacity = opacity;
         entry.visible = visible;
         entry.visParams = d.visParams;
+        if (d.mapId !== undefined) {
+          assignLayerToMap(d.layerIndex, d.mapId);
+        }
         syncOverlay(entry);
         overlays = [...overlays];
         if (activeScaleIndex === idx) {

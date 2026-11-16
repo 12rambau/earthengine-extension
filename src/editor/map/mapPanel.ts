@@ -548,6 +548,15 @@ export class MapPanel extends EditorPanel {
   // PROGRAMMATIC API
   // ==================================================================
 
+  private resolveMapId(mapId: unknown): number | undefined {
+    if (mapId === undefined) {
+      return undefined;
+    }
+    return Number.isInteger(mapId) && this.layout.mapIds.includes(mapId as number)
+      ? (mapId as number)
+      : 1;
+  }
+
   /**
    * Adds an Earth Engine asset to the map, opening the panel if needed.
    * Image collections are mosaicked; tables are rendered with `style()`,
@@ -562,7 +571,9 @@ export class MapPanel extends EditorPanel {
     name: string,
     opacity = 1,
     shown = true,
+    mapId?: number,
   ): Promise<{ layer: MapLayerInfo; assetType: string }> {
+    const destination = this.resolveMapId(mapId);
     await this.open();
     const eeAny = (await ensureEe()) as any;
     const { token } = await getEeContext();
@@ -596,6 +607,7 @@ export class MapPanel extends EditorPanel {
         name,
         shown,
         opacity,
+        mapId: destination,
         assetName,
         sourceType: type === 'TABLE' ? 'featureCollection' : 'image',
       },
@@ -744,7 +756,9 @@ export class MapPanel extends EditorPanel {
         name: string;
         shown: boolean;
         opacity: number;
+        mapId?: number;
       };
+      d.mapId = this.resolveMapId(d.mapId);
       await this.layerManager.add(d, (m) => this.post(m));
       return;
     }

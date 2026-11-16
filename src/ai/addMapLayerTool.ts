@@ -13,6 +13,7 @@ export interface AddMapLayerInput {
   name?: string;
   opacity?: number;
   shown?: boolean;
+  mapId?: number;
 }
 
 /** Adds an asset (image, image collection or table) as a map layer. */
@@ -31,13 +32,14 @@ export class AddMapLayerTool implements vscode.LanguageModelTool<AddMapLayerInpu
   async invoke(
     options: vscode.LanguageModelToolInvocationOptions<AddMapLayerInput>,
   ): Promise<vscode.LanguageModelToolResult> {
-    const { assetId, visParams = {}, name, opacity = 1, shown = true } = options.input;
+    const { assetId, visParams = {}, name, opacity = 1, shown = true, mapId } = options.input;
     const { layer, assetType } = await this.mapPanel.addAssetLayer(
       assetId,
       visParams,
       name || assetId,
       opacity,
       shown,
+      mapId,
     );
     return new vscode.LanguageModelToolResult([
       new vscode.LanguageModelTextPart(

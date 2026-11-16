@@ -61,14 +61,17 @@ export class MapBridgeServer {
           try {
             const body = JSON.parse(Buffer.concat(chunks).toString('utf-8'));
             const endpoint = (req.url || '/').replace(/^\//, '');
+            const command = { type: endpoint, data: body };
 
-            this._onCommand.fire({ type: endpoint, data: body });
+            this._onCommand.fire(command);
 
             res.writeHead(200, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify({ ok: true }));
-          } catch {
-            res.writeHead(400);
-            res.end('Bad Request');
+          } catch (error) {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            res.end(
+              JSON.stringify({ error: error instanceof Error ? error.message : 'Bad Request' }),
+            );
           }
         });
       });
