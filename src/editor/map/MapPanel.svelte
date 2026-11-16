@@ -571,12 +571,25 @@
     } else if (msg.type === 'addTileLayer') {
       const d = msg.data;
       const opacity = d.opacity ?? 1.0;
-      const entry = {
+      const existing = overlays.find((entry) => entry.layerIndex === d.layerIndex);
+      if (existing) {
+        for (const [id, layer] of Object.entries(existing.tileLayers)) {
+          paneMaps[id]?.removeLayer(layer);
+        }
+        existing.tileLayers = {};
+        existing.url = d.url;
+        existing.name = d.name || 'Layer';
+        existing.visible = d.shown !== false;
+        existing.opacity = opacity;
+        existing.visParams = d.visParams || null;
+      }
+      const entry = existing ?? {
         url: d.url,
         tileLayers: {},
         tileLayer: {
           setOpacity(value) {
-            for (const layer of Object.values(entry.tileLayers)) {
+            const current = overlays.find((item) => item.layerIndex === d.layerIndex);
+            for (const layer of Object.values(current?.tileLayers ?? {})) {
               layer.setOpacity(value);
             }
           },
@@ -587,7 +600,7 @@
         visParams: d.visParams || null,
         layerIndex: d.layerIndex,
       };
-      overlays = [...overlays, entry];
+      overlays = existing ? [...overlays] : [...overlays, entry];
       if (d.mapId !== undefined) {
         assignLayerToMap(d.layerIndex, d.mapId);
       } else if (!mapLayout.panes.some((pane) => pane.includes(d.layerIndex))) {
