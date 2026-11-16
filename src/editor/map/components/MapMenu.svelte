@@ -2,7 +2,7 @@
 <script>
   import MapButton from './MapButton.svelte';
 
-  let { title, visible = $bindable(false), onopen, onclose, icon, panel } = $props();
+  let { title, beta = false, visible = $bindable(false), onopen, onclose, icon, panel } = $props();
 
   function toggle() {
     visible = !visible;
@@ -14,7 +14,7 @@
   }
 </script>
 
-<MapButton active={visible} aria-expanded={visible} {title} onclick={toggle}>
+<MapButton active={visible} aria-expanded={visible} {title} {beta} onclick={toggle}>
   {@render icon()}
 </MapButton>
 {@render panel()}

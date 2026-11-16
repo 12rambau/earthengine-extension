@@ -57,6 +57,12 @@ def _post(endpoint: str, data: dict) -> dict:
             raise RuntimeError("Map server returned a malformed response")
         return payload
     except urllib.error.HTTPError as exc:
+        try:
+            error = json.load(exc)
+        except (OSError, ValueError):
+            raise RuntimeError(f"Map server returned HTTP {exc.code}") from exc
+        if isinstance(error, dict) and isinstance(error.get("error"), str):
+            raise ValueError(error["error"]) from exc
         raise RuntimeError(f"Map server returned HTTP {exc.code}") from exc
     except OSError as exc:
         raise ConnectionError("Could not reach the VS Code map server") from exc
@@ -64,7 +70,7 @@ def _post(endpoint: str, data: dict) -> dict:
         raise RuntimeError("Map server returned a malformed response") from exc
 
 
-def addLayer(ee_object, vis_params=None, name=None, shown=True, opacity=1.0):
+def addLayer(ee_object, vis_params=None, name=None, shown=True, opacity=1.0, map_id=None):
     """Add an Earth Engine layer to the VS Code map.
 
     The object is serialized and sent to the VS Code extension, which
@@ -114,6 +120,8 @@ def addLayer(ee_object, vis_params=None, name=None, shown=True, opacity=1.0):
         name: Layer name. Auto-generated if not provided.
         shown: Whether the layer is visible.
         opacity: Layer opacity (0 to 1).
+        map_id: Optional map ID. Invalid or unavailable IDs use Map 1. New
+            layers default to Map 1; replacements keep their map unless specified.
 
         Examples:
         Image > RGB:
@@ -216,17 +224,17 @@ def addLayer(ee_object, vis_params=None, name=None, shown=True, opacity=1.0):
 
     vis_params["type"] = render_type
 
-    _post(
-        "addLayer",
-        {
-            "serialized": ee_object.serialize(),
-            "sourceType": source_type,
-            "visParams": vis_params,
-            "name": name or "Layer",
-            "shown": shown,
-            "opacity": opacity,
-        },
-    )
+    payload = {
+        "serialized": ee_object.serialize(),
+        "sourceType": source_type,
+        "visParams": vis_params,
+        "name": name or "Layer",
+        "shown": shown,
+        "opacity": opacity,
+    }
+    if map_id is not None:
+        payload["mapId"] = map_id
+    _post("addLayer", payload)
 
 
 def centerObject(ee_object, zoom: None|int=None):

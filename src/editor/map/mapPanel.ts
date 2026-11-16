@@ -19,6 +19,7 @@ import { MapTilesService, NO_API_KEY_MESSAGE, ViewportBounds } from './mapTilesS
 import { BASEMAP_IDS, BasemapId, FALLBACK_BASEMAPS } from './basemapPresets.js';
 import { getGlobalState } from '../../shared/extensionContext.js';
 import { geometryToPython, MapGeometry, parseMapGeometries } from './mapGeometry.js';
+import { MapLayout, normalizeMapLayout } from './mapLayout.js';
 
 import { codiconsCss, designTokens, leafletCss } from '../../shared/index.js';
 import script from './MapPanel.svelte';
@@ -26,6 +27,7 @@ import script from './MapPanel.svelte';
 /** Global-state flag set when the user dismisses the fallback warning for good. */
 const FALLBACK_NOTICE_KEY = 'earthengine.map.fallbackNoticeDismissed';
 const GEOMETRIES_KEY = 'earthengine.map.geometries';
+const MAP_LAYOUT_KEY = 'earthengine.map.layout';
 
 /** Summary of a map layer, as reported to callers of {@link MapPanel.listLayers}. */
 export interface MapLayerInfo {
@@ -61,6 +63,7 @@ export class MapPanel extends EditorPanel {
   private readonly inspector = new MapInspector();
   private readonly tiles = new MapTilesService();
   private geometries: MapGeometry[] = [];
+  private layout: MapLayout = normalizeMapLayout(null);
   private workspaceState: vscode.Memento | undefined;
 
   constructor() {
@@ -109,6 +112,8 @@ export class MapPanel extends EditorPanel {
     this.messageDisposable = panel.webview.onDidReceiveMessage(async (msg) => {
       if (msg.type === 'ready') {
         this.webviewReady = true;
+        this.layout = normalizeMapLayout(this.layout, [...this.layerManager.layers.keys()]);
+        this.post({ type: 'mapLayout', data: this.layout });
         this.layerManager.replay((m) => this.post(m));
         this.post({ type: 'geometries', data: this.geometries });
         if (this.pendingView) {
@@ -119,6 +124,9 @@ export class MapPanel extends EditorPanel {
           this.post({ type: 'centerObject', data: { bounds: this.pendingBounds } });
           this.pendingBounds = undefined;
         }
+      } else if (msg.type === 'saveMapLayout') {
+        this.layout = normalizeMapLayout(msg.data, [...this.layerManager.layers.keys()]);
+        await this.workspaceState?.update(MAP_LAYOUT_KEY, this.layout);
       } else if (msg.type === 'saveGeometries') {
         this.geometries = parseMapGeometries(msg.data);
         await this.workspaceState?.update(GEOMETRIES_KEY, this.geometries);
@@ -138,10 +146,19 @@ export class MapPanel extends EditorPanel {
         const d = msg.data as { id: BasemapId };
         await this.sendBasemapUrl(d.id);
       } else if (msg.type === 'requestAttribution') {
-        const d = msg.data as { id: BasemapId; bounds: ViewportBounds; zoom: number };
+        const d = msg.data as {
+          id: BasemapId;
+          bounds: ViewportBounds;
+          zoom: number;
+          paneId?: number;
+          requestId?: number;
+        };
         const copyright = await this.tiles.getAttribution(d.id, d.bounds, d.zoom);
         if (copyright) {
-          this.post({ type: 'attribution', data: { id: d.id, copyright } });
+          this.post({
+            type: 'attribution',
+            data: { id: d.id, copyright, paneId: d.paneId, requestId: d.requestId },
+          });
         }
       } else if (msg.type === 'setApiKey') {
         await this.setApiKey();
@@ -170,9 +187,24 @@ export class MapPanel extends EditorPanel {
         const d = msg.data as { layerIndex: number };
         this.layerManager.remove(d.layerIndex);
       } else if (msg.type === 'inspect') {
-        const d = msg.data as { lat: number; lng: number; zoom: number };
-        await this.inspector.inspect(d.lat, d.lng, d.zoom, this.layerManager.layers, (m) =>
-          this.post(m),
+        const d = msg.data as {
+          lat: number;
+          lng: number;
+          zoom: number;
+          paneId?: number;
+          requestId?: number;
+          layerIndices?: number[];
+        };
+        const layers = d.layerIndices
+          ? new Map(
+              [...this.layerManager.layers].filter(([index]) => d.layerIndices?.includes(index)),
+            )
+          : this.layerManager.layers;
+        await this.inspector.inspect(d.lat, d.lng, d.zoom, layers, (result: any) =>
+          this.post({
+            ...result,
+            data: { ...result.data, paneId: d.paneId, requestId: d.requestId },
+          }),
         );
       } else if (msg.type === 'openVizEditor') {
         const { layerIndex } = msg.data as { layerIndex: number };
@@ -516,6 +548,15 @@ export class MapPanel extends EditorPanel {
   // PROGRAMMATIC API
   // ==================================================================
 
+  private resolveMapId(mapId: unknown): number | undefined {
+    if (mapId === undefined) {
+      return undefined;
+    }
+    return Number.isInteger(mapId) && this.layout.mapIds.includes(mapId as number)
+      ? (mapId as number)
+      : 1;
+  }
+
   /**
    * Adds an Earth Engine asset to the map, opening the panel if needed.
    * Image collections are mosaicked; tables are rendered with `style()`,
@@ -530,7 +571,9 @@ export class MapPanel extends EditorPanel {
     name: string,
     opacity = 1,
     shown = true,
+    mapId?: number,
   ): Promise<{ layer: MapLayerInfo; assetType: string }> {
+    const destination = this.resolveMapId(mapId);
     await this.open();
     const eeAny = (await ensureEe()) as any;
     const { token } = await getEeContext();
@@ -564,6 +607,7 @@ export class MapPanel extends EditorPanel {
         name,
         shown,
         opacity,
+        mapId: destination,
         assetName,
         sourceType: type === 'TABLE' ? 'featureCollection' : 'image',
       },
@@ -627,6 +671,7 @@ export class MapPanel extends EditorPanel {
   register(context: vscode.ExtensionContext): void {
     this.workspaceState = context.workspaceState;
     this.geometries = parseMapGeometries(context.workspaceState.get(GEOMETRIES_KEY));
+    this.layout = normalizeMapLayout(context.workspaceState.get(MAP_LAYOUT_KEY));
     // Start the bridge server on activation so Python scripts can connect
     // before the user has manually opened the map panel.
     void this.bridgeServer.start().catch((err) => {
@@ -711,7 +756,9 @@ export class MapPanel extends EditorPanel {
         name: string;
         shown: boolean;
         opacity: number;
+        mapId?: number;
       };
+      d.mapId = this.resolveMapId(d.mapId);
       await this.layerManager.add(d, (m) => this.post(m));
       return;
     }

@@ -164,6 +164,7 @@ export interface AddLayerPayload {
   name: string;
   shown: boolean;
   opacity: number;
+  mapId?: number;
   assetName?: string;
 }
 
@@ -451,6 +452,7 @@ export class MapLayerManager {
           shown: payload.shown,
           opacity: payload.opacity,
           layerIndex,
+          mapId: payload.mapId,
           visParams: normalized,
         },
       });
@@ -588,6 +590,7 @@ export class MapLayerManager {
         shown: payload.shown,
         opacity: payload.opacity,
         layerIndex,
+        mapId: payload.mapId,
         visParams: finalVisParams,
       },
     });

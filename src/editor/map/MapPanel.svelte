@@ -5,11 +5,15 @@
   import MapGeometryControl from './components/MapGeometryControl.svelte';
   import MapInspector from './components/MapInspector.svelte';
   import MapLayerControl from './components/MapLayerControl.svelte';
+  import MapLayoutDialog from './components/MapLayoutDialog.svelte';
+  import MapPane from './components/MapPane.svelte';
+  import MapSplitView from './components/MapSplitView.svelte';
   import MapMenu from './components/MapMenu.svelte';
   import MapScale from './components/MapScale.svelte';
   import MapVisualizationEditor from './components/MapVisualizationEditor.svelte';
   import { vscode } from '../../shared/vscode.ts';
   import { trackViewportChanges } from '../../shared/viewportAnchor.ts';
+  import { normalizeMapLayout, setSplitRatio } from './mapLayout.js';
   import {
     mdiAlertCircleOutline,
     mdiCrosshairsGps,
@@ -23,15 +27,21 @@
   // STATE
   // ----------------------------------------------------------------
 
-  let map = $state(null);
+  let paneMaps = $state({});
+  let activePaneId = $state(1);
+  let hoveredPaneId = $state(null);
+  let map = $derived(paneMaps[activePaneId] ?? paneMaps[1] ?? null);
   let overlays = $state([]);
   let layersPanelVisible = $state(false);
+  let mapLayoutVisible = $state(false);
+  let mapLayout = $state(normalizeMapLayout(null));
   let geometriesPanelVisible = $state(false);
   let drawMode = $state(null);
   let inspectorActive = $state(false);
   let activeScaleIndex = $state(-1);
   let coords = $state('0.0000, 0.0000');
   let zoomLevel = $state(2);
+  let attributionFooter = $state(null);
 
   let activeMode = $state('theme');
   // Message shown when the Google Maps API key is missing or createSession failed.
@@ -39,13 +49,24 @@
 
   // Internal refs
   let basemapTileLayers = {};
+  let paneBasemaps = {};
   let basemapIsFallback = {};
   let pendingBasemaps = new Set();
-  let currentBasemap = null;
   let currentBasemapId = 'light';
-  let googleCopyright = '';
-  let attributionTimer = null;
-  let nativeLayerControl = $state(null);
+  let googleCopyright = {};
+  let attributionTimer = {};
+  let attributionRequests = {};
+  let syncingView = false;
+  let readySent = false;
+  let lastView = $state({ center: [0, 0], zoom: 2 });
+  let pointerLatLng = null;
+  const ghostMarkers = {};
+  const ghostIcon = L.divIcon({
+    className: 'grid-ghost-cursor',
+    html: '<i class="codicon codicon-target" aria-hidden="true"></i>',
+    iconSize: [20, 20],
+    iconAnchor: [10, 10],
+  });
 
   // ----------------------------------------------------------------
   // HELPERS
@@ -133,35 +154,260 @@
   // MAP INIT (called from onMount equivalent)
   // ----------------------------------------------------------------
 
-  function initMap() {
-    map = L.map('map', { center: [0, 0], zoom: 2, zoomControl: false });
+  function clearGridPointer() {
+    pointerLatLng = null;
+    hoveredPaneId = null;
+    for (const [id, marker] of Object.entries(ghostMarkers)) {
+      marker.remove();
+      delete ghostMarkers[id];
+    }
+  }
 
-    // Set per basemap: Google's terms require the "Google Maps" mark, the
-    // keyless fallbacks must not carry it.
-    map.attributionControl.setPrefix('');
+  function syncGridPointer() {
+    if (mapLayout.mode !== 'grid' || !pointerLatLng || hoveredPaneId === null) {
+      return;
+    }
+    for (const [id, pane] of Object.entries(paneMaps)) {
+      if (Number(id) === hoveredPaneId) {
+        ghostMarkers[id]?.remove();
+        delete ghostMarkers[id];
+      } else if (ghostMarkers[id]) {
+        ghostMarkers[id].setLatLng(pointerLatLng);
+      } else {
+        ghostMarkers[id] = L.marker(pointerLatLng, {
+          icon: ghostIcon,
+          interactive: false,
+          keyboard: false,
+        }).addTo(pane);
+      }
+    }
+  }
 
-    nativeLayerControl = L.control.layers({}, {}, { collapsed: true }).addTo(map);
-    nativeLayerControl.getContainer().style.display = 'none';
+  function hoverMap(id) {
+    activePaneId = id;
+    if (hoveredPaneId !== id) {
+      clearGridPointer();
+      hoveredPaneId = id;
+    }
+  }
 
+  function leaveMap(id) {
+    if (hoveredPaneId === id) {
+      clearGridPointer();
+    }
+  }
+
+  function initMap(id, leafletMap) {
+    paneMaps = { ...paneMaps, [id]: leafletMap };
+    if (id === 1 && !readySent) {
+      readySent = true;
+      vscode.postMessage({ type: 'ready' });
+    }
     setBasemap(resolveBasemapId());
-
-    // Theme sync
-    new MutationObserver(() => {
-      setBasemap(resolveBasemapId());
-    }).observe(document.body, { attributes: true, attributeFilter: ['class'] });
-
-    // Status bar events
-    map.on('mousemove', (e) => {
-      coords = e.latlng.lng.toFixed(4) + ', ' + e.latlng.lat.toFixed(4);
+    leafletMap.on('mousemove', (event) => {
+      coords = event.latlng.lng.toFixed(4) + ', ' + event.latlng.lat.toFixed(4);
+      if (mapLayout.mode === 'grid') {
+        hoverMap(id);
+        pointerLatLng = event.latlng;
+        syncGridPointer();
+      }
     });
-    map.on('zoomend', () => {
-      zoomLevel = map.getZoom();
+    leafletMap.on('move zoom', () => {
+      if (!syncingView) {
+        syncingView = true;
+        try {
+          const center = leafletMap.getCenter();
+          const zoom = leafletMap.getZoom();
+          for (const [otherId, otherMap] of Object.entries(paneMaps)) {
+            if (Number(otherId) !== id) {
+              otherMap.setView(center, zoom, { animate: false });
+            }
+          }
+        } finally {
+          syncingView = false;
+        }
+      }
     });
-    map.on('moveend zoomend', requestAttribution);
+    leafletMap.on('moveend zoomend', () => {
+      lastView = {
+        center: [leafletMap.getCenter().lat, leafletMap.getCenter().lng],
+        zoom: leafletMap.getZoom(),
+      };
+      if (id === activePaneId) {
+        zoomLevel = leafletMap.getZoom();
+      }
+      requestAttribution(id);
+    });
+    for (const entry of overlays) {
+      syncOverlay(entry);
+    }
+    syncGridPointer();
+  }
 
-    // Signal the extension host that the map is ready to receive layers.
-    // The host uses this to replay any layer added before the panel was (re)opened.
-    vscode.postMessage({ type: 'ready' });
+  function removeMap(id, leafletMap) {
+    if (paneMaps[id] !== leafletMap) {
+      return;
+    }
+    lastView = {
+      center: [leafletMap.getCenter().lat, leafletMap.getCenter().lng],
+      zoom: leafletMap.getZoom(),
+    };
+    for (const entry of overlays) {
+      delete entry.tileLayers?.[id];
+    }
+    clearTimeout(attributionTimer[id]);
+    attributionRequests[id] = (attributionRequests[id] ?? 0) + 1;
+    ghostMarkers[id]?.remove();
+    delete ghostMarkers[id];
+    leaveMap(id);
+    delete paneBasemaps[id];
+    delete googleCopyright[id];
+    const remaining = { ...paneMaps };
+    delete remaining[id];
+    paneMaps = remaining;
+    if (activePaneId === id) {
+      activePaneId = 1;
+    }
+  }
+
+  function saveLayout() {
+    vscode.postMessage({ type: 'saveMapLayout', data: $state.snapshot(mapLayout) });
+  }
+
+  function changeRatio(path, ratio) {
+    mapLayout = { ...mapLayout, tree: setSplitRatio(mapLayout.tree, path, ratio) };
+  }
+
+  function syncOverlay(entry) {
+    const paneId =
+      mapLayout.mapIds.find((id, index) => mapLayout.panes[index]?.includes(entry.layerIndex)) ?? 1;
+    for (const [id, pane] of Object.entries(paneMaps)) {
+      const current = entry.tileLayers[id];
+      if (Number(id) !== paneId || !entry.visible) {
+        if (current) {
+          pane.removeLayer(current);
+        }
+        delete entry.tileLayers[id];
+        continue;
+      }
+      if (!current) {
+        entry.tileLayers[id] = L.tileLayer(entry.url, {
+          maxZoom: 24,
+          opacity: entry.opacity,
+          attribution: 'Google Earth Engine',
+          crossOrigin: 'anonymous',
+        }).addTo(pane);
+      } else {
+        current.setOpacity(entry.opacity);
+      }
+      const order =
+        mapLayout.panes[mapLayout.mapIds.indexOf(paneId)]?.indexOf(entry.layerIndex) ?? 0;
+      entry.tileLayers[id].setZIndex(order + 1);
+    }
+  }
+
+  function refreshLayers() {
+    for (const entry of overlays) {
+      syncOverlay(entry);
+    }
+  }
+
+  function setLayout(selection) {
+    mapLayout = normalizeMapLayout(
+      selection,
+      overlays.map((entry) => entry.layerIndex),
+    );
+    refreshLayers();
+    saveLayout();
+    mapLayoutVisible = false;
+  }
+
+  function assignLayerToMap(layerIndex, mapId) {
+    const paneIndex = mapLayout.mapIds.indexOf(mapId);
+    const destinationIndex = paneIndex < 0 ? mapLayout.mapIds.indexOf(1) : paneIndex;
+    mapLayout = {
+      ...mapLayout,
+      panes: mapLayout.panes.map((pane, index) => {
+        const remaining = pane.filter((id) => id !== layerIndex);
+        return index === destinationIndex ? [...remaining, layerIndex] : remaining;
+      }),
+    };
+    saveLayout();
+  }
+
+  function setLayerVisibility(layerIndex, shown) {
+    const entry = overlays.find((item) => item.layerIndex === layerIndex);
+    if (!entry) {
+      return;
+    }
+    entry.visible = shown;
+    syncOverlay(entry);
+    overlays = [...overlays];
+    vscode.postMessage({ type: 'layerVisibility', data: { layerIndex, shown } });
+  }
+
+  function setLayerOpacity(layerIndex, opacity) {
+    const entry = overlays.find((item) => item.layerIndex === layerIndex);
+    if (!entry) {
+      return;
+    }
+    entry.opacity = opacity;
+    entry.tileLayer.setOpacity(opacity);
+    overlays = [...overlays];
+    vscode.postMessage({ type: 'layerOpacity', data: { layerIndex, opacity } });
+  }
+
+  function removeLayer(layerIndex) {
+    const index = overlays.findIndex((entry) => entry.layerIndex === layerIndex);
+    if (index < 0) {
+      return;
+    }
+    for (const [id, layer] of Object.entries(overlays[index].tileLayers)) {
+      paneMaps[id]?.removeLayer(layer);
+    }
+    overlays = overlays.filter((entry) => entry.layerIndex !== layerIndex);
+    if (activeScaleIndex === index) {
+      activeScaleIndex = -1;
+    } else if (activeScaleIndex > index) {
+      activeScaleIndex--;
+    }
+    mapLayout = normalizeMapLayout(
+      mapLayout,
+      overlays.map((entry) => entry.layerIndex),
+    );
+    saveLayout();
+    vscode.postMessage({ type: 'removeLayer', data: { layerIndex } });
+  }
+
+  function moveLayer(layerIndex, targetPaneIndex, insertIndex) {
+    const sourcePaneIndex = mapLayout.panes.findIndex((pane) => pane.includes(layerIndex));
+    if (
+      sourcePaneIndex < 0 ||
+      !mapLayout.panes[targetPaneIndex] ||
+      !Number.isInteger(insertIndex)
+    ) {
+      return;
+    }
+    const sourcePosition = mapLayout.panes[sourcePaneIndex].indexOf(layerIndex);
+    const targetPosition = Math.max(
+      0,
+      Math.min(insertIndex, mapLayout.panes[targetPaneIndex].length),
+    );
+    const adjustedPosition =
+      sourcePaneIndex === targetPaneIndex && sourcePosition < targetPosition
+        ? targetPosition - 1
+        : targetPosition;
+    if (sourcePaneIndex === targetPaneIndex && sourcePosition === adjustedPosition) {
+      return;
+    }
+    const panes = mapLayout.panes.map((items) => items.filter((index) => index !== layerIndex));
+    panes[targetPaneIndex].splice(adjustedPosition, 0, layerIndex);
+    mapLayout = {
+      ...mapLayout,
+      panes,
+    };
+    refreshLayers();
+    saveLayout();
   }
 
   // ----------------------------------------------------------------
@@ -183,43 +429,50 @@
   // fetched on demand rather than all five up front.
   function setBasemap(id) {
     currentBasemapId = id;
-    const next = basemapTileLayers[id];
-    if (next) {
-      applyBasemap(next);
+    if (basemapTileLayers[id]) {
+      for (const paneId of Object.keys(paneMaps)) {
+        applyBasemap(Number(paneId), id);
+      }
     } else if (!pendingBasemaps.has(id)) {
       pendingBasemaps.add(id);
       vscode.postMessage({ type: 'requestBasemap', data: { id } });
     }
   }
 
-  function applyBasemap(next) {
-    if (next === currentBasemap) {
+  function applyBasemap(paneId, id) {
+    const pane = paneMaps[paneId];
+    const config = basemapTileLayers[id];
+    if (!pane || !config || paneBasemaps[paneId]?.id === id) {
       return;
     }
-    if (currentBasemap) {
-      map.removeLayer(currentBasemap);
+    if (paneBasemaps[paneId]) {
+      pane.removeLayer(paneBasemaps[paneId].layer);
     }
-    next.addTo(map);
-    // Leaflet stacks tile layers in DOM order, so a freshly added basemap would
-    // otherwise sit on top of the Earth Engine overlays.
+    const next = L.tileLayer(config.url, {
+      maxZoom: 24,
+      maxNativeZoom: config.maxNativeZoom,
+      attribution: config.attribution,
+      crossOrigin: 'anonymous',
+    }).addTo(pane);
     next.bringToBack();
-    currentBasemap = next;
+    paneBasemaps[paneId] = { id, layer: next };
     basemapError = '';
-    if (basemapIsFallback[currentBasemapId]) {
-      setCopyright('');
-      map.attributionControl.setPrefix('');
+    if (basemapIsFallback[id]) {
+      setCopyright(paneId, '');
+      pane.attributionControl.setPrefix('');
     } else {
-      map.attributionControl.setPrefix('Google Maps');
-      requestAttribution();
+      pane.attributionControl.setPrefix('Google Maps');
+      requestAttribution(paneId);
     }
   }
 
   // Drops every cached basemap: the API key or a basemap setting changed.
   function resetBasemaps() {
-    if (currentBasemap) {
-      map.removeLayer(currentBasemap);
+    for (const [paneId, current] of Object.entries(paneBasemaps)) {
+      paneMaps[paneId]?.removeLayer(current.layer);
+      attributionRequests[paneId] = (attributionRequests[paneId] ?? 0) + 1;
     }
-    currentBasemap = null;
+    paneBasemaps = {};
     basemapTileLayers = {};
     basemapIsFallback = {};
     pendingBasemaps = new Set();
@@ -230,18 +483,26 @@
 
   // Google requires the copyright string for the visible extent, which changes
   // as the user pans; debounce so a drag costs one viewport call.
-  function requestAttribution() {
-    if (!map || !currentBasemap) {
+  function requestAttribution(paneId) {
+    const pane = paneMaps[paneId];
+    if (!pane || !paneBasemaps[paneId]) {
       return;
     }
-    clearTimeout(attributionTimer);
-    attributionTimer = setTimeout(() => {
-      const b = map.getBounds();
+    clearTimeout(attributionTimer[paneId]);
+    const requestId = (attributionRequests[paneId] ?? 0) + 1;
+    attributionRequests[paneId] = requestId;
+    attributionTimer[paneId] = setTimeout(() => {
+      if (paneMaps[paneId] !== pane) {
+        return;
+      }
+      const b = pane.getBounds();
       vscode.postMessage({
         type: 'requestAttribution',
         data: {
           id: currentBasemapId,
-          zoom: map.getZoom(),
+          paneId,
+          requestId,
+          zoom: pane.getZoom(),
           bounds: {
             north: clamp(b.getNorth(), -85, 85),
             south: clamp(b.getSouth(), -85, 85),
@@ -253,16 +514,17 @@
     }, 600);
   }
 
-  function setCopyright(text) {
-    if (text === googleCopyright) {
+  function setCopyright(paneId, text) {
+    const pane = paneMaps[paneId];
+    if (!pane || text === googleCopyright[paneId]) {
       return;
     }
-    if (googleCopyright) {
-      map.attributionControl.removeAttribution(googleCopyright);
+    if (googleCopyright[paneId]) {
+      pane.attributionControl.removeAttribution(googleCopyright[paneId]);
     }
-    googleCopyright = text;
+    googleCopyright[paneId] = text;
     if (text) {
-      map.attributionControl.addAttribution(text);
+      pane.attributionControl.addAttribution(text);
     }
   }
 
@@ -282,16 +544,11 @@
       const d = msg.data;
       pendingBasemaps.delete(d.id);
       basemapIsFallback[d.id] = d.fallback === true;
-      // Leaflet upscales past `maxNativeZoom` so the basemap does not vanish
-      // under a deeply zoomed Earth Engine layer.
-      basemapTileLayers[d.id] = L.tileLayer(d.url, {
-        maxZoom: 24,
-        maxNativeZoom: d.maxNativeZoom,
-        attribution: d.attribution,
-        crossOrigin: 'anonymous',
-      });
+      basemapTileLayers[d.id] = d;
       if (d.id === currentBasemapId) {
-        applyBasemap(basemapTileLayers[d.id]);
+        for (const paneId of Object.keys(paneMaps)) {
+          applyBasemap(Number(paneId), d.id);
+        }
       }
     } else if (msg.type === 'basemapError') {
       pendingBasemaps.delete(msg.data.id);
@@ -301,21 +558,29 @@
     } else if (msg.type === 'basemapReset') {
       resetBasemaps();
     } else if (msg.type === 'attribution') {
-      if (msg.data.id === currentBasemapId && !basemapIsFallback[msg.data.id]) {
-        setCopyright(msg.data.copyright);
+      if (
+        msg.data.id === currentBasemapId &&
+        !basemapIsFallback[msg.data.id] &&
+        msg.data.requestId === attributionRequests[msg.data.paneId ?? 1]
+      ) {
+        setCopyright(msg.data.paneId ?? 1, msg.data.copyright);
       }
+    } else if (msg.type === 'mapLayout') {
+      mapLayout = msg.data;
+      refreshLayers();
     } else if (msg.type === 'addTileLayer') {
       const d = msg.data;
       const opacity = d.opacity ?? 1.0;
-      const tileLayer = L.tileLayer(d.url, {
-        maxZoom: 24,
-        opacity,
-        attribution: 'Google Earth Engine',
-        crossOrigin: 'anonymous',
-      });
-      nativeLayerControl.addOverlay(tileLayer, d.name || 'Layer');
       const entry = {
-        tileLayer,
+        url: d.url,
+        tileLayers: {},
+        tileLayer: {
+          setOpacity(value) {
+            for (const layer of Object.values(entry.tileLayers)) {
+              layer.setOpacity(value);
+            }
+          },
+        },
         name: d.name || 'Layer',
         visible: d.shown !== false,
         opacity,
@@ -323,9 +588,18 @@
         layerIndex: d.layerIndex,
       };
       overlays = [...overlays, entry];
-      if (d.shown !== false) {
-        tileLayer.addTo(map);
+      if (d.mapId !== undefined) {
+        assignLayerToMap(d.layerIndex, d.mapId);
+      } else if (!mapLayout.panes.some((pane) => pane.includes(d.layerIndex))) {
+        mapLayout = {
+          ...mapLayout,
+          panes: mapLayout.panes.map((pane, index) =>
+            mapLayout.mapIds[index] === 1 ? [...pane, d.layerIndex] : pane,
+          ),
+        };
+        saveLayout();
       }
+      syncOverlay(entry);
     } else if (msg.type === 'centerObject') {
       const d = msg.data;
       if (d.bounds) {
@@ -350,23 +624,18 @@
         // `shown`/`opacity` are only sent by addLayer replacements; updateLayer omits them.
         const opacity = d.opacity ?? entry.opacity;
         const visible = d.shown === undefined ? entry.visible : d.shown !== false;
-        if (entry.visible) {
-          map.removeLayer(entry.tileLayer);
+        for (const [id, layer] of Object.entries(entry.tileLayers)) {
+          paneMaps[id]?.removeLayer(layer);
         }
-        nativeLayerControl.removeLayer(entry.tileLayer);
-        entry.tileLayer = L.tileLayer(d.url, {
-          maxZoom: 24,
-          opacity,
-          attribution: 'Google Earth Engine',
-          crossOrigin: 'anonymous',
-        });
+        entry.tileLayers = {};
+        entry.url = d.url;
         entry.opacity = opacity;
         entry.visible = visible;
-        nativeLayerControl.addOverlay(entry.tileLayer, entry.name);
         entry.visParams = d.visParams;
-        if (visible) {
-          entry.tileLayer.addTo(map);
+        if (d.mapId !== undefined) {
+          assignLayerToMap(d.layerIndex, d.mapId);
         }
+        syncOverlay(entry);
         overlays = [...overlays];
         if (activeScaleIndex === idx) {
           if (entry.visParams && (entry.visParams.palette || entry.visParams.bands)) {
@@ -380,11 +649,15 @@
       const idx = overlays.findIndex((o) => o.layerIndex === msg.data.layerIndex);
       if (idx >= 0) {
         const entry = overlays[idx];
-        if (entry.visible) {
-          map.removeLayer(entry.tileLayer);
+        for (const [id, layer] of Object.entries(entry.tileLayers)) {
+          paneMaps[id]?.removeLayer(layer);
         }
-        nativeLayerControl.removeLayer(entry.tileLayer);
         overlays = overlays.filter((_, i) => i !== idx);
+        mapLayout = normalizeMapLayout(
+          mapLayout,
+          overlays.map((item) => item.layerIndex),
+        );
+        saveLayout();
         if (activeScaleIndex === idx) {
           activeScaleIndex = -1;
         } else if (activeScaleIndex > idx) {
@@ -393,12 +666,13 @@
       }
     } else if (msg.type === 'clearLayers') {
       for (const entry of overlays) {
-        if (entry.visible) {
-          map.removeLayer(entry.tileLayer);
+        for (const [id, layer] of Object.entries(entry.tileLayers)) {
+          paneMaps[id]?.removeLayer(layer);
         }
-        nativeLayerControl.removeLayer(entry.tileLayer);
       }
       overlays = [];
+      mapLayout = normalizeMapLayout(mapLayout);
+      saveLayout();
       activeScaleIndex = -1;
     }
   });
@@ -407,22 +681,74 @@
   // LIFECYCLE
   // ----------------------------------------------------------------
 
-  // Use $effect to run after first render
   $effect(() => {
-    if (!map && document.getElementById('map')) {
-      initMap();
+    const observer = new MutationObserver(() => setBasemap(resolveBasemapId()));
+    observer.observe(document.body, { attributes: true, attributeFilter: ['class'] });
+    return () => observer.disconnect();
+  });
+
+  $effect(() => {
+    if (mapLayout.mode !== 'grid') {
+      clearGridPointer();
     }
   });
 
   $effect(() => {
-    if (map) {
-      overlays.forEach((entry, index) => entry.tileLayer.setZIndex(index + 1));
+    if (!attributionFooter) {
+      return;
     }
+    const controls = Object.values(paneMaps)
+      .map((pane) => pane.attributionControl.getContainer())
+      .filter(Boolean);
+    const update = () => {
+      const seen = new Set();
+      const items = [];
+      for (const control of controls) {
+        const text = control.textContent.trim();
+        if (!text || seen.has(text)) {
+          continue;
+        }
+        seen.add(text);
+        const item = document.createElement('span');
+        item.className = 'attribution-item';
+        for (const child of control.childNodes) {
+          item.appendChild(child.cloneNode(true));
+        }
+        items.push(item);
+      }
+      attributionFooter.replaceChildren(...items);
+    };
+    const observer = new MutationObserver(update);
+    for (const control of controls) {
+      observer.observe(control, { childList: true, characterData: true, subtree: true });
+    }
+    update();
+    return () => observer.disconnect();
   });
 </script>
 
 <!-- MAP -->
-<div id="map"></div>
+<div class="map-viewport">
+  <MapSplitView
+    tree={mapLayout.tree}
+    mode={mapLayout.mode}
+    onratio={changeRatio}
+    onratioend={saveLayout}
+  >
+    {#snippet pane(id)}
+      <MapPane
+        {id}
+        center={map ? [map.getCenter().lat, map.getCenter().lng] : lastView.center}
+        zoom={map?.getZoom() ?? lastView.zoom}
+        oncreate={initMap}
+        onremove={removeMap}
+        onactive={(paneId) => (activePaneId = paneId)}
+        onhover={hoverMap}
+        onleave={leaveMap}
+      />
+    {/snippet}
+  </MapSplitView>
+</div>
 <MapVisualizationEditor {map} bind:overlays />
 
 {#if basemapError}
@@ -448,44 +774,75 @@
   </div>
 {/if}
 
-<MapScale {map} {overlays} {activeScaleIndex} />
+<MapScale maps={paneMaps} {overlays} {activeScaleIndex} />
 
 <!-- CONTROLS -->
 <div class="map-controls">
-  <MapMenu title="Manage layers" bind:visible={layersPanelVisible} onopen={() => openMenu('layers')}>
+  <MapMenu
+    title="Manage layers"
+    bind:visible={layersPanelVisible}
+    onopen={() => openMenu('layers')}
+  >
     {#snippet icon()}
       <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="currentColor"
         ><path d={mdiLayers} /></svg
       >
     {/snippet}
     {#snippet panel()}
-      <MapLayerControl {map} bind:overlays bind:visible={layersPanelVisible}
-        bind:activeScaleIndex {nativeLayerControl} />
+      <MapLayerControl
+        {overlays}
+        panes={mapLayout.panes}
+        mapIds={mapLayout.mapIds}
+        bind:visible={layersPanelVisible}
+        bind:activeScaleIndex
+        onvisibility={setLayerVisibility}
+        onopacity={setLayerOpacity}
+        onremove={removeLayer}
+        onmove={moveLayer}
+      />
     {/snippet}
   </MapMenu>
-  <MapMenu title="Manage geometries" bind:visible={geometriesPanelVisible}
+  <MapMenu
+    title="Manage geometries"
+    beta
+    bind:visible={geometriesPanelVisible}
     onopen={() => openMenu('geometries')}
-    onclose={() => (drawMode = null)}>
+    onclose={() => (drawMode = null)}
+  >
     {#snippet icon()}
       <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="currentColor"
         ><path d={mdiShapeOutline} /></svg
       >
     {/snippet}
     {#snippet panel()}
-      <MapGeometryControl {map} bind:visible={geometriesPanelVisible} bind:drawMode />
+      <MapGeometryControl
+        {map}
+        maps={paneMaps}
+        bind:visible={geometriesPanelVisible}
+        bind:drawMode
+      />
     {/snippet}
   </MapMenu>
-  <MapMenu title="Pixel inspector" bind:visible={inspectorActive}
+  <MapMenu
+    title="Pixel inspector"
+    bind:visible={inspectorActive}
     onopen={() => openMenu('inspector')}
-    onclose={() => (drawMode = null)}>
+    onclose={() => (drawMode = null)}
+  >
     {#snippet icon()}
       <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="currentColor"
         ><path d={mdiCrosshairsGps} /></svg
       >
     {/snippet}
     {#snippet panel()}
-      <MapInspector {map} bind:active={inspectorActive}
-        cursor={drawMode || activeScaleIndex >= 0 ? 'crosshair' : ''} />
+      <MapInspector
+        maps={paneMaps}
+        panes={mapLayout.panes}
+        mapIds={mapLayout.mapIds}
+        bind:active={inspectorActive}
+        onactive={(paneId) => (activePaneId = paneId)}
+        cursor={drawMode || activeScaleIndex >= 0 ? 'crosshair' : ''}
+      />
     {/snippet}
   </MapMenu>
   <MapButton
@@ -508,9 +865,36 @@
   </MapButton>
 </div>
 
+<div class="map-layout-controls">
+  <MapButton
+    title="Configure map layout"
+    beta
+    aria-haspopup="dialog"
+    aria-expanded={mapLayoutVisible}
+    active={mapLayoutVisible}
+    onclick={() => {
+      openMenu('layout');
+      mapLayoutVisible = true;
+    }}
+  >
+    <i class="codicon codicon-layout" aria-hidden="true"></i>
+  </MapButton>
+</div>
+
+{#if mapLayoutVisible}
+  <MapLayoutDialog
+    layers={overlays}
+    initial={mapLayout}
+    onapply={setLayout}
+    oncancel={() => (mapLayoutVisible = false)}
+  />
+{/if}
+
 <!-- STATUS BAR -->
 <div class="status-bar">
   <span>lon, lat: {coords}</span>
+  <span class="status-attribution" aria-label="Map attribution" bind:this={attributionFooter}
+  ></span>
   <span>Zoom: {zoomLevel}</span>
 </div>
 
@@ -534,9 +918,10 @@
       width: 100%;
       height: 100%;
     }
-    #map {
+    .map-viewport {
       width: 100%;
       height: calc(100% - 20px);
+      overflow: auto;
     }
 
     /* ==================================================================
@@ -550,6 +935,12 @@
       display: flex;
       flex-direction: column;
       gap: var(--vscee-space-sm);
+    }
+    .map-layout-controls {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      z-index: 1000;
     }
     /* ==================================================================
        BASEMAP ERROR BANNER
@@ -598,13 +989,20 @@
     /* ==================================================================
        LEAFLET ATTRIBUTION
        ================================================================== */
-    .leaflet-control-attribution {
-      background: var(--vscee-color-editor-background) !important;
-      color: var(--vscee-color-foreground) !important;
-      opacity: 0.8;
+    .map-viewport .leaflet-control-attribution {
+      display: none;
     }
-    .leaflet-control-attribution a {
-      color: var(--vscee-color-link) !important;
+    .grid-ghost-cursor {
+      display: grid;
+      place-items: center;
+      background: transparent;
+      border: 0;
+      color: var(--vscode-editor-foreground);
+      opacity: 0.7;
+      pointer-events: none;
+      .codicon {
+        font-size: 20px;
+      }
     }
 
     /* ==================================================================
@@ -620,8 +1018,28 @@
       color: var(--vscee-color-statusbar-foreground);
       padding: var(--vscee-space-xxs) var(--vscee-space-lg);
       font-size: var(--vscee-font-compact-sm);
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr) auto;
+      align-items: center;
+      gap: var(--vscee-space-sm);
+      white-space: nowrap;
+    }
+    .status-attribution {
       display: flex;
-      justify-content: space-between;
+      justify-content: center;
+      gap: var(--vscee-space-sm);
+      min-width: 0;
+      overflow-x: auto;
+      scrollbar-width: none;
+      .attribution-item {
+        flex-shrink: 0;
+        & + .attribution-item::before {
+          content: '| ';
+        }
+      }
+      a {
+        color: var(--vscee-color-link);
+      }
     }
   }
 </style>
