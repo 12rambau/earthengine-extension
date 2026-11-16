@@ -1,6 +1,6 @@
 <!-- MapLayerControl: layer list, visibility, opacity and visualization actions -->
 <script>
-  import { onDestroy } from 'svelte';
+  import { onDestroy, tick } from 'svelte';
   import MapSlider from './MapSlider.svelte';
   import { vscode } from '../../../shared/vscode.ts';
   import {
@@ -134,9 +134,10 @@
     dropTarget = null;
   }
 
-  function moveWithKeyboard(event, layerIndex, paneIndex, reverseIndex) {
+  async function moveWithKeyboard(event, layerIndex, paneIndex, reverseIndex) {
     const pane = panes[paneIndex];
     const position = pane.length - reverseIndex - 1;
+    const layerList = event.currentTarget.closest('.layers-list');
     if (event.key === 'ArrowUp' && reverseIndex > 0) {
       onmove(layerIndex, paneIndex, position + 2);
     } else if (event.key === 'ArrowDown' && reverseIndex < pane.length - 1) {
@@ -149,6 +150,10 @@
       return;
     }
     event.preventDefault();
+    if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+      await tick();
+      layerList?.querySelector(`[data-layer-index="${layerIndex}"]`)?.focus();
+    }
   }
 
   function toggleScale(index) {
@@ -230,6 +235,7 @@
               >
                 <button
                   class="map-btn layer-drag-handle"
+                  data-layer-index={entry.layerIndex}
                   draggable="true"
                   title={`Drag ${entry.name} to reorder or move to another map`}
                   aria-label={`Move ${entry.name}; use arrow keys to reorder or change maps`}

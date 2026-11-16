@@ -191,7 +191,9 @@
 {#snippet renderNode(node, path)}
   {#if 'map' in node}
     <div class="leaf">
-      {#if mode === 'grid'}{@render pane(node.map)}{/if}
+      {#if mode === 'grid'}
+        {#key node.map}{@render pane(node.map)}{/key}
+      {/if}
     </div>
   {:else}
     {@const ratio = node.ratio ?? 0.5}
@@ -215,7 +217,7 @@
         aria-label={node.direction === 'rows'
           ? 'Resize maps vertically'
           : 'Resize maps horizontally'}
-        aria-orientation={node.direction === 'rows' ? 'horizontal' : 'vertical'}
+        aria-orientation={node.direction === 'rows' ? 'vertical' : 'horizontal'}
         aria-valuemin="0"
         aria-valuemax="100"
         aria-valuenow={Math.round(ratio * 100)}
@@ -281,6 +283,9 @@
     height: 100%;
     min-width: 0;
     min-height: 0;
+  }
+  .split-view {
+    isolation: isolate;
   }
   .split {
     display: grid;

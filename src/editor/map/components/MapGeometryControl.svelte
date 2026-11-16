@@ -19,6 +19,7 @@
   let draft = $state([]);
   let copiedId = $state(null);
   let worldCenterLng = $state(0);
+  let paneCenterLngs = $state({});
   let colorSaveTimer = null;
 
   const vertexIcon = L.divIcon({
@@ -180,50 +181,65 @@
   // MAP LAYERS
   // ----------------------------------------------------------------
   $effect(() => {
-    if (!map) {
+    const activeMap = map;
+    if (!activeMap) {
       return;
     }
     const updateWorldCenter = () => {
-      worldCenterLng = map.getCenter().lng;
+      worldCenterLng = activeMap.getCenter().lng;
     };
     updateWorldCenter();
-    map.on('click', handleMapClick);
-    map.on('moveend', updateWorldCenter);
+    activeMap.on('click', handleMapClick);
+    activeMap.on('moveend', updateWorldCenter);
     window.addEventListener('keydown', keydown);
     return () => {
-      map.off('click', handleMapClick);
-      map.off('moveend', updateWorldCenter);
+      activeMap.off('click', handleMapClick);
+      activeMap.off('moveend', updateWorldCenter);
       window.removeEventListener('keydown', keydown);
     };
   });
 
   $effect(() => {
-    if (!map || !drawMode) {
+    const activeMap = map;
+    if (!activeMap || !drawMode) {
       return;
     }
-    map.doubleClickZoom.disable();
-    return () => map.doubleClickZoom.enable();
+    activeMap.doubleClickZoom.disable();
+    return () => activeMap.doubleClickZoom.enable();
   });
 
   $effect(() => {
-    if (!map) {
+    const listeners = Object.entries(maps).map(([id, pane]) => {
+      const updateCenter = () => {
+        paneCenterLngs[id] = pane.getCenter().lng;
+      };
+      pane.on('moveend', updateCenter);
+      updateCenter();
+      return () => pane.off('moveend', updateCenter);
+    });
+    return () => listeners.forEach((removeListener) => removeListener());
+  });
+
+  $effect(() => {
+    const activeMap = map;
+    if (!activeMap) {
       return;
     }
     const layers = [];
-    for (const pane of Object.values(maps)) {
+    for (const [id, pane] of Object.entries(maps)) {
       for (const item of geometries) {
         if (!item.visible) {
           continue;
         }
         const points = geometryMapPositions(
           item.type === 'Point' ? [item.coordinates] : item.coordinates,
-          pane.getCenter().lng,
+          paneCenterLngs[id] ?? worldCenterLng,
         );
         const options = {
           color: item.color,
           weight: 3,
           fillOpacity: 0.2,
-          interactive: pane === map && !drawMode && visible,
+          interactive: pane === activeMap && !drawMode && visible,
           bubblingMouseEvents: false,
         };
         const shape =
@@ -233,17 +249,19 @@
               ? L.polygon(points, options)
               : L.polyline(points, options);
         shape.addTo(pane);
-        if (pane === map) {
+        if (pane === activeMap) {
           shape.on('click', () => select(item));
         }
         layers.push({ pane, shape });
 
-        if (pane !== map || !visible || selectedId !== item.id) {
+        if (pane !== activeMap || !visible || selectedId !== item.id) {
           continue;
         }
         const vertices = item.type === 'Point' ? [item.coordinates] : item.coordinates;
         vertices.forEach((_, index) => {
-          const handle = L.marker(points[index], { icon: vertexIcon, draggable: true }).addTo(map);
+          const handle = L.marker(points[index], { icon: vertexIcon, draggable: true }).addTo(
+            activeMap,
+          );
           handle.on('dragend', () => {
             const updated = [...vertices];
             updated[index] = position(handle.getLatLng());
@@ -278,7 +296,7 @@
             const midpoint = L.marker([(a[0] + b[0]) / 2, (a[1] + b[1]) / 2], {
               icon: midpointIcon,
               draggable: true,
-            }).addTo(map);
+            }).addTo(activeMap);
             midpoint.bindTooltip('Click or drag to add a vertex');
             const insert = () => {
               if (vertices.length >= 10000) {
@@ -299,7 +317,8 @@
   });
 
   $effect(() => {
-    if (!map || !drawMode || draft.length === 0) {
+    const activeMap = map;
+    if (!activeMap || !drawMode || draft.length === 0) {
       return;
     }
     const points = displayPoints(draft);
@@ -308,17 +327,17 @@
       dashArray: '6 4',
       interactive: false,
     });
-    layer.addTo(map);
+    layer.addTo(activeMap);
     const markers = points.map((point) =>
       L.circleMarker(point, {
         radius: 4,
         color: 'var(--vscode-focusBorder)',
         interactive: false,
-      }).addTo(map),
+      }).addTo(activeMap),
     );
     return () => {
-      map.removeLayer(layer);
-      markers.forEach((marker) => map.removeLayer(marker));
+      activeMap.removeLayer(layer);
+      markers.forEach((marker) => activeMap.removeLayer(marker));
     };
   });
 </script>
