@@ -20,7 +20,11 @@ import { openFeatureCollectionPreview } from './featureCollectionPreview/feature
 import { openFeatureViewPreview } from './featureViewPreview/featureViewPreviewPanel.js';
 import { openClassifierPreview } from './classifierPreview/classifierPreviewPanel.js';
 import script from './assetPreviewPanel.svelte';
-import { loadPreviewSharing } from './previewMetadata.js';
+import {
+  loadPreviewSharing,
+  registerPreviewMessageHandler,
+  reloadAssetPreview,
+} from './previewMetadata.js';
 import { AuthService } from '../../auth/index.js';
 
 // ==================================================================
@@ -101,12 +105,14 @@ function openGenericPreview(
   accessToken: string,
   restoredPanel?: vscode.WebviewPanel,
 ): void {
-  const panel = restoredPanel ?? vscode.window.createWebviewPanel(
-    'earthengine.assetPreview',
-    asset.id || asset.name.split('/').pop() || 'Asset',
-    vscode.ViewColumn.One,
-    { enableScripts: true },
-  );
+  const panel =
+    restoredPanel ??
+    vscode.window.createWebviewPanel(
+      'earthengine.assetPreview',
+      asset.id || asset.name.split('/').pop() || 'Asset',
+      vscode.ViewColumn.One,
+      { enableScripts: true },
+    );
   if (restoredPanel) {
     panel.webview.options = { enableScripts: true };
   }
@@ -138,9 +144,12 @@ function openGenericPreview(
   </body>
 </html>`;
 
-  panel.webview.onDidReceiveMessage(
+  registerPreviewMessageHandler(
+    panel,
     async (msg: { type: string; sharing?: AssetSharingChanges }) => {
-      if (msg.type === 'ready') {
+      if (msg.type === 'refresh') {
+        await reloadAssetPreview(asset.name, accessToken, panel);
+      } else if (msg.type === 'ready') {
         loadPreviewSharing(asset, accessToken, panel);
       } else if (msg.type === 'saveSharing' && msg.sharing) {
         try {

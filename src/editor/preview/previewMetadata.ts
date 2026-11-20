@@ -33,6 +33,33 @@ const descriptionRenderer = Object.assign(new Renderer(), {
   },
 });
 
+const previewMessageHandlers = new WeakMap<vscode.WebviewPanel, vscode.Disposable>();
+
+/** Replaces the active message handler when a preview is reloaded in the same panel. */
+export function registerPreviewMessageHandler<T>(
+  panel: vscode.WebviewPanel,
+  handler: (message: T) => void | Promise<void>,
+): void {
+  previewMessageHandlers.get(panel)?.dispose();
+  previewMessageHandlers.set(panel, panel.webview.onDidReceiveMessage(handler));
+}
+
+/** Reopens an asset preview in its current panel using freshly fetched asset data. */
+export async function reloadAssetPreview(
+  assetName: string,
+  accessToken: string,
+  panel: vscode.WebviewPanel,
+): Promise<void> {
+  try {
+    const { openAssetPreview } = await import('./assetPreviewPanel.js');
+    await openAssetPreview(assetName, accessToken, panel);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    panel.webview.postMessage({ type: 'refreshFailed' });
+    vscode.window.showErrorMessage(`Failed to reload asset preview: ${message}`);
+  }
+}
+
 /** Fields shared by the image, image collection and table previews. */
 export function previewMetadata(asset: EEAsset) {
   const description = String(asset.properties?.['description'] ?? '');

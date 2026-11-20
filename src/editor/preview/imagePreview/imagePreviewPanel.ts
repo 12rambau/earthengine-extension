@@ -32,6 +32,8 @@ import {
   handleClipboardReadRequest,
   loadPreviewSharing,
   previewMetadata,
+  registerPreviewMessageHandler,
+  reloadAssetPreview,
   savePreviewMetadata,
 } from '../previewMetadata.js';
 
@@ -51,12 +53,12 @@ export function openImagePreview(
   restoredPanel?: vscode.WebviewPanel,
 ): void {
   const shortName = asset.name.split('/').pop() || 'Image';
-  const panel = restoredPanel ?? vscode.window.createWebviewPanel(
-    'earthengine.imagePreview',
-    shortName,
-    vscode.ViewColumn.One,
-    { enableScripts: true, retainContextWhenHidden: true },
-  );
+  const panel =
+    restoredPanel ??
+    vscode.window.createWebviewPanel('earthengine.imagePreview', shortName, vscode.ViewColumn.One, {
+      enableScripts: true,
+      retainContextWhenHidden: true,
+    });
   if (restoredPanel) {
     panel.webview.options = { enableScripts: true };
   }
@@ -66,7 +68,8 @@ export function openImagePreview(
 
   // Handle messages from the WebView (lazy loading of thumbnail + min/max)
   let bandStatsPromise: Promise<Record<string, BandStatistics>> | undefined;
-  panel.webview.onDidReceiveMessage(
+  registerPreviewMessageHandler(
+    panel,
     async (msg: {
       type: string;
       name?: string;
@@ -79,7 +82,9 @@ export function openImagePreview(
       if (await handleClipboardReadRequest(msg, panel)) {
         return;
       }
-      if (msg.type === 'ready') {
+      if (msg.type === 'refresh') {
+        await reloadAssetPreview(asset.name, accessToken, panel);
+      } else if (msg.type === 'ready') {
         loadPreviewSharing(asset, accessToken, panel);
         // Fire-and-forget: send asynchronous image and parent metadata.
         bandStatsPromise = computeBandStats(asset);

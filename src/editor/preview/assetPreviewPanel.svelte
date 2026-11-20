@@ -7,11 +7,14 @@
   let activeTab = $state(detailsTitle ? 'details' : 'properties');
   let editing = $state(false);
   let saving = $state(false);
+  let reloading = $state(false);
   let sharing = $state(null);
   let error = $state('');
 
   window.addEventListener('message', (event) => {
-    if (event.data.type === 'sharingSaved') {
+    if (event.data.type === 'refreshFailed') {
+      reloading = false;
+    } else if (event.data.type === 'sharingSaved') {
       editing = false;
       saving = false;
       sharing = null;
@@ -34,9 +37,17 @@
       editing = false;
     }
   }
+
+  function reload() {
+    if (editing || saving || reloading) {
+      return;
+    }
+    reloading = true;
+    vscode.postMessage({ type: 'refresh' });
+  }
 </script>
 
-<header><h1>{title}</h1><button type="button" aria-pressed={editing} disabled={saving} onclick={toggleEdit}>{saving ? 'Saving…' : 'Edit'}</button></header>
+<header><h1>{title}</h1><div class="title-actions"><button type="button" disabled={editing || saving || reloading} onclick={reload}>Reload</button><button type="button" aria-pressed={editing} disabled={saving || reloading} onclick={toggleEdit}>{saving ? 'Saving…' : 'Edit'}</button></div></header>
 <span class="badge">{assetType}</span>
 <div class="meta">
   <div class="meta-item"><strong>Last Updated</strong>{updated}</div>
@@ -81,6 +92,7 @@
       border: none;
       cursor: pointer;
     }
+    .title-actions { display: flex; gap: var(--vscee-space-sm); }
     .tabs {
       display: flex;
       gap: var(--vscee-space-lg);

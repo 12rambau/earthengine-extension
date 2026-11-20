@@ -31,6 +31,8 @@ import {
   handleClipboardReadRequest,
   loadPreviewSharing,
   previewMetadata,
+  registerPreviewMessageHandler,
+  reloadAssetPreview,
   savePreviewMetadata,
 } from '../previewMetadata.js';
 
@@ -53,12 +55,14 @@ export async function openImageCollectionPreview(
   restoredPanel?: vscode.WebviewPanel,
 ): Promise<void> {
   const shortName = asset.name.split('/').pop() || 'ImageCollection';
-  const panel = restoredPanel ?? vscode.window.createWebviewPanel(
-    'earthengine.imageCollectionPreview',
-    shortName,
-    vscode.ViewColumn.One,
-    { enableScripts: true, retainContextWhenHidden: true },
-  );
+  const panel =
+    restoredPanel ??
+    vscode.window.createWebviewPanel(
+      'earthengine.imageCollectionPreview',
+      shortName,
+      vscode.ViewColumn.One,
+      { enableScripts: true, retainContextWhenHidden: true },
+    );
   if (restoredPanel) {
     panel.webview.options = { enableScripts: true };
   }
@@ -94,7 +98,8 @@ export async function openImageCollectionPreview(
   panel.webview.html = buildHtml(asset, childImages, imageCount, bands, panel.webview);
 
   // Handle messages from the WebView
-  panel.webview.onDidReceiveMessage(
+  registerPreviewMessageHandler(
+    panel,
     async (msg: {
       type: string;
       name?: string;
@@ -106,7 +111,9 @@ export async function openImageCollectionPreview(
       if (await handleClipboardReadRequest(msg, panel)) {
         return;
       }
-      if (msg.type === 'ready') {
+      if (msg.type === 'refresh') {
+        await reloadAssetPreview(asset.name, accessToken, panel);
+      } else if (msg.type === 'ready') {
         loadPreviewSharing(asset, accessToken, panel);
         sendThumbnail(asset, bands, childImages, panel);
       } else if (msg.type === 'thumbnailFallback') {
@@ -170,11 +177,17 @@ async function getCollectionImageCount(assetName: string): Promise<number> {
   return computeValue<number>(ee.ImageCollection(assetName).size());
 }
 
-async function getLatestCollectionImages(assetName: string, accessToken: string): Promise<EEAsset[]> {
+async function getLatestCollectionImages(
+  assetName: string,
+  accessToken: string,
+): Promise<EEAsset[]> {
   const ee = await ensureEe();
   const collection = ee.ImageCollection(assetName) as any;
   const imageNames = await computeValue<string[]>(
-    collection.sort('system:time_start', false).limit(IMAGES_PAGE_SIZE).aggregate_array('system:id'),
+    collection
+      .sort('system:time_start', false)
+      .limit(IMAGES_PAGE_SIZE)
+      .aggregate_array('system:id'),
   );
   const images: EEAsset[] = [];
   const batchSize = 10;

@@ -17,6 +17,8 @@ import {
   handleClipboardReadRequest,
   loadPreviewSharing,
   previewMetadata,
+  registerPreviewMessageHandler,
+  reloadAssetPreview,
   savePreviewMetadata,
 } from '../previewMetadata.js';
 
@@ -30,12 +32,14 @@ export async function openFeatureViewPreview(
   restoredPanel?: vscode.WebviewPanel,
 ): Promise<void> {
   const shortName = asset.name.split('/').pop() || 'FeatureView';
-  const panel = restoredPanel ?? vscode.window.createWebviewPanel(
-    'earthengine.featureViewPreview',
-    shortName,
-    vscode.ViewColumn.One,
-    { enableScripts: true, retainContextWhenHidden: true },
-  );
+  const panel =
+    restoredPanel ??
+    vscode.window.createWebviewPanel(
+      'earthengine.featureViewPreview',
+      shortName,
+      vscode.ViewColumn.One,
+      { enableScripts: true, retainContextWhenHidden: true },
+    );
   if (restoredPanel) {
     panel.webview.options = { enableScripts: true };
   }
@@ -43,7 +47,8 @@ export async function openFeatureViewPreview(
 
   panel.webview.html = buildHtml(asset);
 
-  panel.webview.onDidReceiveMessage(
+  registerPreviewMessageHandler(
+    panel,
     async (msg: {
       type: string;
       name?: string;
@@ -55,7 +60,9 @@ export async function openFeatureViewPreview(
       if (await handleClipboardReadRequest(msg, panel)) {
         return;
       }
-      if (msg.type === 'ready') {
+      if (msg.type === 'refresh') {
+        await reloadAssetPreview(asset.name, accessToken, panel);
+      } else if (msg.type === 'ready') {
         loadPreviewSharing(asset, accessToken, panel);
         sendThumbnail(asset, panel);
       } else if (msg.type === 'saveMetadata') {
