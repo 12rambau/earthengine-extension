@@ -8,26 +8,17 @@
   // STATE
   // ----------------------------------------------------------------
   let activeTab = $state(data.tabs[0]?.id || '');
-  let copyLabel = $state('Copy');
-  let datasetIdCopied = $state(false);
-  let copyResetTimer;
+  let snippetCopied = $state(false);
+  let snippetResetTimer;
 
   // ----------------------------------------------------------------
   // ACTIONS
   // ----------------------------------------------------------------
   function copySnippet() {
     vscode.postMessage({ type: 'copy', text: data.snippet });
-    copyLabel = 'Copied!';
-    setTimeout(() => {
-      copyLabel = 'Copy';
-    }, 1200);
-  }
-
-  function copyDatasetId() {
-    vscode.postMessage({ type: 'copyDatasetId' });
-    datasetIdCopied = true;
-    clearTimeout(copyResetTimer);
-    copyResetTimer = setTimeout(() => (datasetIdCopied = false), 5000);
+    snippetCopied = true;
+    clearTimeout(snippetResetTimer);
+    snippetResetTimer = setTimeout(() => (snippetCopied = false), 5000);
   }
 
   function addToMap() {
@@ -62,26 +53,18 @@
   </div>
 </div>
 
-<div class="dataset-id">
-  <strong>Earth Engine ID</strong>
-  <code>{data.datasetId}</code>
-  <span class="id-actions">
-    <button title="Copy dataset ID" aria-label="Copy dataset ID" onclick={copyDatasetId}>
-      <i class="codicon" class:codicon-copy={!datasetIdCopied} class:codicon-check={datasetIdCopied}></i>
+<div class="snippet">
+  <code id="snippet-code">{data.snippet}</code>
+  <span class="snippet-actions">
+    <button title="Copy snippet" aria-label="Copy snippet" onclick={copySnippet}>
+      <i class="codicon" class:codicon-copy={!snippetCopied} class:codicon-check={snippetCopied}></i>
     </button>
     {#if data.canAddToMap}
-      <button title="Add to Map" aria-label="Add to Map" onclick={addToMap}>
+      <button title="View on Map" aria-label="View on Map" onclick={addToMap}>
         <i class="codicon codicon-map"></i>
       </button>
     {/if}
   </span>
-</div>
-
-<div class="snippet">
-  <code id="snippet-code">{data.snippet}</code>
-  <button class="copy-btn" title="Copy to clipboard" onclick={copySnippet}>
-    {copyLabel}
-  </button>
 </div>
 
 {#if data.tabs.length > 0}
@@ -145,18 +128,19 @@
        SNIPPET
        ================================================================== */
     .snippet {
+      position: relative;
+      --id-background: linear-gradient(var(--vscee-color-code-background), var(--vscee-color-code-background)), var(--vscee-color-editor-background);
       display: flex;
       align-items: center;
-      gap: var(--vscee-space-md);
-      background: var(--vscee-color-code-background);
+      background: var(--id-background);
       padding: var(--vscee-space-md) var(--vscee-space-lg);
       border-radius: var(--vscee-radius-md);
-      overflow-x: auto;
       margin: var(--vscee-space-xl) 0;
 
       code {
         flex: 1;
         min-width: 0;
+        overflow-x: auto;
         background: none;
         padding: 0;
         font-family: var(--vscee-editor-font-family, monospace);
@@ -164,20 +148,50 @@
         white-space: nowrap;
       }
     }
-    .copy-btn {
-      flex: none;
-      cursor: pointer;
-      background: var(--vscee-color-button-secondary-background);
-      color: var(--vscee-color-button-secondary-foreground);
-      border: none;
+    .snippet-actions {
+      position: absolute;
+      inset: 0 0 0 auto;
+      display: flex;
+      align-items: center;
+      gap: var(--vscee-space-xxs);
+      padding: 0 var(--vscee-space-sm);
+      background: var(--id-background);
       border-radius: var(--vscee-radius-md);
-      padding: var(--vscee-space-xs) var(--vscee-space-lg);
-      font-size: var(--vscee-font-xs);
-      font-family: var(--vscee-font-family, sans-serif);
+      opacity: 0;
+      pointer-events: none;
 
-      &:hover {
-        background: var(--vscee-color-button-secondary-hover);
+      &::before {
+        content: '';
+        position: absolute;
+        inset: 0 100% 0 auto;
+        width: var(--vscee-space-lg);
+        background: var(--id-background);
+        backdrop-filter: blur(3px);
+        mask-image: linear-gradient(to right, transparent, black);
+        pointer-events: none;
       }
+
+      button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: var(--vscee-space-xs);
+        border: none;
+        border-radius: var(--vscee-radius-md);
+        background: none;
+        color: var(--vscode-descriptionForeground);
+        cursor: pointer;
+
+        &:hover {
+          background: none;
+          color: var(--vscode-textLink-foreground);
+        }
+      }
+    }
+    .snippet:hover .snippet-actions,
+    .snippet:focus-within .snippet-actions {
+      opacity: 1;
+      pointer-events: auto;
     }
 
     /* ==================================================================
@@ -247,45 +261,6 @@
     }
     .tags {
       margin: var(--vscee-space-lg) 0;
-    }
-
-    /* ==================================================================
-       DATASET ID
-       ================================================================== */
-    .dataset-id {
-      display: flex;
-      align-items: center;
-      gap: var(--vscee-space-md);
-      margin-top: var(--vscee-space-xl);
-
-      strong {
-        font-size: var(--vscee-font-sm);
-      }
-      code {
-        min-width: 0;
-        overflow-wrap: anywhere;
-      }
-    }
-    .id-actions {
-      display: inline-flex;
-      flex: none;
-      gap: var(--vscee-space-xxs);
-
-      button {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        padding: var(--vscee-space-xs);
-        border: none;
-        border-radius: var(--vscee-radius-md);
-        background: none;
-        color: var(--vscode-descriptionForeground);
-        cursor: pointer;
-
-        &:hover {
-          color: var(--vscode-textLink-foreground);
-        }
-      }
     }
 
     /* ==================================================================
