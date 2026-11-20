@@ -151,9 +151,3 @@ export async function fetchPublisherProviders(
     )
     .map((r) => r.value);
 }
-
-/** Builds the Google Earth Engine catalog page URL for a given dataset ID. */
-export function getDatasetPageUrl(datasetId: string): string {
-  const slug = datasetId.replace(/\//g, '_');
-  return `https://developers.google.com/earth-engine/datasets/catalog/${slug}`;
-}

@@ -326,9 +326,9 @@
         "icon": "$(search)"
       },
       {
-        "command": "earthengine.openDatasetInBrowser",
-        "title": "Open in Browser",
-        "icon": "$(link-external)"
+        "command": "earthengine.viewDatasetOnMap",
+        "title": "View on Map",
+        "icon": "$(map)"
       },
       {
         "command": "earthengine.copyDatasetId",
@@ -897,7 +897,7 @@
           "group": "inline"
         },
         {
-          "command": "earthengine.openDatasetInBrowser",
+          "command": "earthengine.viewDatasetOnMap",
           "when": "viewItem == dataset-item",
           "group": "inline"
         },
