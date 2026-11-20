@@ -86,7 +86,11 @@ export class DatasetSection extends SidebarSection {
 
     this.registerCommand('earthengine.viewDatasetOnMap', (item: DatasetTreeItem) => {
       if (item.datasetId) {
-        void vscode.commands.executeCommand('earthengine.viewAssetOnMap', item.datasetId);
+        const assetId =
+          item.nodeType === 'dataset' && !item.datasetId.startsWith('projects/')
+            ? `projects/earthengine-public/assets/${item.datasetId}`
+            : item.datasetId;
+        void vscode.commands.executeCommand('earthengine.viewAssetOnMap', assetId);
       }
     });
 
