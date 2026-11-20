@@ -3,15 +3,15 @@
  * Dataset catalog sidebar section for the Earth Engine extension.
  *
  * Registers the dataset tree view and commands for refreshing,
- * searching, opening dataset pages in the browser, and launching
- * a dataset detail panel inside VS Code.
+ * searching, viewing datasets on the map, and launching a dataset
+ * detail panel inside VS Code.
  */
 
 import * as vscode from 'vscode';
 import { SidebarSection } from '../../shared/baseComponents.js';
 import { DatasetTreeDataProvider } from './datasetTreeDataProvider.js';
 import { DatasetTreeItem } from './datasetTreeItem.js';
-import { fetchCollection, getDatasetPageUrl } from './stacClient.js';
+import { fetchCollection } from './stacClient.js';
 import { fetchHtml } from '../../shared/httpClient.js';
 import { fetchCommunityThemes } from './communityClient.js';
 import type { CommunityDatasetEntry } from './communityClient.js';
@@ -84,9 +84,13 @@ export class DatasetSection extends SidebarSection {
       }
     });
 
-    this.registerCommand('earthengine.openDatasetInBrowser', (item: DatasetTreeItem) => {
+    this.registerCommand('earthengine.viewDatasetOnMap', (item: DatasetTreeItem) => {
       if (item.datasetId) {
-        vscode.env.openExternal(vscode.Uri.parse(getDatasetPageUrl(item.datasetId)));
+        const assetId =
+          item.nodeType === 'dataset' && !item.datasetId.startsWith('projects/')
+            ? `projects/earthengine-public/assets/${item.datasetId}`
+            : item.datasetId;
+        void vscode.commands.executeCommand('earthengine.viewAssetOnMap', assetId);
       }
     });
 

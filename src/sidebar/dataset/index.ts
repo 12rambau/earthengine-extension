@@ -7,4 +7,4 @@
 export { DatasetSection } from './datasetSection.js';
 export { DatasetTreeDataProvider } from './datasetTreeDataProvider.js';
 export { DatasetTreeItem } from './datasetTreeItem.js';
-export { fetchCollection, getDatasetPageUrl } from './stacClient.js';
+export { fetchCollection } from './stacClient.js';
