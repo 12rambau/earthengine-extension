@@ -24,6 +24,8 @@ import {
   handleClipboardReadRequest,
   loadPreviewSharing,
   previewMetadata,
+  registerPreviewMessageHandler,
+  reloadAssetPreview,
   savePreviewMetadata,
 } from '../previewMetadata.js';
 import { getFeatureCollectionThumbnailUrl } from './featureCollectionThumbnail.js';
@@ -44,12 +46,14 @@ export async function openFeatureCollectionPreview(
   restoredPanel?: vscode.WebviewPanel,
 ): Promise<void> {
   const shortName = asset.name.split('/').pop() || 'Table';
-  const panel = restoredPanel ?? vscode.window.createWebviewPanel(
-    'earthengine.featureCollectionPreview',
-    shortName,
-    vscode.ViewColumn.One,
-    { enableScripts: true, retainContextWhenHidden: true },
-  );
+  const panel =
+    restoredPanel ??
+    vscode.window.createWebviewPanel(
+      'earthengine.featureCollectionPreview',
+      shortName,
+      vscode.ViewColumn.One,
+      { enableScripts: true, retainContextWhenHidden: true },
+    );
   if (restoredPanel) {
     panel.webview.options = { enableScripts: true };
   }
@@ -70,7 +74,8 @@ export async function openFeatureCollectionPreview(
   panel.webview.html = buildHtml(asset, features, featureCount, panel.webview);
 
   // Handle messages from the WebView (lazy thumbnail loading)
-  panel.webview.onDidReceiveMessage(
+  registerPreviewMessageHandler(
+    panel,
     async (msg: {
       type: string;
       name?: string;
@@ -82,7 +87,9 @@ export async function openFeatureCollectionPreview(
       if (await handleClipboardReadRequest(msg, panel)) {
         return;
       }
-      if (msg.type === 'ready') {
+      if (msg.type === 'refresh') {
+        await reloadAssetPreview(asset.name, accessToken, panel);
+      } else if (msg.type === 'ready') {
         loadPreviewSharing(asset, accessToken, panel);
         sendThumbnail(asset, panel);
       } else if (msg.type === 'thumbnailFallback') {

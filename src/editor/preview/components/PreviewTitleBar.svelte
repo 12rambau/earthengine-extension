@@ -1,6 +1,15 @@
 <!-- PreviewTitleBar: editable asset title and shared save action -->
 <script>
+  import { vscode } from '../../../shared/vscode.ts';
+
   let { title, suffix = '', editing = $bindable(), activeTab = $bindable(), name = $bindable(), saving } = $props();
+  let reloading = $state(false);
+
+  window.addEventListener('message', (event) => {
+    if (event.data.type === 'refreshFailed') {
+      reloading = false;
+    }
+  });
 
   function toggleEdit() {
     activeTab = 'description';
@@ -10,11 +19,22 @@
       editing = true;
     }
   }
+
+  function reload() {
+    if (editing || saving || reloading) {
+      return;
+    }
+    reloading = true;
+    vscode.postMessage({ type: 'refresh' });
+  }
 </script>
 
 <header class="title-bar">
   <h1>Asset details: {title.slice(0, title.lastIndexOf('/') + 1)}{#if editing}<input aria-label="Asset name" required pattern="[A-Za-z0-9_-]+" bind:value={name} disabled={saving} />{:else}{title.split('/').pop()}{/if}{suffix}</h1>
-  <button class="edit-button" class:active={editing} aria-pressed={editing} type="button" disabled={saving} onclick={toggleEdit}>{saving ? 'Saving…' : 'Edit'}</button>
+  <div class="title-actions">
+    <button class="reload-button" type="button" disabled={editing || saving || reloading} onclick={reload}>Reload</button>
+    <button class="edit-button" class:active={editing} aria-pressed={editing} type="button" disabled={saving || reloading} onclick={toggleEdit}>{saving ? 'Saving…' : 'Edit'}</button>
+  </div>
 </header>
 
 <style>
@@ -25,6 +45,13 @@
     gap: var(--vscee-space-lg);
     padding: var(--vscee-space-lg) var(--vscee-space-xxl);
     border-bottom: var(--vscee-border-sm) solid var(--vscee-color-panel-border);
+
+    .title-actions {
+      display: flex;
+      align-items: center;
+      gap: var(--vscee-space-sm);
+      flex: none;
+    }
 
     h1 {
       font-size: var(--vscee-font-xl);
@@ -42,6 +69,7 @@
         border-radius: var(--vscee-radius-md);
       }
     }
+    .reload-button,
     .edit-button {
       display: inline-flex;
       align-items: center;
@@ -57,12 +85,12 @@
       cursor: pointer;
 
       &:hover { background: var(--vscee-color-button-secondary-hover); }
+      &:disabled { opacity: 0.5; cursor: default; }
       &.active {
         color: var(--vscee-color-button-foreground);
         background: var(--vscee-color-button-background);
         border-color: transparent;
       }
-      &:disabled { opacity: 0.5; cursor: default; }
     }
   }
 </style>
