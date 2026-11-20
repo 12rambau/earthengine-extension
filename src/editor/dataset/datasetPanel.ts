@@ -12,7 +12,7 @@ import { marked } from 'marked';
 import { StacCollection } from '../../sidebar/dataset/stacClient.js';
 import { CommunityDatasetEntry } from '../../sidebar/dataset/communityClient.js';
 
-import { designTokens } from '../../shared/index.js';
+import { codiconsCss, designTokens } from '../../shared/index.js';
 import script from './DatasetPanel.svelte';
 
 /** Catalog reference saved by a dataset WebView for restoration. */
@@ -53,11 +53,19 @@ export function createDatasetPanel(
 
   panel.webview.html = buildHtml(collection, panel.webview, extraTabs, restoreState);
 
-  // The webview posts the snippet text back so we can write it to the clipboard.
-  panel.webview.onDidReceiveMessage((msg) => {
+  // The webview posts copy and map actions; use the collection ID from the host.
+  panel.webview.onDidReceiveMessage(async (msg) => {
     if (msg?.type === 'copy' && typeof msg.text === 'string') {
-      vscode.env.clipboard.writeText(msg.text);
+      await vscode.env.clipboard.writeText(msg.text);
       vscode.window.showInformationMessage('Snippet copied to clipboard.');
+    } else if (msg?.type === 'copyDatasetId') {
+      await vscode.env.clipboard.writeText(collection.id);
+      vscode.window.showInformationMessage('Dataset ID copied to clipboard.');
+    } else if (
+      msg?.type === 'addToMap' &&
+      ['image', 'image_collection', 'table'].includes(collection['gee:type'])
+    ) {
+      await vscode.commands.executeCommand('earthengine.viewAssetOnMap', collection.id);
     }
   });
 
@@ -121,6 +129,7 @@ function buildHtml(
   const keywords = c.keywords || [];
   const providers = c.providers || [];
   const geeType = c['gee:type'] || 'unknown';
+  const canAddToMap = ['image', 'image_collection', 'table'].includes(geeType);
 
   const previewLink = c.links?.find((l) => l.rel === 'preview');
   const previewImgHtml = previewLink
@@ -178,6 +187,8 @@ function buildHtml(
   const initData = JSON.stringify({
     restoreState,
     title: c.title || c.id,
+    datasetId: c.id,
+    canAddToMap,
     previewImgHtml,
     startDate,
     endDate,
@@ -195,6 +206,7 @@ function buildHtml(
     <meta charset="UTF-8" />
     <meta http-equiv="Content-Security-Policy" content="${csp}" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <style>${codiconsCss}</style>
     <style>${designTokens}</style>
   </head>
   <body>

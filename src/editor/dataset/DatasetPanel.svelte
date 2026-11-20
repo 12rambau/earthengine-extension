@@ -9,6 +9,8 @@
   // ----------------------------------------------------------------
   let activeTab = $state(data.tabs[0]?.id || '');
   let copyLabel = $state('Copy');
+  let datasetIdCopied = $state(false);
+  let copyResetTimer;
 
   // ----------------------------------------------------------------
   // ACTIONS
@@ -19,6 +21,17 @@
     setTimeout(() => {
       copyLabel = 'Copy';
     }, 1200);
+  }
+
+  function copyDatasetId() {
+    vscode.postMessage({ type: 'copyDatasetId' });
+    datasetIdCopied = true;
+    clearTimeout(copyResetTimer);
+    copyResetTimer = setTimeout(() => (datasetIdCopied = false), 5000);
+  }
+
+  function addToMap() {
+    vscode.postMessage({ type: 'addToMap' });
   }
 </script>
 
@@ -47,6 +60,21 @@
     </div>
     {@html data.tagsHtml}
   </div>
+</div>
+
+<div class="dataset-id">
+  <strong>Earth Engine ID</strong>
+  <code>{data.datasetId}</code>
+  <span class="id-actions">
+    <button title="Copy dataset ID" aria-label="Copy dataset ID" onclick={copyDatasetId}>
+      <i class="codicon" class:codicon-copy={!datasetIdCopied} class:codicon-check={datasetIdCopied}></i>
+    </button>
+    {#if data.canAddToMap}
+      <button title="Add to Map" aria-label="Add to Map" onclick={addToMap}>
+        <i class="codicon codicon-map"></i>
+      </button>
+    {/if}
+  </span>
 </div>
 
 <div class="snippet">
@@ -219,6 +247,45 @@
     }
     .tags {
       margin: var(--vscee-space-lg) 0;
+    }
+
+    /* ==================================================================
+       DATASET ID
+       ================================================================== */
+    .dataset-id {
+      display: flex;
+      align-items: center;
+      gap: var(--vscee-space-md);
+      margin-top: var(--vscee-space-xl);
+
+      strong {
+        font-size: var(--vscee-font-sm);
+      }
+      code {
+        min-width: 0;
+        overflow-wrap: anywhere;
+      }
+    }
+    .id-actions {
+      display: inline-flex;
+      flex: none;
+      gap: var(--vscee-space-xxs);
+
+      button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: var(--vscee-space-xs);
+        border: none;
+        border-radius: var(--vscee-radius-md);
+        background: none;
+        color: var(--vscode-descriptionForeground);
+        cursor: pointer;
+
+        &:hover {
+          color: var(--vscode-textLink-foreground);
+        }
+      }
     }
 
     /* ==================================================================
