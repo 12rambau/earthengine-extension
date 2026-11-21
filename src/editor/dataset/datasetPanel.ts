@@ -12,13 +12,12 @@ import { marked } from 'marked';
 import { StacCollection } from '../../sidebar/dataset/stacClient.js';
 import { CommunityDatasetEntry } from '../../sidebar/dataset/communityClient.js';
 
-import { designTokens } from '../../shared/index.js';
+import { codiconsCss, designTokens } from '../../shared/index.js';
 import script from './DatasetPanel.svelte';
 
 /** Catalog reference saved by a dataset WebView for restoration. */
 export type DatasetPanelState =
-  | { kind: 'stac'; href: string }
-  | { kind: 'community'; docs: string };
+  { kind: 'stac'; href: string } | { kind: 'community'; docs: string };
 
 // ==================================================================
 // PUBLIC API
@@ -31,12 +30,14 @@ export function createDatasetPanel(
   restoredPanel?: vscode.WebviewPanel,
   restoreState?: DatasetPanelState,
 ): vscode.WebviewPanel {
-  const panel = restoredPanel ?? vscode.window.createWebviewPanel(
-    'earthengine.datasetDetail',
-    collection.title || collection.id,
-    vscode.ViewColumn.One,
-    { enableScripts: true },
-  );
+  const panel =
+    restoredPanel ??
+    vscode.window.createWebviewPanel(
+      'earthengine.datasetDetail',
+      collection.title || collection.id,
+      vscode.ViewColumn.One,
+      { enableScripts: true },
+    );
   if (restoredPanel) {
     panel.webview.options = { enableScripts: true };
   }
@@ -53,11 +54,20 @@ export function createDatasetPanel(
 
   panel.webview.html = buildHtml(collection, panel.webview, extraTabs, restoreState);
 
-  // The webview posts the snippet text back so we can write it to the clipboard.
-  panel.webview.onDidReceiveMessage((msg) => {
+  // The webview posts copy and map actions; use the collection ID from the host.
+  panel.webview.onDidReceiveMessage(async (msg) => {
     if (msg?.type === 'copy' && typeof msg.text === 'string') {
-      vscode.env.clipboard.writeText(msg.text);
+      await vscode.env.clipboard.writeText(msg.text);
       vscode.window.showInformationMessage('Snippet copied to clipboard.');
+    } else if (
+      msg?.type === 'addToMap' &&
+      ['image', 'image_collection', 'table'].includes(collection['gee:type'])
+    ) {
+      const assetId =
+        restoreState?.kind === 'stac' && !collection.id.startsWith('projects/')
+          ? `projects/earthengine-public/assets/${collection.id}`
+          : collection.id;
+      await vscode.commands.executeCommand('earthengine.viewAssetOnMap', assetId);
     }
   });
 
@@ -121,6 +131,7 @@ function buildHtml(
   const keywords = c.keywords || [];
   const providers = c.providers || [];
   const geeType = c['gee:type'] || 'unknown';
+  const canAddToMap = ['image', 'image_collection', 'table'].includes(geeType);
 
   const previewLink = c.links?.find((l) => l.rel === 'preview');
   const previewImgHtml = previewLink
@@ -171,6 +182,7 @@ function buildHtml(
   const csp = [
     `default-src 'none'`,
     `img-src ${webview.cspSource} https: data:`,
+    `font-src data:`,
     `style-src 'unsafe-inline'`,
     `script-src 'nonce-${nonce}'`,
   ].join('; ');
@@ -178,6 +190,7 @@ function buildHtml(
   const initData = JSON.stringify({
     restoreState,
     title: c.title || c.id,
+    canAddToMap,
     previewImgHtml,
     startDate,
     endDate,
@@ -195,6 +208,7 @@ function buildHtml(
     <meta charset="UTF-8" />
     <meta http-equiv="Content-Security-Policy" content="${csp}" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <style>${codiconsCss}</style>
     <style>${designTokens}</style>
   </head>
   <body>

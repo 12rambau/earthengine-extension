@@ -582,7 +582,7 @@ export class MapPanel extends EditorPanel {
     const eeAny = (await ensureEe()) as any;
     const { token } = await getEeContext();
     const assetName = assetId.startsWith('projects/')
-      ? assetId
+      ? assetId.replace(/^(projects\/[^/]+)\/(?!assets\/)/, '$1/assets/')
       : `projects/earthengine-legacy/assets/${assetId}`;
     const asset = await getAsset(assetName, token);
     const { type } = asset;
