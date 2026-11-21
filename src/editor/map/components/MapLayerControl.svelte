@@ -19,6 +19,7 @@
     visible = $bindable(false),
     activeScaleIndex = $bindable(-1),
     onvisibility,
+    onzoom,
     onopacity,
     onremove,
     onmove,
@@ -259,6 +260,14 @@
                     value={Math.round(entry.opacity * 100)}
                     oninput={(event) => setLayerOpacity(index, Number(event.target.value))}
                   />
+                  <button
+                    class="map-btn layer-vis-btn"
+                    title="Zoom to layer"
+                    aria-label={`Zoom to ${entry.name}`}
+                    onclick={() => onzoom(entry.layerIndex)}
+                  >
+                    <i class="codicon codicon-target" aria-hidden="true"></i>
+                  </button>
                   <button
                     class="map-btn layer-vis-btn"
                     class:active={entry.visible}

@@ -59,6 +59,7 @@
   let attributionRequests = {};
   let syncingView = false;
   let readySent = false;
+  let zoomRequestId = 0;
   let lastView = $state({ center: [0, 0], zoom: 2 });
   let pointerLatLng = null;
   const ghostMarkers = {};
@@ -334,6 +335,13 @@
       }),
     };
     saveLayout();
+  }
+
+  function zoomToLayer(layerIndex) {
+    vscode.postMessage({
+      type: 'zoomToLayer',
+      data: { layerIndex, requestId: ++zoomRequestId },
+    });
   }
 
   function setLayerVisibility(layerIndex, shown) {
@@ -616,15 +624,24 @@
       syncOverlay(entry);
     } else if (msg.type === 'centerObject') {
       const d = msg.data;
-      if (d.bounds) {
+      if (d.requestId !== undefined && d.requestId !== zoomRequestId) {
+        return;
+      }
+      const paneIndex = mapLayout.panes.findIndex((pane) => pane.includes(d.layerIndex));
+      const targetMap =
+        d.layerIndex === undefined ? map : paneMaps[mapLayout.mapIds[paneIndex]];
+      if (d.bounds && targetMap) {
         const bounds = L.latLngBounds(
           L.latLng(d.bounds[0], d.bounds[1]),
           L.latLng(d.bounds[2], d.bounds[3]),
         );
         if (d.zoom) {
-          map.setView(bounds.getCenter(), d.zoom);
+          targetMap.setView(bounds.getCenter(), d.zoom);
         } else {
-          map.fitBounds(bounds);
+          targetMap.fitBounds(
+            bounds,
+            d.layerIndex === undefined ? {} : { padding: [20, 20], maxZoom: 16 },
+          );
         }
       }
     } else if (msg.type === 'setCenter') {
@@ -809,6 +826,7 @@
         mapIds={mapLayout.mapIds}
         bind:visible={layersPanelVisible}
         bind:activeScaleIndex
+        onzoom={zoomToLayer}
         onvisibility={setLayerVisibility}
         onopacity={setLayerOpacity}
         onremove={removeLayer}
@@ -832,6 +850,7 @@
       <MapGeometryControl
         {map}
         maps={paneMaps}
+        onzoom={() => zoomRequestId++}
         bind:visible={geometriesPanelVisible}
         bind:drawMode
       />
