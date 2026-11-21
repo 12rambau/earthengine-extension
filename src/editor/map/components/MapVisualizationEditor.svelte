@@ -171,12 +171,14 @@
   // Colour ramp built from a preset resampled to `vizContColorCount` stops.
   let vizContColorCount = $state(7);
   let vizContPaletteName = $state('');
+  let vizContPaletteReversed = $state(false);
   let vizContPaletteOpen = $state(false);
   let vizContColors = $state([]);
   // Categorical fields
   let vizCatBand = $state('');
   let vizCatRows = $state([]);
   let vizCatPaletteName = $state('');
+  let vizCatPaletteReversed = $state(false);
   let vizCatPaletteOpen = $state(false);
   let vizCatDetecting = $state(false);
   let vizCatNotice = $state('');
@@ -187,6 +189,7 @@
   let vizIntColorCount = $state(7);
   let vizIntRows = $state([]);
   let vizIntPaletteName = $state('');
+  let vizIntPaletteReversed = $state(false);
   let vizIntPaletteOpen = $state(false);
   let vizIntNotice = $state('');
   let vizComputing = $state(false);
@@ -225,17 +228,21 @@
   }
 
   /** Preview strip shown under a palette name in the palette dropdown. */
-  function palettePreview(pal, discrete) {
+  function palettePreview(pal, discrete, reversed = false) {
     if (renderMode === 'intervals' && vizIntRows.length > 0) {
       return intervalBlocks(
-        schemeColors(pal.name, vizIntRows.length),
+        schemeColors(pal.name, vizIntRows.length, reversed),
         [Number(vizIntStart), ...vizIntRows.map((row) => Number(row.upper))],
       );
     }
     if (pal.colors) {
-      return paletteBlocks(pal.colors.map(normalizeHex));
+      const colors = pal.colors.map(normalizeHex);
+      return paletteBlocks(reversed ? colors.reverse() : colors);
     }
     const colors = sample(pal.interpolate, PALETTE_PREVIEW_STOPS);
+    if (reversed) {
+      colors.reverse();
+    }
     return discrete ? paletteBlocks(colors) : paletteGradient(colors);
   }
 
@@ -359,6 +366,7 @@
       vizContColors = [];
     }
     vizContPaletteName = '';
+    vizContPaletteReversed = false;
 
     // Categorical
     if (bands.length >= 1) {
@@ -379,6 +387,7 @@
       vizCatRows = [];
     }
     vizCatPaletteName = '';
+    vizCatPaletteReversed = false;
     vizCatNotice = '';
 
     // Intervals
@@ -395,6 +404,7 @@
     );
     vizIntColorCount = vizIntRows.length || 7;
     vizIntPaletteName = '';
+    vizIntPaletteReversed = false;
     vizIntNotice = '';
   }
 
@@ -869,6 +879,7 @@
 
   function selectContPalette(name) {
     vizContPaletteName = name;
+    vizContPaletteReversed = false;
     vizSelectedPreset = '';
     const pal = CONTINUOUS_PALETTES.find((p) => p.name === name);
     if (pal) {
@@ -886,6 +897,9 @@
     const pal = CONTINUOUS_PALETTES.find((p) => p.name === vizContPaletteName);
     if (pal) {
       vizContColors = sample(pal.interpolate, n);
+      if (vizContPaletteReversed) {
+        vizContColors.reverse();
+      }
     } else if (vizContColors.length > 0) {
       // Hand-picked stops: keep the ends and drop or repeat the middle.
       const last = vizContColors[vizContColors.length - 1];
@@ -896,25 +910,27 @@
   /** Editing a swatch detaches the ramp from its preset. */
   function markPaletteCustom() {
     vizContPaletteName = '';
+    vizContPaletteReversed = false;
     vizSelectedPreset = '';
   }
 
   function reverseContPalette() {
     vizContColors = [...vizContColors].reverse();
-    markPaletteCustom();
+    vizContPaletteReversed = !vizContPaletteReversed;
+    vizSelectedPreset = '';
   }
 
   function reverseCatPalette() {
     const colors = vizCatRows.map((row) => row.color).reverse();
     vizCatRows = vizCatRows.map((row, index) => ({ ...row, color: colors[index] }));
-    vizCatPaletteName = '';
+    vizCatPaletteReversed = !vizCatPaletteReversed;
     vizSelectedPreset = '';
   }
 
   function reverseIntPalette() {
     const colors = vizIntRows.map((row) => row.color).reverse();
     vizIntRows = vizIntRows.map((row, index) => ({ ...row, color: colors[index] }));
-    vizIntPaletteName = '';
+    vizIntPaletteReversed = !vizIntPaletteReversed;
     vizSelectedPreset = '';
   }
 
@@ -943,6 +959,7 @@
     }
     vizCatRows[index].color = hex;
     vizCatPaletteName = '';
+    vizCatPaletteReversed = false;
     vizSelectedPreset = '';
   }
 
@@ -969,19 +986,22 @@
   // ----------------------------------------------------------------
 
   /** `n` discrete colours from a scheme, cycling schemes and sampling ramps. */
-  function schemeColors(name, n) {
+  function schemeColors(name, n, reversed = false) {
     const discrete = CATEGORICAL_PALETTES.find((p) => p.name === name);
     if (discrete) {
-      return Array.from({ length: n }, (_, i) =>
+      const colors = Array.from({ length: n }, (_, i) =>
         normalizeHex(discrete.colors[i % discrete.colors.length]),
       );
+      return reversed ? colors.reverse() : colors;
     }
     const ramp = CONTINUOUS_PALETTES.find((p) => p.name === name);
-    return ramp ? sample(ramp.interpolate, n) : [];
+    const colors = ramp ? sample(ramp.interpolate, n) : [];
+    return reversed ? colors.reverse() : colors;
   }
 
   function selectCatPalette(name) {
     vizCatPaletteName = name;
+    vizCatPaletteReversed = false;
     vizSelectedPreset = '';
     const colors = schemeColors(name, vizCatRows.length);
     if (colors.length === 0) {
@@ -1035,8 +1055,11 @@
     }
     vizSelectedPreset = '';
     const scheme = vizCatPaletteName || CATEGORICAL_PALETTES[0].name;
+    if (!vizCatPaletteName) {
+      vizCatPaletteReversed = false;
+    }
     vizCatPaletteName = scheme;
-    const colors = schemeColors(scheme, values.length);
+    const colors = schemeColors(scheme, values.length, vizCatPaletteReversed);
     vizCatRows = values.map((value, i) => ({
       color: colors[i],
       value: String(value),
@@ -1058,6 +1081,7 @@
 
   function selectIntPalette(name) {
     vizIntPaletteName = name;
+    vizIntPaletteReversed = false;
     vizSelectedPreset = '';
     const colors = schemeColors(name, vizIntRows.length);
     vizIntRows = vizIntRows.map((row, index) => ({ ...row, color: colors[index] }));
@@ -1076,7 +1100,7 @@
       return;
     }
     const count = vizIntColorCount;
-    const colors = schemeColors(vizIntPaletteName || 'Viridis', count);
+    const colors = schemeColors(vizIntPaletteName || 'Viridis', count, vizIntPaletteReversed);
     vizIntRows = Array.from({ length: count }, (_, index) => ({
       color: vizIntRows.length === count ? vizIntRows[index].color : colors[index],
       upper: String(index === count - 1 ? max : Number((min + ((max - min) * (index + 1)) / count).toPrecision(12))),
@@ -1099,6 +1123,7 @@
     }
     vizIntRows[index].color = hex;
     vizIntPaletteName = '';
+    vizIntPaletteReversed = false;
     vizSelectedPreset = '';
   }
 
@@ -1224,7 +1249,7 @@
   {/if}
 {/snippet}
 
-{#snippet paletteSelect(current, open, groups, discrete, toggle, pick, reverse, colorCount)}
+{#snippet paletteSelect(current, open, groups, discrete, toggle, pick, reverse, colorCount, reversed)}
   <div class="viz-palette-select">
     <button type="button" class="viz-palette-trigger" onclick={toggle}>
       <span class="viz-palette-current">{current || 'Custom…'}</span>
@@ -1245,7 +1270,7 @@
               onclick={() => pick(pal.name)}
             >
               <span class="viz-palette-option-name">{pal.name}</span>
-              <span class="viz-palette-strip" style="background:{palettePreview(pal, discrete)}"
+              <span class="viz-palette-strip" style="background:{palettePreview(pal, discrete, reversed && pal.name === current)}"
               ></span>
             </button>
           {/each}
@@ -1257,11 +1282,11 @@
     type="button"
     class="viz-btn viz-btn-secondary viz-btn-reverse"
     title="Reverse palette colors"
+    aria-label="Reverse palette colors"
     disabled={colorCount < 2}
     onclick={reverse}
   >
     <i class="codicon codicon-arrow-swap" aria-hidden="true"></i>
-    Reverse
   </button>
 {/snippet}
 
@@ -1542,6 +1567,7 @@
               },
               reverseContPalette,
               vizContColors.length,
+              vizContPaletteReversed,
             )}
           </div>
           {#if vizContColors.length > 0}
@@ -1627,6 +1653,7 @@
               },
               reverseCatPalette,
               vizCatRows.length,
+              vizCatPaletteReversed,
             )}
             <button
               class="viz-btn viz-btn-secondary"
@@ -1653,6 +1680,7 @@
                   bind:value={row.color}
                   onChange={() => {
                     vizCatPaletteName = '';
+                    vizCatPaletteReversed = false;
                     vizSelectedPreset = '';
                   }}
                   label="Colour for class {i + 1}"
@@ -1769,6 +1797,7 @@
               },
               reverseIntPalette,
               vizIntRows.length,
+              vizIntPaletteReversed,
             )}
           </div>
           {#if vizIntNotice}<p class="viz-stretch-error">{vizIntNotice}</p>{/if}
@@ -1788,6 +1817,7 @@
                   bind:value={row.color}
                   onChange={() => {
                     vizIntPaletteName = '';
+                    vizIntPaletteReversed = false;
                     vizSelectedPreset = '';
                   }}
                   label="Colour for interval {index + 1}"
@@ -2062,8 +2092,12 @@
     .viz-btn-reverse {
       display: inline-flex;
       align-items: center;
-      gap: var(--vscee-space-xs);
+      justify-content: center;
       flex-shrink: 0;
+      width: 24px;
+      height: 24px;
+      box-sizing: border-box;
+      padding: 0;
 
       &:disabled {
         opacity: 0.5;
@@ -2204,6 +2238,8 @@
         justify-content: space-between;
         gap: var(--vscee-space-xs);
         width: 100%;
+        height: 24px;
+        box-sizing: border-box;
         cursor: pointer;
         text-align: left;
         background: var(--vscee-color-dropdown-background);
