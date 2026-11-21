@@ -899,6 +899,25 @@
     vizSelectedPreset = '';
   }
 
+  function reverseContPalette() {
+    vizContColors = [...vizContColors].reverse();
+    markPaletteCustom();
+  }
+
+  function reverseCatPalette() {
+    const colors = vizCatRows.map((row) => row.color).reverse();
+    vizCatRows = vizCatRows.map((row, index) => ({ ...row, color: colors[index] }));
+    vizCatPaletteName = '';
+    vizSelectedPreset = '';
+  }
+
+  function reverseIntPalette() {
+    const colors = vizIntRows.map((row) => row.color).reverse();
+    vizIntRows = vizIntRows.map((row, index) => ({ ...row, color: colors[index] }));
+    vizIntPaletteName = '';
+    vizSelectedPreset = '';
+  }
+
   /** Accepts `rgb`/`rrggbb`, with or without the leading `#`; `null` when unparseable. */
   function parseHex(text, allowShort) {
     const value = String(text).trim().replace(/^#/, '');
@@ -1205,7 +1224,7 @@
   {/if}
 {/snippet}
 
-{#snippet paletteSelect(current, open, groups, discrete, toggle, pick)}
+{#snippet paletteSelect(current, open, groups, discrete, toggle, pick, reverse, colorCount)}
   <div class="viz-palette-select">
     <button type="button" class="viz-palette-trigger" onclick={toggle}>
       <span class="viz-palette-current">{current || 'Custom…'}</span>
@@ -1234,6 +1253,16 @@
       </div>
     {/if}
   </div>
+  <button
+    type="button"
+    class="viz-btn viz-btn-secondary viz-btn-reverse"
+    title="Reverse palette colors"
+    disabled={colorCount < 2}
+    onclick={reverse}
+  >
+    <i class="codicon codicon-arrow-swap" aria-hidden="true"></i>
+    Reverse
+  </button>
 {/snippet}
 
 {#if vizVisible}
@@ -1511,6 +1540,8 @@
                 vizContPaletteOpen = false;
                 selectContPalette(name);
               },
+              reverseContPalette,
+              vizContColors.length,
             )}
           </div>
           {#if vizContColors.length > 0}
@@ -1594,6 +1625,8 @@
                 vizCatPaletteOpen = false;
                 selectCatPalette(name);
               },
+              reverseCatPalette,
+              vizCatRows.length,
             )}
             <button
               class="viz-btn viz-btn-secondary"
@@ -1734,6 +1767,8 @@
                 vizIntPaletteOpen = false;
                 selectIntPalette(name);
               },
+              reverseIntPalette,
+              vizIntRows.length,
             )}
           </div>
           {#if vizIntNotice}<p class="viz-stretch-error">{vizIntNotice}</p>{/if}
@@ -2023,6 +2058,17 @@
       gap: var(--vscee-space-xs);
       margin-right: auto;
       padding-inline: var(--vscee-space-md);
+    }
+    .viz-btn-reverse {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--vscee-space-xs);
+      flex-shrink: 0;
+
+      &:disabled {
+        opacity: 0.5;
+        cursor: default;
+      }
     }
     .viz-code-overlay {
       z-index: 2600;
