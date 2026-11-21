@@ -9,7 +9,7 @@
     parseMapGeometries,
   } from '../mapGeometry.js';
 
-  let { map, maps = {}, visible = $bindable(false), drawMode = $bindable(null) } = $props();
+  let { map, maps = {}, onzoom, visible = $bindable(false), drawMode = $bindable(null) } = $props();
 
   // ----------------------------------------------------------------
   // STATE
@@ -160,6 +160,18 @@
 
   function select(item) {
     selectedId = item.visible && selectedId !== item.id ? item.id : null;
+  }
+
+  function zoomToGeometry(item) {
+    if (!map) {
+      return;
+    }
+    onzoom();
+    const points = geometryMapPositions(
+      item.type === 'Point' ? [item.coordinates] : item.coordinates,
+      map.getCenter().lng,
+    );
+    map.fitBounds(L.latLngBounds(points), { padding: [20, 20], maxZoom: 16 });
   }
 
   function setColor(item, color) {
@@ -392,6 +404,14 @@
           <button class="geometry-name" title={`Select ${item.name}`} onclick={() => select(item)}
             >{item.name}</button
           >
+          <button
+            class="geometry-action"
+            title="Zoom to geometry"
+            aria-label={`Zoom to ${item.name}`}
+            onclick={() => zoomToGeometry(item)}
+          >
+            <i class="codicon codicon-target" aria-hidden="true"></i>
+          </button>
           <button
             class="geometry-action"
             title={item.visible ? 'Hide geometry' : 'Show geometry'}

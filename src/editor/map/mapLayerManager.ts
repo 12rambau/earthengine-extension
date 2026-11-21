@@ -344,6 +344,35 @@ export class MapLayerManager {
     return this._layers;
   }
 
+  /** Returns the source footprint as [south, west, north, east], independent of visualization. */
+  async getBounds(layerIndex: number): Promise<[number, number, number, number]> {
+    const layer = this._layers.get(layerIndex);
+    if (!layer) {
+      throw new Error(`Layer ${layerIndex} not found.`);
+    }
+    const ee = await ensureEe();
+    const source = ee.Deserializer.fromJSON(layer.serialized) as any;
+    const coordinates = await computeValue<number[]>(
+      source.geometry().bounds(1).coordinates().flatten(),
+    );
+    if (
+      !Array.isArray(coordinates) ||
+      coordinates.length < 2 ||
+      coordinates.length % 2 !== 0 ||
+      coordinates.some((value) => typeof value !== 'number' || !Number.isFinite(value))
+    ) {
+      throw new Error(`No geometry bounds available for '${layer.name}'.`);
+    }
+    const longitudes = coordinates.filter((_, index) => index % 2 === 0);
+    const latitudes = coordinates.filter((_, index) => index % 2 === 1);
+    return [
+      Math.min(...latitudes),
+      Math.min(...longitudes),
+      Math.max(...latitudes),
+      Math.max(...longitudes),
+    ];
+  }
+
   /**
    * Registers a new layer, resolves its tile URL, and notifies the WebView.
    *

@@ -178,6 +178,29 @@ export class MapPanel extends EditorPanel {
           this.layerManager.clear();
           this.post({ type: 'clearLayers' });
         }
+      } else if (msg.type === 'zoomToLayer') {
+        const layerIndex = msg.data?.layerIndex;
+        const requestId = msg.data?.requestId;
+        const layer = this.layerManager.layers.get(layerIndex);
+        if (!layer) {
+          return;
+        }
+        try {
+          const bounds = await vscode.window.withProgress(
+            {
+              location: vscode.ProgressLocation.Notification,
+              title: `Zoom to layer: ${layer.name}`,
+            },
+            () => this.layerManager.getBounds(layerIndex),
+          );
+          if (this.layerManager.layers.get(layerIndex) === layer) {
+            this.post({ type: 'centerObject', data: { bounds, layerIndex, requestId } });
+          }
+        } catch (err) {
+          vscode.window.showErrorMessage(
+            `[Map] Could not zoom to layer: ${err instanceof Error ? err.message : String(err)}`,
+          );
+        }
       } else if (msg.type === 'layerVisibility') {
         const d = msg.data as { layerIndex: number; shown: boolean };
         this.layerManager.setLayerVisibility(d.layerIndex, d.shown);
