@@ -65,6 +65,7 @@ jobs:
     needs: build-vsix
     runs-on: ubuntu-latest
     permissions:
+      id-token: write
       contents: read
 
     steps:
@@ -79,9 +80,9 @@ jobs:
       - name: Publish to Open VSX
         run: |
           if [ "${{ github.event.release.prerelease }}" = "true" ]; then
-            npx ovsx publish *.vsix --pre-release -p "${{ secrets.OVSX_PAT }}"
+            npx ovsx publish *.vsix --pre-release --trusted-publishing
           else
-            npx ovsx publish *.vsix -p "${{ secrets.OVSX_PAT }}"
+            npx ovsx publish *.vsix --trusted-publishing
           fi
 
   publish-pypi:
